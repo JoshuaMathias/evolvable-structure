@@ -1,11 +1,9 @@
 # The ESOI network of the evolvable structure itself
 
-Draft for Joshua's review, 2026-10-17. This is the intent of the structure itself: the evolvable
+This is the intent of the structure itself: the evolvable
 structure that every solution of an adopting repository is recorded, measured and selected through ("The structure itself is
 an implementation of a solution which defines the purpose of the structure", `SKILL.md`). Every field
-is a field of the intent template in the evolvable-structure skill's `SKILL.md`; nothing here adds
-fields of its own. Metric has only a name until the template defines its other fields. Ids are short
-and stable so records can link to each other and to the registry.
+is a field of the intent template in the evolvable-structure skill's `SKILL.md`.
 
 ## Problems
 
@@ -522,9 +520,13 @@ Metric has only a name in the template so far; the other fields wait for it.
 - **Solution:** SO12
 - **Ideals:** ID12
 
-## Open questions for review
+## Answered questions
 
-1. Should each type link both ways as written here (a problem lists its ideals and solutions; an ideal lists the problems it opposes), or only in the direction "Connects to" names?
-2. Do SO5 Measurement harness and SO6 Leaderboard deserve separate solutions? They are separate here because their "best" differs: faithful recording against honest ranking.
-3. SO12 Structure budget has no implementation yet. Keep it as a placeholder, or drop it until it is needed?
-4. The behaviour of AI under ESOI (behave-by-esoi) and its judge are runtime solutions of an adopting repository and are not in this network. Should they move here?
+1. AI: Should each type link both ways as written here (a problem lists its ideals and solutions; an ideal lists the problems it opposes), or only in the direction "Connects to" names?
+   - Joshua: Your question is misleading, as what you list in parenthesis I *did* specify in "Connects to." I included the directions I felt important to specify to ensure the intent is documented. In practice, this depends on what structure holds the ESOI structure, e.g. if it's a graph data model then it only has to be specified once for both directions, as edges.
+3. AI: Do SO5 Measurement harness and SO6 Leaderboard deserve separate solutions? They are separate here because their "best" differs: faithful recording against honest ranking.
+   - Joshua: There are important enough that it's probably useful to have them separate, and it helps for humans skimming and reading only names, to get a clear picture.
+5. AI: SO12 Structure budget has no implementation yet. Keep it as a placeholder, or drop it until it is needed?
+   - Joshua: Keep; it's essentially always needed conceptually to avoid infinite hierarchy, but not every project merits a code solution for this. This repository can improve recommendations and implementations for it over time.
+7. AI: The behaviour of AI under ESOI (behave-by-esoi) and its judge are runtime solutions of an adopting repository and are not in this network. Should they move here?
+   - Joshua: The general application of ESOI to AI is a sub-solution of ESOI, so not in this particular file but yes in this repository.
