@@ -61,3 +61,8 @@ def test_version(capsys):
     with pytest.raises(SystemExit) as exit_info:
         cli.main(["--version"])
     assert exit_info.value.code == 0 and "esoi" in capsys.readouterr().out
+
+
+def test_run_stale_passes_its_flag_to_the_harness(repo, capsys):
+    assert run(repo, "run", "--stale", "--no-record") == 0
+    assert "greet_a_person/live: current" in capsys.readouterr().out

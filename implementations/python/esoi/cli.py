@@ -73,7 +73,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    args = build_parser().parse_args(argv)
+    argv = sys.argv[1:] if argv is None else list(argv)
+    if "run" in argv:   # everything after `run` belongs to the harness, flags included
+        position = argv.index("run")
+        args = build_parser().parse_args(argv[:position + 1])
+        args.rest = argv[position + 1:]
+    else:
+        args = build_parser().parse_args(argv)
     from . import config as config_module
     if args.cmd == "init":
         from .scaffold import init
