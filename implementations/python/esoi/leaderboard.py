@@ -418,6 +418,10 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
         say(f"{component} (selected: {sel or 'none recorded'}) {label}: {detail}")
         for line in format_rows(rows, sel, config.evaluation):
             say(line)
+        for own, rival in (rival_pairs(rows, sel, config.evaluation, history[component])[0] if sel else []):
+            if own is not rows.get(sel) or rival is not rows.get(rival["impl"]):
+                say(f"  = compared on {describe_cases(own)}: {sel} {own['passed']}/{own['cases']} ({own.get('date', '')}) "
+                    f"against {rival['impl']} {rival['passed']}/{rival['cases']} ({rival.get('date', '')})")
         for impl, why in (incomparable_rivals(rows, sel, config.evaluation, history[component]) if sel else []):
             flagged += 1 if strict else 0
             say(f"  ? {impl} is not comparable with {sel}: {why}; re-run both on the same sample "
