@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.coverage
+.env
+.env.*
+!.env.example
+.esoi_sync_state.json
+scratch/

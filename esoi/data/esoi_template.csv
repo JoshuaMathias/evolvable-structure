@@ -1,0 +1,39 @@
+entity,field_key,question,group,required
+problem,definition,"A description of what motivated the intent. A challenge, difficulty, or description of how an ideal is not reached.",meta,no
+problem,problem,What is the problem?,specify,yes
+problem,who_has_it,Who or what type of person has the problem?,specify,yes
+problem,why_it_matters,Why does this problem matter?,specify,yes
+problem,why_hard,Why is the problem hard to resolve?,specify,yes
+problem,existing_attempts,What solutions or workarounds already attempt to address the prompt?,specify,yes
+problem,what_it_is_not,"A decision, task, recommendation, or component, but all of these can *have* problems.",meta,no
+problem,connects_to,"Ideals that oppose at least one aspect of the problem, Solutions that would solve at least one aspect of the problem",meta,no
+solution,definition,A definition of how one or more problems can be addressed to fulfill the intent.,meta,no
+solution,name,What's a name that describes the type of solution it is?,specify,yes
+solution,scoped_purpose,What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding?,specify,yes
+solution,goals,What are the solution's measureable goals?,specify,yes
+solution,knowledge,What knowledge informs the solution's definition or implementations?,specify,yes
+solution,measures_of_success,What would indicate the solution is successful?,specify,yes
+solution,parameters,Parameters,interface,no
+solution,inputs,Inputs,interface,no
+solution,outputs,Outputs,interface,no
+solution,effects,Effects (other than outputs),interface,no
+solution,usage_notes,Other information on when and how to use the solution,interface,no
+solution,what_it_is_not,"Fully functional code or solution, but it can be an abstract class, template, or routing which a separate structure solution network defines.",meta,no
+solution,connects_to,"Implementations that build what the solution defines, Metrics that define and implement the solution's measures of success, Problems the solution addresses,",meta,no
+implementation,definition,The built structure which carries out its associated solution; also known as an alternative.,meta,no
+implementation,name,What's a name that distinguishes this implementation from other alternatives?,specify,yes
+implementation,description,How does the implementation achieve the goals of its solution's definition?,specify,yes
+implementation,advantages,Advantages,specify,yes
+implementation,disadvantages,Disadvantages,specify,yes
+implementation,what_it_is_not,What endusers of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solution's will define interfaces.,meta,no
+ideal,definition,"A definition of the future state implied by the intent, in a particular dimension or aspect.",meta,no
+ideal,name,What's a combined noun with adjective that represents the ideal's direction of interest?,specify,yes
+ideal,principle,What does this ideal ask for?,specify,yes
+ideal,state_description,Describe what it would be like to experience this ideal.,specify,yes
+ideal,hints_of_measurement,How would you know this ideal is reached?,specify,yes
+ideal,what_it_is_not,"A practical metric or solution, or technology.",meta,no
+ideal,connects_to,Problems the ideal opposes.,meta,no
+metric,definition,"A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).",meta,no
+metric,name,What's a name that clarifies what is being measured?,specify,yes
+metric,scoped_purpose,What does this metric attempt to measure?,specify,yes
+metric,record,What is recorded as the metric to compare implementations?,specify,yes
