@@ -33,7 +33,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `eval-review-tracker` | evaluation | Cases for the tracker. | py-tracker |
 | `eval-check-a-consumer` | evaluation | Mutation cases for the consumer check. | py-consumer-check |
 | `eval-know-stale-results` | evaluation | Cases for telling a stale result from a current one. | py-metric-run-policy |
-| `eval-shared` | evaluation | Fixtures shared by the evaluations, and the results log. | py-check-runner, py-harness, py-consumer-check, py-metric-run-policy |
+| `eval-shared` | evaluation | Fixtures shared by the evaluations, and the results log. | py-check-runner, py-harness, py-consumer-check, py-metric-run-policy, behave-by-esoi, judge-esoi-behaviour |
 | `python-project` | project | Packaging, the implementation's readme and its reference documents. | py-check-runner |
 | `documentation` | docs | Explanation, guides and non-code templates (the main feature of the repository). | docs-and-templates |
 | `examples` | docs | Adopters as short examples and testimonials. | docs-and-templates |
@@ -41,5 +41,8 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `project-files` | project | Files at the repository root: readme, configuration, contributing, licence. | docs-and-templates |
 | `ci` | project | The continuous integration workflow. | py-metric-run-policy |
 | `skill-distribution` | tools | Generating, checking and installing the public copy of the author's skill. | py-skill-distribution |
-| `public-skill` | docs | The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package. | py-skill-distribution |
+| `public-skill` | docs | The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package. | py-skill-distribution, behave-by-esoi |
 | `eval-sync-the-skill` | evaluation | Cases for the sync, the drift check, leak detection and install. | py-skill-distribution |
+| `behaviour` | tools | Grading an AI agent's reply against a behaviour case: the pattern check, the judge prompt and verdict, and a command provider. | behave-by-esoi, judge-esoi-behaviour |
+| `eval-behave-by-esoi` | evaluation | Cases, recorded replies and the arms for whether an agent acts by the principles. | behave-by-esoi |
+| `eval-judge-esoi-behaviour` | evaluation | Labelled replies and the arms for how far a judge agrees with them. | judge-esoi-behaviour |
