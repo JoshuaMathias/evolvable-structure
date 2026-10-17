@@ -34,3 +34,6 @@ examples,docs,examples/**,Adopters as short examples and testimonials.,docs-and-
 structure-registry,docs,structure/**,This repository's own overall network and detailed records.,py-records-check
 project-files,project,*,"Files at the repository root: readme, configuration, contributing, licence.",docs-and-templates
 ci,project,.github/**,The continuous integration workflow.,py-metric-run-policy
+skill-distribution,tools,implementations/python/esoi/skill.py,"Generating, checking and installing the public copy of the author's skill.",py-skill-distribution
+public-skill,docs,skill/**;.claude-plugin/**;implementations/python/esoi/data/skill/**,"The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package.",py-skill-distribution
+eval-sync-the-skill,evaluation,implementations/python/evaluation/components/sync_the_skill/**,"Cases for the sync, the drift check, leak detection and install.",py-skill-distribution

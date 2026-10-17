@@ -44,5 +44,6 @@ def test_adopters_are_named_only_in_the_examples_and_the_rules_about_editing():
     allowed = {REPO / "CLAUDE.md", Path(__file__).resolve()}
     names = re.compile(r"\bqar\b|quest[-_ ]ai[-_ ]runner|quest[-_]backend|spiritual|\bQuest\b", re.I)
     bad = [str(p.relative_to(REPO)) for p in tracked()
-           if (REPO / "examples") not in p.parents and p not in allowed and not p.name.endswith(".csv") and names.search(p.read_text(errors="ignore"))]
+           if (REPO / "examples") not in p.parents and (REPO / "skill") not in p.parents and PACKAGE / "esoi" / "data" / "skill" not in p.parents
+           and p not in allowed and not p.name.endswith(".csv") and names.search(p.read_text(errors="ignore"))]
     assert bad == []

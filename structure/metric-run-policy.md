@@ -23,6 +23,7 @@ The problem is `prob-metrics-run-at-the-wrong-time` and the ideal is `ideal-time
 | Metric | Arm | Trigger | Stages | Call budget | Cost | Approver | Stale when |
 |---|---|---|---|---|---|---|---|
 | every detailed metric in `metrics.csv` | offline | every change to the measured code or its cases | the whole set | none, no model is called | none | none needed | the cases changed, the measured code changed since the recorded commit, or it was run on uncommitted code |
+| `metric-py-skill-distribution` (sync drift and leak detection) | offline | every change to `esoi/skill.py` or its cases; the live freshness check also runs after every edit of the author's skill, where its source and private term list are reachable | the whole set | none, no model is called | none | none needed | the cases changed, `skill.py` changed since the recorded commit, or it was run on uncommitted code |
 
 ## In practice
 
@@ -35,6 +36,12 @@ The problem is `prob-metrics-run-at-the-wrong-time` and the ideal is `ideal-time
   the default branch (`.github/workflows/check.yml`).
 - If a paid metric is ever added: estimate its cost first, run a stratified sample of 3, then 10, then 30 cases with a call
   budget, and have Joshua approve the spend before the run.
+
+## The skill copy
+
+The cases above prove that the sync and the check catch drift and leaks. Whether the committed copy is current against the author's own skill
+can only be known where that skill is reachable, so the author runs `esoi skill sync` and `esoi skill check` (with `ESOI_SKILL_SOURCE` and
+`ESOI_SKILL_DENYLIST`) after each edit of it, and public continuous integration runs the generic leak scan on the committed copy.
 
 ## Speed
 
