@@ -13,6 +13,10 @@ describes how those links are written down as columns in record files.
 
 ## Links agree on both sides
 
+Each template's "Connects to" names the directions worth stating so the intent is documented. How a link is stored
+depends on the structure that holds the records: a graph stores each link once, as an edge read in both directions;
+record files like the ones below store it on both sides, so the two copies must agree.
+
 If a solution lists a problem, that problem lists the solution. Agreement on both sides is cheap to check and catches
 the most common drift: a record renamed or deleted on one side only. Every problem has at least one solution and one
 ideal; every ideal opposes at least one problem; every solution has one or more ideals (its own or its parent's) and a

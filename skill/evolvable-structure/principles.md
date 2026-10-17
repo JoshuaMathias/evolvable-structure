@@ -118,6 +118,17 @@ and the evaluation depend on, and how the code is built is one level down. Compa
 in a metric's record, not in implementations; status, gaps and numbers go on Quest or dated result files,
 not in the records.
 
+**Joshua's answers on the structure network, 2026-10-17.** On whether types link both ways: "Your question is
+misleading, as what you list in parenthesis I *did* specify in "Connects to." I included the directions I felt important
+to specify to ensure the intent is documented. In practice, this depends on what structure holds the ESOI structure, e.g.
+if it's a graph data model then it only has to be specified once for both directions, as edges." So before asking
+whether SKILL.md specifies something, check it, and quote it in the question. On keeping two close solutions separate
+(a measurement harness and a leaderboard): important enough to separate, and it "helps for humans skimming and reading
+only names, to get a clear picture." On a structure budget with no implementation: "Keep; it's essentially always needed
+conceptually to avoid infinite hierarchy, but not every project merits a code solution for this." On ESOI applied to AI
+behaviour: "The general application of ESOI to AI is a sub-solution of ESOI", so it belongs in the evolvable-structure
+repository, though not in its structure network file.
+
 ## Upkeep of this skill
 
 - Never edit `SKILL.md`. A new statement from Joshua goes, dated and in his words, into the matching

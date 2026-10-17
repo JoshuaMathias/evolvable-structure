@@ -343,7 +343,7 @@ is a field of the intent template in the evolvable-structure skill's `SKILL.md`.
 - **Inputs:** The check's history, time per check, files touched per change.
 - **Outputs:** A periodic report of cost against catches.
 - **Effects (other than outputs):** Proposes removals.
-- **Other information on when and how to use the solution:** Not built yet; this record holds the place so the cost is not forgotten.
+- **Other information on when and how to use the solution:** Needed in every project, conceptually, to avoid an infinite hierarchy; not every project merits a coded implementation, and a written weighing rule is often enough (IM17). This repository can improve its recommendations and implementations over time.
 - **Addresses:** PR12
 - **Pursues:** ID12
 
@@ -460,6 +460,20 @@ is a field of the intent template in the evolvable-structure skill's `SKILL.md`.
 - **Advantages:** One short document to read first.
 - **Disadvantages:** Prose can drift from the rules unless updated with them.
 - **Implements:** SO11
+
+### IM17 Written weighing rule (Structure budget, selected)
+- **Name:** Written weighing rule
+- **Description:** Before adding a sub-solution, rule or record, weigh its build and upkeep cost against what comparing alternatives and defining it clearly would gain, counted to the next highest priority milestone (`docs/explanation/when-to-split.md`), and weigh it again at each milestone.
+- **Advantages:** Costs nothing to adopt, works without code, applies to any project.
+- **Disadvantages:** Depends on people applying it; nothing measures the structure's cost automatically.
+- **Implements:** SO12
+
+### IM18 Measured cost and catches (Structure budget)
+- **Name:** Measured cost and catches
+- **Description:** A tool records the time the check adds and which rules, records and checks caught a real violation, and proposes removing those that catch nothing over a period.
+- **Advantages:** Makes the cost visible and pruning evidence-based.
+- **Disadvantages:** Needs tooling and a history of catches; not every project merits it.
+- **Implements:** SO12
 
 ## Metrics
 

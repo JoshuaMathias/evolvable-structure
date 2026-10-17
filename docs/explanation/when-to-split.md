@@ -86,12 +86,20 @@ These suggest a split, but none decides it alone; each still has to pass both te
 - Part of a solution would be used by other solutions or another system with only new parameters (a benefit beyond the
   hierarchy).
 - A result keeps being discussed as "good for these cases, bad for those".
+- A reader skimming only the solution names would get a clearer picture of the system with the part named on its own.
 
 ## The right level
 
 Too fine is as wrong as too coarse. A solution defined per case leaves too few cases to measure and multiplies records.
 A solution that is too broad lets one implementation win on average while losing badly on a use case that matters. When
 you place a solution in the network, write the reason: which definition of best it has that its neighbour does not.
+
+## What stops the hierarchy
+
+Every solution could be split again, so something has to say where to stop. That is the job of a structure budget: a
+solution that keeps the structure's own cost in view and prunes what stops paying. It is needed in every project,
+conceptually, to avoid an infinite hierarchy, but not every project merits a coded implementation of it; a written rule
+(the weighing above, applied at each milestone) is often enough.
 
 ## Merging back
 
