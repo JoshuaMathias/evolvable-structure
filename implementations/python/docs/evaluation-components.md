@@ -29,7 +29,7 @@ package under test (rule S12), so a number measures what ships.
 
 ## In this repository
 
-Nine components ship in `implementations/python/evaluation/components/`: the structure check, placement and layering, the
-records, template reading, selection, the harness, the leaderboard, the tracker and the consumer check. Their cases build
+Ten components ship in `implementations/python/evaluation/components/`: the structure check, placement and layering, the
+records, template reading, selection, the harness, the leaderboard, the tracker, the consumer check and the public copy of the skill. Their cases build
 small synthetic repositories (`repo_fixture.py`, `harness_fixture.py`, `consumer_fixture.py`) and inject one defect at a
 time, so a case passes only when the right rule reports the right path.

@@ -4,6 +4,7 @@
     esoi check [--strict] [--write-docs]   run every rule (esoi rules lists them)
     esoi rules [--markdown]                list the rules and what each one means
     esoi template sync|check               keep the parsed intent template in step with its source
+    esoi skill sync|check|install          the public copy of the author's skill: generate, verify, install
     esoi records                           check only the intent records
     esoi run COMPONENT --impl NAME [--record]   run and record one implementation over a component's cases
     esoi leaderboard [--strict]            rank the implementations of every evaluated solution
@@ -43,6 +44,14 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("template", help="the intent template")
     p.add_argument("action", choices=["sync", "check"])
     p.add_argument("--source", default=None, help="the SKILL.md-style file holding the template")
+    p = sub.add_parser("skill", help="the public copy of the author's skill")
+    p.add_argument("action", choices=["sync", "check", "install"])
+    p.add_argument("--source", default=None, help="sync, check: the author's skill folder (else $ESOI_SKILL_SOURCE)")
+    p.add_argument("--denylist", default=None, help="check: a file of private terms (else $ESOI_SKILL_DENYLIST)")
+    p.add_argument("--project", default=None, help="install: a project folder; the skill goes in its .claude/skills")
+    p.add_argument("--dest", default=None, help="install: a skills folder of another agent")
+    p.add_argument("--from", dest="from_dir", default=None, help="install: a skill folder to install instead of the bundled one")
+    p.add_argument("--force", action="store_true", help="install: replace a different skill already there")
     sub.add_parser("records", help="check only the intent records")
     p = sub.add_parser("run", help="run one implementation over a component's cases", add_help=False)
     p.add_argument("rest", nargs=argparse.REMAINDER)
@@ -87,6 +96,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("next: git init && git add . && git commit, then `esoi run greet_a_person --impl live --record` "
               "and `esoi check --strict`")
         return 0
+    if args.cmd == "skill" and args.action == "install":
+        from . import skill
+        return skill.install(args.project, args.dest, args.from_dir, args.force)
     if args.cmd == "hygiene":
         from . import hygiene
         table = {}
@@ -111,6 +123,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.cmd == "template":
         from . import templates
         return templates.sync(config, args.source, check=args.action == "check")
+    if args.cmd == "skill":
+        from . import skill
+        if args.action == "sync":
+            return skill.sync(config, args.source)
+        return skill.check(config, args.source, args.denylist)
     if args.cmd == "records":
         from . import template
         from .records import check_records, overall_ids

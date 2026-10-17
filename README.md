@@ -19,12 +19,14 @@ implementation of the checking and measuring tools, and ESOI is applied to this 
    record headers, a repository standard, a review sheet layout and a metric run policy. They are generated from the author's own
    `SKILL.md`, so the questions are his words.
 3. **Follow** [docs/guides/](docs/guides/): apply ESOI to a new project by hand first, then with tools.
+4. **Install** the author's skill itself, as a plugin, a folder download or with `esoi`: [docs/guides/install-the-skill.md](docs/guides/install-the-skill.md).
 
 ## What is here
 
 | Folder | What it holds |
 |---|---|
 | [`docs/`](docs/) | The main feature: explanation, guides and templates, all non-code |
+| [`skill/`](skill/) | The author's `evolvable-structure` skill as a self-contained folder and Claude Code plugin, generated from his own skill |
 | [`implementations/python/`](implementations/python/) | The `esoi` package and command: checks, measuring, a leaderboard, a review tracker. One example implementation |
 | [`examples/`](examples/) | Repositories that adopted ESOI, as short testimonials |
 | [`structure/`](structure/) | ESOI applied to this repository: its overall network and its detailed records |

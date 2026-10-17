@@ -1,0 +1,13 @@
+{
+  "name": "evolvable-structure",
+  "displayName": "Evolvable Structure that Optimizes Intent",
+  "description": "Joshua Mathias's skill for designing structure that improves over time as measured by metrics and adapts to changing intent.",
+  "author": {
+    "name": "Joshua Mathias"
+  },
+  "homepage": "https://github.com/JoshuaMathias/evolvable-structure",
+  "repository": "https://github.com/JoshuaMathias/evolvable-structure",
+  "license": "Apache-2.0",
+  "keywords": ["design", "architecture", "evaluation", "esoi"],
+  "skills": ["./evolvable-structure/"]
+}

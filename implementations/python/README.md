@@ -38,6 +38,7 @@ The full walk through is [docs/guides/apply-with-tools.md](../../docs/guides/app
 | `esoi.tracker`, `esoi.sheets` | The review sheet tabs and their two-way sync |
 | `esoi.consumer` | Check a repository that builds on a library |
 | `esoi.hygiene` | Secret and private-data scan, working tree and history |
+| `esoi.skill` | Generate, check and install the public copy of the author's skill |
 | `esoi.scaffold`, `esoi.cli` | `esoi init` and the command |
 
 Reference: [configuration](docs/configuration.md), [evaluation components](docs/evaluation-components.md),

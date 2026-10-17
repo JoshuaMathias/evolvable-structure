@@ -39,4 +39,4 @@ Issues = "https://github.com/JoshuaMathias/evolvable-structure/issues"
 include = ["esoi*"]
 
 [tool.setuptools.package-data]
-esoi = ["data/*.csv", "data/*.md"]
+esoi = ["data/*.csv", "data/*.md", "data/skill/**/*"]

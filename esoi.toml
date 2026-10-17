@@ -11,3 +11,24 @@ overall = "structure/overall"
 templates_dir = "docs/templates"
 excerpts_file = "docs/explanation/from-the-skill.md"
 other_layers = ["docs", "evaluation", "examples", "scripts", "tests", "vendor", "prompts", "project"]
+
+# The public copy of the author's skill is generated from his own skill folder (`esoi skill sync`, source from
+# ESOI_SKILL_SOURCE or --source) and checked by `esoi skill check`. Only public file names are listed here; the list of
+# private terms the check also rejects is never committed (ESOI_SKILL_DENYLIST).
+[skill]
+dir = "skill/evolvable-structure"
+copies = ["implementations/python/esoi/data/skill/evolvable-structure"]
+private_dirs = ["archive"]
+include = [
+  "SKILL.md", "INDEX.md", "principles.md", "principles/*.md", "coding.md",
+  "coding/components.md", "coding/registry_and_templates.md", "coding/pipelines_and_experiments.md",
+  "coding/writealyze.md", "coding/concept_ai_quest_qar.md", "other-categories.md",
+  "sources/INDEX.md", "sources/public_research.md", "sources/components_research.md",
+  "sources/definitions_and_advice.md", "sources/evolutionary_architecture_talk.md",
+]
+
+[[skill.substitute]]
+file = "SKILL.md"
+pattern = " under \\S+ \\(it's only in the [^)]*? folder so that this user can access\\)"
+replacement = ""
+reason = "The sentence names the absolute folder of the author's private copy. In the installed skill, 'this skill's folder' is the folder it is installed in."

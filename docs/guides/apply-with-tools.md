@@ -79,6 +79,7 @@ tells you whether they are stale; a new field appears as a missing column in you
 | `esoi tracker build\|check` | Builds the review sheet tabs |
 | `esoi sheet-sync sync\|push\|pull\|check` | Syncs those tabs with a Google Sheet |
 | `esoi template sync\|check` | Parses the template source and regenerates the templates |
+| `esoi skill sync\|check\|install` | Generates and verifies the public copy of the skill, or installs it ([guide](install-the-skill.md)) |
 | `esoi consumer check` | Checks a repository that builds on a library |
 | `esoi hygiene [--history]` | Scans for secrets and private data before a public push |
 | `esoi select <solution>` | Shows what a selection table resolves |

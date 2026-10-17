@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The author's `evolvable-structure` skill as a complete public folder (`skill/evolvable-structure/`), installable as a Claude Code
+  plugin (`.claude-plugin/marketplace.json`), by downloading the folder, or with `esoi skill install`. It is generated from the
+  author's own skill by `esoi skill sync`, and `esoi skill check` fails on a stale copy or a leak. See
+  [docs/guides/install-the-skill.md](docs/guides/install-the-skill.md).
 - When metrics are run: an explanation, a fill-in template and this repository's own policy; records link a policy solution to the
   metrics it governs (`governs_metric_ids`, `run_policy_ids`).
 - `esoi check --strict` also calls a result stale when the measured code changed since its commit; `esoi run --stale` re-runs
@@ -15,7 +19,7 @@
   `parent_metric_ids`), and a detailed solution may take its problem and ideal from its parents.
 - `esoi template sync` also writes the per-type templates, the record headers, the review sheet layout and the quoted
   excerpts.
-- ESOI applied to this repository (`structure/`), with nine offline evaluation components.
+- ESOI applied to this repository (`structure/`), with ten offline evaluation components.
 
 ## 0.1.0
 

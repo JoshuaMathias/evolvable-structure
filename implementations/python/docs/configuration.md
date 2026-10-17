@@ -54,6 +54,15 @@ Problems = { csv = "docs/structure/tracker/problems.csv", key = "problem_id", pr
 [hygiene]                              # for `esoi hygiene`
 allow_email_domains = ["corp.test"]
 exclude = ["tests/fixtures/"]
+
+[skill]                                # for `esoi skill`: a public copy of a private skill (see esoi/skill.py)
+dir = "skill/myskill"                  # the primary copy; `copies` lists folders that must hold the identical copy
+include = ["SKILL.md", "notes/*.md"]   # the files that ship, relative to the source (ESOI_SKILL_SOURCE or --source)
+[[skill.substitute]]                   # a regular expression that must match once; the reason is required
+file = "SKILL.md"
+pattern = " under \\S+ \\(private\\)"
+replacement = ""
+reason = "names a private folder"
 ```
 
 ## Record files

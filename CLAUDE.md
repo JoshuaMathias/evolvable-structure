@@ -26,6 +26,7 @@ The main feature is explanation and templates that need no code; Python is one e
 |---|---|---|
 | `docs/` | Explanation, guides and templates, all non-code | writing or changing what ESOI says |
 | `docs/templates/`, `docs/explanation/from-the-skill.md` | Generated from Joshua's `SKILL.md`; never hand-edit | the template changes (run `esoi template sync`) |
+| `skill/`, `.claude-plugin/`, `implementations/python/esoi/data/skill/` | Public copy of the author's skill; generated, never hand-edit | the skill changes (run `esoi skill sync` with `ESOI_SKILL_SOURCE`) |
 | `implementations/python/` | The `esoi` package, its tests and evaluation components | changing the tools |
 | `structure/` | ESOI applied to this repository: `overall/` is the overall network, the rest are the detailed records | adding or changing a part |
 | `examples/` | Adopters as short testimonials | an adopter has a paragraph to add |
@@ -34,7 +35,7 @@ The main feature is explanation and templates that need no code; Python is one e
 
 - **`SKILL.md` is Joshua's and the authority.** Never edit it. The intent template and the definitions and principles are
   quoted from it by `esoi template sync`; do not restate them in other words.
-- **Adopters are examples only.** Name them in `examples/` and nowhere else (a test enforces it). No adopter's
+- **Adopters are examples only.** Name them in `examples/` and nowhere else, except that the generated `skill/` frames the author's own frameworks as its examples (a test enforces it). No adopter's
   configuration, plugin or migration code lives here.
 - **This repository is public.** No keys, real user or team ids, real people's emails, internal names, or absolute machine
   paths in code, docs, tests or history. `esoi hygiene --history` checks.

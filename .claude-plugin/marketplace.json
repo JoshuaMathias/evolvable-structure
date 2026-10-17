@@ -1,0 +1,16 @@
+{
+  "name": "esoi",
+  "description": "Joshua Mathias's evolvable-structure skill (Evolvable Structure that Optimizes Intent), as a Claude Code plugin",
+  "owner": {
+    "name": "Joshua Mathias"
+  },
+  "plugins": [
+    {
+      "name": "evolvable-structure",
+      "source": "./skill",
+      "description": "Design anything to serve more than one case, context or situation: intent as problems, solutions, implementations, ideals and metrics, with the best implementation chosen by metric.",
+      "category": "development",
+      "homepage": "https://github.com/JoshuaMathias/evolvable-structure"
+    }
+  ]
+}
