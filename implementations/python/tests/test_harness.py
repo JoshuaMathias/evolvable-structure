@@ -268,6 +268,7 @@ def test_a_sampled_run_records_its_sample_and_a_full_run_leaves_it_blank(tmp_pat
     assert harness.sample_args(cfg, "comp_sample", written[2]) == ["--only", "B"]
     legacy = dict(written[0], sample="", cases="1")   # recorded before the column: fewer cases than the set
     assert harness.sample_args(cfg, "comp_sample", legacy) == ["--sample", "1"]
+    assert harness.sample_args(cfg, "comp_sample", dict(legacy, cases_sha="deadbeef")) == []   # other cases: the full set
 
 
 def test_rerun_stale_keeps_the_sample_and_runs_a_rival_on_the_selected_arms_sample(repo):

@@ -148,7 +148,8 @@ def sample_label(args: argparse.Namespace, cases: List[dict], whole: int) -> str
 def sample_args(config: Config, component: str, row: Optional[Dict[str, str]]) -> List[str]:
     """The ``esoi run`` flags that reproduce the sample a recorded row was scored on (``[]`` for the full set). A row
     recorded before the ``sample`` column that scored fewer cases than the set has is read as ``--sample`` of that size,
-    which is what ``--sample`` recorded (stratified_sample is deterministic and a smaller N is a prefix of a larger)."""
+    which is what ``--sample`` recorded (stratified_sample is deterministic and a smaller N is a prefix of a larger). That
+    reading holds only while the case file is unchanged; on other cases the old count says nothing, so the full set runs."""
     if not row:
         return []
     label = (row.get("sample") or "").strip()
@@ -156,6 +157,8 @@ def sample_args(config: Config, component: str, row: Optional[Dict[str, str]]) -
         return ["--only", label[len("only:"):]]
     if label.startswith("sample:"):
         return ["--sample", label[len("sample:"):]]
+    if (row.get("cases_sha") or "") != cases_digest(component, config.evaluation):
+        return []   # a legacy count on other cases says nothing about a sample: the full set
     try:
         count = int(float(row.get("cases") or 0))
     except ValueError:
