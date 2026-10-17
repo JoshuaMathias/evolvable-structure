@@ -30,3 +30,4 @@ date,component,impl,cases,passed,dev,heldout,model_calls,tokens_in,tokens_out,co
 2026-10-17,review_tracker,live_tracker,9,9,9/9,0/0,0,0,0,0.0,0.1,0cca885,c1a3350f,none,
 2026-10-17,check_a_consumer,live_consumer_check,22,22,22/22,0/0,0,0,0,0.0,0.0,0cca885,1e0e396f,none,
 2026-10-17,know_stale_results,live_checker,12,12,12/12,0/0,0,0,0,0.0,0.3,0cca885,87ff17d7,none,
+2026-10-17,sync_the_skill,live_skill,26,26,26/26,0/0,0,0,0,0.0,0.0,9e172fe,423db61b,none,
