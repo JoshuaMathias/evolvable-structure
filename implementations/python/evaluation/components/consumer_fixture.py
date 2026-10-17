@@ -17,11 +17,11 @@ LIBRARY_FILES = {
     "fixlib/ports.py": ('"""The fixture port."""\nfrom typing import Protocol\n\n\nclass Sink(Protocol):\n'
                         '    """Takes an escalation."""\n\n    def escalate(self, item): ...\n'),
     "fixlib/api.py": '"""The fixture API."""\n\n\ndef run():\n    """Runs."""\n',
-    "library_solutions.csv": "solution_id\nescalate-to-a-human\n",
+    "library_solutions.csv": "solution_id\nnotify-a-person\n",
 }
 SINK = '"""A fixture consumer sink."""\n\n\nclass Sink:\n    """Takes an escalation."""\n\n    def escalate(self, item):\n        return None\n'
 REGISTRY = ("integration_id,module,symbol,lib_solution_id,lib_port,lib_symbol,kind,selected_by,metric,tests,status,gap,action,"
-            "solution_id\nsink,consumer_sink,Sink,escalate-to-a-human,Sink,,implementation,hand-wired,a live proof,"
+            "solution_id\nsink,consumer_sink,Sink,notify-a-person,Sink,,implementation,hand-wired,a live proof,"
             "tests/test_sink.py,done,,,escalate\n")
 SOLUTIONS = ("solution_id,selected,metric_files,gap,metric_kind,invariant_reason,component,component_impl\n"
              "escalate,consumer_sink:Sink,case_files/cases.json,,,,,\n")

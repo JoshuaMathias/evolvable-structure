@@ -30,7 +30,7 @@ MAX_BYTES = 2_000_000
 PATTERNS: Dict[str, "re.Pattern[str]"] = {
     "anthropic-key": re.compile(r"sk-ant-[A-Za-z0-9_-]{10,}"),
     "openai-key": re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9]{32,}"),
-    "api-key": re.compile(r"\b[a-z]{2,8}_[A-Za-z0-9]{24,}"),
+    "api-key": re.compile(r"(?<![\w/.=-])[a-z]{2,8}_[A-Za-z0-9]{24,}"),
     "aws-key": re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     "github-token": re.compile(r"\bgh[pousr]_[A-Za-z0-9]{30,}"),
     "bearer-token": re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]{24,}"),

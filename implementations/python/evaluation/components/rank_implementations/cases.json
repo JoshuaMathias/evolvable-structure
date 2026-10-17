@@ -935,31 +935,31 @@
   "args": {
    "rows": [
     {
-     "impl": "qar_planner",
+     "impl": "main_arm",
      "passed": 8,
      "cases": 10,
      "cost_usd": 0.0,
      "cases_sha": "x"
     },
     {
-     "impl": "single_prompt",
+     "impl": "partial_arm",
      "passed": 9,
      "cases": 10,
      "cost_usd": 0.0,
      "cases_sha": "x"
     }
    ],
-   "selected": "qar_planner",
+   "selected": "main_arm",
    "markers": {
-    "single_prompt": "ABLATION"
+    "partial_arm": "ABLATION"
    }
   },
   "expect": {
    "eq": {
     "verdict": "UNMEASURED",
     "arms": {
-     "qar_planner": "",
-     "single_prompt": "ablation"
+     "main_arm": "",
+     "partial_arm": "ablation"
     }
    }
   }
@@ -971,31 +971,31 @@
   "args": {
    "rows": [
     {
-     "impl": "qar_planner",
+     "impl": "main_arm",
      "passed": 8,
      "cases": 10,
      "cost_usd": 0.0,
      "cases_sha": "x"
     },
     {
-     "impl": "keyword_rules",
+     "impl": "floor_arm",
      "passed": 8,
      "cases": 10,
      "cost_usd": 0.0,
      "cases_sha": "x"
     }
    ],
-   "selected": "qar_planner",
+   "selected": "main_arm",
    "markers": {
-    "keyword_rules": "BASELINE"
+    "floor_arm": "BASELINE"
    }
   },
   "expect": {
    "eq": {
     "verdict": "TIE",
     "arms": {
-     "qar_planner": "",
-     "keyword_rules": "baseline"
+     "main_arm": "",
+     "floor_arm": "baseline"
     }
    }
   }
@@ -1007,31 +1007,31 @@
   "args": {
    "rows": [
     {
-     "impl": "dev_quest_chat",
+     "impl": "live_arm",
      "passed": 1,
      "cases": 10,
      "cost_usd": 0.0,
      "cases_sha": "x"
     },
     {
-     "impl": "reference_replies",
+     "impl": "validity_arm",
      "passed": 10,
      "cases": 10,
      "cost_usd": 0.0,
      "cases_sha": "x"
     }
    ],
-   "selected": "dev_quest_chat",
+   "selected": "live_arm",
    "markers": {
-    "reference_replies": "VALIDITY"
+    "validity_arm": "VALIDITY"
    }
   },
   "expect": {
    "eq": {
     "verdict": "UNMEASURED",
     "arms": {
-     "dev_quest_chat": "",
-     "reference_replies": "validity"
+     "live_arm": "",
+     "validity_arm": "validity"
     }
    }
   }
