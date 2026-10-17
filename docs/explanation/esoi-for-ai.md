@@ -62,9 +62,9 @@ author's, agreement shows the judge is not broken, not that it is right; a perso
 column and the headline shows how many labels are theirs. The judge and the agent that wrote a reply may be the same model,
 and then it may favour its own phrasing; the metric measures that risk and does not remove it.
 
-## Humans review metrics, and can still add value
+## Humans need only review metrics, and can still add value
 
-The people who steer review the cases, the metric and its results, not every reply. They can still read a reply or
+The people who steer need only review the cases, the metric and its results, not every reply. They can still read a reply or
 improve the instructions, and that still adds value. When someone corrects an agent, the lasting fix is a new case, so the
 correction is measured from then on and the instructions can change without losing it.
 
