@@ -2,6 +2,8 @@
 package = "esoi"
 package_dir = "implementations/python/esoi"
 python_path = ["implementations/python"]
+# The bundled skill copy is text, not measured code: editing it must not stale every metric.
+code_paths = ["implementations/python/esoi", ":(exclude)implementations/python/esoi/data"]
 layers = ["core", "tools", "cli"]
 structure_dir = "structure"
 evaluation_dir = "implementations/python/evaluation/components"
@@ -33,3 +35,7 @@ file = "SKILL.md"
 pattern = " under \\S+ \\(it's only in the [^)]*? folder so that this user can access\\)"
 replacement = ""
 reason = "The sentence names the absolute folder of the author's private copy. In the installed skill, 'this skill's folder' is the folder it is installed in."
+
+[hygiene]
+# The author's public commit identity.
+allow_mailboxes = ["joshuamonkey"]

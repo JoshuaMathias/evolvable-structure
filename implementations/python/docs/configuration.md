@@ -21,6 +21,7 @@ results = "evaluation/components/results.csv"
 shared_eval_dirs = ["__pycache__"]     # folders in evaluation_dir that are not a solution's metric
 code_paths = ["mylib"]                 # what counts as the measured code when marking a result "-dirty"; an entry may point into
                                        # a sibling repository ("../sibling/pkg"): its own commit is recorded in `code_shas`
+                                       # entries are git pathspecs, so ":(exclude)mylib/data" leaves bundled text out
 paid_arms = ["chat/openai"]            # arms `esoi run --stale` skips because they spend money (also: PAID = True in the module)
 prices = { "model-x" = { input = 3.0, output = 15.0 } }   # USD per million tokens; computes cost_usd when a provider reports none
 metric_command = '(?:esoi run|run\.py) (\w+) --impl (\w+)'   # how a metric's command names a component and an implementation
