@@ -3,7 +3,9 @@
 Evolvable Structure that Optimizes Intent (ESOI) is Joshua Mathias's way of turning an intention into a
 structure that optimizes the fulfilling of that intent, while keeping the structure open to changes in the intent.
 Intent is written down as five linked kinds of record (problems, ideals, solutions, implementations and metrics),
-alternatives are compared by a metric, and the best one is used. Humans review metrics, not implementations.
+alternatives are compared by the metric the solution names as authoritative, and the best one is used automatically.
+So people need only review metrics to steer, not implementations, though they can still review and improve
+implementations and that still adds value.
 
 This repository is mostly explanation and fill-in templates that need no code. Python is one example
 implementation of the checking and measuring tools, and ESOI is applied to this repository too.

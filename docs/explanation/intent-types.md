@@ -25,5 +25,6 @@ connects to. The definitions of intent, evolvable, structure and the rest are in
   sentence that says "passes most cases" is out of date the day a case is added.
 - **Say when each Metric is run.** Timing is not a field of the Metric template, so it belongs to a solution that governs the
   metrics: see [when-metrics-are-run.md](when-metrics-are-run.md).
-- **A problem is a difficulty someone has, not a task.** "Add a cache" is a task. "Reports take a minute to load and
-  people stop opening them" is a problem.
+- **A problem is a challenge, a difficulty, or how an ideal is not reached; it is not a decision, task,
+  recommendation or component**, though each of those can *have* problems. "Add a cache" is a task. "Reports take a
+  minute to load and people stop opening them" is a problem.

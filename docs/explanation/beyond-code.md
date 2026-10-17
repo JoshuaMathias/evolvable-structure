@@ -13,11 +13,13 @@ metric is whatever you can honestly measure.
 
 ## What carries over
 
-- **Write the problem as a difficulty someone has**, with who has it and why it is hard.
+- **Write the problem as a challenge, a difficulty, or how an ideal is not reached**, with who has it and why it is
+  hard, not as a task.
 - **Keep two or more alternatives alive** long enough to compare them.
 - **Pick a metric you can compute again.** A set of cases you can rerun beats a judgment you cannot reproduce.
 - **Record the result with what produced it:** the version of the thing measured and the version of the cases.
-- **Have people review the metric and its results**, not the working of each alternative.
+- **Let people steer through the metric and its results**, so nobody has to inspect each alternative to choose;
+  inspecting and improving an alternative is still welcome and still adds value.
 
 ## What changes
 

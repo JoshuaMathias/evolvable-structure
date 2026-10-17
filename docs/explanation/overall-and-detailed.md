@@ -2,13 +2,15 @@
 
 A repository has two levels of intent.
 
-**The overall solution network** is written once, by a person. It says why the repository exists, what it should
+**The overall solution network** is written first, from the intent of the person who owns it (AI can draft it for
+their review), and refined as the intent changes. It says why the repository exists, what it should
 become, what it is defined to do, the alternatives to it, and how to tell whether it succeeds: problems, ideals, the
 overall solution (with its areas), alternatives, and top metrics. It is short, in prose a newcomer can read in one
 sitting, and it changes slowly. The template is [overall-solution-network.md](../templates/overall-solution-network.md).
 
-**The detailed records** are the practical structures that implement it: one solution per part, with its
-implementations, its metric, its cases and its results. They change as often as the code does.
+**The detailed records** are the practical structures that implement it: a separate solution wherever a part has its
+own definition of "best" that could affect the success of the intent, and no more, each with its implementations, its
+metric, its cases and its results. They change as often as the code does.
 
 ## How they link
 

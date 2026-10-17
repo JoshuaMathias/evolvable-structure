@@ -30,7 +30,8 @@ overall network and detailed records that link up to it.
 1. Write `esoi.toml` at the root (see the [configuration reference](../../implementations/python/docs/configuration.md)):
    at least the package name and its layers.
 2. Write `components.csv` first: every file in exactly one component. `esoi check` names the files that are not.
-3. Write the overall network, then one solution per problem with a gap noted where no metric exists yet.
+3. Write the overall network, then the detailed solutions, with a gap noted where no metric exists yet. Problems and
+   solutions need not pair up: a problem can need several solutions, and a solution can address several problems.
 4. Turn gaps into evaluation components one at a time (`evaluation/components/<name>/` with cases, a scorer and
    implementations), and record a run for each with `esoi run <component> --impl <name> --record`.
 5. Keep the rules that fit. Switch off those that do not (`disable = [...]`), and record a justified exception as a waiver

@@ -15,7 +15,9 @@ describes how those links are written down as columns in record files.
 
 If a solution lists a problem, that problem lists the solution. Agreement on both sides is cheap to check and catches
 the most common drift: a record renamed or deleted on one side only. Every problem has at least one solution and one
-ideal; every ideal opposes at least one problem; every solution has a metric.
+ideal; every ideal opposes at least one problem; every solution has one or more ideals (its own or its parent's) and a
+metric. The mapping is not one-to-one in either direction: one problem can need several solutions, and one solution can
+address several problems.
 
 ## Placement
 

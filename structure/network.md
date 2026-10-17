@@ -53,7 +53,7 @@ and stable so records can link to each other and to the registry.
 
 ### PR7 Humans cannot review at the level of intent
 - **What is the problem?** A person who wants to steer quality has to read implementations, because ideals, metrics and current results are not gathered anywhere they can read and correct.
-- **Who or what type of person has the problem?** Joshua and the people who direct the work, who should review metrics, not implementations.
+- **Who or what type of person has the problem?** Joshua and the people who direct the work, who should be able to steer by reviewing metrics without having to read implementations.
 - **Why does this problem matter?** Review either does not happen or consumes the time it was meant to save, and human judgment never reaches the definition of "best".
 - **Why is the problem hard to resolve?** Results live across folders and repositories, a metric is only worth reviewing if it measures its ideal, and edits made in a review must flow back to the source.
 - **What solutions or workarounds already attempt to address the problem?** Dashboards, shared spreadsheets, pull-request review, status reports.
@@ -139,7 +139,7 @@ and stable so records can link to each other and to the registry.
 
 ### ID7 Review by metric
 - **Name:** Review by metric
-- **Principle:** People steer by reviewing problems, ideals, metrics and results, never by reading implementations.
+- **Principle:** People can steer by reviewing problems, ideals, metrics and results alone, without needing to read implementations; anyone may still review or improve an implementation, and that still adds value.
 - **State Description:** Joshua opens one sheet, sees each solution's ideal, metric, current result and verdict, corrects any of them there, and the correction reaches the source.
 - **Hints of Measurement:** Every review decision can be made and recorded from the sheet.
 - **Opposes:** PR7

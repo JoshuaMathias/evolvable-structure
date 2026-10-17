@@ -81,6 +81,13 @@ Models and prices change under results that were once true. Re-measure on a sche
 immediately when a change is announced. A re-measurement is a decision-triggered run: the question is "is the selected
 alternative still the best one?"
 
+### Offline cases are a proxy, not the whole measure
+
+Cheap offline cases make frequent measurement possible, but what matters is the problem solved in the real system, in the
+wild: a test of the real thing outranks a unit test, and an outcome measure outranks task completion. So a solution whose
+intent is about live behaviour keeps a measure of the real outcome as its authoritative metric where one is practical. The
+policy decides how often that live measure is run and what it may spend, not whether it counts.
+
 ## The alternatives
 
 The same question has several answers, and a repository can keep two alive to compare them.

@@ -1,6 +1,8 @@
 # Choosing by metric
 
-The point of keeping alternatives is that a metric, not an opinion, picks the one that runs.
+The point of keeping alternatives is that the authoritative metric, chosen by the solution's definition, picks the one
+that runs, so nobody has to settle it by reading and debating each alternative. Judgment and other perspectives still
+matter: they define the problems, ideals and metric, and they propose and improve the alternatives the metric compares.
 
 ## Run alternatives on the same cases
 
@@ -45,6 +47,9 @@ Running a metric costs time and sometimes money, and a result only supports a de
 
 ## Humility
 
-A metric is a limited approximation of an intent that words express imperfectly. When the metric and your judgment
-disagree, treat the disagreement as information about the metric: refine it, and keep the old version so past results
-stay comparable.
+We do not know what is best, so we let metrics decide, and even then a metric is a limited approximation of an intent
+that words express imperfectly, and the intent itself may or may not be worthwhile. When the metric and your judgment
+disagree, treat the disagreement as information: about the metric, and possibly about the intent. A metric can itself be
+a solution with alternative implementations (including versions of its cases), so refine it, and keep the old version
+so past results stay comparable. Perspectives are implementations too: collaboration and other points of view are how
+better alternatives arrive.
