@@ -27,7 +27,7 @@ include = [
   "coding/writealyze.md", "coding/concept_ai_quest_qar.md", "other-categories.md",
   "sources/INDEX.md", "sources/public_research.md", "sources/components_research.md",
   "sources/definitions_and_advice.md", "sources/evolutionary_architecture_talk.md",
-  "sources/trello_project_documentation.md", "sources/cantr_governance_proposals.md",
+  "sources/trello_project_documentation.md", "sources/cantr_governance_proposals.md", "sources/agentic_frameworks.md",
 ]
 
 [[skill.substitute]]

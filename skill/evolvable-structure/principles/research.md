@@ -63,3 +63,9 @@ evidence strength there):
   scale and purpose, and a recount of two of them agreed in direction with small differences.
 - QAR was built by AI to Joshua's design, so its failures are implementation gaps against the
   principles, not his choices.
+
+**Related AI and agentic frameworks (2026-10-17).** `sources/agentic_frameworks.md` compares ESOI with layered agent
+models, spec-driven development, DSPy-style optimizers, eval harnesses, evolutionary agent systems, routing and oversight
+frameworks. None found covers all five record types with an evolving structure; the most borrowable ideas are an archive
+of losing alternatives, Pareto selection when ideals conflict, a named metric lifecycle (capability to regression,
+retire when saturated), recording what a metric cannot measure, and routing as a selection mode.
