@@ -5,7 +5,7 @@ selection,core,implementations/python/esoi/select.py,Resolving an implementation
 expectations,core,implementations/python/esoi/expect.py,The declarative check that case-driven evaluations share.,py-harness
 leaderboard,core,implementations/python/esoi/leaderboard.py,Ranking implementations from the results log and calling a verdict.,py-leaderboard
 template-documents,tools,implementations/python/esoi/templates.py,Generating the non-code templates and excerpts from the template source.,py-template-reader
-rules-ownership,tools,implementations/python/esoi/rules/__init__.py;implementations/python/esoi/rules/base.py;implementations/python/esoi/rules/layout.py,The rule interface and the placement and layering rules.,py-ownership-rules;py-check-runner
+rules-ownership,tools,implementations/python/esoi/rules/__init__.py;implementations/python/esoi/rules/base.py;implementations/python/esoi/rules/layout.py;implementations/python/esoi/rules/modulefacts.py,The rule interface and the placement and layering rules.,py-ownership-rules;py-check-runner
 rules-registry,tools,implementations/python/esoi/rules/registry_rules.py,The rules about the registry's own shape and the selection table.,py-check-runner;py-selector
 rules-measurement,tools,implementations/python/esoi/rules/measurement.py,"The rules about measurement, provenance and discriminating cases.",py-check-runner;py-leaderboard
 rules-generated,tools,implementations/python/esoi/rules/generated.py,"The rules about generated files, the tracker and the records.",py-check-runner;py-tracker;py-template-reader
@@ -26,9 +26,11 @@ eval-measure-implementations,evaluation,implementations/python/evaluation/compon
 eval-rank-implementations,evaluation,implementations/python/evaluation/components/rank_implementations/**,Cases for the leaderboard.,py-leaderboard
 eval-review-tracker,evaluation,implementations/python/evaluation/components/review_tracker/**,Cases for the tracker.,py-tracker
 eval-check-a-consumer,evaluation,implementations/python/evaluation/components/check_a_consumer/**,Mutation cases for the consumer check.,py-consumer-check
-eval-shared,evaluation,implementations/python/evaluation/components/*.py;implementations/python/evaluation/components/results.csv,"Fixtures shared by the evaluations, and the results log.",py-check-runner;py-harness;py-consumer-check
+eval-know-stale-results,evaluation,implementations/python/evaluation/components/know_stale_results/**,Cases for telling a stale result from a current one.,py-metric-run-policy
+eval-shared,evaluation,implementations/python/evaluation/components/*.py;implementations/python/evaluation/components/results.csv,"Fixtures shared by the evaluations, and the results log.",py-check-runner;py-harness;py-consumer-check;py-metric-run-policy
 python-project,project,implementations/python/pyproject.toml;implementations/python/README.md;implementations/python/conftest.py;implementations/python/docs/**,"Packaging, the implementation's readme and its reference documents.",py-check-runner
 documentation,docs,docs/**,"Explanation, guides and non-code templates (the main feature of the repository).",docs-and-templates
 examples,docs,examples/**,Adopters as short examples and testimonials.,docs-and-templates
 structure-registry,docs,structure/**,This repository's own overall network and detailed records.,py-records-check
 project-files,project,*,"Files at the repository root: readme, configuration, contributing, licence.",docs-and-templates
+ci,project,.github/**,The continuous integration workflow.,py-metric-run-policy

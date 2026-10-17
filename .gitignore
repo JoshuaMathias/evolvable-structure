@@ -12,3 +12,4 @@ dist/
 !.env.example
 .esoi_sync_state.json
 scratch/
+.esoi_cache/

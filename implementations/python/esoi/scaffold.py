@@ -221,6 +221,7 @@ def files_for(package: str, template) -> Dict[str, str]:
         [record("metric", template, OVERALL["metric"], metric_id="overall-link-completeness", solution_ids="overall-solution")])
     out[f"{structure}/esoi_template.csv"] = TEMPLATE_DATA.read_text(encoding="utf-8")
     out["esoi.toml"] = CONFIG.format(package=package)
+    out[".gitignore"] = "__pycache__/\n.esoi_cache/\n"
     out[f"{package}/__init__.py"] = INIT.format(package=package)
     out[f"{package}/greet.py"] = GREET
     out["tests/test_greet.py"] = TEST.format(package=package)

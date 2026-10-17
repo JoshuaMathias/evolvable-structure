@@ -38,6 +38,11 @@ Some implementations are not rivals. A **baseline** is a floor someone might pla
 **ablation** is part of a candidate measured alone, and a **validity** arm checks the metric itself, so neither is offered
 as the thing to adopt. Mark each by the first word of its description.
 
+## When to run
+
+Running a metric costs time and sometimes money, and a result only supports a decision while it is current. See
+[when-metrics-are-run.md](when-metrics-are-run.md).
+
 ## Humility
 
 A metric is a limited approximation of an intent that words express imperfectly. When the metric and your judgment

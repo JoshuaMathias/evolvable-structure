@@ -1,11 +1,18 @@
 """Score one mutation case: the checker must report the expected rule (and the expected substring) for the
 injected violation, or stay clean on the clean fixture. ``aggregate`` reports mutations detected and false
-positives apart."""
+positives apart. A ``scale`` case instead checks the time the check takes on a large generated
+repository against a ceiling."""
+
+from esoi import expect
 
 
 def score_case(fn, case):
     out = fn(case["kind"], case["args"])
     want = case["expect"]
+    if case["kind"] == "scale":
+        problems = expect.check(out, want)
+        return dict(ok=not problems, got="scale", note=("ok" if not problems else "; ".join(problems))
+                    + f" (cold {out.get('cold_seconds')}s, warm {out.get('warm_seconds')}s)")
     problems = out["problems"]
     if want.get("clean"):
         ok = out["exit"] == 0 and not problems
@@ -18,7 +25,7 @@ def score_case(fn, case):
 
 def aggregate(rows):
     clean = [r for r in rows if r.get("got") == "clean"]
-    muts = [r for r in rows if r.get("got") != "clean"]
+    muts = [r for r in rows if r.get("got") not in ("clean", "scale")]
     caught = sum(bool(r["ok"]) for r in muts)
     return (f"mutations detected {caught}/{len(muts)}, clean fixtures passed "
             f"{sum(bool(r['ok']) for r in clean)}/{len(clean)}")

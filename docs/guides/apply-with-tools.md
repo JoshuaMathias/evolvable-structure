@@ -37,6 +37,23 @@ overall network and detailed records that link up to it.
    with a reason. Waivers can only shrink: the check reports one that no longer applies.
 6. Add your own rules as a plugin when a mistake has happened twice.
 
+## When to run what
+
+Metrics that call no paid service run on every change; paid ones run only when a decision depends on them, staged and under a
+call budget. Write your repository's version down with the [metric run policy template](../templates/metric-run-policy.md) and
+read [when metrics are run](../explanation/when-metrics-are-run.md). In day-to-day use:
+
+```bash
+esoi run <component> --impl <name>        # the part you changed
+esoi check                                # before committing
+git commit ...                            # measured code and cases committed
+esoi run --stale                          # re-run and record whatever is stale, then commit the results log
+esoi check --strict                       # every recorded result is current
+```
+
+`esoi check` keeps a small cache of what it learned about each module in `.esoi_cache/` (gitignored), so a second run reads
+only the files that changed; `cache = false` in the configuration turns it off.
+
 ## Keeping the templates in step with the skill
 
 The questions in the templates come from the author's `SKILL.md`. After it changes:
@@ -54,7 +71,8 @@ tells you whether they are stale; a new field appears as a missing column in you
 |---|---|
 | `esoi check [--strict] [--write-docs]` | Runs every rule; `--strict` also rejects results recorded on uncommitted code |
 | `esoi rules` | Lists the rules |
-| `esoi run <component> --impl <name> [--record]` | Runs and records one implementation |
+| `esoi run <component> --impl <name> [--record]` | Runs and records one implementation (`--sample N`, `--only IDS`, `--max-calls N` for staged, budgeted runs) |
+| `esoi run --stale` | Re-runs and records every selected implementation whose result is stale |
 | `esoi leaderboard [--strict]` | Ranks implementations and prints a verdict per solution |
 | `esoi tracker build\|check` | Builds the review sheet tabs |
 | `esoi sheet-sync sync\|push\|pull\|check` | Syncs those tabs with a Google Sheet |

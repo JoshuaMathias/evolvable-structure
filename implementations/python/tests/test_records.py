@@ -91,3 +91,19 @@ def test_a_detailed_solution_may_take_its_problem_and_ideal_from_the_parents(cfg
 def test_implementation_ids_come_from_the_solution_and_the_file_stem():
     assert records.implementation_id("sol", "pkg/mod.py") == "sol:mod"
     assert records.implementation_id("sol", "plain-name") == "sol:plain-name"
+
+
+def test_a_policy_solution_and_the_metrics_it_governs_must_agree(cfg):
+    mrows, mcols = tables.read_csv(cfg.structure / "metrics.csv"), tables.read_header(cfg.structure / "metrics.csv")
+    srows, scols = tables.read_csv(cfg.structure / "solutions.csv"), tables.read_header(cfg.structure / "solutions.csv")
+    metric_id = mrows[0]["metric_id"]
+    mrows[0]["run_policy_ids"] = "greet-a-person"
+    tables.write_csv(cfg.structure / "metrics.csv", mcols + ["run_policy_ids"], mrows)
+    problems = check(cfg, overall=records.overall_ids(cfg.root / cfg.overall))
+    assert any("lists run policy greet-a-person but greet-a-person does not list it in governs_metric_ids" in p for p in problems)
+    srows[0]["governs_metric_ids"] = metric_id
+    tables.write_csv(cfg.structure / "solutions.csv", scols + ["governs_metric_ids"], srows)
+    assert check(cfg, overall=records.overall_ids(cfg.root / cfg.overall)) == []
+    srows[0]["governs_metric_ids"] = "ghost"
+    tables.write_csv(cfg.structure / "solutions.csv", scols + ["governs_metric_ids"], srows)
+    assert any("governs_metric_ids names 'ghost'" in p for p in check(cfg, overall=records.overall_ids(cfg.root / cfg.overall)))

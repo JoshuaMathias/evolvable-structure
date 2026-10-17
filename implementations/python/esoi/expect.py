@@ -10,6 +10,7 @@ branch and a new case is data only.
   max_len       int            len(output["text"]) must not exceed it
   min_len       int            len(output["text"]) must reach it
   approx        {key: [value, tolerance]}   numeric output[key] within tolerance of value
+  at_most       {key: number}  numeric output[key] must not exceed the number (a time or size budget)
 """
 from __future__ import annotations
 
@@ -43,6 +44,10 @@ def check(out: Any, expect: Dict[str, Any]) -> List[str]:
         got = out.get(key)
         if not isinstance(got, (int, float)) or abs(got - want) > tol:
             problems.append(f"{key}: expected {want} within {tol}, got {got!r}")
+    for key, ceiling in (expect.get("at_most") or {}).items():
+        got = out.get(key)
+        if not isinstance(got, (int, float)) or got > ceiling:
+            problems.append(f"{key}: {got!r} is over the ceiling {ceiling}")
     return problems
 
 

@@ -56,6 +56,8 @@ def check(config: Config, strict: bool = False, files: Optional[List[str]] = Non
                 bad.append(f"S9 {w['rule']} {w['path']}: waiver no longer needed, delete it")
             if not w["reason"].strip():
                 bad.append(f"S9 {w['rule']} {w['path']}: waiver has no reason")
+    if ctx.modules is not None:
+        ctx.modules.save(keep=set(ctx.files))
     return bad
 
 

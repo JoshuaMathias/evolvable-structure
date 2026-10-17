@@ -7,6 +7,7 @@ the folder that holds it. Every key is optional. An unknown key is an error, so 
 package = "mylib"                      # the importable package the module rules look at ("" turns them off)
 package_dir = "src/mylib"              # where it lives (default: the package name)
 python_path = ["src"]                  # folders put on sys.path when evaluations run
+cache = true                           # remember per-module facts in .esoi_cache/ (gitignored); false turns it off
 layers = ["core", "adapters", ["cli", "tools"]]   # inner to outer; a nested list shares one rank
 other_layers = ["docs", "evaluation", "examples", "scripts", "tests", "vendor", "prompts"]   # non-code areas a component may name
 max_lines = 1500                       # the size ceiling for a Python module (rule S4)

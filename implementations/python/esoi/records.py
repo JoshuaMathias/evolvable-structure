@@ -14,7 +14,8 @@ Rules (one rule of a registry's own check, and ``esoi records`` for a repository
 R1 every file has records and the template's columns; R2 every ``required=yes`` template field (and a solution's
 interface fields when ``interface_required``) is non-empty in each record; R3 links resolve and agree on both
 sides and every problem has a solution and an ideal; R4 a problem is not phrased as the template says it is not
-(a task or recommendation) and does not name its own solution; R5 parent links resolve. A detailed solution may leave out its own problem and ideal when it names
+(a task or recommendation) and does not name its own solution; R5 parent links resolve; R3 also checks that a solution's ``governs_metric_ids`` and the metrics' ``run_policy_ids``
+agree both ways (the solution that says when metrics are run, and the metrics it governs). A detailed solution may leave out its own problem and ideal when it names
 parent ones in the overall network (``parent_problem_ids``, ``parent_ideal_ids``), and then ``problems.csv`` and
 ``ideals.csv`` of the detailed level may be empty.
 
@@ -50,6 +51,8 @@ Template = Dict[str, List[Dict[str, str]]]
 # optional parent columns on any record, and the kind of overall-network record each one names
 PARENT_COLUMNS = {"parent_problem_ids": "problem", "parent_ideal_ids": "ideal",
                   "overall_solution_ids": "solution", "parent_metric_ids": "metric"}
+# optional columns that tie a metric to the solution that says when it is run (see docs/explanation/when-metrics-are-run.md)
+POLICY_COLUMNS = ["governs_metric_ids", "run_policy_ids"]
 Overall = Dict[str, Set[str]]
 
 
@@ -185,6 +188,18 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
             bad.append(f"R3 {sid}: implementation {iid} has no record in implementations.csv")
         for iid in sorted(have - wanted):
             bad.append(f"R3 {sid}: implementations.csv record {iid} is not in the solution's implementations cell")
+    for sid, row in solutions.items():
+        for mid in ids(row.get("governs_metric_ids", "")):
+            if mid not in index["metric"]:
+                bad.append(f"R3 {sid}: governs_metric_ids names {mid!r}, which is not a metric")
+            elif sid not in ids(index["metric"][mid].get("run_policy_ids", "")):
+                bad.append(f"R3 {sid}: governs metric {mid} but {mid} does not list it in run_policy_ids")
+    for mid, row in index["metric"].items():
+        for sid in ids(row.get("run_policy_ids", "")):
+            if sid not in solutions:
+                bad.append(f"R3 {mid}: run_policy_ids names {sid!r}, which is not a solution")
+            elif mid not in ids(solutions[sid].get("governs_metric_ids", "")):
+                bad.append(f"R3 {mid}: lists run policy {sid} but {sid} does not list it in governs_metric_ids")
     for iid, row in index["implementation"].items():
         if row.get("solution_id") not in solutions:
             bad.append(f"R3 {iid}: solution_id {row.get('solution_id')!r} is not a solution")

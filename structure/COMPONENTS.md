@@ -32,9 +32,11 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `eval-rank-implementations` | evaluation | Cases for the leaderboard. | py-leaderboard |
 | `eval-review-tracker` | evaluation | Cases for the tracker. | py-tracker |
 | `eval-check-a-consumer` | evaluation | Mutation cases for the consumer check. | py-consumer-check |
-| `eval-shared` | evaluation | Fixtures shared by the evaluations, and the results log. | py-check-runner, py-harness, py-consumer-check |
+| `eval-know-stale-results` | evaluation | Cases for telling a stale result from a current one. | py-metric-run-policy |
+| `eval-shared` | evaluation | Fixtures shared by the evaluations, and the results log. | py-check-runner, py-harness, py-consumer-check, py-metric-run-policy |
 | `python-project` | project | Packaging, the implementation's readme and its reference documents. | py-check-runner |
 | `documentation` | docs | Explanation, guides and non-code templates (the main feature of the repository). | docs-and-templates |
 | `examples` | docs | Adopters as short examples and testimonials. | docs-and-templates |
 | `structure-registry` | docs | This repository's own overall network and detailed records. | py-records-check |
 | `project-files` | project | Files at the repository root: readme, configuration, contributing, licence. | docs-and-templates |
+| `ci` | project | The continuous integration workflow. | py-metric-run-policy |

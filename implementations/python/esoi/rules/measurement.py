@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from .. import leaderboard
-from ..harness import current_sha
+from ..harness import stale_reason
 from ..records import FILES
 from ..tables import ids
 from .base import Context, RuleGroup, parse_file
@@ -34,7 +34,8 @@ SUMMARIES = {
            "selected or measured implementation must be live, or waived.",
     "S16": "The latest results row of every implementation carries a cases_sha, or a waiver says why not.",
     "S20": "Every solution has a problem, an ideal, a metric, implementations, a selected implementation and a "
-           "recorded run on the current cases with a git_sha; tests alone are not a metric.",
+           "recorded run on the current cases with a git_sha; tests alone are not a metric. With --strict the run must "
+           "also be on committed code that has not changed since.",
     "S21": "Every evaluation folder is named by some solution's metric command, or is listed as shared.",
     "S22": "No score, percentage, dollar amount or case count in a gap, an action, a waiver reason or a record field; "
            "numbers live in the results log.",
@@ -202,14 +203,8 @@ def run(ctx: Context) -> List[str]:
         row = results.get(comp, {}).get(sel)
         if row is None:
             continue   # S10 reports the missing row
-        now = leaderboard.cases_digest(comp, evaluation)
-        if not row.get("git_sha", "").strip():
-            why = "its latest row has no git_sha"
-        elif row.get("cases_sha", "") != now:
-            why = f"its latest row was recorded on other cases (cases_sha {row.get('cases_sha') or 'blank'}, now {now})"
-        elif ctx.strict and row["git_sha"].endswith("-dirty"):
-            why = "its latest row was recorded on uncommitted code"
-        else:
+        why = stale_reason(config, comp, row, ctx.strict)
+        if not why:
             continue
         if not ctx.waived("S20", sid):
             bad.append(f"S20 {sid}: {why}; re-run `esoi run {comp} --impl {sel} --record` on committed code")

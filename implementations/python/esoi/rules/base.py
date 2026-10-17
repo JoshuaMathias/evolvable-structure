@@ -22,15 +22,18 @@ can tell the author when a waiver stops applying.
 from __future__ import annotations
 
 import ast
+import hashlib
+import json
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from ..config import Config
 from ..leaderboard import Rows
 from ..registry import Registry
 from ..tables import glob_re, ids
+from .modulefacts import Cache, Facts
 
 
 @dataclass(frozen=True)
@@ -52,6 +55,7 @@ class Context:
     table_error: str = ""
     strict: bool = False
     used_waivers: Set[Tuple[str, str]] = field(default_factory=set)
+    modules: Optional[Cache] = None
 
     @property
     def root(self) -> Path:
@@ -64,6 +68,29 @@ class Context:
     @property
     def components(self) -> List[Dict[str, str]]:
         return self.registry.components
+
+    def cache(self) -> Cache:
+        if self.modules is None:
+            self.modules = Cache(self.root, self.config.cache)
+        return self.modules
+
+    def facts(self, rel: str) -> Facts:
+        """Docstring, imports, environment reads and line count of a Python module, from one cached parse."""
+        return self.cache().get(rel)
+
+    def memo(self, name: str, globs: List[str], compute: Callable[[], Any]) -> Any:
+        """Remember a plugin's expensive, JSON-serializable result until any file matching ``globs`` changes.
+
+        ``compute`` must read nothing outside the files the globs name (and must not call ``waived``: record the keys
+        it consulted in its result and ask afterwards), or a stale answer can be reused."""
+        matchers = [glob_re(g) for g in globs]
+        stats = []
+        for f in self.files:
+            if any(rx.match(f) for rx in matchers):
+                stat = (self.root / f).stat()
+                stats.append([f, stat.st_size, stat.st_mtime_ns])
+        key = hashlib.sha1(json.dumps(stats).encode()).hexdigest()
+        return self.cache().memo(name, key, compute)
 
     def waived(self, rule: str, key: str) -> bool:
         """Whether ``waivers.csv`` excuses ``rule`` at ``key``; a waiver that excuses something is marked used."""

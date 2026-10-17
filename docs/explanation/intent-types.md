@@ -23,5 +23,7 @@ connects to. The definitions of intent, evolvable, structure and the rest are in
   rather than leaving it blank.
 - **Keep numbers out of prose.** Scores belong to the results log, where they carry the commit and the cases. A
   sentence that says "passes most cases" is out of date the day a case is added.
+- **Say when each Metric is run.** Timing is not a field of the Metric template, so it belongs to a solution that governs the
+  metrics: see [when-metrics-are-run.md](when-metrics-are-run.md).
 - **A problem is a difficulty someone has, not a task.** "Add a cache" is a task. "Reports take a minute to load and
   people stop opening them" is a problem.

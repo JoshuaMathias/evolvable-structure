@@ -11,6 +11,7 @@ from __future__ import annotations
 import csv
 import io
 import shutil
+import subprocess
 import tempfile
 from pathlib import Path
 from typing import Dict, List
@@ -102,6 +103,8 @@ def apply_edits(root: Path, edits: List[dict]) -> None:
             path.write_text(text.replace(e["old"], e["new"], 1))
         elif op == "delete":
             path.unlink()
+        elif op == "git_record":
+            git_record(root)
         elif op == "regen":
             check.write_docs(config.load(root), say=lambda text: None)
         elif op.startswith("csv_"):
@@ -118,6 +121,22 @@ def apply_edits(root: Path, edits: List[dict]) -> None:
             path.write_text(csv_text(cols, rows))
         else:
             raise ValueError(op)
+
+
+def git_record(root: Path) -> None:
+    """Commit the fixture and stamp every recorded result with that commit, as `esoi run --record` does on committed code."""
+    def git(*args):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid", *args], cwd=root,
+                              capture_output=True, text=True, check=True).stdout.strip()
+    git("init", "-q")
+    git("add", "-A")
+    git("commit", "-q", "-m", "fixture")
+    sha = git("rev-parse", "--short", "HEAD")
+    path = Path(root) / "evaluation/components/results.csv"
+    rows, cols = read_rows(path), read_header(path)
+    for row in rows:
+        row["git_sha"] = sha
+    path.write_text(csv_text(cols, rows))
 
 
 def fresh_repo(edits: List[dict], kind: str = "repo") -> Path:

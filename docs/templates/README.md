@@ -9,4 +9,5 @@ intent template in the author's `SKILL.md`; the questions are his words. To chan
 | [overall-solution-network.md](overall-solution-network.md) | Write a repository's overall solution network |
 | [repository-standard.md](repository-standard.md) | Start the standard for how your repository applies ESOI |
 | [review-sheet.md](review-sheet.md) | Lay the records out as a spreadsheet for review |
+| [metric-run-policy.md](metric-run-policy.md) | Record when your metrics are run, who approves the spend, and when a result is stale |
 | [record-headers/](record-headers/) | Start each record file with the right header row |

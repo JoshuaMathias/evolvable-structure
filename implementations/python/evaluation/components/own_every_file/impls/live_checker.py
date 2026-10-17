@@ -6,5 +6,5 @@ from esoi import check  # noqa: F401  (the live code under test)
 
 def build(meter):
     def run(kind, args):
-        return repo_fixture.report(repo_fixture.fresh_repo(args.get("edits", [])))
+        return repo_fixture.report(repo_fixture.fresh_repo(args.get("edits", [])), args.get("strict", False))
     return run

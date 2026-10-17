@@ -13,7 +13,8 @@ from pathlib import Path
 from typing import Dict, List
 
 SEP = ";"
-SKIP_DIRS = {".git", "__pycache__", ".venv", "venv", "node_modules", ".pytest_cache", "build", "dist"}
+SKIP_DIRS = {".git", "__pycache__", ".venv", "venv", "node_modules", ".pytest_cache", "build", "dist", ".esoi_cache"}
+CACHE_PREFIX = ".esoi_cache/"
 
 
 def read_csv(path: Path) -> List[Dict[str, str]]:
@@ -70,7 +71,7 @@ def repo_files(root: Path) -> List[str]:
     done = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard"], cwd=root,
                           capture_output=True, text=True)
     if done.returncode == 0:
-        return sorted(f for f in set(done.stdout.splitlines()) if (root / f).is_file())
+        return sorted(f for f in set(done.stdout.splitlines()) if not f.startswith(CACHE_PREFIX) and (root / f).is_file())
     found = []
     for path in root.rglob("*"):
         rel = path.relative_to(root)

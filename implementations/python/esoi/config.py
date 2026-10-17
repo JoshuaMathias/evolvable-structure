@@ -49,6 +49,7 @@ class Config:
     selection: str = ""
     overall: str = ""
     python_path: List[str] = field(default_factory=list)
+    cache: bool = True
     templates_dir: str = ""
     excerpts_file: str = ""
     tracker_extra: Dict[str, List[str]] = field(default_factory=dict)

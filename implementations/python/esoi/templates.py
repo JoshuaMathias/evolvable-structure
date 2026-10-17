@@ -8,6 +8,7 @@ opens with a line saying where its words come from.
     templates_dir/<entity>.md                  one fill-in template per intent type (problem, ideal, solution, ...)
     templates_dir/overall-solution-network.md  the template for a repository's overall solution network
     templates_dir/repository-standard.md       the skeleton of a repository's own standard
+    templates_dir/metric-run-policy.md         the template for when a repository's metrics are run
     templates_dir/review-sheet.md              the layout of the review sheet (tabs and columns)
     templates_dir/record-headers/<file>.csv    the header row of each record file
     excerpts_file                              the skill's definitions and principles, quoted verbatim
@@ -31,8 +32,8 @@ PARENT_CELLS = {"problem": ["parent_problem_ids", "parent_ideal_ids"], "ideal": 
                 "implementation": ["overall_solution_ids"], "metric": ["parent_metric_ids"]}
 LINKS = {"problem": ["solution_ids", "ideal_ids"], "ideal": ["problem_ids"],
          "solution": ["problem_ids", "ideal_ids", "metric_ids", "implementations", "selected", "selected_by", "metric_kind",
-                      "invariant_reason", "gap", "action"],
-         "implementation": ["solution_id", "path"], "metric": ["solution_ids", "command"]}
+                      "invariant_reason", "gap", "action", "governs_metric_ids"],
+         "implementation": ["solution_id", "path"], "metric": ["solution_ids", "command", "run_policy_ids"]}
 KEYS = {"problem": "problem_id", "ideal": "ideal_id", "solution": "solution_id", "implementation": "implementation_id",
         "metric": "metric_id"}
 
@@ -100,6 +101,79 @@ def overall_template(entities: Dict[str, Dict[str, object]]) -> str:
         if entity == "metric":
             out.append("- **Measures:** <!-- solution ids -->")
         out.append("")
+    return "\n".join(out)
+
+
+SOLUTION_HINTS = {
+    "name": "Name the policy after what it governs, for example \"when this repository's metrics are run\".",
+    "scoped_purpose": "Which Metric records it governs, and which runs it deliberately leaves out (paid runs, say).",
+    "goals": "How current results must be and what a run may cost, as measurable targets. Keep numbers out of prose: put "
+             "budgets in the table below.",
+    "knowledge": "What informed it: how noisy the metrics are, what a run costs, how fast the measured code changes, how "
+                 "often the models or prices behind a metric change.",
+    "measures_of_success": "How you would know the policy works: decisions backed by current results, spend inside the "
+                           "budget, no stale result found late.",
+    "parameters": "The triggers and stages: which event starts which kind of run, the staged sample sizes, the call budget.",
+    "inputs": "What a run needs: the committed code, the case files, the implementation, access to any live service.",
+    "outputs": "What a run produces: a row in the results log carrying the commit and the hash of the cases.",
+    "effects": "Spend, and who approves it; any live service a run touches.",
+    "usage_notes": "When a result is stale and how to re-record it; when to re-measure because a model or a price changed.",
+}
+RUN_TABLE_COLUMNS = ["metric_id", "arm", "trigger", "stages", "call_budget", "cost_estimate", "approver", "stale_when"]
+
+
+def metric_run_policy_template(entities: Dict[str, Dict[str, object]]) -> str:
+    solution = entities.get("solution", {"specify": [], "interface": [], "meta": {}})
+    out = [f"<!-- {ATTRIBUTION} The hints and the table are this template's own. -->", "",
+           "# When metrics are run (policy template)", "",
+           "A Metric is what gets run, and when to run it is itself a solution: it has a problem, ideals, alternative "
+           "implementations and a metric of its own. Record yours as a small ESOI network that the repository's other "
+           "records link to. Nothing here adds a field to the intent template: timing is not a field of the Metric "
+           "template (name, scoped purpose, record), so it lives in the solution that governs the metrics.", "",
+           "Read [when-metrics-are-run.md](../explanation/when-metrics-are-run.md) first.", "",
+           "## 1. The problem and the ideals", "",
+           "Copy [problem.md](problem.md) and [ideal.md](ideal.md). Typical problems: results that are stale when a decision "
+           "is made, paid runs nobody approved, runs so frequent that nobody waits for them. Typical ideals: a decision is "
+           "always backed by a current result; spend is proportionate to the decision.", "",
+           "## 2. The solution: when metrics are run", "",
+           "Copy [solution.md](solution.md). Answer each question for the policy. Where an answer is a table (budgets, "
+           "approvers), put it in section 4 and refer to it.", ""]
+    for row in solution["specify"] + solution["interface"]:
+        hint = SOLUTION_HINTS.get(row["field_key"])
+        out += [f"### {label(row['field_key'])}", "", f"_{row['question']}_", ""]
+        if hint:
+            out += [f"For this policy: {hint}", ""]
+        out += ["<!-- your answer -->", ""]
+    out += ["## 3. The alternatives", "",
+            "Copy [implementation.md](implementation.md) once per way of deciding when to run. Keep at least two alive long "
+            "enough to compare. Common ones:", "",
+            "| Alternative | Runs the metric |", "|---|---|",
+            "| On every change | whenever the measured code or its cases change |",
+            "| On a schedule | at a fixed interval, whatever changed |",
+            "| On a decision | when a choice depends on the result: a new alternative, a selection change, a suspected regression |",
+            "| On drift | when a signal says the world moved: a new model version, a price change, a failing live check |", "",
+            "Most repositories combine them: cheap offline runs on every change, paid live runs on a decision, a scheduled "
+            "re-measurement when the world is known to move.", "",
+            "## 4. The metric runs this policy governs", "",
+            "One row per Metric record the policy governs, in the repository's own records (the header is in "
+            "[record-headers/metric_runs.csv](record-headers/metric_runs.csv)).", "",
+            "| " + " | ".join(RUN_TABLE_COLUMNS) + " |", "|" + "---|" * len(RUN_TABLE_COLUMNS),
+            "| <!-- metric id --> | offline or live | <!-- event --> | <!-- sample sizes --> | <!-- limit --> | <!-- before the "
+            "run --> | <!-- person or role --> | <!-- what makes the result stale --> |", "",
+            "- **arm:** an offline arm calls no paid service and can run on every change; a live arm spends money or touches a "
+            "live service.",
+            "- **stages:** the sample sizes run in order, each only after the last looked right (for example 3, then 10, then 30).",
+            "- **call_budget:** the most calls a run may make; the run stops there.",
+            "- **cost_estimate:** worked out before the run, so approval is for a known amount.",
+            "- **stale_when:** the result no longer counts: the cases changed, the measured code changed since its commit, it was "
+            "run on uncommitted code, or the model or price behind it changed.", "",
+            "## 5. Link it up", "",
+            "- On the policy's solution record, list the governed metrics in `governs_metric_ids`.",
+            "- On each governed Metric record, name the policy in `run_policy_ids`. The two must agree.",
+            "- Give the policy's own solution a Metric (copy [metric.md](metric.md)): for example the share of decisions that were "
+            "backed by a current result, and the spend per decision.",
+            "- If the repository has an overall solution network, link the policy to it with `parent_problem_ids`, "
+            "`parent_ideal_ids` and `overall_solution_ids`.", ""]
     return "\n".join(out)
 
 
@@ -182,6 +256,7 @@ def record_headers(rows: List[Dict[str, str]]) -> Dict[str, str]:
         out[name] = ",".join(dict.fromkeys(cols)) + "\n"
     out["components.csv"] = "component_id,layer,path,role,solutions\n"
     out["waivers.csv"] = "rule,path,reason\n"
+    out["metric_runs.csv"] = ",".join(RUN_TABLE_COLUMNS) + "\n"
     out["results.csv"] = ("date,component,impl,cases,passed,dev,heldout,model_calls,tokens_in,tokens_out,cost_usd,"
                           "seconds,git_sha,cases_sha,model,details\n")
     return out
@@ -226,6 +301,7 @@ def generated_files(rows: List[Dict[str, str]], skill_text: str, config: Config)
                 files[folder / f"{entity}.md"] = entity_template(entity, entities[entity])
         files[folder / "overall-solution-network.md"] = overall_template(entities)
         files[folder / "repository-standard.md"] = standard_template(rows)
+        files[folder / "metric-run-policy.md"] = metric_run_policy_template(entities)
         files[folder / "review-sheet.md"] = review_sheet(rows)
         for name, text in record_headers(rows).items():
             files[folder / "record-headers" / name] = text

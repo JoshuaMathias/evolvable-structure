@@ -4,12 +4,11 @@ S1 coverage, S2 component rows, S3 root, S4 size, S5 docstring, S6 direction, S1
 """
 from __future__ import annotations
 
-import ast
-from pathlib import Path
 from typing import List, Tuple
 
 from ..tables import glob_re, ids
-from .base import Context, RuleGroup, parse_file
+from .base import Context, RuleGroup
+from .modulefacts import Facts
 
 SUMMARIES = {
     "S1": "Every file belongs to exactly one component and every component path glob matches a file.",
@@ -22,57 +21,30 @@ SUMMARIES = {
 }
 
 
-def module_imports(path: Path, dotted: str, package: str) -> List[Tuple[int, str]]:
-    """(line, top-level name under ``package``) for each import, lazy ones included."""
-    tree = parse_file(path)
-    if tree is None:
-        return []
+def module_imports(facts: Facts, dotted: str, package: str, is_init: bool) -> List[Tuple[int, str]]:
+    """(line, top-level name under ``package``) for each import of a module, lazy ones included."""
     parts = dotted.split(".")
-    pkg_parts = parts if path.name == "__init__.py" else parts[:-1]
+    pkg_parts = parts if is_init else parts[:-1]
     found: List[Tuple[int, str]] = []
-    # Imports under ``if TYPE_CHECKING:`` exist only for annotations and create no runtime dependency.
-    typing_only = {id(n) for blk in ast.walk(tree) if isinstance(blk, ast.If)
-                   and getattr(blk.test, "id", getattr(blk.test, "attr", "")) == "TYPE_CHECKING"
-                   for stmt in blk.body for n in ast.walk(stmt)}
-    for node in ast.walk(tree):
-        if id(node) in typing_only:
-            continue
-        if isinstance(node, ast.ImportFrom):
-            if node.level:
-                base = pkg_parts[: len(pkg_parts) - (node.level - 1)]
-                full = base + (node.module.split(".") if node.module else [])
-                names = [a.name for a in node.names] if not node.module else []
-            else:
-                full = (node.module or "").split(".")
-                names = []
-            if full[:1] == [package] and len(full) > 1:
-                found.append((node.lineno, full[1]))
-            elif full == [package]:
-                found.extend((node.lineno, n) for n in names)
-            elif node.level and len(full) == 1 and not node.module:
-                found.extend((node.lineno, n) for n in names)
-        elif isinstance(node, ast.Import):
-            for a in node.names:
-                p = a.name.split(".")
-                if p[0] == package and len(p) > 1:
-                    found.append((node.lineno, p[1]))
+    for line, level, module, names in facts.imports:
+        if level:
+            base = pkg_parts[: len(pkg_parts) - (level - 1)]
+            full = base + (module.split(".") if module else [])
+            from_names = names if not module else []
+        else:
+            full = (module or "").split(".")
+            from_names = []
+        if full[:1] == [package] and len(full) > 1:
+            found.append((line, full[1]))
+        elif full == [package]:
+            found.extend((line, n) for n in from_names)
+        elif level and len(full) == 1 and not module:
+            found.extend((line, n) for n in from_names)
+    for line, name in facts.plain:
+        p = name.split(".")
+        if p[0] == package and len(p) > 1:
+            found.append((line, p[1]))
     return found
-
-
-def uses_environ(path: Path) -> List[int]:
-    """Lines that read the process environment (os.environ, os.getenv, or those names imported from os)."""
-    tree = parse_file(path)
-    if tree is None:
-        return []
-    lines = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Attribute) and node.attr in ("environ", "getenv", "putenv") \
-                and isinstance(node.value, ast.Name) and node.value.id == "os":
-            lines.append(node.lineno)
-        elif isinstance(node, ast.ImportFrom) and node.module == "os" \
-                and any(a.name in ("environ", "getenv", "putenv") for a in node.names):
-            lines.append(node.lineno)
-    return lines
 
 
 def run(ctx: Context) -> List[str]:
@@ -105,32 +77,32 @@ def run(ctx: Context) -> List[str]:
     rank = config.layer_rank
     env_layers = set(config.option("S13", "layers", []))
     env_paths = tuple(config.option("S13", "paths", []))
+    ctx.cache().prefetch([f for f in ctx.files if f.endswith(".py")])
     for f in ctx.files:
         if not f.endswith(".py"):
             continue
         path = config.root / f
         if not path.exists():
             continue
-        n = sum(1 for _ in path.open(encoding="utf-8", errors="replace"))
-        if n > config.max_lines and not ctx.waived("S4", f):
-            bad.append(f"S4 {f}: {n} lines (max {config.max_lines}); split by role or add a waiver")
+        facts = ctx.facts(f)
+        if facts.lines > config.max_lines and not ctx.waived("S4", f):
+            bad.append(f"S4 {f}: {facts.lines} lines (max {config.max_lines}); split by role or add a waiver")
         if not config.package_dir or not f.startswith(config.package_dir + "/"):
             continue
         if any(token in "/" + f for token in config.docstring_exempt):
             continue
-        tree = parse_file(path)
-        if path.stat().st_size and not (tree is not None and ast.get_docstring(tree)):
+        if facts.size and not facts.docstring:
             bad.append(f"S5 {f}: module has no docstring stating its role")
         dotted = f[len(parent) + 1 if parent else 0:-3].replace("/", ".")
         layer = ctx.file_layer.get(f, "")
-        for line, top in module_imports(path, dotted, config.package):
+        for line, top in module_imports(facts, dotted, config.package, path.name == "__init__.py"):
             target = ctx.top_layer(top)
             if layer in rank and target in rank and rank[target] > rank[layer] and not ctx.waived("S6", f"{f}:{top}"):
                 bad.append(f"S6 {f}:{line}: {layer} imports {top} ({target}); dependencies point inward")
-        if (layer in env_layers or (env_paths and f.startswith(env_paths))) and uses_environ(path) \
+        if (layer in env_layers or (env_paths and f.startswith(env_paths))) and facts.env \
                 and not ctx.waived("S13", f):
             hint = config.option("S13", "hint", "take the value from configuration, built by an outer layer")
-            bad.append(f"S13 {f}:{uses_environ(path)[0]}: {layer or 'this code'} reads the environment; {hint}")
+            bad.append(f"S13 {f}:{facts.env[0]}: {layer or 'this code'} reads the environment; {hint} (or add a waiver)")
     return bad
 
 

@@ -11,9 +11,10 @@ implementation of the checking and measuring tools, and ESOI is applied to this 
 ## Start here
 
 1. **Read** [docs/explanation/](docs/explanation/): what ESOI is, the five intent types, the overall solution network
-   and the detailed records, choosing by metric, and applying it beyond code.
+   and the detailed records, choosing by metric, [when metrics are run](docs/explanation/when-metrics-are-run.md), and
+   applying it beyond code.
 2. **Fill in** [docs/templates/](docs/templates/): one template per intent type, an overall solution network,
-   record headers, a repository standard and a review sheet layout. They are generated from the author's own
+   record headers, a repository standard, a review sheet layout and a metric run policy. They are generated from the author's own
    `SKILL.md`, so the questions are his words.
 3. **Follow** [docs/guides/](docs/guides/): apply ESOI to a new project by hand first, then with tools.
 

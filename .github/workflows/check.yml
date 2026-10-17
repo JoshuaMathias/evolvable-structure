@@ -1,0 +1,28 @@
+name: check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  offline-metrics:
+    # Every metric of this repository is offline (no paid service, no network), so every one of them runs on every change.
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -e "implementations/python[dev]"
+      - run: python -m pytest implementations/python/tests
+      - run: esoi check
+      - run: esoi hygiene
+      # Recorded results must be current on the default branch: a result is stale once the measured code changed since its commit.
+      - if: github.ref == 'refs/heads/main'
+        run: esoi check --strict

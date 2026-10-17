@@ -154,6 +154,33 @@ def current_sha(config: Config) -> str:
     return sha
 
 
+def changed_since(config: Config, sha: str) -> Optional[List[str]]:
+    """Tracked files of the measured code (and the evaluation folder, except the results log) that differ from the
+    working tree since the commit a result was recorded at; ``None`` when that commit is not known here."""
+    base = sha.removesuffix("-dirty")
+    done = subprocess.run(["git", "diff", "--name-only", base, "--", *config.code_paths, config.evaluation_dir,
+                           f":(exclude){config.results}"], cwd=config.root, capture_output=True, text=True)
+    return done.stdout.split() if done.returncode == 0 else None
+
+
+def stale_reason(config: Config, component: str, row: Optional[Dict[str, str]], strict: bool = True) -> str:
+    """Why a recorded result no longer counts, or an empty string when it is current. A result is stale when it is missing,
+    has no commit, was run on other cases than the ones now on disk, and (strict) was run on uncommitted code or the
+    measured code has changed since its commit."""
+    if row is None:
+        return "it has no recorded result"
+    if not row.get("git_sha", "").strip():
+        return "its latest row has no git_sha"
+    now = cases_digest(component, config.evaluation)
+    if row.get("cases_sha", "") != now:
+        return f"its latest row was recorded on other cases (cases_sha {row.get('cases_sha') or 'blank'}, now {now})"
+    if strict and row["git_sha"].endswith("-dirty"):
+        return "its latest row was recorded on uncommitted code"
+    if strict and (changed := changed_since(config, row["git_sha"])):
+        return f"the measured code changed since its commit {row['git_sha']} ({changed[0]}{' and others' if len(changed) > 1 else ''})"
+    return ""
+
+
 def record_result(summary: Dict[str, Any], config: Config, date: Optional[str] = None,
                   path: Optional[Path] = None, model_env: Optional[str] = None) -> Dict[str, Any]:
     """Append one run's summary to the results log, the source of truth for metrics. Returns the row written."""
@@ -235,12 +262,38 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     return summary, rows
 
 
-def run_cli(argv: List[str], config: Config, say: Callable[[str], None] = print) -> int:
-    """``esoi run <component> --impl <name> [flags]``."""
+def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool = True) -> int:
+    """Run every selected implementation whose recorded result is stale, and record it; the loop to run after changing
+    measured code or cases, on committed code."""
+    from . import leaderboard
+    from .registry import first_arm, load
     prepare_path(config)
+    latest = leaderboard.latest_results(config.results_path)
+    done = set()
+    for row in load(config).solutions:
+        comp, impl = first_arm(config, row.get("metric_command", ""))
+        if not comp or (comp, impl) in done:
+            continue
+        done.add((comp, impl))
+        why = stale_reason(config, comp, latest.get(comp, {}).get(impl))
+        if not why:
+            say(f"{comp}/{impl}: current")
+            continue
+        say(f"{comp}/{impl}: stale, {why}")
+        score = importlib.import_module(f"{comp}.score")
+        run_component(comp, score.score_case, ["--impl", impl] + (["--record"] if record else []), config, lambda text: None)
+        say(f"{comp}/{impl}: run" + (" and recorded" if record else ""))
+    return 0
+
+
+def run_cli(argv: List[str], config: Config, say: Callable[[str], None] = print) -> int:
+    """``esoi run <component> --impl <name> [flags]``, or ``esoi run --stale`` to re-run what is stale."""
+    prepare_path(config)
+    if argv and argv[0] == "--stale":
+        return rerun_stale(config, say, record="--no-record" not in argv)
     components = discover_components(config)
     if not argv or argv[0] not in components:
-        say("usage: esoi run <component> --impl <name> [--only IDS] [--sample N] [--max-calls N] [--record]")
+        say("usage: esoi run <component> --impl <name> [--only IDS] [--sample N] [--max-calls N] [--record]  |  esoi run --stale")
         say("components: " + (", ".join(components) or "none found under " + config.evaluation_dir))
         return 2
     score = importlib.import_module(f"{argv[0]}.score")

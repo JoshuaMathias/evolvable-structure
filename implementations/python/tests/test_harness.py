@@ -95,3 +95,49 @@ def test_stratified_cases_csv_marks_heldout(tmp_path):
 def test_current_sha_is_empty_outside_git_and_dirty_marks_code(tmp_path):
     cfg = Config(root=tmp_path, package="pkg")
     assert harness.current_sha(cfg) == ""
+
+
+def git(root, *args):
+    import subprocess
+    return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid", *args], cwd=root, check=True,
+                          capture_output=True, text=True).stdout.strip()
+
+
+def test_stale_reason_names_each_way_a_result_stops_counting(tmp_path):
+    cfg = make(tmp_path, "comp_stale")
+    cfg.code_paths = ["pkg"]
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg" / "live.py").write_text("X = 1\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "-A")
+    git(tmp_path, "commit", "-q", "-m", "init")
+    harness.record_result(dict(component="comp_stale", impl="live", cases=2, passed=2, model_calls=0), cfg, date="2026-01-01")
+    row = list(csv.DictReader(cfg.results_path.open()))[-1]
+    assert harness.stale_reason(cfg, "comp_stale", row) == ""
+    assert "no recorded result" in harness.stale_reason(cfg, "comp_stale", None)
+    (tmp_path / "pkg" / "live.py").write_text("X = 2\n")
+    assert "changed since its commit" in harness.stale_reason(cfg, "comp_stale", row)
+    assert harness.stale_reason(cfg, "comp_stale", row, strict=False) == ""
+    assert "uncommitted" in harness.stale_reason(cfg, "comp_stale", dict(row, git_sha=row["git_sha"] + "-dirty"))
+    assert "other cases" in harness.stale_reason(cfg, "comp_stale", dict(row, cases_sha="deadbeef"))
+    assert "no git_sha" in harness.stale_reason(cfg, "comp_stale", dict(row, git_sha=""))
+
+
+def test_rerun_stale_runs_only_what_is_stale(repo):
+    from esoi import config as config_module
+    cfg = config_module.load(repo)
+    git(repo, "init", "-q")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "init")
+    cases = cfg.evaluation / "greet_a_person" / "cases.json"
+    cases.write_text(cases.read_text() + " ")
+    git(repo, "commit", "-q", "-am", "cases changed")
+    lines = []
+    harness.rerun_stale(cfg, lines.append)
+    assert any("greet_a_person/live: stale, its latest row was recorded on other cases" in line for line in lines)
+    assert any("greet_a_person/live: run and recorded" in line for line in lines)
+    latest = [r for r in csv.DictReader(cfg.results_path.open()) if r["impl"] == "live"][-1]
+    assert latest["git_sha"] and latest["cases_sha"]
+    lines.clear()
+    harness.rerun_stale(cfg, lines.append)
+    assert lines == ["greet_a_person/live: current"]

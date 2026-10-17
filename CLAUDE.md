@@ -42,4 +42,7 @@ The main feature is explanation and templates that need no code; Python is one e
 - **ESOI applies here too.** Before committing: `esoi check` from the repository root (it reads `esoi.toml`; `pip install -e implementations/python` first), and
   the tests: `python -m pytest implementations/python/tests` (offline). A new part of the Python package belongs to a
   component in `structure/components.csv` and serves a solution in `structure/solutions.csv`.
+- **Metric runs follow `structure/metric-run-policy.md`.** Every metric here is offline: run the part you changed, then
+  `esoi check`; after committing measured code or cases, `esoi run --stale` and commit the results log. A paid metric would
+  need a cost estimate, a staged sample (3, 10, 30), a call budget and Joshua's approval first.
 - **Commit by explicit path**, never `git add -A`; do not rewrite pushed history.

@@ -17,7 +17,7 @@ from typing import Dict, List, Optional
 
 from . import leaderboard
 from .config import Config
-from .records import PARENT_COLUMNS, fields
+from .records import PARENT_COLUMNS, POLICY_COLUMNS, fields
 from .registry import Registry, first_arm
 from .select import Table, load_table
 from .tables import SEP, ids, read_csv, read_header, render_csv
@@ -40,7 +40,7 @@ def extras(config: Config) -> Dict[str, List[str]]:
         names = list(config.tracker_extra.get(tab, []))
         source = config.structure / f"{tab}.csv"
         header = read_header(source) if source.exists() else []
-        out[tab] = names + [c for c in PARENT_COLUMNS if c in header and c not in names]
+        out[tab] = names + [c for c in (*PARENT_COLUMNS, *POLICY_COLUMNS) if c in header and c not in names]
     return out
 
 

@@ -1,0 +1,257 @@
+[
+ {
+  "id": "STL-000",
+  "area": "repo",
+  "kind": "repo",
+  "description": "clean fixture must pass",
+  "args": {
+   "edits": []
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "STL-001",
+  "area": "repo",
+  "kind": "repo",
+  "description": "selected implementation beaten in results",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "live",
+     "col": "passed",
+     "value": "1"
+    },
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "shout",
+     "col": "passed",
+     "value": "2"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S10",
+   "contains": "beat the selected"
+  }
+ },
+ {
+  "id": "STL-002",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a solution with no current recorded result",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_drop",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "live"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S10",
+   "contains": "has no row"
+  }
+ },
+ {
+  "id": "STL-003",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a result with no cases hash",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "shout",
+     "col": "cases_sha",
+     "value": ""
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S16",
+   "contains": "shout"
+  }
+ },
+ {
+  "id": "STL-004",
+  "area": "repo",
+  "kind": "repo",
+  "description": "cases changed since the recorded run",
+  "args": {
+   "edits": [
+    {
+     "op": "append",
+     "path": "evaluation/components/greet_a_person/cases.json",
+     "content": " "
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S20",
+   "contains": "other cases"
+  }
+ },
+ {
+  "id": "STL-005",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a recorded run with no git sha",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "live",
+     "col": "git_sha",
+     "value": ""
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S20",
+   "contains": "git_sha"
+  }
+ },
+ {
+  "id": "STL-006",
+  "area": "staleness",
+  "kind": "repo",
+  "description": "strict mode rejects a result recorded on uncommitted code",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "live",
+     "col": "git_sha",
+     "value": "abc1234-dirty"
+    }
+   ],
+   "strict": true
+  },
+  "expect": {
+   "rule": "S20",
+   "contains": "uncommitted"
+  }
+ },
+ {
+  "id": "STL-007",
+  "area": "staleness",
+  "kind": "repo",
+  "description": "a result recorded on uncommitted code is accepted outside strict mode (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "live",
+     "col": "git_sha",
+     "value": "abc1234-dirty"
+    }
+   ],
+   "strict": false
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "STL-008",
+  "area": "staleness",
+  "kind": "repo",
+  "description": "strict mode rejects a result when the measured code changed since its commit",
+  "args": {
+   "edits": [
+    {
+     "op": "git_record"
+    },
+    {
+     "op": "append",
+     "path": "demo/greet.py",
+     "content": "\n# changed after the result was recorded\n"
+    }
+   ],
+   "strict": true
+  },
+  "expect": {
+   "rule": "S20",
+   "contains": "changed since"
+  }
+ },
+ {
+  "id": "STL-009",
+  "area": "staleness",
+  "kind": "repo",
+  "description": "a result recorded on the committed code is current under strict mode (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "git_record"
+    }
+   ],
+   "strict": true
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "STL-010",
+  "area": "staleness",
+  "kind": "repo",
+  "description": "a change outside the measured code does not make a result stale (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "git_record"
+    },
+    {
+     "op": "write",
+     "path": "docs/structure/NOTES.md",
+     "content": "notes\n"
+    }
+   ],
+   "strict": true
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "STL-011",
+  "area": "staleness",
+  "kind": "repo",
+  "description": "strict mode rejects a result when an evaluation implementation changed since its commit",
+  "args": {
+   "edits": [
+    {
+     "op": "git_record"
+    },
+    {
+     "op": "append",
+     "path": "evaluation/components/greet_a_person/impls/live.py",
+     "content": "\n# changed\n"
+    }
+   ],
+   "strict": true
+  },
+  "expect": {
+   "rule": "S20",
+   "contains": "changed since"
+  }
+ }
+]
