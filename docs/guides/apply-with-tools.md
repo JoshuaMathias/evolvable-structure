@@ -55,7 +55,8 @@ esoi check --strict                       # every recorded result is current
 
 `esoi run --stale` re-runs the selected arm of each solution and the rivals recorded beside it (a verdict that rests on a rival
 recorded before the measured code changed is flagged by `esoi check --strict`, waive one as `S20 <solution>:<implementation>`),
-but never an arm that may spend money: one that declares `PAID = True`, is listed in `paid_arms`, or whose last run called a
+on the sample the selected arm's latest row used (`--full` runs the whole set), so a re-record stays comparable; a rival
+recorded on another sample is not stale, it is not comparable, and is re-run too. It never runs an arm that may spend money: one that declares `PAID = True`, is listed in `paid_arms`, or whose last run called a
 model. Those are listed as skipped with the command to run them; opt in with `--include <component>/<impl>` or `--include-paid`.
 Code the measurement depends on may sit in a sibling repository: name it in `code_paths` (`../sibling/pkg`) and the results log
 records that repository's commit in a `code_shas` column. Give `prices` in the configuration and a model run's `cost_usd` is
@@ -82,7 +83,7 @@ tells you whether they are stale; a new field appears as a missing column in you
 | `esoi check [--strict] [--write-docs]` | Runs every rule; `--strict` also rejects results recorded on uncommitted code |
 | `esoi rules` | Lists the rules |
 | `esoi run <component> --impl <name> [--record]` | Runs and records one implementation (`--sample N`, `--only IDS`, `--max-calls N` for staged, budgeted runs) |
-| `esoi run --stale [--include-paid \| --include C/I]` | Re-runs and records every selected implementation, and the rivals beside it, whose result is stale; paid arms are skipped unless included |
+| `esoi run --stale [--full] [--include-paid \| --include C/I]` | Re-runs and records every selected implementation, and the rivals beside it, whose result is stale; paid arms are skipped unless included |
 | `esoi leaderboard [--strict]` | Ranks implementations and prints a verdict per solution |
 | `esoi tracker build\|check` | Builds the review sheet tabs |
 | `esoi sheet-sync sync\|push\|pull\|check` | Syncs those tabs with a Google Sheet |

@@ -52,6 +52,7 @@ class Context:
     template: Dict[str, List[Dict[str, str]]]
     results: Dict[str, Rows]
     table: Optional[Dict] = None
+    history: Dict[str, Dict[str, List[Dict[str, str]]]] = field(default_factory=dict)   # every results row, oldest first
     table_error: str = ""
     strict: bool = False
     used_waivers: Set[Tuple[str, str]] = field(default_factory=set)

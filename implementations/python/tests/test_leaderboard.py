@@ -110,3 +110,54 @@ def test_one_malformed_results_line_does_not_stop_the_board(tmp_path):
     rows = lb.latest_results(path)
     assert set(rows["c"]) == {"a", "b"}
     assert lb.pass_rate(rows["c"]["a"]) == 0.0 and lb.pass_rate(rows["c"]["b"]) == 1.0
+
+
+def history(*items):
+    out = {}
+    for r in items:
+        out.setdefault(r["impl"], []).append(r)
+    return {impl: sorted(h, key=lambda r: r["date"]) for impl, h in out.items()}
+
+
+def test_rows_on_different_samples_are_not_compared():
+    full = row("a", 458, cases=1137, sample="")
+    sampled = row("b", 12, cases=40, sample="sample:40")
+    now = rows(full, sampled)
+    assert not lb.comparable(full, sampled)
+    assert lb.challengers(now, "a") == []
+    label, detail = lb.verdict(now, "a")
+    assert label == "UNMEASURED" and "40 cases (sample:40)" in detail and "1137 cases" in detail
+    # a log recorded before the sample column still tells the two apart by the number of cases
+    assert lb.verdict(rows(row("a", 458, cases=1137), row("b", 12, cases=40)), "a")[0] == "UNMEASURED"
+    # same count, different selection
+    assert not lb.comparable(row("a", 5, sample="sample:10"), row("b", 5, sample="only:A,B"))
+
+
+def test_each_arm_is_compared_on_the_newest_run_both_have():
+    old = dict(date="2026-01-01")
+    new = dict(date="2026-02-01")
+    hist = history(row("a", 458, cases=1137, **new), row("a", 23, cases=40, sample="sample:40", **old),
+                   row("b", 12, cases=40, sample="sample:40", **new))
+    latest = {impl: h[-1] for impl, h in hist.items()}
+    assert lb.verdict(latest, "a")[0] == "UNMEASURED"   # the latest rows alone share nothing
+    label, detail = lb.verdict(latest, "a", history=hist)   # but both ran the 40-case sample: 23 against 12
+    assert label == "WIN" and "b" in detail
+    assert [r["impl"] for r in lb.challengers(latest, "a", history=hist)] == []
+    losing = history(row("a", 5, cases=40, sample="sample:40", **old), row("a", 458, cases=1137, **new),
+                     row("b", 12, cases=40, sample="sample:40", **new))
+    assert lb.verdict({i: h[-1] for i, h in losing.items()}, "a", history=losing)[0] == "LOSS"
+
+
+def test_the_board_names_the_mismatch_and_strict_reports_it(tmp_path):
+    cfg = Config(root=tmp_path)
+    (tmp_path / "evaluation" / "components").mkdir(parents=True)
+    (tmp_path / "evaluation" / "components" / "results.csv").write_text(
+        "date,component,impl,cases,passed,heldout,model_calls,tokens_in,tokens_out,cost_usd,cases_sha,sample\n"
+        "2026-01-01,mini,a,1137,458,0/0,0,0,0,0.0,x,\n2026-01-01,mini,b,40,12,0/0,0,0,0,0.0,x,sample:40\n")
+    registry = Registry(solutions=[{"solution_id": "s", "selected": "a", "metric_kind": "eval", "selected_by": "hand",
+                                    "metric_command": "esoi run mini --impl a"}])
+    lines = []
+    assert lb.board(cfg, registry, strict=False, say=lines.append) == 0
+    text = "\n".join(lines)
+    assert "UNMEASURED" in text and "mini (selected: a) UNMEASURED" in text and "WIN:" not in text and "LOSS" not in text and "? b is not comparable with a" in text
+    assert lb.board(cfg, registry, strict=True, say=lambda t: None) == 1

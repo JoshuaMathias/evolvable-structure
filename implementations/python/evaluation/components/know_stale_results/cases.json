@@ -372,5 +372,31 @@
   "expect": {
    "clean": true
   }
+ },
+ {
+  "id": "STL-015",
+  "area": "staleness",
+  "kind": "repo",
+  "description": "strict mode names a rival scored on another sample as not comparable, not stale",
+  "args": {
+   "edits": [
+    {
+     "op": "git_record"
+    },
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "shout",
+     "col": "cases",
+     "value": "1"
+    }
+   ],
+   "strict": true
+  },
+  "expect": {
+   "rule": "S20",
+   "contains": "not comparable"
+  }
  }
 ]

@@ -544,7 +544,7 @@
     "not comparable"
    ],
    "eq": {
-    "exit": 0,
+    "exit": 1,
     "beats": [],
     "incomparable": [
      "b"
@@ -583,7 +583,7 @@
     "unverified"
    ],
    "eq": {
-    "exit": 0,
+    "exit": 1,
     "beats": [],
     "incomparable": [
      "b"
@@ -1033,6 +1033,231 @@
      "live_arm": "",
      "validity_arm": "validity"
     }
+   }
+  }
+ },
+ {
+  "id": "RNK-031",
+  "kind": "verdict",
+  "area": "a rival on a different sample is not compared",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 458,
+     "cases": 1137,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "sample": "",
+     "date": "2026-10-16"
+    },
+    {
+     "impl": "b",
+     "passed": 12,
+     "cases": 40,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "sample": "sample:40",
+     "date": "2026-10-16"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "UNMEASURED"
+   }
+  }
+ },
+ {
+  "id": "RNK-032",
+  "kind": "verdict",
+  "area": "the same cases but another sample selection is not compared",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "sample": "sample:10",
+     "date": "2026-10-16"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "sample": "only:A,B",
+     "date": "2026-10-16"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "UNMEASURED"
+   }
+  }
+ },
+ {
+  "id": "RNK-033",
+  "kind": "verdict",
+  "area": "a log without a sample column tells a sample from the full set by the case count",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 458,
+     "cases": 1137,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "sample": "",
+     "date": "2026-10-16"
+    },
+    {
+     "impl": "b",
+     "passed": 12,
+     "cases": 40,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "sample": "",
+     "date": "2026-10-16"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "UNMEASURED"
+   }
+  }
+ },
+ {
+  "id": "RNK-034",
+  "kind": "verdict",
+  "area": "arms are compared on the newest sample both have (a win on 40 cases)",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 23,
+     "cases": 40,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "sample": "sample:40",
+     "date": "2026-10-01"
+    },
+    {
+     "impl": "a",
+     "passed": 458,
+     "cases": 1137,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "sample": "",
+     "date": "2026-10-16"
+    },
+    {
+     "impl": "b",
+     "passed": 12,
+     "cases": 40,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "sample": "sample:40",
+     "date": "2026-10-16"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "WIN"
+   }
+  }
+ },
+ {
+  "id": "RNK-035",
+  "kind": "verdict",
+  "area": "arms are compared on the newest sample both have (a loss on 40 cases)",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 40,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "sample": "sample:40",
+     "date": "2026-10-01"
+    },
+    {
+     "impl": "a",
+     "passed": 458,
+     "cases": 1137,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "sample": "",
+     "date": "2026-10-16"
+    },
+    {
+     "impl": "b",
+     "passed": 12,
+     "cases": 40,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "sample": "sample:40",
+     "date": "2026-10-16"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "LOSS"
+   }
+  }
+ },
+ {
+  "id": "RNK-036",
+  "kind": "board",
+  "area": "board",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 458,
+     "cases": 1137,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "sample": "",
+     "date": "2026-10-16"
+    },
+    {
+     "impl": "b",
+     "passed": 12,
+     "cases": 40,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "sample": "sample:40",
+     "date": "2026-10-16"
+    }
+   ],
+   "selected": "a",
+   "strict": true
+  },
+  "expect": {
+   "contains": [
+    "mini (selected: a) UNMEASURED",
+    "? b is not comparable with a"
+   ],
+   "eq": {
+    "exit": 1,
+    "beats": [],
+    "incomparable": [
+     "b"
+    ]
    }
   }
  }

@@ -15,7 +15,7 @@ from esoi.config import Config
 from esoi.registry import Registry
 
 RESULT_COLUMNS = ["date", "component", "impl", "cases", "passed", "dev", "heldout", "model_calls",
-                  "tokens_in", "tokens_out", "cost_usd", "seconds", "git_sha", "cases_sha", "model"]
+                  "tokens_in", "tokens_out", "cost_usd", "seconds", "git_sha", "cases_sha", "sample", "model"]
 MINI_CASES = [{"id": f"M{i}", "kind": "echo", "args": {"n": i}, "expect": {"eq": {"n": i}}, "heldout": i == 3}
               for i in (1, 2, 3)]
 counter = itertools.count(1)

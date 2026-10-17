@@ -126,7 +126,7 @@ def run(ctx: Context) -> List[str]:
                 bad.append(f"S10 {r['solution_id']}: selected {sel} has no row in the results log (run with --record)")
             continue
         invariant = r.get("metric_kind", "").strip() == "invariant"
-        better = [] if invariant else [x["impl"] for x in leaderboard.challengers(rows, sel, evaluation)]
+        better = [] if invariant else [x["impl"] for x in leaderboard.challengers(rows, sel, evaluation, ctx.history.get(comp))]
         if better and not ctx.waived("S10", f"{r['solution_id']}:{','.join(sorted(better))}"):
             bad.append(f"S10 {r['solution_id']}: {', '.join(better)} beat the selected {sel} in the results log; "
                        "adopt the winner or add a waiver naming the pending decision")
@@ -204,11 +204,18 @@ def run(ctx: Context) -> List[str]:
         row = results.get(comp, {}).get(sel)
         if row is None:
             continue   # S10 reports the missing row
-        for impl, rival_why in leaderboard.stale_rivals(config, comp, results.get(comp, {}), sel, stale_reason):
+        for impl, rival_why in leaderboard.stale_rivals(config, comp, results.get(comp, {}), sel, stale_reason,
+                                                          ctx.history.get(comp)):
             waived = ctx.waived("S20", f"{sid}:{impl}")   # in use now, though only --strict reports the finding
             if ctx.strict and not waived:
                 bad.append(f"S20 {sid}: the verdict compares {sel} with rival {impl}, but {rival_why}; re-run "
                            f"`esoi run {comp} --impl {impl} --record` on committed code")
+        for impl, rival_why in leaderboard.incomparable_rivals(results.get(comp, {}), sel, config.evaluation,
+                                                                ctx.history.get(comp)):
+            waived = ctx.waived("S20", f"{sid}:{impl}")
+            if ctx.strict and not waived:
+                bad.append(f"S20 {sid}: rival {impl} is not comparable with {sel} ({rival_why}); re-run "
+                           f"`esoi run --stale` so both are recorded on the same sample")
         why = stale_reason(config, comp, row, ctx.strict)
         if not why:
             if not ctx.strict and stale_reason(config, comp, row, True):

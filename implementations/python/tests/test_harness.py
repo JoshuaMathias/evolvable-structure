@@ -251,3 +251,46 @@ def test_an_arm_listed_in_paid_arms_or_recorded_with_model_calls_is_paid(repo):
     lines.clear()
     harness.rerun_stale(cfg, lines.append, include_paid=True)
     assert sum(": run and recorded" in line for line in lines) == 2
+
+
+def test_a_sampled_run_records_its_sample_and_a_full_run_leaves_it_blank(tmp_path):
+    cfg = make(tmp_path, "comp_sample")
+    harness.prepare_path(cfg)
+    score = importlib.import_module("comp_sample.score").score_case
+    quiet = lambda text: None
+    harness.run_component("comp_sample", score, ["--impl", "live", "--sample", "1", "--record"], cfg, quiet)
+    harness.run_component("comp_sample", score, ["--impl", "live", "--sample", "5", "--record"], cfg, quiet)   # whole set
+    harness.run_component("comp_sample", score, ["--impl", "live", "--only", "B", "--record"], cfg, quiet)
+    written = list(csv.DictReader(cfg.results_path.open()))
+    assert [r["sample"] for r in written] == ["sample:1", "", "only:B"]
+    assert harness.sample_args(cfg, "comp_sample", written[0]) == ["--sample", "1"]
+    assert harness.sample_args(cfg, "comp_sample", written[1]) == []
+    assert harness.sample_args(cfg, "comp_sample", written[2]) == ["--only", "B"]
+    legacy = dict(written[0], sample="", cases="1")   # recorded before the column: fewer cases than the set
+    assert harness.sample_args(cfg, "comp_sample", legacy) == ["--sample", "1"]
+
+
+def test_rerun_stale_keeps_the_sample_and_runs_a_rival_on_the_selected_arms_sample(repo):
+    from esoi import config as config_module
+    cfg = config_module.load(repo)
+    git(repo, "init", "-q")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "init")
+    harness.prepare_path(cfg)
+    score = importlib.import_module("greet_a_person.score").score_case
+    quiet = lambda text: None
+    harness.run_component("greet_a_person", score, ["--impl", "live", "--sample", "1", "--record"], cfg, quiet)
+    harness.run_component("greet_a_person", score, ["--impl", "shout", "--record"], cfg, quiet)   # the whole set
+    lines = []
+    harness.rerun_stale(cfg, lines.append)
+    assert "greet_a_person/live: current" in lines
+    assert any("shout: stale, it was scored on a different sample" in line and "not comparable" in line for line in lines)
+    latest = {r["impl"]: r for r in csv.DictReader(cfg.results_path.open())}
+    assert latest["live"]["sample"] == "sample:1" and latest["shout"]["sample"] == "sample:1"
+    lines.clear()
+    harness.rerun_stale(cfg, lines.append)
+    assert lines == ["greet_a_person/live: current", "greet_a_person/shout: current"]
+    lines.clear()
+    harness.rerun_stale(cfg, lines.append, full=True)   # --full asks for the whole set
+    latest = {r["impl"]: r for r in csv.DictReader(cfg.results_path.open())}
+    assert latest["live"]["sample"] == "" and latest["shout"]["sample"] == "" and latest["live"]["cases"] == "2"

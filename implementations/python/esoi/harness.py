@@ -12,7 +12,10 @@ the repository. ``esoi run <component> --impl <name>`` drives it:
     a smaller N is a prefix of a larger one, so a cheap first run is part of the bigger run).
   * ``--record`` appends the summary to the results log with ``git_sha`` (suffixed ``-dirty`` when the measured
     code has uncommitted changes) and ``cases_sha`` (a hash of the case files), the provenance the leaderboard
-    and the check (rules S16, S20) rely on.
+    and the check (rules S16, S20) rely on, and ``sample`` (``sample:N`` for ``--sample N``, ``only:ids`` for
+    ``--only``, blank for the full set), so the leaderboard compares arms only on the same cases.
+  * ``esoi run --stale`` re-runs a stale arm on the sample its latest row used (``--full`` runs the whole set), and a
+    rival on the selected arm's sample, so a re-record stays comparable.
 """
 from __future__ import annotations
 
@@ -34,7 +37,7 @@ from .config import Config
 from .leaderboard import cases_digest
 
 RESULT_COLUMNS = ["date", "component", "impl", "cases", "passed", "dev", "heldout", "model_calls",
-                  "tokens_in", "tokens_out", "cost_usd", "seconds", "git_sha", "cases_sha", "model", "details"]
+                  "tokens_in", "tokens_out", "cost_usd", "seconds", "git_sha", "cases_sha", "sample", "model", "details"]
 
 
 class BudgetExceeded(RuntimeError):
@@ -131,6 +134,33 @@ def stratified_sample(cases: List[dict], n: int, seed: int = 0) -> List[dict]:
             if groups[name] and len(picked) < n:
                 picked.append(groups[name].pop(0))
     return sorted(picked, key=lambda c: str(c["id"]))
+
+
+def sample_label(args: argparse.Namespace, cases: List[dict], whole: int) -> str:
+    """The ``sample`` cell of a run: blank for the full set, ``only:ids`` for ``--only``, else ``sample:N``."""
+    if len(cases) == whole:
+        return ""
+    if args.only:
+        return "only:" + ",".join(str(c["id"]) for c in cases)
+    return f"sample:{args.sample}"
+
+
+def sample_args(config: Config, component: str, row: Optional[Dict[str, str]]) -> List[str]:
+    """The ``esoi run`` flags that reproduce the sample a recorded row was scored on (``[]`` for the full set). A row
+    recorded before the ``sample`` column that scored fewer cases than the set has is read as ``--sample`` of that size,
+    which is what ``--sample`` recorded (stratified_sample is deterministic and a smaller N is a prefix of a larger)."""
+    if not row:
+        return []
+    label = (row.get("sample") or "").strip()
+    if label.startswith("only:"):
+        return ["--only", label[len("only:"):]]
+    if label.startswith("sample:"):
+        return ["--sample", label[len("sample:"):]]
+    try:
+        count = int(float(row.get("cases") or 0))
+    except ValueError:
+        return []
+    return ["--sample", str(count)] if 0 < count < len(load_cases(component, config)) else []
 
 
 def load_cases(component: str, config: Config) -> List[dict]:
@@ -334,6 +364,7 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     ap.add_argument("--record", action="store_true", help="append the summary to the results log")
     args = ap.parse_args(argv)
     cases = load_cases(component, config)
+    whole = len(cases)
     if args.only:
         keep = {c.strip() for c in args.only.split(",")}
         cases = [c for c in cases if c["id"] in keep]
@@ -343,6 +374,7 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
         if args.sample < 1:
             raise RunError("--sample needs a number of cases of at least 1")
         cases = stratified_sample(cases, args.sample)
+    sample = sample_label(args, cases, whole)
     budget = args.max_calls if args.max_calls is not None else "none"
     say(f"{component}: {len(cases)} case(s), impl {args.impl}, model-call budget {budget}: "
         f"{', '.join(str(c['id']) for c in cases[:12])}{' ...' if len(cases) > 12 else ''}")
@@ -368,7 +400,7 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
                    heldout=f"{sum(bool(r['ok']) for r in held)}/{len(held)}",
                    model_calls=meter.calls, tokens_in=meter.tokens_in, tokens_out=meter.tokens_out,
                    cli_reported_cost_usd=round(meter.cost_usd, 4), seconds=round(time.time() - started, 1),
-                   model=meter.model)
+                   model=meter.model, sample=sample)
     cost = run_cost(config, summary, summary["model"])
     say(f"\n{component} / {args.impl}: {passed}/{len(rows)} passed (dev {summary['dev']}, held-out "
         f"{summary['heldout']}), {meter.calls} model calls, {meter.tokens_in} in / {meter.tokens_out} out tokens, "
@@ -411,8 +443,8 @@ def paid_reason(config: Config, component: str, impl: str, row: Optional[Dict[st
 
 def stale_arms(config: Config) -> List[Tuple[str, str]]:
     """Each selected arm of the registry, then every other recorded arm of its component that competes with it (an
-    ablation or validity arm is no rival). A rival recorded on other cases is included: it is not compared until it is
-    re-run on the current ones."""
+    ablation or validity arm is no rival). A rival recorded on other cases or another sample is included: it is not compared until it is
+    re-run on the selected arm's cases and sample."""
     from . import leaderboard
     from .registry import first_arm, load
     latest = leaderboard.latest_results(config.results_path)
@@ -429,19 +461,35 @@ def stale_arms(config: Config) -> List[Tuple[str, str]]:
 
 
 def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool = True, include_paid: bool = False,
-                include: Optional[List[str]] = None) -> int:
+                include: Optional[List[str]] = None, full: bool = False) -> int:
     """Run every selected implementation, and every rival recorded beside it, whose recorded result is stale, and record
     it; the loop to run after changing measured code or cases, on committed code.
+
+    Each run uses the sample of the selected arm's latest row (size and selection, so a re-record stays comparable with
+    its rivals); ``full`` runs the whole set instead. A rival that is current but was scored on another sample than the
+    selected arm is not stale, it is not comparable: it is re-run on the selected arm's sample too.
 
     An arm that may spend money (``paid_reason``) is never run by default: it is listed as skipped with the command that
     runs it. ``include_paid`` runs them all, ``include`` (``component/impl`` names) only those."""
     from . import leaderboard
+    from .registry import first_arm, load
     prepare_path(config)
     latest = leaderboard.latest_results(config.results_path)
+    selected_arms = {first_arm(config, r.get("metric_command", "")) for r in load(config).solutions}
     skipped: List[str] = []
+    target: Dict[str, List[str]] = {}   # component -> run flags of its selected arm's sample
     for comp, impl in stale_arms(config):
         row = latest.get(comp, {}).get(impl)
         why = stale_reason(config, comp, row)
+        if comp not in target:   # stale_arms lists the selected arm of a component first
+            target[comp] = [] if full else sample_args(config, comp, row)
+        flags = target[comp]
+        if not why and row and (comp, impl) not in selected_arms:
+            wanted = sample_args(config, comp, row)
+            if wanted != flags:
+                why = f"it was scored on a different sample ({' '.join(wanted) or 'full set'}) than the selected arm ({' '.join(flags) or 'full set'}), so it is not comparable"
+        if not why and full and row and sample_args(config, comp, row):
+            why = "it was scored on a sample and --full asks for the whole set"
         if not why:
             say(f"{comp}/{impl}: current")
             continue
@@ -452,8 +500,9 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
             continue
         say(f"{comp}/{impl}: stale, {why}")
         score = importlib.import_module(f"{comp}.score")
-        run_component(comp, score.score_case, ["--impl", impl] + (["--record"] if record else []), config, lambda text: None)
-        say(f"{comp}/{impl}: run" + (" and recorded" if record else ""))
+        run_component(comp, score.score_case, ["--impl", impl] + flags + (["--record"] if record else []), config,
+                      lambda text: None)
+        say(f"{comp}/{impl}: run" + (f" ({' '.join(flags)})" if flags else "") + (" and recorded" if record else ""))
     if skipped:
         say(f"skipped {len(skipped)} paid arm(s); stage and budget them first (see the metric run policy), then run each with "
             "`esoi run <component> --impl <name> --max-calls N --record`, or "
@@ -467,10 +516,10 @@ def run_cli(argv: List[str], config: Config, say: Callable[[str], None] = print)
     if argv and argv[0] == "--stale":
         include = [argv[i + 1] for i, word in enumerate(argv[:-1]) if word == "--include"]
         return rerun_stale(config, say, record="--no-record" not in argv, include_paid="--include-paid" in argv,
-                           include=include)
+                           include=include, full="--full" in argv)
     components = discover_components(config)
     if not argv or argv[0] not in components:
-        say("usage: esoi run <component> --impl <name> [--only IDS] [--sample N] [--max-calls N] [--record]  |  esoi run --stale [--include-paid | --include COMPONENT/IMPL]")
+        say("usage: esoi run <component> --impl <name> [--only IDS] [--sample N] [--max-calls N] [--record]  |  esoi run --stale [--full] [--include-paid | --include COMPONENT/IMPL]")
         say("components: " + (", ".join(components) or "none found under " + config.evaluation_dir))
         return 2
     score = importlib.import_module(f"{argv[0]}.score")

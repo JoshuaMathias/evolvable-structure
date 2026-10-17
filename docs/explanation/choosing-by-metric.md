@@ -7,8 +7,9 @@ matter: they define the problems, ideals and metric, and they propose and improv
 ## Run alternatives on the same cases
 
 A metric is a set of cases and a way to score an implementation on them. Each implementation is run on the same cases and
-the result is recorded with the commit and a hash of the case files. Only results with the same case hash are
-compared: a score on different cases is not evidence.
+the result is recorded with the commit, a hash of the case files and the sample (blank for the full set). Only results
+with the same case hash and the same sample are compared: a score on different cases is not evidence, and 458 of 1,137
+cases is not comparable with 12 of a 40-case sample.
 
 ## Say whether best can vary
 

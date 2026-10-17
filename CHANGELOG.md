@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+Fixes from an adopter report (a verdict that compared different samples):
+
+- The leaderboard compares arms only on the same cases and sample: the same `cases_sha`, the same new `sample` column (blank for
+  the full set, `sample:N`, `only:ids`) and the same case count, so a log without the column still tells a 40-case run from a
+  1,137-case one. Each rival is compared with the selected arm on the newest run both have; a rival with none is not compared
+  (UNMEASURED, with the mismatch named) and `--strict` fails on it (`esoi leaderboard`, rule S20). Before, a 10-point gap between
+  a full run and a 40-case sample was called WIN.
+- `esoi run --stale` re-runs an arm on the sample its latest row used, and a rival on the selected arm's sample; `--full` runs the
+  whole set. A rival on another sample is "not comparable", not stale.
+
 Fixes from three adopter migrations:
 
 - A registry file that lacks a column the rules read (`port`, `gap`, `role` ...) is reported, not a crash; the record header

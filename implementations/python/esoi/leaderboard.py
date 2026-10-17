@@ -11,9 +11,13 @@ A solution whose ``metric_kind`` is ``invariant`` (a rule that holds or does not
 saying why "best" cannot vary) is listed apart, under "Invariant solutions", with its recorded run and never ranked.
 So is a component that carries an ``invariant.txt`` (complementary arms of one evaluated solution).
 
-Only rows with the same ``cases_sha`` as the selected row are compared: a score on a different case file is not
-evidence. Rows recorded before ``cases_sha`` existed have it blank, are FLAGGED ``unverified`` and are shown but
-never treated as evidence against a verified row (``comparable`` keeps them apart).
+Only rows scored on the same cases are compared: the same ``cases_sha`` (the case file), the same ``sample`` (``""``
+for the full set, ``sample:N`` for the ``--sample N`` selection, ``only:ids`` for ``--only``) and the same case count
+(so a log recorded before ``sample`` existed still tells a 40-case run from a 1,137-case one). A score on different
+cases is not evidence. Each rival is compared with the selected arm on the newest ``(cases_sha, sample, cases)`` both
+have a row for, not on each arm's latest row; a rival that shares none is not compared (UNMEASURED, or "not
+comparable" on the board) and a verdict never rests on it. Rows recorded before ``cases_sha`` existed have it blank,
+are FLAGGED ``unverified`` and are shown but never treated as evidence against a verified row.
 
 Verdicts: WIN (it beats every rival on the same cases), TIE (a rival is inside the noise, so the selection is kept
 for a reason outside the number), LOSS (a rival beats it), UNMEASURED (no rival was compared). Noise: exact pass
@@ -82,19 +86,25 @@ def invariant_reason(component: str, solution_invariants: Optional[Dict[str, str
     return ""
 
 
-def latest_results(path: Path) -> Dict[str, Rows]:
-    """{component: {impl: row}} keeping the newest row per implementation."""
-    out: Dict[str, Rows] = {}
+def all_results(path: Path) -> Dict[str, Dict[str, List[Row]]]:
+    """{component: {impl: [rows, oldest first]}}: every row of the results log, in date order (file order within a date)."""
+    out: Dict[str, Dict[str, List[Row]]] = {}
     if not Path(path).exists():
         return out
     with open(path, newline="", encoding="utf-8-sig") as fh:
         for row in csv.DictReader(fh):
             if not (row.get("component") and row.get("impl")):
                 continue   # a blank or half-written line is no result
-            prev = out.setdefault(row["component"], {}).get(row["impl"])
-            if prev is None or (row.get("date") or "") >= (prev.get("date") or ""):
-                out[row["component"]][row["impl"]] = row
+            out.setdefault(row["component"], {}).setdefault(row["impl"], []).append(row)
+    for impls in out.values():
+        for history in impls.values():
+            history.sort(key=lambda r: r.get("date") or "")   # stable: a later line of the same date stays later
     return out
+
+
+def latest_results(path: Path) -> Dict[str, Rows]:
+    """{component: {impl: row}} keeping the newest row per implementation."""
+    return {comp: {impl: history[-1] for impl, history in impls.items()} for comp, impls in all_results(path).items()}
 
 
 def selected_impls(config: Config, solutions: List[Row]) -> Dict[str, str]:
@@ -139,9 +149,26 @@ def unverified(row: Row) -> bool:
     return not (row.get("cases_sha") or "").strip()
 
 
+def cases_key(row: Row) -> Tuple[str, str, int]:
+    """What a row was scored on: ``(cases_sha, sample, case count)``. ``sample`` is blank for the full set (and for rows
+    recorded before the column existed, which the case count then tells apart)."""
+    try:
+        count = int(float(row.get("cases") or 0))
+    except ValueError:
+        count = 0
+    return (row.get("cases_sha") or "", (row.get("sample") or "").strip(), count)
+
+
 def comparable(a: Row, b: Row) -> bool:
-    """Two rows are comparable only when scored on the same case file (blank == blank: legacy rows)."""
-    return (a.get("cases_sha") or "") == (b.get("cases_sha") or "")
+    """Two rows are comparable only when scored on the same cases: the same case file, the same sample and the same
+    number of cases (blank == blank: legacy rows)."""
+    return cases_key(a) == cases_key(b)
+
+
+def describe_cases(row: Row) -> str:
+    """``1137 cases`` or ``40 cases (sample:40)``, with the case file when it is recorded."""
+    sha, sample, count = cases_key(row)
+    return f"{count} cases" + (f" ({sample})" if sample else "") + (f" on cases_sha {sha}" if sha else "")
 
 
 ARM_MARKER = re.compile(r'\s*"""\s*(ABLATION|BASELINE|FLOOR|ALTERNATIVE|VALIDITY)')
@@ -220,54 +247,87 @@ def cheaper_without_passing_less(row: Row, other: Row, eval_dir: Optional[Path] 
     return pass_rate(row) >= pass_rate(other) and clearly_cheaper(row, other, eval_dir)
 
 
-def rival_rows(rows: Rows, selected: str, eval_dir: Optional[Path] = None) -> List[Row]:
-    """The rows a verdict on ``selected`` rests on: comparable to it (same cases) and not an ablation or validity arm."""
-    cur = rows.get(selected)
-    if cur is None:
-        return []
-    return [r for r in rows.values() if r["impl"] != selected and comparable(r, cur) and not is_ablation(r, eval_dir)]
+def history_of(rows: Rows, history: Optional[Dict[str, List[Row]]] = None) -> Dict[str, List[Row]]:
+    """The rows each arm has, oldest first: ``history`` when given, else just each arm's latest row."""
+    return history if history is not None else {impl: [row] for impl, row in rows.items()}
+
+
+def rival_pairs(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
+                history: Optional[Dict[str, List[Row]]] = None) -> Tuple[List[Tuple[Row, Row]], List[Tuple[str, str]]]:
+    """``(pairs, unmatched)`` for ``selected``. A pair is ``(selected row, rival row)`` scored on the same cases (see
+    ``cases_key``): for each rival, the newest key both arms have a row for, and on it each arm's newest row.
+    ``unmatched`` is ``(rival, why)`` for each rival (ablation and validity arms excluded) that shares no key, so it is
+    not compared at all."""
+    arms = history_of(rows, history)
+    mine = arms.get(selected) or ([rows[selected]] if selected in rows else [])
+    pairs: List[Tuple[Row, Row]] = []
+    unmatched: List[Tuple[str, str]] = []
+    for impl in sorted(arms):
+        theirs = arms[impl]
+        if impl == selected or not theirs or is_ablation(theirs[-1], eval_dir):
+            continue
+        best = None   # (rival position, selected position) of the newest shared key
+        for i, rival in enumerate(theirs):
+            for j, own in enumerate(mine):
+                if comparable(own, rival) and (best is None or (i, j) > best):
+                    best = (i, j)
+        if best is None:
+            if mine:
+                unmatched.append((impl, f"scored on {describe_cases(theirs[-1])}, {selected} on "
+                                        f"{describe_cases(mine[-1])}: no run of the two on the same cases and sample"))
+            continue
+        pairs.append((mine[best[1]], theirs[best[0]]))
+    return pairs, unmatched
+
+
+def incomparable_rivals(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
+                        history: Optional[Dict[str, List[Row]]] = None) -> List[Tuple[str, str]]:
+    """``(implementation, reason)`` for each rival that shares no cases and sample with ``selected``: not stale, not
+    comparable. Re-run it on the selected arm's sample (``esoi run --stale`` does)."""
+    return rival_pairs(rows, selected, eval_dir, history)[1]
 
 
 def stale_rivals(config: Config, component: str, rows: Rows, selected: str,
-                 stale: Callable[[Config, str, Row, bool], str]) -> List[Tuple[str, str]]:
-    """``(implementation, reason)`` for each rival of ``selected`` whose recorded row no longer counts under the strict
-    rules (other cases, uncommitted code, or measured code that changed since its commit): a verdict that rests on it
-    (WIN or TIE) compares the selected arm's current number with a rival's old one. ``stale`` is
-    ``harness.stale_reason``, passed in because it needs git and the leaderboard is the inner layer."""
-    return [(r["impl"], why) for r in rival_rows(rows, selected, config.evaluation)
-            if (why := stale(config, component, r, True))]
+                 stale: Callable[[Config, str, Row, bool], str],
+                 history: Optional[Dict[str, List[Row]]] = None) -> List[Tuple[str, str]]:
+    """``(implementation, reason)`` for each compared rival of ``selected`` whose row no longer counts under the strict
+    rules (other cases than on disk, uncommitted code, or measured code that changed since its commit): a verdict that
+    rests on it (WIN or TIE) compares the selected arm's current number with a rival's old one. A rival on another
+    sample is not stale, it is not compared (``incomparable_rivals``). ``stale`` is ``harness.stale_reason``, passed in
+    because it needs git and the leaderboard is the inner layer."""
+    pairs, _ = rival_pairs(rows, selected, config.evaluation, history)
+    return [(r["impl"], why) for _, r in pairs if (why := stale(config, component, r, True))]
 
 
-def challengers(rows: Rows, selected: str, eval_dir: Optional[Path] = None) -> List[Row]:
-    """Implementations that beat the selected one on pass rate by more than the margin, or stay inside it at
-    clearly lower spend without passing less. Rows scored on a different ``cases_sha`` than the selected one are
-    skipped, and an ablation or validity arm is never a challenger."""
-    cur = rows.get(selected)
-    if cur is None:
-        return []
+def challengers(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
+                history: Optional[Dict[str, List[Row]]] = None) -> List[Row]:
+    """Rival rows that beat the selected one on the same cases and sample: a pass rate higher by more than the margin,
+    or inside it at clearly lower spend without passing less. A rival on other cases is skipped, and an ablation or
+    validity arm is never a challenger."""
     better = []
-    for r in rows.values():
-        if r["impl"] == selected or not comparable(r, cur) or is_ablation(r, eval_dir):
-            continue
+    for cur, r in rival_pairs(rows, selected, eval_dir, history)[0]:
         if clearly_higher(r, cur, eval_dir) or (not clearly_higher(cur, r, eval_dir)
                                                  and cheaper_without_passing_less(r, cur, eval_dir)):
             better.append(r)
     return better
 
 
-def verdict(rows: Rows, selected: str, eval_dir: Optional[Path] = None) -> Tuple[str, str]:
+def verdict(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
+            history: Optional[Dict[str, List[Row]]] = None) -> Tuple[str, str]:
     """How the selected implementation stands against the other measured ones, as ``(label, detail)``."""
-    cur = rows.get(selected)
-    if cur is None:
+    if rows.get(selected) is None:
         return "UNMEASURED", "the selected implementation has no recorded row"
-    rivals = rival_rows(rows, selected, eval_dir)
-    if not rivals:
+    pairs, unmatched = rival_pairs(rows, selected, eval_dir, history)
+    if not pairs:
+        if unmatched:
+            return "UNMEASURED", ("no rival was measured on the same cases and sample as the selected "
+                                  f"implementation: {'; '.join(f'{i} {why}' for i, why in unmatched)}")
         return "UNMEASURED", "no rival implementation was measured on the same cases"
-    beaten_by = [r["impl"] for r in challengers(rows, selected, eval_dir)]
+    beaten_by = [r["impl"] for r in challengers(rows, selected, eval_dir, history)]
     if beaten_by:
         return "LOSS", "beaten by " + ", ".join(sorted(beaten_by))
     tied = []
-    for r in rivals:
+    for cur, r in pairs:
         if clearly_higher(cur, r, eval_dir) or cheaper_without_passing_less(cur, r, eval_dir):
             continue
         margin, tolerance = noise(cur, r, eval_dir)
@@ -282,7 +342,7 @@ def verdict(rows: Rows, selected: str, eval_dir: Optional[Path] = None) -> Tuple
         return "TIE", (f"passes as many cases as {names} at spend within {tolerance * 100:.0f}% (or lower), so the "
                        "metric does not separate them")
     reasons = []
-    for r in sorted(rivals, key=lambda r: r["impl"]):
+    for cur, r in sorted(pairs, key=lambda pair: pair[1]["impl"]):
         if clearly_higher(cur, r, eval_dir):
             margin = noise(cur, r, eval_dir)[0]
             reasons.append(f"passes more cases than {r['impl']}"
@@ -295,11 +355,13 @@ def verdict(rows: Rows, selected: str, eval_dir: Optional[Path] = None) -> Tuple
     return "WIN", "; ".join(reasons)
 
 
-def solution_verdicts(config: Config, solutions: List[Row], results: Optional[Dict[str, Rows]] = None
-                      ) -> Dict[str, Dict[str, str]]:
+def solution_verdicts(config: Config, solutions: List[Row], results: Optional[Dict[str, Rows]] = None,
+                      history: Optional[Dict[str, Dict[str, List[Row]]]] = None) -> Dict[str, Dict[str, str]]:
     """{solution_id: {"verdict", "detail", "component", "selected_by"}} for every ``eval`` solution, judged on the
     first harness arm of its ``metric_command`` (the primary metric; later arms are listed on the board)."""
-    results = latest_results(config.results_path) if results is None else results
+    if results is None:
+        history = all_results(config.results_path)
+        results = {comp: {impl: rows[-1] for impl, rows in impls.items()} for comp, impls in history.items()}
     out = {}
     for row in solutions:
         if (row.get("metric_kind") or "").strip() != "eval":
@@ -309,7 +371,7 @@ def solution_verdicts(config: Config, solutions: List[Row], results: Optional[Di
             out[row["solution_id"]] = dict(verdict="UNMEASURED", detail="no harness metric", component="",
                                            selected_by=row.get("selected_by", ""))
             continue
-        label, detail = verdict(results.get(comp, {}), impl, config.evaluation)
+        label, detail = verdict(results.get(comp, {}), impl, config.evaluation, (history or {}).get(comp))
         out[row["solution_id"]] = dict(verdict=label, detail=detail, component=comp,
                                        selected_by=row.get("selected_by", ""))
     return out
@@ -342,7 +404,8 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
     """Print the leaderboard. Returns 1 when ``strict`` and a challenger beats a selected implementation, or a verdict
     rests on a rival recorded before the measured code changed (``stale`` is ``harness.stale_reason``; without it
     only the cases are compared)."""
-    results = latest_results(config.results_path)
+    history = all_results(config.results_path)
+    results = {comp: {impl: rows[-1] for impl, rows in impls.items()} for comp, impls in history.items()}
     selected = selected_impls(config, registry.solutions)
     invariants = invariant_components(config, registry.solutions)
     flagged = 0
@@ -351,26 +414,25 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
         if component in apart:
             continue
         sel = selected.get(component)
-        label, detail = verdict(rows, sel, config.evaluation) if sel else ("UNMEASURED", "no selected implementation")
+        label, detail = verdict(rows, sel, config.evaluation, history[component]) if sel else ("UNMEASURED", "no selected implementation")
         say(f"{component} (selected: {sel or 'none recorded'}) {label}: {detail}")
         for line in format_rows(rows, sel, config.evaluation):
             say(line)
-        cur = rows.get(sel)
-        for r in rows.values():
-            if cur is not None and r["impl"] != sel and not comparable(r, cur):
-                say(f"  ? {r['impl']} was scored on different cases (cases_sha {r.get('cases_sha') or 'blank'} "
-                    f"vs {cur.get('cases_sha') or 'blank'}): not comparable, re-run both on the same cases")
-        for r in challengers(rows, sel, config.evaluation):
+        for impl, why in (incomparable_rivals(rows, sel, config.evaluation, history[component]) if sel else []):
+            flagged += 1 if strict else 0
+            say(f"  ? {impl} is not comparable with {sel}: {why}; re-run both on the same sample "
+                "(`esoi run --stale` re-runs a rival on the selected arm's sample)")
+        for r in (challengers(rows, sel, config.evaluation, history[component]) if sel else []):
             flagged += 1
             say(f"  ! {r['impl']} beats the selected {sel}: decide whether to adopt it "
                 "(update the solution's `selected` and the live default together)")
-        for impl, why in (stale_rivals(config, component, rows, sel, stale) if sel and stale else []):
+        for impl, why in (stale_rivals(config, component, rows, sel, stale, history[component]) if sel and stale else []):
             flagged += 1 if strict else 0
             say(f"  ~ {impl} is a rival the verdict on {sel} rests on, but {why}; re-run it on the current code "
                 "before trusting the verdict")
     say("\nBy solution (WIN = the metric chose it; TIE = kept for the reason in selected_by, the metric did not "
         "separate it; UNMEASURED = no rival was compared)")
-    for sid, v in sorted(solution_verdicts(config, registry.solutions, results).items()):
+    for sid, v in sorted(solution_verdicts(config, registry.solutions, results, history).items()):
         reason = f"  kept because: {v['selected_by']}" if v["verdict"] == "TIE" else ""
         say(f"  {v['verdict']:<10} {sid}: {v['detail']}{reason}")
     if apart:

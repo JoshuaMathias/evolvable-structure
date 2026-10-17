@@ -17,11 +17,15 @@ def rank(args):
 
 
 def verdict(args):
-    rows = {r["impl"]: dict(date="d", component="mini", **r) for r in args["rows"]}
+    listed = [{"date": "d", "component": "mini", **r} for r in args["rows"]]   # in the order recorded
+    history = {}
+    for r in sorted(listed, key=lambda r: r["date"]):
+        history.setdefault(r["impl"], []).append(r)
+    rows = {impl: arms[-1] for impl, arms in history.items()}
     with harness_fixture.mini_component(markers=args.get("markers")) as (config, name):
         for row in rows.values():
             row["component"] = name
-        label, detail = leaderboard.verdict(rows, args["selected"], config.evaluation)
+        label, detail = leaderboard.verdict(rows, args["selected"], config.evaluation, history)
         return {"verdict": label, "text": detail,
                 "arms": {i: leaderboard.arm_kind(r, config.evaluation) for i, r in rows.items()}}
 

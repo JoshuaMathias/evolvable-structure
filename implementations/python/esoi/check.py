@@ -33,6 +33,7 @@ def build_context(config: Config, strict: bool = False, files: Optional[List[str
             error = f"{type(exc).__name__}: {exc}"
     return Context(config=config, registry=registry, files=repo_files(config.root) if files is None else files,
                    template=template.load_for(config), results=leaderboard.latest_results(config.results_path),
+                   history=leaderboard.all_results(config.results_path),
                    table=table, table_error=error, strict=strict)
 
 
