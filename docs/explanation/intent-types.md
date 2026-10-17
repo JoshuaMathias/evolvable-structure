@@ -14,7 +14,8 @@ repeated here: open the template for the type you need.
 
 Each template starts with the definition, lists the questions to answer, and ends with what the type is not and what it
 connects to. The definitions of intent, evolvable, structure and the rest are in
-[from-the-skill.md](from-the-skill.md).
+[from-the-skill.md](from-the-skill.md). The template grew out of a 2020 project board; see
+[project-documentation-board.md](project-documentation-board.md).
 
 ## Habits that make records useful
 

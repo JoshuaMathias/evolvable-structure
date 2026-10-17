@@ -19,6 +19,7 @@ old equivalent). In those notes "adaptable" usually means what SKILL.md now call
 | Topic | Source sections |
 |---|---|
 | Functional components: iterate inside, reuse across systems | definitions, versioning, behaviour tests and reuse evidence: `components_research.md > Proposed wording`, `> What this changes in the skill` |
+| Collaborative innovation and process design | `cantr_governance_proposals.md > What this shows about adaptable structure`, `> Limits / counter-evidence` | 
 | Definition and vocabulary (adaptable, adaptive, evolvable, flexible, changeable, variability) | `definitions_and_advice.md > A. Vocabulary`, `> Proposed definition`; evolvable vs adaptable: `evolutionary_architecture_talk.md > Architecture assumes a future it cannot know, so design it to keep changing` |
 | Parts that change at different rates (layers, versioning, who decides) | `definitions_and_advice.md > Brand 1994 and the Long Now talk: separate by rate of change`, `> How close is the building analogue? An honest assessment` |
 | When NOT to generalize | costs and counter-evidence from outside research: `public_research.md > What this changes in the skill` |
@@ -29,7 +30,9 @@ old equivalent). In those notes "adaptable" usually means what SKILL.md now call
 
 | File | Covers | Joshua's named source |
 |---|---|---|
+| `trello_project_documentation.md` | a documentation template: problems, ideals, definitions, implementations, metrics; the model for `../principles.md` "How to think and document" | Trello: Project Documentation | 
 | `public_research.md` | outside research: modularity, configuration cost, adaptable vs adaptive, personalization in education, requisite variety, QCA critique, over-abstraction, size and defects, AI-generated code structure; what supports, qualifies or challenges the ideals | not Joshua's own work (added to ground and test the skill) |
 | `definitions_and_advice.md` | how established sources define adaptable, adaptive, flexible, changeability, variability and neighbors; the building analogue; general advice (one-way doors, last responsible moment, Gall, Conway); proposed definition | not Joshua's own work (added to ground the vocabulary and advice) |
 | `components_research.md` | outside research on software components and reuse: definitions (McIlroy, Szyperski), reuse evidence, iterating a component versus staying compatible (breaking changes, Hyrum's law), non-software component examples, reuse failures | not Joshua's own work (added to ground pattern 15) |
+| `cantr_governance_proposals.md` | Cantr staff governance proposals 4 (Department Decisions) and 5 (Player Board): a decision process that amends itself, staged commitment, defaults on silence, bias handled by design, community veto; proposals, not results | Cantr governance proposals (collaborative innovation) | 
 | `evolutionary_architecture_talk.md` | Nikhil Barthwal's Devoxx talk on evolutionary architecture: fitness functions, guided incremental change, cohesion and bounded contexts, loose contracts, event sourcing, data outliving code, practices, and three apparent tensions (customization, up-front structure, copying code) and how Joshua resolves them | not Joshua's own work; his technology example of evolvable structure (2026-10-16) |

@@ -1,6 +1,7 @@
 # Apply ESOI by hand
 
-No tools are needed. A folder of text files and a spreadsheet are enough. Plan on about an hour for the first pass.
+No tools are needed. A folder of text files and a spreadsheet are enough, or a copy of the
+[Project Documentation board](../explanation/project-documentation-board.md). Plan on about an hour for the first pass.
 
 ## 1. Write the overall network (about twenty minutes)
 

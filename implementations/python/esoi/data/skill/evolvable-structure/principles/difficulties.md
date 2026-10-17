@@ -91,3 +91,8 @@ A principle above must not depend on any of these, and each stays true if the fr
 - Quest: autopilot lets a person widen what the AI may do (`plan_and_work`), and is "Off by default; a
   quest never opts itself in."
 
+**Difficulties (collaborative innovation)**
+- Cantr governance: the proposals carry many thresholds (1.5 votes, 10 vetoes, monthly membership,
+  five-times contribution for councilors) and admit "this may seem like a slow process"; their
+  adoption and results are not recorded. Source: `cantr_governance_proposals.md > Limits / counter-evidence`.
+

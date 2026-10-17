@@ -71,19 +71,19 @@ what it lets change is the work and, in the end, the process itself. The example
 and player governance proposals (proposals, not records of how they worked).
 
 - **The process can amend itself.** "How decisions are made." is a decision for the top board, and
-  each group's list of decisions "may be adapted in the future".
+  each group's list of decisions "may be adapted in the future". (`cantr_governance_proposals.md > Escalation by significance, not by department`, `> A per-department list of what is voted on, open to change`)
 - **It exists so change happens well.** No one person carries a big decision, everyone has a voice,
-  and a second person verifies each change.
+  and a second person verifies each change. (`cantr_governance_proposals.md > Why a process at all: shared responsibility and a voice for everyone`, `> A second person as the verification step`)
 - **It keeps work moving.** Silence after two weeks means acceptance, and a rejection must produce an
-  alternative within a month.
+  alternative within a month. (`cantr_governance_proposals.md > Silence and rejection have defined outcomes`)
 - **Commitment is staged.** Agree on the idea before effort goes into details, then approve the
-  details; a changed proposal gets a new vote without waiting.
+  details; a changed proposal gets a new vote without waiting. (`cantr_governance_proposals.md > Revising a proposal without restarting the process`, `> Multi-department work in a sensible order`)
 - **A steady rhythm carries changing content.** A fixed week lets volunteers plan and think;
-  routine, reversible items pass by default, and contested ones rise to a slower level.
+  routine, reversible items pass by default, and contested ones rise to a slower level. (`cantr_governance_proposals.md > A fixed rhythm so people can plan and think`, `> Defaults with stated overrides: duration, ties, early close, anonymity`)
 - **Bias and power are handled by design.** Anonymous submissions judge ideas apart from their author,
-  groups balance each other, reasons are public, and the owner's override is visible.
+  groups balance each other, reasons are public, and the owner's override is visible. (`cantr_governance_proposals.md > Ideas judged apart from who proposed them`, `> Balance between groups`, `> Accountability for the owner's override`)
 - **Participation is open and earned.** Anyone can propose, and board membership comes from several
-  kinds of contribution, renewed monthly.
+  kinds of contribution, renewed monthly. (`cantr_governance_proposals.md > Membership by contribution, through several paths with thresholds`, `> Three vote types on one board`)
 
 ## Process, organization and documents
 
@@ -94,7 +94,7 @@ and player governance proposals (proposals, not records of how they worked).
 - **Standing rules as small retrievable cards.** QAR stores rules as cards tagged with when they apply,
   and keeps paid-for lessons as dated invariants.
 - **Documentation as problem, ideals, definitions and implementations.** Joshua's Project Documentation
-  board is the model `principles.md` follows ("How to think and document").
+  board is the model `principles.md` follows ("How to think and document"). (`trello_project_documentation.md > Documentation`, `> Solution Definitions`)
 - **Apply it to the document, not only to the tool that plans it.** When building an instrument for a
   document (a checklist or question sheet for an outline), structure the document itself too: each
   section names the problem it solves, its interfaces (which sections depend on it), where its content

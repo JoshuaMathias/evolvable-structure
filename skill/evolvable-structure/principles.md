@@ -74,7 +74,8 @@ When generality is the wrong move, with evidence, in `principles/difficulties.md
 
 ## How to think and document
 
-Follow Joshua's Project Documentation board. State the **problem** (who, why it matters, why it is
+Follow Joshua's Project Documentation board (`sources/trello_project_documentation.md >
+Documentation`, `> Solution Definitions`). State the **problem** (who, why it matters, why it is
 hard) and the **ideals**, each with a practical metric. Keep the **definition** (what it does, its
 interface, its measure of success) apart from its **implementations**, the alternatives. The best by
 the measure is the default, chosen by the structure where it can be, so people need only review metrics, not

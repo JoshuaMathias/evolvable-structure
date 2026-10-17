@@ -74,3 +74,8 @@ A principle above must not depend on any of these, and each stays true if the fr
 - QAR: "Joshua's rule: retire the net, don't extend it", and personas are a config table, activated
   by judgment, never by a bare name mention.
 
+**Pattern 1 (collaborative innovation)**
+- Cantr governance: one voting process serves every department, with the electorate as a parameter:
+  "All active members of a department may vote on that department’s decisions, and no one else."
+  Source: `cantr_governance_proposals.md > One voting process for every department, with who votes as a parameter`. 
+

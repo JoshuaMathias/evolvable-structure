@@ -106,11 +106,25 @@ A principle above must not depend on any of these, and each stays true if the fr
 - Writealyze: "Molecules have specific requirements, including a well-defined metric. Metrics
   themselves may be molecules, to determine the best metric for a particular task."
 - Project Documentation board: "Measures of Success: ... a way to know whether one implementation is
-  better than another in achieving the Definition's goals."
+  better than another in achieving the Definition's goals." Source: `trello_project_documentation.md
+  > Definition Template`.
 - quest-ai-runner: one library with no consumer logic, and each consumer supplies its specifics
   through config.
 - Writealyze: McIlroy's 1968 family of components is an early form of atoms and molecules. Both have
   one named family whose members differ by parameters, and a cheap swap to another member.
   Source: `components_research.md > McIlroy, 1968`.
 
+**Pattern 8 and 9 (collaborative innovation)**
+- Cantr governance: an idea is approved before details ("This vote is for a general idea, before too
+  much effort is spent working out the details."), a changed proposal gets a new vote without waiting,
+  and a rejection must yield "a related alternative suggestion" within a month. Marketing sets
+  "measurable goals regarding new players and retaining players." Sources: `cantr_governance_proposals.md > Revising a proposal
+  without restarting the process`, `> Silence and rejection have defined outcomes`, `> Measuring what
+  works`.
+
+
+**Pattern 13 (collaborative innovation)**
+- Cantr governance: the Player Board is notified of staff proposals, and staff "will be notified if
+  the owner overruled the decision". Sources: `cantr_governance_proposals.md > A standard workflow, written down`,
+  `> Accountability for the owner's override`.
 

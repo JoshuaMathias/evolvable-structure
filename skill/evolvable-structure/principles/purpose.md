@@ -25,7 +25,9 @@ settled battles kept as a dated list, a funnel lesson carried forward):
   one of its two focuses, separates a definition from its implementations so "the defined solution can
   be carried out in different ways which continue to improve, and it should be clear what "improving"
   means", and ends its steps with "You're done! Or, keep improving, adjusting any problems, goals, and
-  solutions as necessary."
+  solutions as necessary." Sources: `trello_project_documentation.md > Documentation`, `> Solution
+  Definitions`; the board's "Purpose of this Board", "Solution Definitions" and "Steps to project
+  completion" cards, read directly 2026-10-14.
 - Lessons from one case are applied to the rest: after the generic landing page improved, "Improve the
   other pages based on what we learned/types of changes we mnade t ogeneric one ." (2026-05-22).
 - What a session learns has to reach the next one: "Captured feedback or context must be
@@ -39,7 +41,8 @@ is how ideas are proposed, checked and decided, and what it lets change is the w
 the process itself. A good one holds the rule for changing itself, stages commitment so cheap and
 reversible steps come before costly ones, keeps a steady rhythm so people can plan, gives silence and
 rejection a defined outcome so ideas do not die by neglect, and handles bias and power through its
-design rather than through trust in one person.
+design rather than through trust in one person. Source: `cantr_governance_proposals.md > What this
+shows about adaptable structure`.
 
 When you structure anything, ask what the next iterations will likely change and make those changes
 parameters, definitions or content rather than edits to the core. Record what each iteration learned
@@ -61,4 +64,12 @@ A principle above must not depend on any of these, and each stays true if the fr
   regress)".
 - Quest course and Super Psychic Academy: the Quest course funnel's lesson is carried into the
   Academy's by name.
+
+**Purpose (collaborative innovation)**
+- Cantr governance proposals: a staff and player decision process in which the top board decides
+  "How decisions are made.", the idea is approved "before too much effort is spent working out the
+  details", and "If no staff members vote on the decision two weeks after acceptance by the Player
+  Board, the decision is accepted." Sources: `cantr_governance_proposals.md > Escalation by significance, not by department`,
+  `> Revising a proposal without restarting the process`, `> Silence and rejection have defined
+  outcomes`.
 

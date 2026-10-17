@@ -27,6 +27,7 @@ package lists what it needs in a text file.
 **12. Project Documentation board: parameter documentation is part of the definition.** *Purpose:*
 defaults a reader can see and change (patterns 3 and 7). Each parameter is written
 `var_name (type)=default: Description`, which is both the docs and the interface.
+`trello_project_documentation.md > Solution Definitions`.
 
 ## Known weaknesses
 

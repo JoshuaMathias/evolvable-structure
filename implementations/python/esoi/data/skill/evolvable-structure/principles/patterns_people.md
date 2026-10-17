@@ -49,5 +49,22 @@ A principle above must not depend on any of these, and each stays true if the fr
 **Pattern 11**
 - Quest: templates propagate a new version "except fields the user has already modified."
 
+**Pattern 3 (collaborative innovation)**
+- Cantr governance: routine, reversible items proceed by default ("Admittance to the game does not
+  require a vote, but is automatically accepted after one week."), significant ones go to the top
+  board, and "If positive and negative vote counts are equal, the result is negative (no action)."
+  Sources: `cantr_governance_proposals.md > A per-department list of what is voted on, open to change`, `> Defaults with stated
+  overrides: duration, ties, early close, anonymity`, `> Escalation by significance, not by department`. 
 
+
+**Pattern 5 (collaborative innovation)**
+- Cantr governance: the vote is the shared container, and each department lists its own decisions:
+  "What needs to be voted on varies by department. The following list provides a guide, which may be
+  adapted in the future." Source: `cantr_governance_proposals.md > A per-department list of what is voted on, open to change`.
+
+
+**Pattern 11 (collaborative innovation)**
+- Cantr governance: the community can change the work. A Player Board can veto staff decisions or
+  propose its own, and "How decisions are made." is itself a decision for the top board. Sources:
+  `cantr_governance_proposals.md > Three vote types on one board`, `> Escalation by significance, not by department`.
 
