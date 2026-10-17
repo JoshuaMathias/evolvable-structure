@@ -37,6 +37,8 @@ authority; this page only orients you.
 
 Anywhere there is an intent and more than one way to serve it: code, a data pipeline, a course, a coaching program, a
 team process, a document. See [beyond-code.md](beyond-code.md).
+That includes an AI agent's own behaviour: the skill that carries these principles is one implementation among several,
+and how well an agent acts by them can be measured. See [esoi-for-ai.md](esoi-for-ai.md).
 
 ## What a small start looks like
 

@@ -10,6 +10,8 @@ the tools in `implementations/python/` were extracted from what it had built: a 
 evaluation component per solution with recorded runs, a leaderboard that selects implementations, and a check that runs in
 its tests. Its detailed records link up to an overall network it wrote separately. It keeps a small rule of its own (for
 environment variables) as a plugin, which is the intended use of the plugin interface.
+It also wrote the first cases for measuring whether an AI agent acts by the principles, with a model judge scored against
+labelled replies; the generic version of both is in [esoi-for-ai.md](../docs/explanation/esoi-for-ai.md).
 
 ## quest-backend
 
