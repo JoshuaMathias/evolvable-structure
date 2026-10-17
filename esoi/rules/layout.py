@@ -18,7 +18,7 @@ SUMMARIES = {
     "S4": "No Python module over the size ceiling (max_lines); split by role or waive with a reason.",
     "S5": "Every module of the package opens with a docstring that states its role.",
     "S6": "Dependencies point inward: a module imports its own layer or a lower one (TYPE_CHECKING imports ignored).",
-    "S13": "A layer listed in [rules.S13] layers reads no environment variables; the value is passed in.",
+    "S13": "A layer (or path prefix) listed in [rules.S13] reads no environment variables; the value is passed in.",
 }
 
 
@@ -104,6 +104,7 @@ def run(ctx: Context) -> List[str]:
     parent = config.package_dir.rpartition("/")[0]
     rank = config.layer_rank
     env_layers = set(config.option("S13", "layers", []))
+    env_paths = tuple(config.option("S13", "paths", []))
     for f in ctx.files:
         if not f.endswith(".py"):
             continue
@@ -126,9 +127,10 @@ def run(ctx: Context) -> List[str]:
             target = ctx.top_layer(top)
             if layer in rank and target in rank and rank[target] > rank[layer] and not ctx.waived("S6", f"{f}:{top}"):
                 bad.append(f"S6 {f}:{line}: {layer} imports {top} ({target}); dependencies point inward")
-        if layer in env_layers and uses_environ(path) and not ctx.waived("S13", f):
+        if (layer in env_layers or (env_paths and f.startswith(env_paths))) and uses_environ(path) \
+                and not ctx.waived("S13", f):
             hint = config.option("S13", "hint", "take the value from configuration, built by an outer layer")
-            bad.append(f"S13 {f}:{uses_environ(path)[0]}: {layer} reads the environment; {hint} (or add a waiver)")
+            bad.append(f"S13 {f}:{uses_environ(path)[0]}: {layer or 'this code'} reads the environment; {hint}")
     return bad
 
 

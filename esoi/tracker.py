@@ -17,7 +17,7 @@ from typing import Dict, List, Optional
 
 from . import leaderboard
 from .config import Config
-from .records import fields
+from .records import PARENT_COLUMNS, fields
 from .registry import Registry, first_arm
 from .select import Table, load_table
 from .tables import SEP, ids, read_csv, read_header, render_csv
@@ -32,10 +32,28 @@ ALTERNATIVE_MARKERS = ("ALTERNATIVE", "BASELINE", "ABLATION", "FLOOR", "VALIDITY
 Row = Dict[str, str]
 
 
-def columns(template) -> Dict[str, List[str]]:
-    """The columns of each tab: the template's fields for the entity, then the structural and status columns."""
+def extras(config: Config) -> Dict[str, List[str]]:
+    """Extra record columns each tab carries after its key: the repository's own (``tracker_extra`` in the
+    configuration) and the parent-link columns (``parent_problem_ids`` ...) when the record file has them."""
+    out: Dict[str, List[str]] = {}
+    for tab in TABS:
+        names = list(config.tracker_extra.get(tab, []))
+        source = config.structure / f"{tab}.csv"
+        header = read_header(source) if source.exists() else []
+        out[tab] = names + [c for c in PARENT_COLUMNS if c in header and c not in names]
+    return out
+
+
+def columns(template, extra: Optional[Dict[str, List[str]]] = None) -> Dict[str, List[str]]:
+    """The columns of each tab: the key, the extras, the template's fields, then the structural and status columns."""
     def own(entity: str) -> List[str]:
         return fields(template, entity, interface_required=True)
+    base = columns_without_extras(own)
+    extra = extra or {}
+    return {tab: cols[:1] + extra.get(tab, []) + cols[1:] for tab, cols in base.items()}
+
+
+def columns_without_extras(own) -> Dict[str, List[str]]:
     return {
         "problems": ["problem_id"] + own("problem") + ["solution_ids", "ideal_ids", "component_ids", "auto_status"],
         "solutions": ["solution_id"] + own("solution") + [
@@ -86,7 +104,8 @@ def selected_path(config: Config, solution: Row, table: Optional[Table]) -> str:
 def build(config: Config, registry: Registry, template=None) -> Dict[str, List[Row]]:
     """The five tabs, from the first-class records (problems, solutions, implementations, ideals, metrics)."""
     template = template or load_for(config)
-    cols = columns(template)
+    extra = extras(config)
+    cols = columns(template, extra)
     table = load_table(config.selection, config.root) if config.selection else None
     results = {(c, i): row for c, rows in leaderboard.latest_results(config.results_path).items() for i, row in rows.items()}
     verdicts = leaderboard.solution_verdicts(config, registry.solutions)
@@ -124,6 +143,7 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
             rec = impl_records.get(iid, {})
             impls.append({
                 "implementation_id": iid, "solution_id": sid, "path": path,
+                **{k: rec.get(k, "") for k in extra["implementations"]},
                 **{k: rec.get(k, "") for k in fields(template, "implementation", True)}, "kind": kind_of(config, path),
                 "selected": "yes" if is_sel else "",
                 "latest_result": f"{res['passed']}/{res['cases']}" if res else "",
@@ -133,6 +153,7 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
         sel_res = results.get((comp, chosen_impl)) if comp else None
         verdict = verdicts.get(sid, {})
         sol_rows.append({
+            **{k: s.get(k, "") for k in extra["solutions"]},
             **{k: s.get(k, "") for k in ["solution_id"] + fields(template, "solution", True)
                + ["problem_ids", "ideal_ids", "metric_ids", "port", "selected_by", "metric_kind"]},
             "implementation_ids": SEP.join(impl_ids), "selected_implementation_id": selected_id,
@@ -145,6 +166,7 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
             if m is None:
                 continue
             metrics.append({
+                **{k: m.get(k, "") for k in extra["metrics"]},
                 **{k: m.get(k, "") for k in ["metric_id"] + fields(template, "metric", True) + ["solution_ids", "command"]},
                 "kind": s.get("metric_kind") or ("eval" if has_metric else "none"),
                 "latest_result": f"{sel_res['passed']}/{sel_res['cases']}" if sel_res else "",
@@ -157,7 +179,8 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
     for i in registry.ideals:
         sids = solutions_of_ideal.get(i["ideal_id"], [])
         measured = any(first_arm(config, command_of(sol_by_id[sid]))[0] for sid in sids)
-        ideals.append({**{k: i.get(k, "") for k in ["ideal_id"] + fields(template, "ideal", True) + ["problem_ids"]},
+        ideals.append({**{k: i.get(k, "") for k in extra["ideals"]},
+                       **{k: i.get(k, "") for k in ["ideal_id"] + fields(template, "ideal", True) + ["problem_ids"]},
                        "scope": "solution", "solution_ids": SEP.join(sids),
                        "metric_ids": SEP.join(m for sid in sids for m in ids(sol_by_id[sid].get("metric_ids", ""))),
                        "auto_status": "measured" if measured else "unmeasured"})
@@ -182,7 +205,7 @@ def merge_tracking(config: Config, tab: str, rows: List[Row], key: str) -> List[
 def stale(config: Config, registry: Registry, template=None) -> List[str]:
     """Tabs whose structural columns differ from what the registry now produces."""
     template = template or load_for(config)
-    cols = columns(template)
+    cols = columns(template, extras(config))
     out = []
     for tab, rows in build(config, registry, template).items():
         have = read_csv(config.tracker_dir / f"{tab}.csv")
@@ -197,7 +220,7 @@ def stale(config: Config, registry: Registry, template=None) -> List[str]:
 
 def write(config: Config, registry: Registry, say=print) -> None:
     template = load_for(config)
-    cols = columns(template)
+    cols = columns(template, extras(config))
     config.tracker_dir.mkdir(parents=True, exist_ok=True)
     for tab, rows in build(config, registry, template).items():
         rows = merge_tracking(config, tab, rows, cols[tab][0])

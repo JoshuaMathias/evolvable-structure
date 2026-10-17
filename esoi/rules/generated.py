@@ -52,7 +52,7 @@ def run(ctx: Context) -> List[str]:
 
     if config.tracker_dir.is_dir():
         template = ctx.template
-        cols = tracker.columns(template)
+        cols = tracker.columns(template, tracker.extras(config))
         for tab, rows in tracker.build(config, ctx.registry, template).items():
             key = cols[tab][0]
             for ident, n in Counter(r[key] for r in rows).items():

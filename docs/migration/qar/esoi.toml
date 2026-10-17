@@ -11,9 +11,15 @@ template_source = "../../.claude/skills/evolvable-structure/SKILL.md"
 live_calls = ["common.build_offline_orchestrator"]
 plugins = ["scripts/esoi_rules.py"]
 
+# columns QAR keeps on its tracker tabs, after the key column
+[tracker_extra]
+problems = ["overall_problem_id"]
+ideals = ["overall_ideal_id"]
+solutions = ["area"]
+
 [rules.S13]
-layers = ["core"]
-hint = "take the value from RunnerConfig (or add a waiver 'migrate into RunnerConfig')"
+paths = ["quest_ai_runner/core/"]
+hint = 'take the value from RunnerConfig (or add a waiver "migrate into RunnerConfig")'
 
 [hermetic]
 prefixes = ["QAR_"]

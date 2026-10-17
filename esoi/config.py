@@ -48,6 +48,7 @@ class Config:
     live_calls: List[str] = field(default_factory=list)
     selection: str = ""
     overall: str = ""
+    tracker_extra: Dict[str, List[str]] = field(default_factory=dict)
     template_source: str = ""
     template_csv: str = ""
     plugins: List[str] = field(default_factory=list)
