@@ -10,6 +10,8 @@ overall solution with a few areas, the alternatives to it as a whole, and one or
 
 ## 2. Write the first detailed solution (about twenty minutes)
 
+Start coarse, and split a solution only when [both tests](../explanation/when-to-split.md) hold.
+
 Pick one part of the work. Copy [solution.md](../templates/solution.md) and answer every question. Copy
 [problem.md](../templates/problem.md), [ideal.md](../templates/ideal.md), [implementation.md](../templates/implementation.md)
 and [metric.md](../templates/metric.md) as needed, once per record. Link them: the solution names its problems, ideals,

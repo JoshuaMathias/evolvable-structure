@@ -18,6 +18,7 @@ connects to. The definitions of intent, evolvable, structure and the rest are in
 
 ## Habits that make records useful
 
+- **Split a solution only when best differs and it matters.** See [when-to-split.md](when-to-split.md).
 - **Give every record a short, stable id.** Other records link to it, so renaming it is a change to many files.
 - **Fill every field.** A field you cannot answer is a gap worth knowing about. Put it in the `gap` of the solution
   rather than leaving it blank.

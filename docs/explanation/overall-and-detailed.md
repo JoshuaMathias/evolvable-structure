@@ -10,7 +10,8 @@ sitting, and it changes slowly. The template is [overall-solution-network.md](..
 
 **The detailed records** are the practical structures that implement it: a separate solution wherever a part has its
 own definition of "best" that could affect the success of the intent, and no more, each with its implementations, its
-metric, its cases and its results. They change as often as the code does.
+metric, its cases and its results. They change as often as the code does. When to split a solution further is in
+[when-to-split.md](when-to-split.md).
 
 ## How they link
 
