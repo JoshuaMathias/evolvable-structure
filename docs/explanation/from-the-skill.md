@@ -6,8 +6,6 @@ Everything below is quoted verbatim from the evolvable-structure skill's `SKILL.
 
 ## What it is
 
-> # evolvable-structure
->
 > This form of evolvable structure is a design which improves over time as measured by metrics and is adaptable to changing intentions, contexts, priorities, and problems to solve. When you embody the principles defined here, you create and use Evolvable Structure that Optimizes Intent (ESOI). You're turning an intention into a structure that optimizes the fulfilling of that intent, while also ensuring the structure supports changes to the intent. Crucially, the structure enables effective specification of the intent, and the intent and structure evolve together in a continual feedback loop.
 
 ## Purpose
