@@ -53,3 +53,32 @@ def test_a_selection_table_that_cannot_load_does_not_crash_the_build(cfg):
     assert tracker.selection_table(cfg) is None
     tracker.build(cfg, registry.load(cfg))
     assert any(line.startswith("S14") and "cannot load" in line for line in check.check(cfg))
+
+
+def test_one_metric_serving_several_solutions_is_one_tracker_row_and_passes_s18(cfg):
+    from esoi import check
+    path = cfg.structure / "solutions.csv"
+    rows, cols = tables.read_csv(path), tables.read_header(path)
+    rows.append(dict(rows[0], solution_id="second-greeting"))
+    tables.write_csv(path, cols, rows)
+    metrics_path = cfg.structure / "metrics.csv"
+    metrics = tables.read_csv(metrics_path)
+    metrics[0]["solution_ids"] += ";second-greeting"
+    tables.write_csv(metrics_path, tables.read_header(metrics_path), metrics)
+    built = tracker.build(cfg, registry.load(cfg))
+    assert [m["metric_id"] for m in built["metrics"]].count("greeting-pass-rate") == 1
+    assert "second-greeting" in built["metrics"][0]["solution_ids"]
+    assert not [line for line in check.check(cfg) if line.startswith("S18")]
+
+
+def test_several_implementations_in_one_module_get_distinct_tracker_rows(cfg):
+    path = cfg.structure / "solutions.csv"
+    rows, cols = tables.read_csv(path), tables.read_header(path)
+    rows[0]["implementations"] += ";demo/greet.py::alpha;demo/greet.py::beta"
+    tables.write_csv(path, cols, rows)
+    impls = cfg.structure / "implementations.csv"
+    records = tables.read_csv(impls)
+    records += [dict(records[0], implementation_id=f"custom-{name}", path=f"demo/greet.py::{name}") for name in ("alpha", "beta")]
+    tables.write_csv(impls, tables.read_header(impls), records)
+    ids = [r["implementation_id"] for r in tracker.build(cfg, registry.load(cfg))["implementations"]]
+    assert "custom-alpha" in ids and "custom-beta" in ids and len(ids) == len(set(ids))

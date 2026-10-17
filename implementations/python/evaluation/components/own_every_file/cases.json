@@ -249,5 +249,86 @@
    "rule": "S13",
    "contains": "reads the environment"
   }
+ },
+ {
+  "id": "OWN-013",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a root script named in root_python_allow (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "setup.py",
+     "content": "\"\"\"Setup.\"\"\"\n"
+    },
+    {
+     "op": "replace",
+     "path": "esoi.toml",
+     "old": "package = \"demo\"",
+     "new": "package = \"demo\"\nroot_python_allow = [\"setup.py\"]"
+    }
+   ]
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "OWN-014",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a root script excused by a waiver for its path (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "tool.py",
+     "content": "\"\"\"Tool.\"\"\"\n"
+    },
+    {
+     "op": "csv_append",
+     "path": "docs/structure/waivers.csv",
+     "row": {
+      "rule": "S3",
+      "path": "tool.py",
+      "reason": "A build entry point."
+     }
+    }
+   ]
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "OWN-015",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a second root script is still reported when only one is allowed",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "setup.py",
+     "content": "\"\"\"Setup.\"\"\"\n"
+    },
+    {
+     "op": "write",
+     "path": "tool.py",
+     "content": "\"\"\"Tool.\"\"\"\n"
+    },
+    {
+     "op": "replace",
+     "path": "esoi.toml",
+     "old": "package = \"demo\"",
+     "new": "package = \"demo\"\nroot_python_allow = [\"setup.py\"]"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S3",
+   "contains": "tool.py"
+  }
  }
 ]

@@ -27,6 +27,10 @@ class ConfigError(ValueError):
     """The configuration is missing or malformed."""
 
 
+class ConfigMissing(ConfigError):
+    """There is no configuration file at all (a malformed one is a plain ConfigError)."""
+
+
 @dataclass
 class Config:
     """The resolved configuration of one repository."""
@@ -37,6 +41,7 @@ class Config:
     other_layers: List[str] = field(default_factory=lambda: list(DEFAULT_OTHER_LAYERS))
     max_lines: int = 1500
     root_python_files: bool = False
+    root_python_allow: List[str] = field(default_factory=list)
     docstring_exempt: List[str] = field(default_factory=lambda: ["/vendor/"])
     structure_dir: str = "docs/structure"
     evaluation_dir: str = "evaluation/components"
@@ -46,6 +51,8 @@ class Config:
     metric_command: str = DEFAULT_METRIC_COMMAND
     live_imports: List[str] = field(default_factory=list)
     live_calls: List[str] = field(default_factory=list)
+    paid_arms: List[str] = field(default_factory=list)
+    prices: Dict[str, Dict[str, float]] = field(default_factory=dict)
     selection: str = ""
     overall: str = ""
     python_path: List[str] = field(default_factory=list)
@@ -166,8 +173,11 @@ def load(path: Optional[Path] = None, start: Optional[Path] = None) -> Config:
     else:
         path = find(Path(start or Path.cwd()))
     if path is None or not Path(path).is_file():
-        raise ConfigError("no esoi.toml (or [tool.esoi] in pyproject.toml) found; run `esoi init` to create one")
-    data = tomllib.loads(Path(path).read_text(encoding="utf-8"))
+        raise ConfigMissing("no esoi.toml (or [tool.esoi] in pyproject.toml) found; run `esoi init` to create one")
+    try:
+        data = tomllib.loads(Path(path).read_text(encoding="utf-8"))
+    except tomllib.TOMLDecodeError as exc:
+        raise ConfigError(f"{path} is not valid TOML ({exc})") from exc
     if Path(path).name == "pyproject.toml":
         data = data.get("tool", {}).get("esoi", {})
     return from_mapping(data, Path(path).resolve().parent, Path(path).resolve())

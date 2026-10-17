@@ -13,7 +13,8 @@ from .modulefacts import Facts
 SUMMARIES = {
     "S1": "Every file belongs to exactly one component and every component path glob matches a file.",
     "S2": "Every component row has a role and a layer from the configured set.",
-    "S3": "No Python file at the repository root (unless root_python_files is set).",
+    "S3": "No Python file at the repository root (unless root_python_files is set, the file is listed in "
+          "root_python_allow, or a waiver names it).",
     "S4": "No Python module over the size ceiling (max_lines); split by role or waive with a reason.",
     "S5": "Every module of the package opens with a docstring that states its role.",
     "S6": "Dependencies point inward: a module imports its own layer or a lower one (TYPE_CHECKING imports ignored).",
@@ -71,7 +72,7 @@ def run(ctx: Context) -> List[str]:
             bad.append(f"S1 {f}: belongs to several components {owning}")
     if not config.root_python_files:
         for f in ctx.files:
-            if "/" not in f and f.endswith(".py"):
+            if "/" not in f and f.endswith(".py") and f not in config.root_python_allow and not ctx.waived("S3", f):
                 bad.append(f"S3 {f}: .py file at the repo root (use tests/, scripts/ or the package)")
     parent = config.package_dir.rpartition("/")[0]
     rank = config.layer_rank

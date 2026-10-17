@@ -15,6 +15,12 @@ from .. import tracker
 from ..records import check_records, overall_ids
 from .base import Context, RuleGroup
 
+TRACKER_DUPLICATE_HINT = {
+    "implementations": "two implementations of one solution get the same record id; give their paths or names "
+                       "(`path::name`) or their implementations.csv ids a difference",
+    "solutions": "a solution_id repeats in solutions.csv", "problems": "a problem_id repeats in problems.csv",
+    "ideals": "an ideal_id repeats in ideals.csv or collides with a principle", "metrics": "a metric_id repeats in metrics.csv"}
+
 SUMMARIES = {
     "S8": "COMPONENTS.md matches components.csv (esoi check --write-docs regenerates it).",
     "S17": "The tracker tabs match what the registry and the results log now produce (only tracking_* columns are "
@@ -57,7 +63,7 @@ def run(ctx: Context) -> List[str]:
             key = cols[tab][0]
             for ident, n in Counter(r[key] for r in rows).items():
                 if n > 1:
-                    bad.append(f"S18 tracker {tab}: id {ident} appears {n} times (two implementations share a file name)")
+                    bad.append(f"S18 tracker {tab}: id {ident} appears {n} times ({TRACKER_DUPLICATE_HINT.get(tab, 'the ids of one tab must be unique')})")
         for tab in tracker.stale(config, ctx.registry, template):
             bad.append(f"S17 {config.structure_dir}/tracker/{tab}.csv: out of date (run `esoi tracker build`)")
 

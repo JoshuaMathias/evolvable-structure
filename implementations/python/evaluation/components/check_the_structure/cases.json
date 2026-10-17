@@ -1640,5 +1640,94 @@
    "rule": "S20",
    "contains": "changed since"
   }
+ },
+ {
+  "id": "CTS-068",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a solutions file with no port column while the package has a port",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_drop_col",
+     "path": "docs/structure/solutions.csv",
+     "col": "port"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S7",
+   "contains": "no `port` column"
+  }
+ },
+ {
+  "id": "CTS-069",
+  "area": "repo",
+  "kind": "repo",
+  "description": "two implementations in one module that no record lists",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/providers.py",
+     "content": "\"\"\"Providers in one module.\"\"\"\n"
+    },
+    {
+     "op": "replace",
+     "path": "demo/selection.py",
+     "old": "\"plain\": \"demo.greet:greet\"}",
+     "new": "\"plain\": \"demo.greet:greet\", \"alpha\": \"demo.providers:Alpha\"}"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S14",
+   "contains": "demo/providers.py"
+  }
+ },
+ {
+  "id": "CTS-070",
+  "area": "repo",
+  "kind": "repo",
+  "description": "several implementations in one module are listed by the path of their records (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/providers.py",
+     "content": "\"\"\"Providers in one module.\"\"\"\n"
+    },
+    {
+     "op": "replace",
+     "path": "demo/selection.py",
+     "old": "\"plain\": \"demo.greet:greet\"}",
+     "new": "\"plain\": \"demo.greet:greet\", \"alpha\": \"demo.providers:Alpha\"}"
+    },
+    {
+     "op": "csv_clone",
+     "path": "docs/structure/implementations.csv",
+     "key_col": "implementation_id",
+     "key": "greet-a-person:greet",
+     "row": {
+      "implementation_id": "custom-alpha",
+      "path": "demo/providers.py::alpha"
+     }
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "implementations",
+     "value": "demo/greet.py;evaluation/components/greet_a_person/impls/live.py;evaluation/components/greet_a_person/impls/shout.py;demo/providers.py::alpha"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "clean": true
+  }
  }
 ]

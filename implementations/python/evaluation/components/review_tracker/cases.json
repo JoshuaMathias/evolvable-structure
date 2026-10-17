@@ -210,5 +210,38 @@
     ]
    }
   }
+ },
+ {
+  "id": "TRK-010",
+  "area": "metrics",
+  "kind": "tracker",
+  "description": "one metric serving two solutions is one row of the metrics tab",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_clone",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "row": {
+      "solution_id": "second-greeting"
+     }
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/metrics.csv",
+     "key_col": "metric_id",
+     "key": "greeting-pass-rate",
+     "col": "solution_ids",
+     "value": "greet-a-person;second-greeting"
+    }
+   ],
+   "tab": "metrics"
+  },
+  "expect": {
+   "eq": {
+    "rows": 1
+   }
+  }
  }
 ]

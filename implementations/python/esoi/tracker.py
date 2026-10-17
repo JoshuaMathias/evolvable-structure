@@ -17,7 +17,7 @@ from typing import Dict, List, Optional
 
 from . import leaderboard
 from .config import Config
-from .records import PARENT_COLUMNS, POLICY_COLUMNS, fields
+from .records import PARENT_COLUMNS, POLICY_COLUMNS, fields, implementation_id, match_implementations
 from .registry import Registry, first_arm
 from .select import Table, load_table
 from .tables import SEP, ids, read_csv, read_header, render_csv
@@ -67,6 +67,10 @@ def columns_without_extras(own) -> Dict[str, List[str]]:
 
 
 def stem(path: str) -> str:
+    """The implementation name a path stands for: the name after ``::`` when several implementations share a
+    module (``providers.py::openai``), else the file name without ``.py``."""
+    if "::" in path:
+        return path.partition("::")[2]
     return re.sub(r"\.py$", "", path.rsplit("/", 1)[-1])
 
 
@@ -77,7 +81,7 @@ def kind_of(config: Config, path: str) -> str:
         tagged = leaderboard.arm_kind({"component": found.group(1), "impl": found.group(2)}, config.evaluation)
         if tagged:
             return tagged
-    full = config.root / path
+    full = config.root / path.partition("::")[0]
     if full.suffix != ".py" or not full.exists():
         return "live"
     text = full.read_text(encoding="utf-8", errors="replace")
@@ -99,6 +103,15 @@ def selected_path(config: Config, solution: Row, table: Optional[Table]) -> str:
         return solution.get("selected", "")
     target = ref["target"] if isinstance(ref, dict) else ref
     return config.module_path(target.partition(":")[0])
+
+
+def is_selected_path(path: str, chosen: str, selected: str) -> bool:
+    """Whether an ``implementations`` entry is the selected one: the same path, or, for ``module::name``, the entry of
+    that module named by the selection (a module may hold several implementations)."""
+    if path == chosen:
+        return True
+    module, _, name = path.partition("::")
+    return bool(name) and module == chosen and name == selected
 
 
 def selection_table(config: Config) -> Optional[Table]:
@@ -131,6 +144,7 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
         return SEP.join(metric_by_id[m]["command"] for m in ids(s.get("metric_ids", "")) if m in metric_by_id)
 
     problems, sol_rows, impls, ideals, metrics = [], [], [], [], []
+    metric_users: Dict[str, List[tuple]] = {}
     for p in registry.problems:
         linked = [sol_by_id[s] for s in ids(p.get("solution_ids", "")) if s in sol_by_id]
         open_ones = [s["solution_id"] for s in linked if s.get("gap")]
@@ -144,10 +158,12 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
         comp, chosen_impl = first_arm(config, command)
         impl_ids, selected_id = [], ""
         chosen = selected_path(config, s, table)
-        for path in ids(s.get("implementations", "")):
-            iid = f"{sid}:{stem(path)}"
+        entries = ids(s.get("implementations", ""))
+        claimed, _ = match_implementations(sid, entries, {i: r for i, r in impl_records.items() if r.get("solution_id") == sid})
+        for path in entries:
+            iid = claimed.get(path) or implementation_id(sid, path)
             impl_ids.append(iid)
-            is_sel = path == chosen
+            is_sel = is_selected_path(path, chosen, s.get("selected", ""))
             selected_id = iid if is_sel else selected_id
             res = results.get((comp, stem(path))) if comp else None
             rec = impl_records.get(iid, {})
@@ -156,9 +172,9 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
                 **{k: rec.get(k, "") for k in extra["implementations"]},
                 **{k: rec.get(k, "") for k in fields(template, "implementation", True)}, "kind": kind_of(config, path),
                 "selected": "yes" if is_sel else "",
-                "latest_result": f"{res['passed']}/{res['cases']}" if res else "",
-                "latest_cost_usd": res["cost_usd"] if res else "",
-                "cases_sha": res["cases_sha"] if res else "",
+                "latest_result": f"{res.get('passed', '')}/{res.get('cases', '')}" if res else "",
+                "latest_cost_usd": res.get("cost_usd", "") if res else "",
+                "cases_sha": res.get("cases_sha", "") if res else "",
                 "auto_status": "selected" if is_sel else ("measured" if res else "unmeasured")})
         sel_res = results.get((comp, chosen_impl)) if comp else None
         verdict = verdicts.get(sid, {})
@@ -172,16 +188,28 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
             "auto_status": "invariant" if s.get("metric_kind") == "invariant"
             else (STATUS_BY_VERDICT.get(verdict.get("verdict", ""), "decided-by-hand") if sel_res else "decided-by-hand")})
         for mid in ids(s.get("metric_ids", "")):
-            m = metric_by_id.get(mid)
-            if m is None:
-                continue
-            metrics.append({
-                **{k: m.get(k, "") for k in extra["metrics"]},
-                **{k: m.get(k, "") for k in ["metric_id"] + fields(template, "metric", True) + ["solution_ids", "command"]},
-                "kind": s.get("metric_kind") or ("eval" if has_metric else "none"),
-                "latest_result": f"{sel_res['passed']}/{sel_res['cases']}" if sel_res else "",
-                "gap": s.get("gap", ""), "action": s.get("action", ""),
-                "auto_status": "measured" if sel_res else ("needs_run" if has_metric else "needs_metric")})
+            if mid in metric_by_id:
+                metric_users.setdefault(mid, []).append((s, sel_res, has_metric))
+    for mid, users in metric_users.items():   # one row per metric, however many solutions it serves
+        m = metric_by_id[mid]
+        many = len(users) > 1
+
+        def across(texts: List[str]) -> str:
+            return " ".join(t for t in texts if t) if many else (texts[0] if texts else "")
+
+        kinds = list(dict.fromkeys(u[0].get("metric_kind") or ("eval" if u[2] else "none") for u in users))
+        metrics.append({
+            **{k: m.get(k, "") for k in extra["metrics"]},
+            **{k: m.get(k, "") for k in ["metric_id"] + fields(template, "metric", True) + ["solution_ids", "command"]},
+            "kind": SEP.join(kinds),
+            "latest_result": across([(f"{u[0]['solution_id']}: " if many else "") + f"{u[1].get('passed', '')}/{u[1].get('cases', '')}"
+                                     for u in users if u[1]]),
+            "gap": across([(f"{u[0]['solution_id']}: " if many else "") + u[0].get("gap", "") for u in users
+                           if u[0].get("gap", "")]),
+            "action": across([(f"{u[0]['solution_id']}: " if many else "") + u[0].get("action", "") for u in users
+                              if u[0].get("action", "")]),
+            "auto_status": "measured" if any(u[1] for u in users)
+            else ("needs_run" if any(u[2] for u in users) else "needs_metric")})
     solutions_of_ideal: Dict[str, List[str]] = {}
     for s in registry.solutions:
         for iid in ids(s.get("ideal_ids", "")):
@@ -205,7 +233,7 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
 
 def merge_tracking(config: Config, tab: str, rows: List[Row], key: str) -> List[Row]:
     """Carry the hand-edited ``tracking_*`` columns of the committed tab over to the rebuilt rows."""
-    old = {r[key]: r for r in read_csv(config.tracker_dir / f"{tab}.csv")}
+    old = {r.get(key, ""): r for r in read_csv(config.tracker_dir / f"{tab}.csv")}
     for r in rows:
         for col in TRACKING:
             r[col] = old.get(r[key], {}).get(col, "")

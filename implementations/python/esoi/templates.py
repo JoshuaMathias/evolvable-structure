@@ -31,7 +31,7 @@ PARENT_CELLS = {"problem": ["parent_problem_ids", "parent_ideal_ids"], "ideal": 
                 "solution": ["parent_problem_ids", "parent_ideal_ids", "overall_solution_ids", "parent_metric_ids"],
                 "implementation": ["overall_solution_ids"], "metric": ["parent_metric_ids"]}
 LINKS = {"problem": ["solution_ids", "ideal_ids"], "ideal": ["problem_ids"],
-         "solution": ["problem_ids", "ideal_ids", "metric_ids", "implementations", "selected", "selected_by", "metric_kind",
+         "solution": ["problem_ids", "ideal_ids", "metric_ids", "port", "implementations", "selected", "selected_by", "metric_kind",
                       "invariant_reason", "gap", "action", "governs_metric_ids"],
          "implementation": ["solution_id", "path"], "metric": ["solution_ids", "command", "run_policy_ids"]}
 KEYS = {"problem": "problem_id", "ideal": "ideal_id", "solution": "solution_id", "implementation": "implementation_id",

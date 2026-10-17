@@ -22,12 +22,12 @@ def read_csv(path: Path) -> List[Dict[str, str]]:
     path = Path(path)
     if not path.exists():
         return []
-    with path.open(newline="", encoding="utf-8") as handle:
+    with path.open(newline="", encoding="utf-8-sig") as handle:   # a sheet export may start with a byte-order mark
         return [{k: (v or "") for k, v in row.items() if k} for row in csv.DictReader(handle)]
 
 
 def read_header(path: Path) -> List[str]:
-    with Path(path).open(newline="", encoding="utf-8") as handle:
+    with Path(path).open(newline="", encoding="utf-8-sig") as handle:
         return next(csv.reader(handle), [])
 
 

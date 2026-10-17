@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 from .tables import ids, read_csv
 
@@ -82,6 +82,24 @@ def implementation_id(solution_id: str, path: str) -> str:
     return f"{solution_id}:{stem[:-3] if stem.endswith('.py') else stem}"
 
 
+def match_implementations(solution_id: str, entries: List[str], records: Dict[str, Dict[str, str]]
+                          ) -> Tuple[Dict[str, str], List[str]]:
+    """Pair each entry of a solution's ``implementations`` cell with its record in ``implementations.csv``.
+
+    An entry is ``path`` or ``path::name`` (several implementations may live in one module). Its record is, in order,
+    the one whose id is the default id (``solution:file-stem``), the one whose id is ``solution:name``, or the one
+    whose ``path`` cell equals the entry, so record ids need not follow any pattern. Returns ``({entry: record id or
+    ""}, record ids no entry claimed)``; ``records`` are the records of this solution, by id."""
+    claimed: Dict[str, str] = {}
+    for entry in entries:
+        name = entry.partition("::")[2]
+        wanted = [implementation_id(solution_id, entry)] + ([f"{solution_id}:{name}"] if name else [])
+        hit = next((i for i in wanted if i in records), None) \
+            or next((i for i, r in records.items() if r.get("path", "").strip() == entry), None)
+        claimed[entry] = hit or ""
+    return claimed, sorted(set(records) - set(claimed.values()))
+
+
 def check_records(struct: Path, template: Template, waived: Optional[Set[str]] = None,
                   interface_required: bool = True, related_problem_ids: Optional[Set[str]] = None,
                   overall: Optional[Overall] = None, require_command: bool = True,
@@ -111,17 +129,17 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
 
     def skipped(entity: str, row: Dict[str, str]) -> bool:
         if entity == "solution":
-            return row["solution_id"] in waived
+            return row.get("solution_id") in waived
         if entity == "implementation":
             return row.get("solution_id") in waived
         if entity == "metric":
-            return bool(ids(row.get("solution_ids", ""))) and all(s in waived for s in ids(row["solution_ids"]))
+            return bool(ids(row.get("solution_ids", ""))) and all(s in waived for s in ids(row.get("solution_ids", "")))
         return False
 
     for entity, rows in tables.items():
         need = fields(template, entity, interface_required)
         if rows:
-            missing = [k for k in need if k not in rows[0]]
+            missing = [k for k in [keys[entity], *need] if k not in rows[0]]
             if missing:
                 bad.append(f"R1 {FILES[entity][0]}: missing template column(s) {', '.join(missing)}"
                            " (run `esoi template sync`, then fill them)")
@@ -130,7 +148,7 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
                 continue
             empty = [k for k in need if k in row and not row[k].strip()]
             if empty:
-                bad.append(f"R2 {row[keys[entity]]}: template field(s) not filled: {', '.join(empty)}")
+                bad.append(f"R2 {row.get(keys[entity], '')}: template field(s) not filled: {', '.join(empty)}")
 
     problems, ideals, solutions = index["problem"], index["ideal"], index["solution"]
 
@@ -182,11 +200,12 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
         for mid in ids(row.get("metric_ids", "")):
             if mid in index["metric"] and sid not in ids(index["metric"][mid].get("solution_ids", "")):
                 bad.append(f"R3 {sid}: lists metric {mid} but {mid} does not list it in solution_ids")
-        wanted = {implementation_id(sid, p) for p in ids(row.get("implementations", ""))}
-        have = {i for i, r in index["implementation"].items() if r.get("solution_id") == sid}
-        for iid in sorted(wanted - have):
-            bad.append(f"R3 {sid}: implementation {iid} has no record in implementations.csv")
-        for iid in sorted(have - wanted):
+        mine = {i: r for i, r in index["implementation"].items() if r.get("solution_id") == sid}
+        claimed, unclaimed = match_implementations(sid, ids(row.get("implementations", "")), mine)
+        for entry, rid in claimed.items():
+            if not rid:
+                bad.append(f"R3 {sid}: implementation {implementation_id(sid, entry)} has no record in implementations.csv")
+        for iid in unclaimed:
             bad.append(f"R3 {sid}: implementations.csv record {iid} is not in the solution's implementations cell")
     for sid, row in solutions.items():
         for mid in ids(row.get("governs_metric_ids", "")):

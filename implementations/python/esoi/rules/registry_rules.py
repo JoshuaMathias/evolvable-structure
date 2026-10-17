@@ -9,6 +9,7 @@ import re
 from collections import Counter
 from typing import List
 
+from ..registry import RULE_COLUMNS
 from ..tables import ids
 from .base import Context, RuleGroup
 
@@ -21,7 +22,8 @@ SUMMARIES = {
     "S11": "Every solution is eval or invariant (an invariant states invariant_reason), is linked from some "
            "component, and every linked id exists.",
     "S14": "Every solution with a port has a selection-table entry and no entry lacks a row; a default is one of "
-           "its implementations and each implementation's module is listed in the row.",
+           "its implementations and each implementation's module is listed in the row's implementations cell or "
+           "in the `path` of one of its implementations.csv records (several implementations may share a module).",
     "S18": "Solution and component ids are unique and no id repeats inside one cell.",
     "S19": "Every component names at least one solution.",
     "S23": "For a solution with a selection-table entry, selected equals that entry's default.",
@@ -40,15 +42,38 @@ def ports_in_package(ctx: Context) -> set:
     return found
 
 
+FILE_RULE = {"components.csv": "S2", "solutions.csv": "S7", "waivers.csv": "S9"}
+
+
+def listed_modules(ctx: Context, solution_id: str, row: dict) -> set:
+    """The module files a solution lists: the paths in its ``implementations`` cell and the ``path`` of each of its
+    ``implementations.csv`` records (``path::name`` counts as ``path``), so one module may hold several of them."""
+    paths = ids(row.get("implementations", ""))
+    paths += [r.get("path", "") for r in ctx.registry.implementations if r.get("solution_id") == solution_id]
+    return {p.split("::")[0].strip() for p in paths if p.strip()}
+
+
+def missing_columns(ctx: Context, needs_port: bool) -> List[str]:
+    """One problem per column the rules read that a registry file lacks (``port`` only when something needs it)."""
+    folder = ctx.config.structure_dir
+    bad = []
+    for name, column in ctx.registry.missing:
+        if column in RULE_COLUMNS.get(name, []) or needs_port:
+            bad.append(f"{FILE_RULE[name]} {folder}/{name}: has no `{column}` column, which the rules read "
+                       "(add it to the header; `esoi template sync` regenerates the header templates)")
+    return bad
+
+
 def run(ctx: Context) -> List[str]:
     bad: List[str] = []
     config, table = ctx.config, ctx.table or {}
+    bad += missing_columns(ctx, bool(table) or bool(ports_in_package(ctx)))
     if ctx.table_error:
         bad.append(f"S14 {config.selection}: cannot load ({ctx.table_error})")
     covered = set()
     for r in ctx.solutions:
         sid = r["solution_id"]
-        covered.update(ids(r["port"]))
+        covered.update(ids(r.get("port", "")))
         impls = ids(r["implementations"])
         if sid in table:
             names = table[sid].get("implementations", {})
@@ -97,7 +122,7 @@ def run(ctx: Context) -> List[str]:
             bad.append(f"S11 {sid}: no component lists it in `solutions` (link it in components.csv or add a waiver)")
 
     if config.selection:
-        port_rows = {r["solution_id"]: r for r in ctx.solutions if r["port"].strip()}
+        port_rows = {r["solution_id"]: r for r in ctx.solutions if r.get("port", "").strip()}
         for sid in sorted(set(port_rows) - set(table)):
             bad.append(f"S14 {sid}: solutions.csv row has port {port_rows[sid]['port']} but no entry in "
                        f"{config.selection.partition(':')[0]} (add one so resolve({sid!r}) works)")
@@ -111,7 +136,7 @@ def run(ctx: Context) -> List[str]:
                 bad.append(f"S23 {sid}: selected {port_rows[sid]['selected']!r} differs from the selection table default "
                            f"{entry.get('default')!r}; the registry, the table and the live default must name one "
                            "implementation (change both together)")
-            listed = {i.split("::")[0] for i in ids(port_rows[sid]["implementations"])} if sid in port_rows else set()
+            listed = listed_modules(ctx, sid, port_rows[sid]) if sid in port_rows else set()
             for name, ref in implementations.items():
                 target = ref["target"] if isinstance(ref, dict) else ref
                 module = target.partition(":")[0]
@@ -119,7 +144,8 @@ def run(ctx: Context) -> List[str]:
                 if not (config.root / mod_path).exists():
                     bad.append(f"S14 {sid}: implementation {name!r} points at {module}, which does not exist")
                 elif sid in port_rows and mod_path not in listed:
-                    bad.append(f"S14 {sid}: implementation {name!r} lives in {mod_path}, which solutions.csv does not list")
+                    bad.append(f"S14 {sid}: implementation {name!r} lives in {mod_path}, which neither the solution's "
+                               "implementations cell nor the path of any of its implementations.csv records lists")
 
     for sid, n in Counter(s["solution_id"] for s in ctx.solutions).items():
         if n > 1:

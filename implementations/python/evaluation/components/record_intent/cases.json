@@ -216,5 +216,29 @@
    "rule": "S26",
    "contains": "overall network"
   }
+ },
+ {
+  "id": "REC-009",
+  "area": "repo",
+  "kind": "repo",
+  "description": "an implementation record whose id follows no pattern is matched by its path (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/implementations.csv",
+     "key_col": "implementation_id",
+     "key": "greet-a-person:greet",
+     "col": "implementation_id",
+     "value": "any-id-at-all"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "clean": true
+  }
  }
 ]

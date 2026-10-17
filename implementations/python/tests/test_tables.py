@@ -30,3 +30,9 @@ def test_repo_files_falls_back_to_a_walk_outside_git(tmp_path):
     (tmp_path / "__pycache__").mkdir()
     (tmp_path / "__pycache__" / "c.pyc").write_text("x")
     assert tables.repo_files(tmp_path) == ["a.txt", "sub/b.txt"]
+
+
+def test_a_csv_saved_with_a_byte_order_mark_still_has_its_first_column(tmp_path):
+    path = tmp_path / "a.csv"
+    path.write_bytes(b"\xef\xbb\xbfsolution_id,name\nx,y\n")
+    assert tables.read_header(path) == ["solution_id", "name"] and tables.read_csv(path) == [{"solution_id": "x", "name": "y"}]

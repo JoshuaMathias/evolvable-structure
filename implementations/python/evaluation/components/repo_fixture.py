@@ -87,7 +87,9 @@ def baseline_repo(dest: Path) -> Path:
 
 def apply_edits(root: Path, edits: List[dict]) -> None:
     """Apply declarative edits. ``write``/``append``/``replace``/``delete`` act on files; ``csv_cell``, ``csv_drop``,
-    ``csv_dup`` and ``csv_append`` act on a CSV row found by ``key_col`` == ``key``; ``regen`` re-runs the live
+    ``csv_dup``, ``csv_clone`` (a copy with the cells of ``row`` replaced) and ``csv_append`` act on a CSV row found by
+    ``key_col`` == ``key``; ``csv_drop_col`` removes the column ``col``; a ``csv_cell`` value of ``{HEAD}`` is the
+    current short commit; ``git_commit`` commits what changed without restamping the results; ``regen`` re-runs the live
     ``--write-docs`` so a case can isolate one rule from stale generated docs."""
     root = Path(root)
     for e in edits:
@@ -105,13 +107,20 @@ def apply_edits(root: Path, edits: List[dict]) -> None:
             path.unlink()
         elif op == "git_record":
             git_record(root)
+        elif op == "git_commit":
+            git_commit(root)
+        elif op == "csv_drop_col":
+            rows, cols = read_rows(path), read_header(path)
+            path.write_text(csv_text([c for c in cols if c != e["col"]], [{k: v for k, v in r.items() if k != e["col"]} for r in rows]))
         elif op == "regen":
             check.write_docs(config.load(root), say=lambda text: None)
         elif op.startswith("csv_"):
             rows, cols = read_rows(path), read_header(path)
             hit = next(r for r in rows if r[e["key_col"]] == e["key"]) if op != "csv_append" else None
             if op == "csv_cell":
-                hit[e["col"]] = e["value"]
+                hit[e["col"]] = e["value"].replace("{HEAD}", head_sha(root)) if "{HEAD}" in e["value"] else e["value"]
+            elif op == "csv_clone":
+                rows.append({**hit, **e["row"]})
             elif op == "csv_drop":
                 rows.remove(hit)
             elif op == "csv_dup":
@@ -121,6 +130,21 @@ def apply_edits(root: Path, edits: List[dict]) -> None:
             path.write_text(csv_text(cols, rows))
         else:
             raise ValueError(op)
+
+
+def run_git(root: Path, *args: str) -> str:
+    return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid", *args], cwd=root,
+                          capture_output=True, text=True, check=True).stdout.strip()
+
+
+def head_sha(root: Path) -> str:
+    return run_git(root, "rev-parse", "--short", "HEAD")
+
+
+def git_commit(root: Path) -> None:
+    """Commit every change so far (the fixture must already be a git repository, see ``git_record``)."""
+    run_git(root, "add", "-A")
+    run_git(root, "commit", "-q", "-m", "change")
 
 
 def git_record(root: Path) -> None:

@@ -107,3 +107,21 @@ def test_a_policy_solution_and_the_metrics_it_governs_must_agree(cfg):
     srows[0]["governs_metric_ids"] = "ghost"
     tables.write_csv(cfg.structure / "solutions.csv", scols + ["governs_metric_ids"], srows)
     assert any("governs_metric_ids names 'ghost'" in p for p in check(cfg, overall=records.overall_ids(cfg.root / cfg.overall)))
+
+
+def test_implementation_records_are_matched_by_path_or_name_not_only_by_a_fixed_id(cfg):
+    path = cfg.structure / "implementations.csv"
+    rows, cols = tables.read_csv(path), tables.read_header(path)
+    first = rows[0]
+    extra = [dict(first, implementation_id="any-id-one", path="demo/providers.py::one"),
+             dict(first, implementation_id="greet-a-person:two", path="demo/providers.py")]
+    tables.write_csv(path, cols, rows + extra)
+    solutions = cfg.structure / "solutions.csv"
+    cells, scols = tables.read_csv(solutions), tables.read_header(solutions)
+    cells[0]["implementations"] += ";demo/providers.py::one;demo/providers.py::two"
+    tables.write_csv(solutions, scols, cells)
+    overall = records.overall_ids(cfg.root / cfg.overall)
+    assert check(cfg, overall=overall) == []   # one by path, one by `solution:name`
+    cells[0]["implementations"] += ";demo/providers.py::three"
+    tables.write_csv(solutions, scols, cells)
+    assert any("providers.py::three has no record" in p for p in check(cfg, overall=overall))
