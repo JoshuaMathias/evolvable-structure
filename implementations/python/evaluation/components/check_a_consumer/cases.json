@@ -1,0 +1,472 @@
+[
+ {
+  "id": "CCK-000",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "a conforming consumer passes",
+  "args": {
+   "edits": []
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "CCK-001",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "a call row whose library symbol resolves (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_append",
+     "path": "registry.csv",
+     "row": {
+      "integration_id": "runner",
+      "module": "consumer_sink",
+      "kind": "call",
+      "lib_symbol": "fixlib.api:run",
+      "selected_by": "hand-wired",
+      "metric": "a live proof",
+      "tests": "tests/test_sink.py",
+      "status": "done",
+      "solution_id": "escalate"
+     }
+    }
+   ]
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "CCK-002",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "registry missing a required column",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "registry.csv",
+     "content": "integration_id,module\nsink,consumer_sink\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C1",
+   "contains": "missing columns"
+  }
+ },
+ {
+  "id": "CCK-003",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "duplicate integration id",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_dup",
+     "path": "registry.csv",
+     "key_col": "integration_id",
+     "key": "sink"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C1",
+   "contains": "duplicate integration_id"
+  }
+ },
+ {
+  "id": "CCK-004",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "a kind that is not known",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "registry.csv",
+     "key_col": "integration_id",
+     "key": "sink",
+     "col": "kind",
+     "value": "weird"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C1",
+   "contains": "weird"
+  }
+ },
+ {
+  "id": "CCK-005",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "a library solution id that does not exist",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "registry.csv",
+     "key_col": "integration_id",
+     "key": "sink",
+     "col": "lib_solution_id",
+     "value": "no-such-solution"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C2",
+   "contains": "no-such-solution"
+  }
+ },
+ {
+  "id": "CCK-006",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "an implementation missing a port method",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "consumer_sink.py",
+     "content": "\"\"\"A sink.\"\"\"\n\n\nclass Sink:\n    \"\"\"No method.\"\"\"\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C3",
+   "contains": "missing method escalate"
+  }
+ },
+ {
+  "id": "CCK-007",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "an implementation that does not accept a required port parameter",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "consumer_sink.py",
+     "content": "\"\"\"A sink.\"\"\"\n\n\nclass Sink:\n    \"\"\"Wrong parameter.\"\"\"\n\n    def escalate(self, thing):\n        return None\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C3",
+   "contains": "does not accept parameter"
+  }
+ },
+ {
+  "id": "CCK-008",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "an implementation that does not import",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "registry.csv",
+     "key_col": "integration_id",
+     "key": "sink",
+     "col": "module",
+     "value": "nonexistent_consumer_module"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C3",
+   "contains": "does not import"
+  }
+ },
+ {
+  "id": "CCK-009",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "an implementation row with no symbol",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "registry.csv",
+     "key_col": "integration_id",
+     "key": "sink",
+     "col": "symbol",
+     "value": ""
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C3",
+   "contains": "needs a symbol"
+  }
+ },
+ {
+  "id": "CCK-010",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "a port the library does not define",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "registry.csv",
+     "key_col": "integration_id",
+     "key": "sink",
+     "col": "lib_port",
+     "value": "NoSuchPort"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C3",
+   "contains": "not defined"
+  }
+ },
+ {
+  "id": "CCK-011",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "a call row whose library symbol does not resolve",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_append",
+     "path": "registry.csv",
+     "row": {
+      "integration_id": "runner",
+      "module": "consumer_sink",
+      "kind": "call",
+      "lib_symbol": "fixlib.api:nope",
+      "selected_by": "hand-wired",
+      "metric": "a live proof",
+      "tests": "tests/test_sink.py",
+      "status": "done",
+      "solution_id": "escalate"
+     }
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C4",
+   "contains": "does not resolve"
+  }
+ },
+ {
+  "id": "CCK-012",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "a duplicate row with no action",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "registry.csv",
+     "key_col": "integration_id",
+     "key": "sink",
+     "col": "kind",
+     "value": "duplicate"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C5",
+   "contains": "state the action"
+  }
+ },
+ {
+  "id": "CCK-013",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "status partial with no gap",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "registry.csv",
+     "key_col": "integration_id",
+     "key": "sink",
+     "col": "status",
+     "value": "partial"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C6",
+   "contains": "partial needs both"
+  }
+ },
+ {
+  "id": "CCK-014",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "no metric and no gap",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "registry.csv",
+     "key_col": "integration_id",
+     "key": "sink",
+     "col": "metric",
+     "value": ""
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C6",
+   "contains": "no metric"
+  }
+ },
+ {
+  "id": "CCK-015",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "a named test that does not exist",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "registry.csv",
+     "key_col": "integration_id",
+     "key": "sink",
+     "col": "tests",
+     "value": "tests/test_ghost.py"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C7",
+   "contains": "test_ghost"
+  }
+ },
+ {
+  "id": "CCK-016",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "an integration point in no solution",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "registry.csv",
+     "key_col": "integration_id",
+     "key": "sink",
+     "col": "solution_id",
+     "value": ""
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C9",
+   "contains": "no solution"
+  }
+ },
+ {
+  "id": "CCK-017",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "a solution with no recorded result",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "results.csv",
+     "content": "solution_id,cases,passed,git_sha,cases_sha\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C10",
+   "contains": "no recorded result"
+  }
+ },
+ {
+  "id": "CCK-018",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "a result whose case files changed since",
+  "args": {
+   "edits": [
+    {
+     "op": "append",
+     "path": "case_files/cases.json",
+     "content": " "
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C10",
+   "contains": "stale result"
+  }
+ },
+ {
+  "id": "CCK-019",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "a recorded result that is not all passing",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "results.csv",
+     "key_col": "solution_id",
+     "key": "escalate",
+     "col": "passed",
+     "value": "0"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C10",
+   "contains": "not all passing"
+  }
+ },
+ {
+  "id": "CCK-020",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "a result without a git sha",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "results.csv",
+     "key_col": "solution_id",
+     "key": "escalate",
+     "col": "git_sha",
+     "value": ""
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C10",
+   "contains": "git sha"
+  }
+ },
+ {
+  "id": "CCK-021",
+  "area": "consumer",
+  "kind": "consumer",
+  "description": "an invariant solution with no reason",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "solutions.csv",
+     "key_col": "solution_id",
+     "key": "escalate",
+     "col": "metric_kind",
+     "value": "invariant"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "C11",
+   "contains": "invariant"
+  }
+ }
+]

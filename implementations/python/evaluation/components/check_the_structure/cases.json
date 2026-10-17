@@ -1,0 +1,1495 @@
+[
+ {
+  "id": "CTS-000",
+  "area": "repo",
+  "kind": "repo",
+  "description": "clean fixture must pass",
+  "args": {
+   "edits": []
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "CTS-001",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a file in no component",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "docs/stray.md",
+     "content": "# stray\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S1",
+   "contains": "docs/stray.md"
+  }
+ },
+ {
+  "id": "CTS-002",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a component glob that matches nothing",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "tests",
+     "col": "path",
+     "value": "tests2/**"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S1",
+   "contains": "matches no file"
+  }
+ },
+ {
+  "id": "CTS-003",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a file owned by two components",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "tests",
+     "col": "path",
+     "value": "tests/**;demo/greet.py"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S1",
+   "contains": "several components"
+  }
+ },
+ {
+  "id": "CTS-004",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a component with no role",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "tests",
+     "col": "role",
+     "value": ""
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S2",
+   "contains": "role is empty"
+  }
+ },
+ {
+  "id": "CTS-005",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a component on an unknown layer",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "tests",
+     "col": "layer",
+     "value": "basement"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S2",
+   "contains": "not in"
+  }
+ },
+ {
+  "id": "CTS-006",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a python file at the repo root",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "stray.py",
+     "content": "\"\"\"x.\"\"\"\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S3",
+   "contains": "stray.py"
+  }
+ },
+ {
+  "id": "CTS-007",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a module over the size ceiling",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/big.py",
+     "content": "\"\"\"Big.\"\"\"\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\nx = 1\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S4",
+   "contains": "demo/big.py"
+  }
+ },
+ {
+  "id": "CTS-008",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a library module with no docstring",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/nodoc.py",
+     "content": "x = 1\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S5",
+   "contains": "demo/nodoc.py"
+  }
+ },
+ {
+  "id": "CTS-009",
+  "area": "repo",
+  "kind": "repo",
+  "description": "core imports the adapters layer",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/uses_adapter.py",
+     "content": "\"\"\"Core module.\"\"\"\nfrom demo.adapters import something\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S6",
+   "contains": "dependencies point inward"
+  }
+ },
+ {
+  "id": "CTS-010",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a relative import of a higher layer",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/rel.py",
+     "content": "\"\"\"Core module.\"\"\"\nfrom .adapters import something\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S6",
+   "contains": "dependencies point inward"
+  }
+ },
+ {
+  "id": "CTS-011",
+  "area": "repo",
+  "kind": "repo",
+  "description": "an import only under TYPE_CHECKING is clean",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/typed.py",
+     "content": "\"\"\"Core module.\"\"\"\nfrom typing import TYPE_CHECKING\nif TYPE_CHECKING:\n    from demo.adapters import something\n"
+    }
+   ]
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "CTS-012",
+  "area": "repo",
+  "kind": "repo",
+  "description": "core reads the environment",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/envy.py",
+     "content": "\"\"\"Core module.\"\"\"\nimport os\nX = os.environ.get(\"X\")\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S13",
+   "contains": "reads the environment"
+  }
+ },
+ {
+  "id": "CTS-013",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a port with no solutions row",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/ports2.py",
+     "content": "\"\"\"Another port.\"\"\"\nfrom typing import Protocol\n\n\nclass Other(Protocol):\n    \"\"\"Other.\"\"\"\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S7",
+   "contains": "Other"
+  }
+ },
+ {
+  "id": "CTS-014",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a second port in a solution's port cell needs no row of its own (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/ports2.py",
+     "content": "\"\"\"Another port.\"\"\"\nfrom typing import Protocol\n\n\nclass Other(Protocol):\n    \"\"\"Other.\"\"\"\n"
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "port",
+     "value": "Greeter;Other"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "CTS-015",
+  "area": "repo",
+  "kind": "repo",
+  "description": "selected implementation is not a name in the selection table",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "selected",
+     "value": "ghost"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S7",
+   "contains": "not an implementation name"
+  }
+ },
+ {
+  "id": "CTS-016",
+  "area": "repo",
+  "kind": "repo",
+  "description": "an implementation path that does not exist",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "implementations",
+     "value": "demo/greet.py;demo/ghost.py;evaluation/components/greet_a_person/impls/live.py;evaluation/components/greet_a_person/impls/shout.py"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S7",
+   "contains": "does not exist"
+  }
+ },
+ {
+  "id": "CTS-017",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a solution with no metric and no gap",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/metrics.csv",
+     "key_col": "metric_id",
+     "key": "greeting-pass-rate",
+     "col": "command",
+     "value": "none"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S7",
+   "contains": "no metric"
+  }
+ },
+ {
+  "id": "CTS-018",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a harness command naming a missing implementation file",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/metrics.csv",
+     "key_col": "metric_id",
+     "key": "greeting-pass-rate",
+     "col": "command",
+     "value": "esoi run greet_a_person --impl ghost"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S7",
+   "contains": "has no score.py or impls file"
+  }
+ },
+ {
+  "id": "CTS-019",
+  "area": "repo",
+  "kind": "repo",
+  "description": "COMPONENTS.md stale after a registry edit",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "tests",
+     "col": "role",
+     "value": "Changed role."
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S8",
+   "contains": "COMPONENTS.md"
+  }
+ },
+ {
+  "id": "CTS-020",
+  "area": "repo",
+  "kind": "repo",
+  "description": "tracker stale after a solutions edit",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "selected_by",
+     "value": "a different reason"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S17",
+   "contains": "tracker"
+  }
+ },
+ {
+  "id": "CTS-021",
+  "area": "repo",
+  "kind": "repo",
+  "description": "duplicate solution id",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_dup",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S18",
+   "contains": "appears 2 times"
+  }
+ },
+ {
+  "id": "CTS-022",
+  "area": "repo",
+  "kind": "repo",
+  "description": "duplicate component id",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_dup",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "tests"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S18",
+   "contains": "component id tests"
+  }
+ },
+ {
+  "id": "CTS-023",
+  "area": "repo",
+  "kind": "repo",
+  "description": "an id listed twice in one solutions cell",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "package",
+     "col": "solutions",
+     "value": "greet-a-person;greet-a-person"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S18",
+   "contains": "lists greet-a-person 2 times"
+  }
+ },
+ {
+  "id": "CTS-024",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a solution linked from no component",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "package",
+     "col": "solutions",
+     "value": ""
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "evaluation",
+     "col": "solutions",
+     "value": ""
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "tests",
+     "col": "solutions",
+     "value": ""
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "structure-registry",
+     "col": "solutions",
+     "value": ""
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "project-files",
+     "col": "solutions",
+     "value": ""
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "adapters",
+     "col": "solutions",
+     "value": ""
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S11",
+   "contains": "no component lists it"
+  }
+ },
+ {
+  "id": "CTS-025",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a component naming an unknown solution",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "package",
+     "col": "solutions",
+     "value": "greet-a-person;ghost"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S11",
+   "contains": "ghost"
+  }
+ },
+ {
+  "id": "CTS-026",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a solution with no metric kind",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "metric_kind",
+     "value": ""
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S11",
+   "contains": "metric_kind"
+  }
+ },
+ {
+  "id": "CTS-027",
+  "area": "repo",
+  "kind": "repo",
+  "description": "an invariant solution with no reason",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "metric_kind",
+     "value": "invariant"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S11",
+   "contains": "invariant_reason"
+  }
+ },
+ {
+  "id": "CTS-028",
+  "area": "repo",
+  "kind": "repo",
+  "description": "an invariant solution with a reason but no broken baseline",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "metric_kind",
+     "value": "invariant"
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "invariant_reason",
+     "value": "The greeting holds or does not."
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S25",
+   "contains": "broken/"
+  }
+ },
+ {
+  "id": "CTS-029",
+  "area": "repo",
+  "kind": "repo",
+  "description": "an invariant solution is never ranked, so a better row is no challenger (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "metric_kind",
+     "value": "invariant"
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "invariant_reason",
+     "value": "The greeting holds or does not."
+    },
+    {
+     "op": "write",
+     "path": "evaluation/components/greet_a_person/broken/naive.py",
+     "content": "\"\"\"BASELINE: the naive greeting.\"\"\"\n"
+    },
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "live",
+     "col": "passed",
+     "value": "1"
+    },
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "shout",
+     "col": "passed",
+     "value": "2"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "CTS-030",
+  "area": "repo",
+  "kind": "repo",
+  "description": "selected implementation beaten in results",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "live",
+     "col": "passed",
+     "value": "1"
+    },
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "shout",
+     "col": "passed",
+     "value": "2"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S10",
+   "contains": "beat the selected"
+  }
+ },
+ {
+  "id": "CTS-031",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a solution with no current recorded result",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_drop",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "live"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S10",
+   "contains": "has no row"
+  }
+ },
+ {
+  "id": "CTS-032",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a result with no cases hash",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "shout",
+     "col": "cases_sha",
+     "value": ""
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S16",
+   "contains": "shout"
+  }
+ },
+ {
+  "id": "CTS-033",
+  "area": "repo",
+  "kind": "repo",
+  "description": "selected implementation is an alternative, not live code",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "selected",
+     "value": "evaluation/components/greet_a_person/impls/shout.py"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S12",
+   "contains": "is an alternative"
+  }
+ },
+ {
+  "id": "CTS-034",
+  "area": "repo",
+  "kind": "repo",
+  "description": "an evaluation implementation that measures nothing live",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "evaluation/components/greet_a_person/impls/odd.py",
+     "content": "\"\"\"A reimplementation.\"\"\"\nimport json\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S12",
+   "contains": "neither wraps live"
+  }
+ },
+ {
+  "id": "CTS-035",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a port with no selection table entry",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/selection.py",
+     "content": "SELECTION = {}\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S14",
+   "contains": "no entry"
+  }
+ },
+ {
+  "id": "CTS-036",
+  "area": "repo",
+  "kind": "repo",
+  "description": "selected differs from the selection table default",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/selection.py",
+     "content": "\"\"\"Selection.\"\"\"\nSELECTION = {\"greet-a-person\": {\"default\": \"loud\", \"implementations\": {\"plain\": \"demo.greet:greet\", \"loud\": \"demo.greet:greet\"}}}\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S23",
+   "contains": "differs from the selection table default"
+  }
+ },
+ {
+  "id": "CTS-037",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a selection table that cannot load",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/selection.py",
+     "content": "SELECTION = (\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S14",
+   "contains": "cannot load"
+  }
+ },
+ {
+  "id": "CTS-038",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a waiver that no longer applies",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_append",
+     "path": "docs/structure/waivers.csv",
+     "row": {
+      "rule": "S4",
+      "path": "demo/greet.py",
+      "reason": "Test waiver."
+     }
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S9",
+   "contains": "no longer needed"
+  }
+ },
+ {
+  "id": "CTS-039",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a waiver with no reason",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_append",
+     "path": "docs/structure/waivers.csv",
+     "row": {
+      "rule": "S4",
+      "path": "demo/greet.py",
+      "reason": ""
+     }
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S9",
+   "contains": "has no reason"
+  }
+ },
+ {
+  "id": "CTS-040",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a component that serves no solution",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "tests",
+     "col": "solutions",
+     "value": ""
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S19",
+   "contains": "serves no solution"
+  }
+ },
+ {
+  "id": "CTS-041",
+  "area": "repo",
+  "kind": "repo",
+  "description": "cases changed since the recorded run",
+  "args": {
+   "edits": [
+    {
+     "op": "append",
+     "path": "evaluation/components/greet_a_person/cases.json",
+     "content": " "
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S20",
+   "contains": "other cases"
+  }
+ },
+ {
+  "id": "CTS-042",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a recorded run with no git sha",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "live",
+     "col": "git_sha",
+     "value": ""
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S20",
+   "contains": "git_sha"
+  }
+ },
+ {
+  "id": "CTS-043",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a solution with no ideal",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "ideal_ids",
+     "value": ""
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "parent_ideal_ids",
+     "value": ""
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S20",
+   "contains": "ideal_ids"
+  }
+ },
+ {
+  "id": "CTS-044",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a metric that is not a recorded harness run",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/metrics.csv",
+     "key_col": "metric_id",
+     "key": "greeting-pass-rate",
+     "col": "command",
+     "value": "pytest tests"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S20",
+   "contains": "not an `esoi run"
+  }
+ },
+ {
+  "id": "CTS-045",
+  "area": "repo",
+  "kind": "repo",
+  "description": "an evaluation folder that no solution names",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "evaluation/components/orphan/score.py",
+     "content": "\"\"\"Scores nothing.\"\"\"\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S21",
+   "contains": "evaluation/components/orphan"
+  }
+ },
+ {
+  "id": "CTS-046",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a score written into a gap",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "gap",
+     "value": "The live greeter passes 12/16 of the cases."
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S22",
+   "contains": "12/16"
+  }
+ },
+ {
+  "id": "CTS-047",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a number in a record field",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/problems.csv",
+     "key_col": "problem_id",
+     "key": "greeting-by-hand",
+     "col": "why_it_matters",
+     "value": "It costs 30% of the day."
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S22",
+   "contains": "30%"
+  }
+ },
+ {
+  "id": "CTS-048",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a metric_command arm that has no recorded row",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/metrics.csv",
+     "key_col": "metric_id",
+     "key": "greeting-pass-rate",
+     "col": "command",
+     "value": "esoi run greet_a_person --impl live;esoi run greet_a_person --impl ghost"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S24",
+   "contains": "greet_a_person/ghost"
+  }
+ },
+ {
+  "id": "CTS-049",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a gap that calls a recorded implementation unrecorded",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "gap",
+     "value": "The shout implementation is not recorded."
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "action",
+     "value": "Keep watching."
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S24",
+   "contains": "says shout is not recorded"
+  }
+ },
+ {
+  "id": "CTS-050",
+  "area": "repo",
+  "kind": "repo",
+  "description": "an action that says to record an implementation that is recorded",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "gap",
+     "value": "A rival is open."
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "action",
+     "value": "Record shout on the cases."
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S24",
+   "contains": "shout"
+  }
+ },
+ {
+  "id": "CTS-051",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a template field of a problem left empty",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/problems.csv",
+     "key_col": "problem_id",
+     "key": "greeting-by-hand",
+     "col": "who_has_it",
+     "value": ""
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S26",
+   "contains": "who_has_it"
+  }
+ },
+ {
+  "id": "CTS-052",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a problem written as a task",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/problems.csv",
+     "key_col": "problem_id",
+     "key": "greeting-by-hand",
+     "col": "problem",
+     "value": "Add a greeting function for people."
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S26",
+   "contains": "reads as a task"
+  }
+ },
+ {
+  "id": "CTS-053",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a solution that addresses no problem",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "problem_ids",
+     "value": ""
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "parent_problem_ids",
+     "value": ""
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S26",
+   "contains": "addresses no problem"
+  }
+ },
+ {
+  "id": "CTS-054",
+  "area": "repo",
+  "kind": "repo",
+  "description": "an ideal that opposes no problem",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/ideals.csv",
+     "key_col": "ideal_id",
+     "key": "consistent-greeting",
+     "col": "problem_ids",
+     "value": ""
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S26",
+   "contains": "opposes no problem"
+  }
+ },
+ {
+  "id": "CTS-055",
+  "area": "repo",
+  "kind": "repo",
+  "description": "an implementation with no record",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_drop",
+     "path": "docs/structure/implementations.csv",
+     "key_col": "implementation_id",
+     "key": "greet-a-person:shout"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S26",
+   "contains": "has no record"
+  }
+ },
+ {
+  "id": "CTS-056",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a parent link that names nothing in the overall network",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "overall_solution_ids",
+     "value": "ghost"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S26",
+   "contains": "not a solution of the overall network"
+  }
+ },
+ {
+  "id": "CTS-057",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a parent problem that is not in the overall network",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/problems.csv",
+     "key_col": "problem_id",
+     "key": "greeting-by-hand",
+     "col": "parent_problem_ids",
+     "value": "nope"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S26",
+   "contains": "not a problem of the overall network"
+  }
+ },
+ {
+  "id": "CTS-058",
+  "area": "repo",
+  "kind": "repo",
+  "description": "the overall network itself has an empty template field",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/overall/problems.csv",
+     "key_col": "problem_id",
+     "key": "overall-problem",
+     "col": "who_has_it",
+     "value": ""
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S26",
+   "contains": "overall network"
+  }
+ },
+ {
+  "id": "CTS-059",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a rule turned off in the configuration is silent (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "replace",
+     "path": "esoi.toml",
+     "old": "package = \"demo\"",
+     "new": "package = \"demo\"\ndisable = [\"S3\"]"
+    },
+    {
+     "op": "write",
+     "path": "stray.py",
+     "content": "\"\"\"x.\"\"\"\n"
+    }
+   ]
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "CTS-060",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a plugin rule reports under its own id",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "tools/my_rules.py",
+     "content": "from esoi.rules.base import RuleGroup\n\n\ndef no_todo(ctx):\n    return [f\"X1 {f}: contains TODO\" for f in ctx.files if f.endswith(\".py\") and \"TODO\" in (ctx.root / f).read_text()]\n\n\nRULES = [RuleGroup({\"X1\": \"No TODO.\"}, no_todo)]\n"
+    },
+    {
+     "op": "write",
+     "path": "demo/todo.py",
+     "content": "\"\"\"Todo.\"\"\"\n# TODO\n"
+    },
+    {
+     "op": "replace",
+     "path": "esoi.toml",
+     "old": "package = \"demo\"",
+     "new": "package = \"demo\"\nplugins = [\"tools/my_rules.py\"]"
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "project-files",
+     "col": "path",
+     "value": "*;tools/*.py"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "X1",
+   "contains": "demo/todo.py"
+  }
+ }
+]

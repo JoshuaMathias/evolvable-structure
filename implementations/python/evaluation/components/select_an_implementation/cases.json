@@ -1,0 +1,521 @@
+[
+ {
+  "id": "SEL-001",
+  "kind": "resolve",
+  "area": "default",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict",
+      "deque": {
+       "target": "collections:deque",
+       "config": "dataclasses:dataclass"
+      },
+      "broken": "no.such.module:Thing"
+     }
+    }
+   },
+   "solution": "pick"
+  },
+  "expect": {
+   "eq": {
+    "resolved": "Counter",
+    "chosen": "counter",
+    "names": [
+     "broken",
+     "counter",
+     "deque",
+     "ordered"
+    ]
+   }
+  },
+  "description": "default"
+ },
+ {
+  "id": "SEL-002",
+  "kind": "resolve",
+  "area": "explicit name",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict",
+      "deque": {
+       "target": "collections:deque",
+       "config": "dataclasses:dataclass"
+      },
+      "broken": "no.such.module:Thing"
+     }
+    }
+   },
+   "solution": "pick",
+   "name": "ordered"
+  },
+  "expect": {
+   "eq": {
+    "resolved": "OrderedDict",
+    "chosen": "ordered"
+   }
+  },
+  "description": "explicit name"
+ },
+ {
+  "id": "SEL-003",
+  "kind": "resolve",
+  "area": "override when no name",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict",
+      "deque": {
+       "target": "collections:deque",
+       "config": "dataclasses:dataclass"
+      },
+      "broken": "no.such.module:Thing"
+     }
+    }
+   },
+   "solution": "pick",
+   "overrides": {
+    "pick": "deque"
+   }
+  },
+  "expect": {
+   "eq": {
+    "resolved": "deque",
+    "chosen": "deque"
+   }
+  },
+  "description": "override when no name"
+ },
+ {
+  "id": "SEL-004",
+  "kind": "resolve",
+  "area": "explicit name beats an override",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict",
+      "deque": {
+       "target": "collections:deque",
+       "config": "dataclasses:dataclass"
+      },
+      "broken": "no.such.module:Thing"
+     }
+    }
+   },
+   "solution": "pick",
+   "name": "ordered",
+   "overrides": {
+    "pick": "deque"
+   }
+  },
+  "expect": {
+   "eq": {
+    "resolved": "OrderedDict"
+   }
+  },
+  "description": "explicit name beats an override"
+ },
+ {
+  "id": "SEL-005",
+  "kind": "resolve",
+  "area": "an override for another solution is ignored",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict",
+      "deque": {
+       "target": "collections:deque",
+       "config": "dataclasses:dataclass"
+      },
+      "broken": "no.such.module:Thing"
+     }
+    }
+   },
+   "solution": "pick",
+   "overrides": {
+    "other": "deque"
+   }
+  },
+  "expect": {
+   "eq": {
+    "resolved": "Counter"
+   }
+  },
+  "description": "an override for another solution is ignored"
+ },
+ {
+  "id": "SEL-006",
+  "kind": "resolve",
+  "area": "names are case-insensitive and trimmed",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict",
+      "deque": {
+       "target": "collections:deque",
+       "config": "dataclasses:dataclass"
+      },
+      "broken": "no.such.module:Thing"
+     }
+    }
+   },
+   "solution": "pick",
+   "name": "  Ordered "
+  },
+  "expect": {
+   "eq": {
+    "resolved": "OrderedDict",
+    "chosen": "ordered"
+   }
+  },
+  "description": "names are case-insensitive and trimmed"
+ },
+ {
+  "id": "SEL-007",
+  "kind": "resolve",
+  "area": "an unknown name fails and lists the choices",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict",
+      "deque": {
+       "target": "collections:deque",
+       "config": "dataclasses:dataclass"
+      },
+      "broken": "no.such.module:Thing"
+     }
+    }
+   },
+   "solution": "pick",
+   "name": "ordred"
+  },
+  "expect": {
+   "eq": {
+    "error": "ValueError"
+   },
+   "contains": [
+    "ordered",
+    "counter",
+    "deque"
+   ]
+  },
+  "description": "an unknown name fails and lists the choices"
+ },
+ {
+  "id": "SEL-008",
+  "kind": "resolve",
+  "area": "an unknown name in an override fails too",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict",
+      "deque": {
+       "target": "collections:deque",
+       "config": "dataclasses:dataclass"
+      },
+      "broken": "no.such.module:Thing"
+     }
+    }
+   },
+   "solution": "pick",
+   "overrides": {
+    "pick": "nope"
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "ValueError"
+   },
+   "contains": [
+    "choices"
+   ]
+  },
+  "description": "an unknown name in an override fails too"
+ },
+ {
+  "id": "SEL-009",
+  "kind": "resolve",
+  "area": "default",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict",
+      "deque": {
+       "target": "collections:deque",
+       "config": "dataclasses:dataclass"
+      },
+      "broken": "no.such.module:Thing"
+     }
+    }
+   },
+   "solution": "ghost"
+  },
+  "expect": {
+   "eq": {
+    "error": "ValueError"
+   },
+   "contains": [
+    "pick"
+   ]
+  },
+  "description": "an unknown solution fails and lists the known ones"
+ },
+ {
+  "id": "SEL-010",
+  "kind": "resolve",
+  "area": "a broken entry that is not chosen costs nothing (lazy import)",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict",
+      "deque": {
+       "target": "collections:deque",
+       "config": "dataclasses:dataclass"
+      },
+      "broken": "no.such.module:Thing"
+     }
+    }
+   },
+   "solution": "pick",
+   "name": "counter"
+  },
+  "expect": {
+   "eq": {
+    "resolved": "Counter"
+   }
+  },
+  "description": "a broken entry that is not chosen costs nothing (lazy import)"
+ },
+ {
+  "id": "SEL-011",
+  "kind": "resolve",
+  "area": "a broken entry that is chosen fails",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict",
+      "deque": {
+       "target": "collections:deque",
+       "config": "dataclasses:dataclass"
+      },
+      "broken": "no.such.module:Thing"
+     }
+    }
+   },
+   "solution": "pick",
+   "name": "broken"
+  },
+  "expect": {
+   "eq": {
+    "error": "ModuleNotFoundError"
+   }
+  },
+  "description": "a broken entry that is chosen fails"
+ },
+ {
+  "id": "SEL-012",
+  "kind": "resolve",
+  "area": "a config class is resolved when the entry names one",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict",
+      "deque": {
+       "target": "collections:deque",
+       "config": "dataclasses:dataclass"
+      },
+      "broken": "no.such.module:Thing"
+     }
+    }
+   },
+   "solution": "pick",
+   "name": "deque",
+   "config": true
+  },
+  "expect": {
+   "eq": {
+    "resolved": "dataclass",
+    "chosen": "deque"
+   }
+  },
+  "description": "a config class is resolved when the entry names one"
+ },
+ {
+  "id": "SEL-013",
+  "kind": "resolve",
+  "area": "an entry with no config class resolves to none",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict",
+      "deque": {
+       "target": "collections:deque",
+       "config": "dataclasses:dataclass"
+      },
+      "broken": "no.such.module:Thing"
+     }
+    }
+   },
+   "solution": "pick",
+   "name": "counter",
+   "config": true
+  },
+  "expect": {
+   "eq": {
+    "resolved": null
+   }
+  },
+  "description": "an entry with no config class resolves to none"
+ },
+ {
+  "id": "SEL-014",
+  "kind": "resolve",
+  "area": "a registered implementation is selectable",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict",
+      "deque": {
+       "target": "collections:deque",
+       "config": "dataclasses:dataclass"
+      },
+      "broken": "no.such.module:Thing"
+     }
+    }
+   },
+   "solution": "pick",
+   "register": [
+    {
+     "name": "chain",
+     "target": "collections:ChainMap"
+    }
+   ],
+   "name": "chain"
+  },
+  "expect": {
+   "eq": {
+    "resolved": "ChainMap"
+   }
+  },
+  "description": "a registered implementation is selectable"
+ },
+ {
+  "id": "SEL-015",
+  "kind": "resolve",
+  "area": "a registered default replaces the table default",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict",
+      "deque": {
+       "target": "collections:deque",
+       "config": "dataclasses:dataclass"
+      },
+      "broken": "no.such.module:Thing"
+     }
+    }
+   },
+   "solution": "pick",
+   "register": [
+    {
+     "name": "chain",
+     "target": "collections:ChainMap",
+     "default": true
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "resolved": "ChainMap",
+    "chosen": "chain"
+   }
+  },
+  "description": "a registered default replaces the table default"
+ },
+ {
+  "id": "SEL-016",
+  "kind": "resolve",
+  "area": "a registered name appears in the choices",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict",
+      "deque": {
+       "target": "collections:deque",
+       "config": "dataclasses:dataclass"
+      },
+      "broken": "no.such.module:Thing"
+     }
+    }
+   },
+   "solution": "pick",
+   "register": [
+    {
+     "name": "chain",
+     "target": "collections:ChainMap"
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "names": [
+     "broken",
+     "chain",
+     "counter",
+     "deque",
+     "ordered"
+    ]
+   }
+  },
+  "description": "a registered name appears in the choices"
+ }
+]

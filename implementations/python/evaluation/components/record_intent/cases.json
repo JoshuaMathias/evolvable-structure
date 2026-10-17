@@ -1,0 +1,220 @@
+[
+ {
+  "id": "REC-000",
+  "area": "repo",
+  "kind": "repo",
+  "description": "clean fixture must pass",
+  "args": {
+   "edits": []
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "REC-001",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a template field of a problem left empty",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/problems.csv",
+     "key_col": "problem_id",
+     "key": "greeting-by-hand",
+     "col": "who_has_it",
+     "value": ""
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S26",
+   "contains": "who_has_it"
+  }
+ },
+ {
+  "id": "REC-002",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a problem written as a task",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/problems.csv",
+     "key_col": "problem_id",
+     "key": "greeting-by-hand",
+     "col": "problem",
+     "value": "Add a greeting function for people."
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S26",
+   "contains": "reads as a task"
+  }
+ },
+ {
+  "id": "REC-003",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a solution that addresses no problem",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "problem_ids",
+     "value": ""
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "parent_problem_ids",
+     "value": ""
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S26",
+   "contains": "addresses no problem"
+  }
+ },
+ {
+  "id": "REC-004",
+  "area": "repo",
+  "kind": "repo",
+  "description": "an ideal that opposes no problem",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/ideals.csv",
+     "key_col": "ideal_id",
+     "key": "consistent-greeting",
+     "col": "problem_ids",
+     "value": ""
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S26",
+   "contains": "opposes no problem"
+  }
+ },
+ {
+  "id": "REC-005",
+  "area": "repo",
+  "kind": "repo",
+  "description": "an implementation with no record",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_drop",
+     "path": "docs/structure/implementations.csv",
+     "key_col": "implementation_id",
+     "key": "greet-a-person:shout"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S26",
+   "contains": "has no record"
+  }
+ },
+ {
+  "id": "REC-006",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a parent link that names nothing in the overall network",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "overall_solution_ids",
+     "value": "ghost"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S26",
+   "contains": "not a solution of the overall network"
+  }
+ },
+ {
+  "id": "REC-007",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a parent problem that is not in the overall network",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/problems.csv",
+     "key_col": "problem_id",
+     "key": "greeting-by-hand",
+     "col": "parent_problem_ids",
+     "value": "nope"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S26",
+   "contains": "not a problem of the overall network"
+  }
+ },
+ {
+  "id": "REC-008",
+  "area": "repo",
+  "kind": "repo",
+  "description": "the overall network itself has an empty template field",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/overall/problems.csv",
+     "key_col": "problem_id",
+     "key": "overall-problem",
+     "col": "who_has_it",
+     "value": ""
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S26",
+   "contains": "overall network"
+  }
+ }
+]

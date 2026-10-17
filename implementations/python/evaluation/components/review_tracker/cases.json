@@ -1,0 +1,214 @@
+[
+ {
+  "id": "TRK-001",
+  "kind": "tracker",
+  "area": "freshness",
+  "description": "a tracker built from the registry is current",
+  "args": {
+   "edits": []
+  },
+  "expect": {
+   "eq": {
+    "stale": [],
+    "rows": 1
+   }
+  }
+ },
+ {
+  "id": "TRK-002",
+  "kind": "tracker",
+  "area": "freshness",
+  "description": "an edit to a solution makes the solutions tab stale",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "selected_by",
+     "value": "another reason"
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "stale": [
+     "solutions"
+    ]
+   }
+  }
+ },
+ {
+  "id": "TRK-003",
+  "kind": "tracker",
+  "area": "freshness",
+  "description": "an edit to a problem makes the problems tab stale",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/problems.csv",
+     "key_col": "problem_id",
+     "key": "greeting-by-hand",
+     "col": "why_hard",
+     "value": "Names arrive in new shapes."
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "stale": [
+     "problems"
+    ]
+   }
+  }
+ },
+ {
+  "id": "TRK-004",
+  "kind": "tracker",
+  "area": "freshness",
+  "description": "a missing tab is stale",
+  "args": {
+   "edits": [
+    {
+     "op": "delete",
+     "path": "docs/structure/tracker/ideals.csv"
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "stale": [
+     "ideals"
+    ]
+   }
+  }
+ },
+ {
+  "id": "TRK-005",
+  "kind": "tracker",
+  "area": "review columns",
+  "description": "a reviewer's note is not a staleness and survives a rebuild",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/tracker/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "tracking_status",
+     "value": "reviewed"
+    }
+   ],
+   "key": "greet-a-person",
+   "column": "tracking_status"
+  },
+  "expect": {
+   "eq": {
+    "stale": [],
+    "value": "reviewed"
+   }
+  }
+ },
+ {
+  "id": "TRK-006",
+  "kind": "tracker",
+  "area": "review columns",
+  "description": "a note survives a rebuild after the registry changed",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/tracker/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "tracking_notes",
+     "value": "check the form"
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/problems.csv",
+     "key_col": "problem_id",
+     "key": "greeting-by-hand",
+     "col": "why_hard",
+     "value": "Names arrive in new shapes."
+    }
+   ],
+   "key": "greet-a-person",
+   "column": "tracking_notes"
+  },
+  "expect": {
+   "eq": {
+    "value": "check the form"
+   }
+  }
+ },
+ {
+  "id": "TRK-007",
+  "kind": "tracker",
+  "area": "verdict",
+  "description": "the leaderboard's verdict reaches the solutions tab",
+  "args": {
+   "edits": [],
+   "key": "greet-a-person",
+   "column": "verdict"
+  },
+  "expect": {
+   "eq": {
+    "value": "WIN"
+   }
+  }
+ },
+ {
+  "id": "TRK-008",
+  "kind": "tracker",
+  "area": "verdict",
+  "description": "a rival that beats the selected implementation shows as a loss",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "live",
+     "col": "passed",
+     "value": "1"
+    },
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "shout",
+     "col": "passed",
+     "value": "2"
+    }
+   ],
+   "key": "greet-a-person",
+   "column": "verdict"
+  },
+  "expect": {
+   "eq": {
+    "value": "LOSS"
+   }
+  }
+ },
+ {
+  "id": "TRK-009",
+  "kind": "tracker",
+  "area": "links",
+  "description": "the parent-link columns of the records appear on the tab",
+  "args": {
+   "edits": [],
+   "tab": "problems"
+  },
+  "expect": {
+   "has": {
+    "header": [
+     "parent_problem_ids",
+     "parent_ideal_ids"
+    ]
+   }
+  }
+ }
+]

@@ -1,0 +1,258 @@
+[
+ {
+  "id": "MSR-001",
+  "kind": "record",
+  "area": "record",
+  "args": {
+   "cases_file": "json",
+   "dirty": false,
+   "edit_cases": true
+  },
+  "expect": {
+   "eq": {
+    "git_sha": true,
+    "dirty": false,
+    "cases_sha_matches": true,
+    "cases_sha_changes": true,
+    "rows": 2
+   }
+  }
+ },
+ {
+  "id": "MSR-002",
+  "kind": "record",
+  "area": "record",
+  "args": {
+   "cases_file": "csv",
+   "dirty": false,
+   "edit_cases": true
+  },
+  "expect": {
+   "eq": {
+    "git_sha": true,
+    "dirty": false,
+    "cases_sha_matches": true,
+    "cases_sha_changes": true,
+    "rows": 2
+   }
+  }
+ },
+ {
+  "id": "MSR-003",
+  "kind": "record",
+  "area": "record",
+  "args": {
+   "cases_file": "json",
+   "dirty": true
+  },
+  "expect": {
+   "eq": {
+    "git_sha": true,
+    "dirty": true,
+    "cases_sha_matches": true,
+    "cases_sha_changes": false,
+    "rows": 1
+   }
+  }
+ },
+ {
+  "id": "MSR-004",
+  "kind": "record",
+  "area": "record",
+  "args": {
+   "cases_file": "csv",
+   "dirty": true
+  },
+  "expect": {
+   "eq": {
+    "git_sha": true,
+    "dirty": true,
+    "cases_sha_matches": true,
+    "cases_sha_changes": false,
+    "rows": 1
+   }
+  },
+  "heldout": true
+ },
+ {
+  "id": "MSR-005",
+  "kind": "run",
+  "area": "run",
+  "args": {
+   "impl": "good"
+  },
+  "expect": {
+   "eq": {
+    "cases": 3,
+    "passed": 3,
+    "error": null
+   }
+  }
+ },
+ {
+  "id": "MSR-006",
+  "kind": "run",
+  "area": "run",
+  "args": {
+   "impl": "bad"
+  },
+  "expect": {
+   "eq": {
+    "cases": 3,
+    "passed": 0,
+    "error": null
+   }
+  }
+ },
+ {
+  "id": "MSR-007",
+  "kind": "run",
+  "area": "budget",
+  "args": {
+   "impl": "good",
+   "argv": [
+    "--only",
+    "M1,M3"
+   ]
+  },
+  "expect": {
+   "eq": {
+    "cases": 2,
+    "passed": 2,
+    "error": null
+   }
+  }
+ },
+ {
+  "id": "MSR-008",
+  "kind": "run",
+  "area": "budget",
+  "args": {
+   "impl": "good",
+   "argv": [
+    "--only",
+    "M2"
+   ]
+  },
+  "expect": {
+   "eq": {
+    "cases": 1,
+    "passed": 1,
+    "error": null
+   }
+  },
+  "heldout": true
+ },
+ {
+  "id": "MSR-009",
+  "kind": "run",
+  "area": "budget",
+  "args": {
+   "impl": "spender",
+   "argv": []
+  },
+  "expect": {
+   "eq": {
+    "cases": 3,
+    "passed": 3,
+    "error": null,
+    "model_calls": 3
+   }
+  }
+ },
+ {
+  "id": "MSR-010",
+  "kind": "run",
+  "area": "budget",
+  "args": {
+   "impl": "spender",
+   "argv": [
+    "--max-calls",
+    "3"
+   ]
+  },
+  "expect": {
+   "eq": {
+    "cases": 3,
+    "passed": 3,
+    "error": null,
+    "model_calls": 3
+   }
+  }
+ },
+ {
+  "id": "MSR-011",
+  "kind": "run",
+  "area": "budget",
+  "args": {
+   "impl": "spender",
+   "argv": [
+    "--max-calls",
+    "2"
+   ]
+  },
+  "expect": {
+   "eq": {
+    "cases": 0,
+    "passed": 0,
+    "error": "BudgetExceeded"
+   }
+  }
+ },
+ {
+  "id": "MSR-012",
+  "kind": "run",
+  "area": "budget",
+  "args": {
+   "impl": "spender",
+   "argv": [
+    "--max-calls",
+    "0"
+   ]
+  },
+  "expect": {
+   "eq": {
+    "cases": 0,
+    "passed": 0,
+    "error": "BudgetExceeded"
+   }
+  },
+  "heldout": true
+ },
+ {
+  "id": "MSR-013",
+  "kind": "run",
+  "area": "budget",
+  "args": {
+   "impl": "spender",
+   "argv": [
+    "--only",
+    "M1",
+    "--max-calls",
+    "1"
+   ]
+  },
+  "expect": {
+   "eq": {
+    "cases": 1,
+    "passed": 1,
+    "error": null,
+    "model_calls": 1
+   }
+  },
+  "heldout": true
+ },
+ {
+  "id": "MSR-014",
+  "kind": "validity",
+  "area": "validity",
+  "args": {},
+  "expect": {
+   "eq": {
+    "cases": 3,
+    "good_passed": 3,
+    "bad_passed": 0
+   }
+  }
+ }
+]

@@ -1,0 +1,531 @@
+[
+ {
+  "id": "TPL-001",
+  "kind": "parse",
+  "area": "fields",
+  "description": "the full template parses to the five record types and their fields",
+  "args": {
+   "text": "# A skill\n\n## Definitions\n- **Evolvable:** x\n\nIntent template definitions (each intent can have multiple of the below items, which relate to each other in a network):\n- **Problem**: A description of what motivated the intent. A challenge, difficulty, or description of how an ideal is not reached.\n    Specify:\n        - What is the problem? \n        - Who or what type of person has the problem?\n        - Why does this problem matter?\n        - Why is the problem hard to resolve?\n        - What solutions or workarounds already attempt to address the prompt?\n    What it's not: A decision, task, recommendation, or component, but all of these can *have* problems.\n    Connects to: **Ideals** that oppose at least one aspect of the problem, **Solutions** that would solve at least one aspect of the problem\n- **Solution**: A definition of how one or more problems can be addressed to fulfill the intent.\n    Specify:\n        - Name: What's a name that describes the type of solution it is?\n        - Scoped Purpose: What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding?\n        - Goals: What are the solution's measureable goals?\n        - Knowledge: What knowledge informs the solution's definition or implementations?\n        - Measures of Success: What would indicate the solution is successful?\n    If technology, specify interface details where applicable:\n        - Parameters\n        - Inputs\n        - Outputs\n        - Effects (other than outputs)\n        - Other information on when and how to use the solution\n    What it's not: Fully functional code or solution, but it can be an abstract class, template, or routing which a separate structure solution network defines.\n    - Connects to: **Implementations** that build what the solution defines, **Metrics** that define and implement the solution's measures of success, **Problems** the solution addresses, \n- **Implementation**: The built structure which carries out its associated solution; also known as an alternative.\n    Specify:\n        - Name: What's a name that distinguishes this implementation from other alternatives?\n        - Description: How does the implementation achieve the goals of its solution's definition?\n        - Advantages\n        - Disadvantages\n    What it's not: What endusers of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solution's will define interfaces.\n- **Ideal**: A definition of the future state implied by the intent, in a particular dimension or aspect.\n    Specify:\n        Name: What's a combined noun with adjective that represents the ideal's direction of interest?\n        Principle: What does this ideal ask for?\n        State Description: Describe what it would be like to experience this ideal.\n        Hints of Measurement: How would you know this ideal is reached?\n    What it's not: A practical metric or solution, or technology.\n    Connects to: Problems the ideal opposes.\n- **Metric**: A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).\n    Specify:\n        - Name: What's a name that clarifies what is being measured?\n        - Scoped purpose: What does this metric attempt to measure?\n        - Record: What is recorded as the metric to compare implementations?\n\n## Principles\n1. x\n"
+  },
+  "expect": {
+   "eq": {
+    "keys": {
+     "problem": {
+      "required": [
+       "problem",
+       "who_has_it",
+       "why_it_matters",
+       "why_hard",
+       "existing_attempts"
+      ],
+      "interface": []
+     },
+     "solution": {
+      "required": [
+       "name",
+       "scoped_purpose",
+       "goals",
+       "knowledge",
+       "measures_of_success"
+      ],
+      "interface": [
+       "parameters",
+       "inputs",
+       "outputs",
+       "effects",
+       "usage_notes"
+      ]
+     },
+     "implementation": {
+      "required": [
+       "name",
+       "description",
+       "advantages",
+       "disadvantages"
+      ],
+      "interface": []
+     },
+     "ideal": {
+      "required": [
+       "name",
+       "principle",
+       "state_description",
+       "hints_of_measurement"
+      ],
+      "interface": []
+     },
+     "metric": {
+      "required": [
+       "name",
+       "scoped_purpose",
+       "record"
+      ],
+      "interface": []
+     }
+    }
+   }
+  }
+ },
+ {
+  "id": "TPL-002",
+  "kind": "parse",
+  "area": "tolerance",
+  "description": "an empty bullet is skipped and counted",
+  "args": {
+   "text": "# A skill\n\n## Definitions\n- **Evolvable:** x\n\nIntent template definitions (each intent can have multiple of the below items, which relate to each other in a network):\n- **Problem**: A description of what motivated the intent. A challenge, difficulty, or description of how an ideal is not reached.\n    Specify:\n        - What is the problem? \n        - Who or what type of person has the problem?\n        - Why does this problem matter?\n        - Why is the problem hard to resolve?\n        - What solutions or workarounds already attempt to address the prompt?\n    What it's not: A decision, task, recommendation, or component, but all of these can *have* problems.\n    Connects to: **Ideals** that oppose at least one aspect of the problem, **Solutions** that would solve at least one aspect of the problem\n- **Solution**: A definition of how one or more problems can be addressed to fulfill the intent.\n    Specify:\n        - Name: What's a name that describes the type of solution it is?\n        - Scoped Purpose: What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding?\n        - Goals: What are the solution's measureable goals?\n        - Knowledge: What knowledge informs the solution's definition or implementations?\n        - Measures of Success: What would indicate the solution is successful?\n    If technology, specify interface details where applicable:\n        - Parameters\n        - Inputs\n        - Outputs\n        - Effects (other than outputs)\n        - Other information on when and how to use the solution\n    What it's not: Fully functional code or solution, but it can be an abstract class, template, or routing which a separate structure solution network defines.\n    - Connects to: **Implementations** that build what the solution defines, **Metrics** that define and implement the solution's measures of success, **Problems** the solution addresses, \n- **Implementation**: The built structure which carries out its associated solution; also known as an alternative.\n    Specify:\n        - Name: What's a name that distinguishes this implementation from other alternatives?\n        - Description: How does the implementation achieve the goals of its solution's definition?\n        - Advantages\n        - Disadvantages\n    What it's not: What endusers of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solution's will define interfaces.\n- **Ideal**: A definition of the future state implied by the intent, in a particular dimension or aspect.\n    Specify:\n        Name: What's a combined noun with adjective that represents the ideal's direction of interest?\n        Principle: What does this ideal ask for?\n        State Description: Describe what it would be like to experience this ideal.\n        Hints of Measurement: How would you know this ideal is reached?\n    What it's not: A practical metric or solution, or technology.\n    Connects to: Problems the ideal opposes.\n- **Metric**: A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).\n    Specify:\n        - Name: What's a name that clarifies what is being measured?\n        - Scoped purpose: What does this metric attempt to measure?\n        - Record: What is recorded as the metric to compare implementations?\n        - \n\n## Principles\n1. x\n"
+  },
+  "expect": {
+   "eq": {
+    "keys": {
+     "problem": {
+      "required": [
+       "problem",
+       "who_has_it",
+       "why_it_matters",
+       "why_hard",
+       "existing_attempts"
+      ],
+      "interface": []
+     },
+     "solution": {
+      "required": [
+       "name",
+       "scoped_purpose",
+       "goals",
+       "knowledge",
+       "measures_of_success"
+      ],
+      "interface": [
+       "parameters",
+       "inputs",
+       "outputs",
+       "effects",
+       "usage_notes"
+      ]
+     },
+     "implementation": {
+      "required": [
+       "name",
+       "description",
+       "advantages",
+       "disadvantages"
+      ],
+      "interface": []
+     },
+     "ideal": {
+      "required": [
+       "name",
+       "principle",
+       "state_description",
+       "hints_of_measurement"
+      ],
+      "interface": []
+     },
+     "metric": {
+      "required": [
+       "name",
+       "scoped_purpose",
+       "record"
+      ],
+      "interface": []
+     }
+    }
+   },
+   "contains": [
+    "empty bullet"
+   ]
+  }
+ },
+ {
+  "id": "TPL-003",
+  "kind": "parse",
+  "area": "stability",
+  "description": "a refined question keeps its key",
+  "args": {
+   "text": "# A skill\n\n## Definitions\n- **Evolvable:** x\n\nIntent template definitions (each intent can have multiple of the below items, which relate to each other in a network):\n- **Problem**: A description of what motivated the intent. A challenge, difficulty, or description of how an ideal is not reached.\n    Specify:\n        - What is the problem? \n        - Which kind of person has the problem (who)?\n        - Why does this problem matter?\n        - Why is the problem hard to resolve?\n        - What solutions or workarounds already attempt to address the prompt?\n    What it's not: A decision, task, recommendation, or component, but all of these can *have* problems.\n    Connects to: **Ideals** that oppose at least one aspect of the problem, **Solutions** that would solve at least one aspect of the problem\n- **Solution**: A definition of how one or more problems can be addressed to fulfill the intent.\n    Specify:\n        - Name: What's a name that describes the type of solution it is?\n        - Scoped Purpose: What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding?\n        - Goals: What are the solution's measureable goals?\n        - Knowledge: What knowledge informs the solution's definition or implementations?\n        - Measures of Success: What would indicate the solution is successful?\n    If technology, specify interface details where applicable:\n        - Parameters\n        - Inputs\n        - Outputs\n        - Effects (other than outputs)\n        - Other information on when and how to use the solution\n    What it's not: Fully functional code or solution, but it can be an abstract class, template, or routing which a separate structure solution network defines.\n    - Connects to: **Implementations** that build what the solution defines, **Metrics** that define and implement the solution's measures of success, **Problems** the solution addresses, \n- **Implementation**: The built structure which carries out its associated solution; also known as an alternative.\n    Specify:\n        - Name: What's a name that distinguishes this implementation from other alternatives?\n        - Description: How does the implementation achieve the goals of its solution's definition?\n        - Advantages\n        - Disadvantages\n    What it's not: What endusers of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solution's will define interfaces.\n- **Ideal**: A definition of the future state implied by the intent, in a particular dimension or aspect.\n    Specify:\n        Name: What's a combined noun with adjective that represents the ideal's direction of interest?\n        Principle: What does this ideal ask for?\n        State Description: Describe what it would be like to experience this ideal.\n        Hints of Measurement: How would you know this ideal is reached?\n    What it's not: A practical metric or solution, or technology.\n    Connects to: Problems the ideal opposes.\n- **Metric**: A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).\n    Specify:\n        - Name: What's a name that clarifies what is being measured?\n        - Scoped purpose: What does this metric attempt to measure?\n        - Record: What is recorded as the metric to compare implementations?\n\n## Principles\n1. x\n"
+  },
+  "expect": {
+   "eq": {
+    "keys": {
+     "problem": {
+      "required": [
+       "problem",
+       "who_has_it",
+       "why_it_matters",
+       "why_hard",
+       "existing_attempts"
+      ],
+      "interface": []
+     },
+     "solution": {
+      "required": [
+       "name",
+       "scoped_purpose",
+       "goals",
+       "knowledge",
+       "measures_of_success"
+      ],
+      "interface": [
+       "parameters",
+       "inputs",
+       "outputs",
+       "effects",
+       "usage_notes"
+      ]
+     },
+     "implementation": {
+      "required": [
+       "name",
+       "description",
+       "advantages",
+       "disadvantages"
+      ],
+      "interface": []
+     },
+     "ideal": {
+      "required": [
+       "name",
+       "principle",
+       "state_description",
+       "hints_of_measurement"
+      ],
+      "interface": []
+     },
+     "metric": {
+      "required": [
+       "name",
+       "scoped_purpose",
+       "record"
+      ],
+      "interface": []
+     }
+    }
+   }
+  }
+ },
+ {
+  "id": "TPL-004",
+  "kind": "parse",
+  "area": "evolution",
+  "description": "a new labelled field becomes a new key",
+  "args": {
+   "text": "# A skill\n\n## Definitions\n- **Evolvable:** x\n\nIntent template definitions (each intent can have multiple of the below items, which relate to each other in a network):\n- **Problem**: A description of what motivated the intent. A challenge, difficulty, or description of how an ideal is not reached.\n    Specify:\n        - What is the problem? \n        - Who or what type of person has the problem?\n        - Why does this problem matter?\n        - Why is the problem hard to resolve?\n        - What solutions or workarounds already attempt to address the prompt?\n    What it's not: A decision, task, recommendation, or component, but all of these can *have* problems.\n    Connects to: **Ideals** that oppose at least one aspect of the problem, **Solutions** that would solve at least one aspect of the problem\n- **Solution**: A definition of how one or more problems can be addressed to fulfill the intent.\n    Specify:\n        - Name: What's a name that describes the type of solution it is?\n        - Scoped Purpose: What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding?\n        - Goals: What are the solution's measureable goals?\n        - Knowledge: What knowledge informs the solution's definition or implementations?\n        - Measures of Success: What would indicate the solution is successful?\n    If technology, specify interface details where applicable:\n        - Parameters\n        - Inputs\n        - Outputs\n        - Effects (other than outputs)\n        - Other information on when and how to use the solution\n    What it's not: Fully functional code or solution, but it can be an abstract class, template, or routing which a separate structure solution network defines.\n    - Connects to: **Implementations** that build what the solution defines, **Metrics** that define and implement the solution's measures of success, **Problems** the solution addresses, \n- **Implementation**: The built structure which carries out its associated solution; also known as an alternative.\n    Specify:\n        - Name: What's a name that distinguishes this implementation from other alternatives?\n        - Description: How does the implementation achieve the goals of its solution's definition?\n        - Advantages\n        - Disadvantages\n    What it's not: What endusers of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solution's will define interfaces.\n- **Ideal**: A definition of the future state implied by the intent, in a particular dimension or aspect.\n    Specify:\n        Name: What's a combined noun with adjective that represents the ideal's direction of interest?\n        Principle: What does this ideal ask for?\n        State Description: Describe what it would be like to experience this ideal.\n        Hints of Measurement: How would you know this ideal is reached?\n    What it's not: A practical metric or solution, or technology.\n    Connects to: Problems the ideal opposes.\n- **Metric**: A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).\n    Specify:\n        - Name: What's a name that clarifies what is being measured?\n        - Scoped purpose: What does this metric attempt to measure?\n        - Owner: Who owns this metric?\n        - Record: What is recorded as the metric to compare implementations?\n\n## Principles\n1. x\n"
+  },
+  "expect": {
+   "eq": {
+    "keys": {
+     "problem": {
+      "required": [
+       "problem",
+       "who_has_it",
+       "why_it_matters",
+       "why_hard",
+       "existing_attempts"
+      ],
+      "interface": []
+     },
+     "solution": {
+      "required": [
+       "name",
+       "scoped_purpose",
+       "goals",
+       "knowledge",
+       "measures_of_success"
+      ],
+      "interface": [
+       "parameters",
+       "inputs",
+       "outputs",
+       "effects",
+       "usage_notes"
+      ]
+     },
+     "implementation": {
+      "required": [
+       "name",
+       "description",
+       "advantages",
+       "disadvantages"
+      ],
+      "interface": []
+     },
+     "ideal": {
+      "required": [
+       "name",
+       "principle",
+       "state_description",
+       "hints_of_measurement"
+      ],
+      "interface": []
+     },
+     "metric": {
+      "required": [
+       "name",
+       "scoped_purpose",
+       "owner",
+       "record"
+      ],
+      "interface": []
+     }
+    }
+   }
+  }
+ },
+ {
+  "id": "TPL-005",
+  "kind": "parse",
+  "area": "evolution",
+  "description": "a new bare question gets a guessed key and is reported",
+  "args": {
+   "text": "# A skill\n\n## Definitions\n- **Evolvable:** x\n\nIntent template definitions (each intent can have multiple of the below items, which relate to each other in a network):\n- **Problem**: A description of what motivated the intent. A challenge, difficulty, or description of how an ideal is not reached.\n    Specify:\n        - What is the problem? \n        - Who or what type of person has the problem?\n        - Why does this problem matter?\n        - Why is the problem hard to resolve?\n        - What solutions or workarounds already attempt to address the prompt?\n    What it's not: A decision, task, recommendation, or component, but all of these can *have* problems.\n    Connects to: **Ideals** that oppose at least one aspect of the problem, **Solutions** that would solve at least one aspect of the problem\n- **Solution**: A definition of how one or more problems can be addressed to fulfill the intent.\n    Specify:\n        - Name: What's a name that describes the type of solution it is?\n        - Scoped Purpose: What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding?\n        - Goals: What are the solution's measureable goals?\n        - Knowledge: What knowledge informs the solution's definition or implementations?\n        - Measures of Success: What would indicate the solution is successful?\n    If technology, specify interface details where applicable:\n        - Parameters\n        - Inputs\n        - Outputs\n        - Effects (other than outputs)\n        - Other information on when and how to use the solution\n    What it's not: Fully functional code or solution, but it can be an abstract class, template, or routing which a separate structure solution network defines.\n    - Connects to: **Implementations** that build what the solution defines, **Metrics** that define and implement the solution's measures of success, **Problems** the solution addresses, \n- **Implementation**: The built structure which carries out its associated solution; also known as an alternative.\n    Specify:\n        - Name: What's a name that distinguishes this implementation from other alternatives?\n        - Description: How does the implementation achieve the goals of its solution's definition?\n        - Advantages\n        - Disadvantages\n    What it's not: What endusers of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solution's will define interfaces.\n- **Ideal**: A definition of the future state implied by the intent, in a particular dimension or aspect.\n    Specify:\n        Name: What's a combined noun with adjective that represents the ideal's direction of interest?\n        Principle: What does this ideal ask for?\n        State Description: Describe what it would be like to experience this ideal.\n        Hints of Measurement: How would you know this ideal is reached?\n    What it's not: A practical metric or solution, or technology.\n    Connects to: Problems the ideal opposes.\n- **Metric**: A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).\n    Specify:\n        - Name: What's a name that clarifies what is being measured?\n        - Scoped purpose: What does this metric attempt to measure?\n        - Which standards apply to the measurement?\n        - Record: What is recorded as the metric to compare implementations?\n\n## Principles\n1. x\n"
+  },
+  "expect": {
+   "contains": [
+    "no entry in BARE_KEYS"
+   ]
+  }
+ },
+ {
+  "id": "TPL-006",
+  "kind": "parse",
+  "area": "tolerance",
+  "description": "a missing section is reported, not fatal",
+  "args": {
+   "text": "# A skill\n\n## Definitions\n- **Evolvable:** x\n\nIntent template definitions (each intent can have multiple of the below items, which relate to each other in a network):\n- **Problem**: A description of what motivated the intent. A challenge, difficulty, or description of how an ideal is not reached.\n    Specify:\n        - What is the problem? \n        - Who or what type of person has the problem?\n        - Why does this problem matter?\n        - Why is the problem hard to resolve?\n        - What solutions or workarounds already attempt to address the prompt?\n    What it's not: A decision, task, recommendation, or component, but all of these can *have* problems.\n    Connects to: **Ideals** that oppose at least one aspect of the problem, **Solutions** that would solve at least one aspect of the problem\n- **Solution**: A definition of how one or more problems can be addressed to fulfill the intent.\n    Specify:\n        - Name: What's a name that describes the type of solution it is?\n        - Scoped Purpose: What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding?\n        - Goals: What are the solution's measureable goals?\n        - Knowledge: What knowledge informs the solution's definition or implementations?\n        - Measures of Success: What would indicate the solution is successful?\n    If technology, specify interface details where applicable:\n        - Parameters\n        - Inputs\n        - Outputs\n        - Effects (other than outputs)\n        - Other information on when and how to use the solution\n    What it's not: Fully functional code or solution, but it can be an abstract class, template, or routing which a separate structure solution network defines.\n    - Connects to: **Implementations** that build what the solution defines, **Metrics** that define and implement the solution's measures of success, **Problems** the solution addresses, \n- **Implementation**: The built structure which carries out its associated solution; also known as an alternative.\n    Specify:\n        - Name: What's a name that distinguishes this implementation from other alternatives?\n        - Description: How does the implementation achieve the goals of its solution's definition?\n        - Advantages\n        - Disadvantages\n    What it's not: What endusers of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solution's will define interfaces.\n- **Ideal**: A definition of the future state implied by the intent, in a particular dimension or aspect.\n    Specify:\n        Name: What's a combined noun with adjective that represents the ideal's direction of interest?\n        Principle: What does this ideal ask for?\n        State Description: Describe what it would be like to experience this ideal.\n        Hints of Measurement: How would you know this ideal is reached?\n    What it's not: A practical metric or solution, or technology.\n    Connects to: Problems the ideal opposes.\n\n## Principles\n1. x\n"
+  },
+  "expect": {
+   "eq": {
+    "keys": {
+     "problem": {
+      "required": [
+       "problem",
+       "who_has_it",
+       "why_it_matters",
+       "why_hard",
+       "existing_attempts"
+      ],
+      "interface": []
+     },
+     "solution": {
+      "required": [
+       "name",
+       "scoped_purpose",
+       "goals",
+       "knowledge",
+       "measures_of_success"
+      ],
+      "interface": [
+       "parameters",
+       "inputs",
+       "outputs",
+       "effects",
+       "usage_notes"
+      ]
+     },
+     "implementation": {
+      "required": [
+       "name",
+       "description",
+       "advantages",
+       "disadvantages"
+      ],
+      "interface": []
+     },
+     "ideal": {
+      "required": [
+       "name",
+       "principle",
+       "state_description",
+       "hints_of_measurement"
+      ],
+      "interface": []
+     }
+    }
+   },
+   "contains": [
+    "metric: section missing"
+   ]
+  }
+ },
+ {
+  "id": "TPL-007",
+  "kind": "parse",
+  "area": "tolerance",
+  "description": "no template block is reported",
+  "args": {
+   "text": "# Nothing here\n"
+  },
+  "expect": {
+   "eq": {
+    "keys": {}
+   },
+   "contains": [
+    "no 'Intent template definitions' block"
+   ]
+  }
+ },
+ {
+  "id": "TPL-008",
+  "kind": "parse",
+  "area": "tolerance",
+  "description": "tabs instead of spaces still parse",
+  "args": {
+   "text": "# A skill\n\n## Definitions\n- **Evolvable:** x\n\nIntent template definitions (each intent can have multiple of the below items, which relate to each other in a network):\n- **Problem**: A description of what motivated the intent. A challenge, difficulty, or description of how an ideal is not reached.\n    Specify:\n\t\t- What is the problem? \n\t\t- Who or what type of person has the problem?\n\t\t- Why does this problem matter?\n\t\t- Why is the problem hard to resolve?\n\t\t- What solutions or workarounds already attempt to address the prompt?\n    What it's not: A decision, task, recommendation, or component, but all of these can *have* problems.\n    Connects to: **Ideals** that oppose at least one aspect of the problem, **Solutions** that would solve at least one aspect of the problem\n- **Solution**: A definition of how one or more problems can be addressed to fulfill the intent.\n    Specify:\n\t\t- Name: What's a name that describes the type of solution it is?\n\t\t- Scoped Purpose: What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding?\n\t\t- Goals: What are the solution's measureable goals?\n\t\t- Knowledge: What knowledge informs the solution's definition or implementations?\n\t\t- Measures of Success: What would indicate the solution is successful?\n    If technology, specify interface details where applicable:\n\t\t- Parameters\n\t\t- Inputs\n\t\t- Outputs\n\t\t- Effects (other than outputs)\n\t\t- Other information on when and how to use the solution\n    What it's not: Fully functional code or solution, but it can be an abstract class, template, or routing which a separate structure solution network defines.\n    - Connects to: **Implementations** that build what the solution defines, **Metrics** that define and implement the solution's measures of success, **Problems** the solution addresses, \n- **Implementation**: The built structure which carries out its associated solution; also known as an alternative.\n    Specify:\n\t\t- Name: What's a name that distinguishes this implementation from other alternatives?\n\t\t- Description: How does the implementation achieve the goals of its solution's definition?\n\t\t- Advantages\n\t\t- Disadvantages\n    What it's not: What endusers of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solution's will define interfaces.\n- **Ideal**: A definition of the future state implied by the intent, in a particular dimension or aspect.\n    Specify:\n        Name: What's a combined noun with adjective that represents the ideal's direction of interest?\n        Principle: What does this ideal ask for?\n        State Description: Describe what it would be like to experience this ideal.\n        Hints of Measurement: How would you know this ideal is reached?\n    What it's not: A practical metric or solution, or technology.\n    Connects to: Problems the ideal opposes.\n- **Metric**: A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).\n    Specify:\n\t\t- Name: What's a name that clarifies what is being measured?\n\t\t- Scoped purpose: What does this metric attempt to measure?\n\t\t- Record: What is recorded as the metric to compare implementations?\n\n## Principles\n1. x\n"
+  },
+  "expect": {
+   "eq": {
+    "keys": {
+     "problem": {
+      "required": [
+       "problem",
+       "who_has_it",
+       "why_it_matters",
+       "why_hard",
+       "existing_attempts"
+      ],
+      "interface": []
+     },
+     "solution": {
+      "required": [
+       "name",
+       "scoped_purpose",
+       "goals",
+       "knowledge",
+       "measures_of_success"
+      ],
+      "interface": [
+       "parameters",
+       "inputs",
+       "outputs",
+       "effects",
+       "usage_notes"
+      ]
+     },
+     "implementation": {
+      "required": [
+       "name",
+       "description",
+       "advantages",
+       "disadvantages"
+      ],
+      "interface": []
+     },
+     "ideal": {
+      "required": [
+       "name",
+       "principle",
+       "state_description",
+       "hints_of_measurement"
+      ],
+      "interface": []
+     },
+     "metric": {
+      "required": [
+       "name",
+       "scoped_purpose",
+       "record"
+      ],
+      "interface": []
+     }
+    }
+   }
+  }
+ },
+ {
+  "id": "TPL-009",
+  "kind": "parse",
+  "area": "tolerance",
+  "description": "the Specify header is case-insensitive",
+  "args": {
+   "text": "# A skill\n\n## Definitions\n- **Evolvable:** x\n\nIntent template definitions (each intent can have multiple of the below items, which relate to each other in a network):\n- **Problem**: A description of what motivated the intent. A challenge, difficulty, or description of how an ideal is not reached.\n    specify:\n        - What is the problem? \n        - Who or what type of person has the problem?\n        - Why does this problem matter?\n        - Why is the problem hard to resolve?\n        - What solutions or workarounds already attempt to address the prompt?\n    What it's not: A decision, task, recommendation, or component, but all of these can *have* problems.\n    Connects to: **Ideals** that oppose at least one aspect of the problem, **Solutions** that would solve at least one aspect of the problem\n- **Solution**: A definition of how one or more problems can be addressed to fulfill the intent.\n    specify:\n        - Name: What's a name that describes the type of solution it is?\n        - Scoped Purpose: What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding?\n        - Goals: What are the solution's measureable goals?\n        - Knowledge: What knowledge informs the solution's definition or implementations?\n        - Measures of Success: What would indicate the solution is successful?\n    If technology, specify interface details where applicable:\n        - Parameters\n        - Inputs\n        - Outputs\n        - Effects (other than outputs)\n        - Other information on when and how to use the solution\n    What it's not: Fully functional code or solution, but it can be an abstract class, template, or routing which a separate structure solution network defines.\n    - Connects to: **Implementations** that build what the solution defines, **Metrics** that define and implement the solution's measures of success, **Problems** the solution addresses, \n- **Implementation**: The built structure which carries out its associated solution; also known as an alternative.\n    specify:\n        - Name: What's a name that distinguishes this implementation from other alternatives?\n        - Description: How does the implementation achieve the goals of its solution's definition?\n        - Advantages\n        - Disadvantages\n    What it's not: What endusers of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solution's will define interfaces.\n- **Ideal**: A definition of the future state implied by the intent, in a particular dimension or aspect.\n    specify:\n        Name: What's a combined noun with adjective that represents the ideal's direction of interest?\n        Principle: What does this ideal ask for?\n        State Description: Describe what it would be like to experience this ideal.\n        Hints of Measurement: How would you know this ideal is reached?\n    What it's not: A practical metric or solution, or technology.\n    Connects to: Problems the ideal opposes.\n- **Metric**: A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).\n    specify:\n        - Name: What's a name that clarifies what is being measured?\n        - Scoped purpose: What does this metric attempt to measure?\n        - Record: What is recorded as the metric to compare implementations?\n\n## Principles\n1. x\n"
+  },
+  "expect": {
+   "eq": {
+    "keys": {
+     "problem": {
+      "required": [
+       "problem",
+       "who_has_it",
+       "why_it_matters",
+       "why_hard",
+       "existing_attempts"
+      ],
+      "interface": []
+     },
+     "solution": {
+      "required": [
+       "name",
+       "scoped_purpose",
+       "goals",
+       "knowledge",
+       "measures_of_success"
+      ],
+      "interface": [
+       "parameters",
+       "inputs",
+       "outputs",
+       "effects",
+       "usage_notes"
+      ]
+     },
+     "implementation": {
+      "required": [
+       "name",
+       "description",
+       "advantages",
+       "disadvantages"
+      ],
+      "interface": []
+     },
+     "ideal": {
+      "required": [
+       "name",
+       "principle",
+       "state_description",
+       "hints_of_measurement"
+      ],
+      "interface": []
+     },
+     "metric": {
+      "required": [
+       "name",
+       "scoped_purpose",
+       "record"
+      ],
+      "interface": []
+     }
+    }
+   }
+  }
+ },
+ {
+  "id": "TPL-010",
+  "kind": "stale",
+  "area": "staleness",
+  "description": "a copy parsed from the same text is current",
+  "args": {
+   "text": "# A skill\n\n## Definitions\n- **Evolvable:** x\n\nIntent template definitions (each intent can have multiple of the below items, which relate to each other in a network):\n- **Problem**: A description of what motivated the intent. A challenge, difficulty, or description of how an ideal is not reached.\n    Specify:\n        - What is the problem? \n        - Who or what type of person has the problem?\n        - Why does this problem matter?\n        - Why is the problem hard to resolve?\n        - What solutions or workarounds already attempt to address the prompt?\n    What it's not: A decision, task, recommendation, or component, but all of these can *have* problems.\n    Connects to: **Ideals** that oppose at least one aspect of the problem, **Solutions** that would solve at least one aspect of the problem\n- **Solution**: A definition of how one or more problems can be addressed to fulfill the intent.\n    Specify:\n        - Name: What's a name that describes the type of solution it is?\n        - Scoped Purpose: What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding?\n        - Goals: What are the solution's measureable goals?\n        - Knowledge: What knowledge informs the solution's definition or implementations?\n        - Measures of Success: What would indicate the solution is successful?\n    If technology, specify interface details where applicable:\n        - Parameters\n        - Inputs\n        - Outputs\n        - Effects (other than outputs)\n        - Other information on when and how to use the solution\n    What it's not: Fully functional code or solution, but it can be an abstract class, template, or routing which a separate structure solution network defines.\n    - Connects to: **Implementations** that build what the solution defines, **Metrics** that define and implement the solution's measures of success, **Problems** the solution addresses, \n- **Implementation**: The built structure which carries out its associated solution; also known as an alternative.\n    Specify:\n        - Name: What's a name that distinguishes this implementation from other alternatives?\n        - Description: How does the implementation achieve the goals of its solution's definition?\n        - Advantages\n        - Disadvantages\n    What it's not: What endusers of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solution's will define interfaces.\n- **Ideal**: A definition of the future state implied by the intent, in a particular dimension or aspect.\n    Specify:\n        Name: What's a combined noun with adjective that represents the ideal's direction of interest?\n        Principle: What does this ideal ask for?\n        State Description: Describe what it would be like to experience this ideal.\n        Hints of Measurement: How would you know this ideal is reached?\n    What it's not: A practical metric or solution, or technology.\n    Connects to: Problems the ideal opposes.\n- **Metric**: A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).\n    Specify:\n        - Name: What's a name that clarifies what is being measured?\n        - Scoped purpose: What does this metric attempt to measure?\n        - Record: What is recorded as the metric to compare implementations?\n\n## Principles\n1. x\n",
+   "committed": "same"
+  },
+  "expect": {
+   "eq": {
+    "stale": false
+   }
+  }
+ },
+ {
+  "id": "TPL-011",
+  "kind": "stale",
+  "area": "staleness",
+  "description": "a copy that differs from its source is stale",
+  "args": {
+   "text": "# A skill\n\n## Definitions\n- **Evolvable:** x\n\nIntent template definitions (each intent can have multiple of the below items, which relate to each other in a network):\n- **Problem**: A description of what motivated the intent. A challenge, difficulty, or description of how an ideal is not reached.\n    Specify:\n        - What is the problem? \n        - Who or what type of person has the problem?\n        - Why does this problem matter?\n        - Why is the problem hard to resolve?\n        - What solutions or workarounds already attempt to address the prompt?\n    What it's not: A decision, task, recommendation, or component, but all of these can *have* problems.\n    Connects to: **Ideals** that oppose at least one aspect of the problem, **Solutions** that would solve at least one aspect of the problem\n- **Solution**: A definition of how one or more problems can be addressed to fulfill the intent.\n    Specify:\n        - Name: What's a name that describes the type of solution it is?\n        - Scoped Purpose: What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding?\n        - Goals: What are the solution's measureable goals?\n        - Knowledge: What knowledge informs the solution's definition or implementations?\n        - Measures of Success: What would indicate the solution is successful?\n    If technology, specify interface details where applicable:\n        - Parameters\n        - Inputs\n        - Outputs\n        - Effects (other than outputs)\n        - Other information on when and how to use the solution\n    What it's not: Fully functional code or solution, but it can be an abstract class, template, or routing which a separate structure solution network defines.\n    - Connects to: **Implementations** that build what the solution defines, **Metrics** that define and implement the solution's measures of success, **Problems** the solution addresses, \n- **Implementation**: The built structure which carries out its associated solution; also known as an alternative.\n    Specify:\n        - Name: What's a name that distinguishes this implementation from other alternatives?\n        - Description: How does the implementation achieve the goals of its solution's definition?\n        - Advantages\n        - Disadvantages\n    What it's not: What endusers of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solution's will define interfaces.\n- **Ideal**: A definition of the future state implied by the intent, in a particular dimension or aspect.\n    Specify:\n        Name: What's a combined noun with adjective that represents the ideal's direction of interest?\n        Principle: What does this ideal ask for?\n        State Description: Describe what it would be like to experience this ideal.\n        Hints of Measurement: How would you know this ideal is reached?\n    What it's not: A practical metric or solution, or technology.\n    Connects to: Problems the ideal opposes.\n- **Metric**: A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).\n    Specify:\n        - Name: What's a name that clarifies what is being measured?\n        - Scoped purpose: What does this metric attempt to measure?\n        - Record: What is recorded as the metric to compare implementations?\n\n## Principles\n1. x\n",
+   "committed": "edited"
+  },
+  "expect": {
+   "eq": {
+    "stale": true
+   }
+  }
+ }
+]

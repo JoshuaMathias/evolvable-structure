@@ -1,0 +1,1039 @@
+[
+ {
+  "id": "RNK-001",
+  "kind": "rank",
+  "area": "winner",
+  "args": {
+   "rows": [
+    {
+     "impl": "b",
+     "passed": 6,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "ranked": [
+     "b",
+     "a"
+    ],
+    "beats": [
+     "b"
+    ],
+    "unverified": []
+   }
+  }
+ },
+ {
+  "id": "RNK-002",
+  "kind": "rank",
+  "area": "winner",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "c",
+     "passed": 7,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "c"
+  },
+  "expect": {
+   "eq": {
+    "ranked": [
+     "b",
+     "c",
+     "a"
+    ],
+    "beats": [
+     "b"
+    ],
+    "unverified": []
+   }
+  }
+ },
+ {
+  "id": "RNK-003",
+  "kind": "rank",
+  "area": "winner",
+  "args": {
+   "rows": [
+    {
+     "impl": "b",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.05,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "ranked": [
+     "b",
+     "a"
+    ],
+    "beats": [
+     "b"
+    ],
+    "unverified": []
+   }
+  }
+ },
+ {
+  "id": "RNK-004",
+  "kind": "rank",
+  "area": "winner",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 3,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "ranked": [
+     "a",
+     "b"
+    ],
+    "beats": [],
+    "unverified": []
+   }
+  }
+ },
+ {
+  "id": "RNK-005",
+  "kind": "rank",
+  "area": "tie",
+  "args": {
+   "rows": [
+    {
+     "impl": "b",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "ranked": [
+     "a",
+     "b"
+    ],
+    "beats": [],
+    "unverified": []
+   }
+  }
+ },
+ {
+  "id": "RNK-006",
+  "kind": "rank",
+  "area": "tie",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "c",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "c"
+  },
+  "expect": {
+   "eq": {
+    "ranked": [
+     "a",
+     "b",
+     "c"
+    ],
+    "beats": [],
+    "unverified": []
+   }
+  },
+  "heldout": true
+ },
+ {
+  "id": "RNK-007",
+  "kind": "rank",
+  "area": "provenance",
+  "args": {
+   "rows": [
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "y"
+    },
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "ranked": [
+     "b",
+     "a"
+    ],
+    "beats": [],
+    "unverified": []
+   }
+  }
+ },
+ {
+  "id": "RNK-008",
+  "kind": "rank",
+  "area": "provenance",
+  "args": {
+   "rows": [
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": ""
+    },
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "ranked": [
+     "b",
+     "a"
+    ],
+    "beats": [],
+    "unverified": [
+     "b"
+    ]
+   }
+  }
+ },
+ {
+  "id": "RNK-009",
+  "kind": "rank",
+  "area": "provenance",
+  "args": {
+   "rows": [
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": ""
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "ranked": [
+     "b",
+     "a"
+    ],
+    "beats": [],
+    "unverified": [
+     "a"
+    ]
+   }
+  },
+  "heldout": true
+ },
+ {
+  "id": "RNK-010",
+  "kind": "rank",
+  "area": "provenance",
+  "args": {
+   "rows": [
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": ""
+    },
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": ""
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "ranked": [
+     "b",
+     "a"
+    ],
+    "beats": [
+     "b"
+    ],
+    "unverified": [
+     "b",
+     "a"
+    ]
+   }
+  },
+  "heldout": true
+ },
+ {
+  "id": "RNK-011",
+  "kind": "rank",
+  "area": "winner",
+  "args": {
+   "rows": [
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "missing"
+  },
+  "expect": {
+   "eq": {
+    "ranked": [
+     "b"
+    ],
+    "beats": [],
+    "unverified": []
+   }
+  },
+  "heldout": true
+ },
+ {
+  "id": "RNK-012",
+  "kind": "board",
+  "area": "board",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "aaaa1111",
+     "date": "2026-10-16"
+    },
+    {
+     "impl": "b",
+     "passed": 8,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "aaaa1111",
+     "date": "2026-10-16"
+    }
+   ],
+   "selected": "a",
+   "strict": true
+  },
+  "expect": {
+   "contains": [
+    "selected: a",
+    "! b beats the selected a"
+   ],
+   "eq": {
+    "exit": 1,
+    "beats": [
+     "b"
+    ],
+    "incomparable": []
+   }
+  }
+ },
+ {
+  "id": "RNK-013",
+  "kind": "board",
+  "area": "board",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "aaaa1111",
+     "date": "2026-10-16"
+    },
+    {
+     "impl": "b",
+     "passed": 8,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "aaaa1111",
+     "date": "2026-10-16"
+    }
+   ],
+   "selected": "a",
+   "strict": false
+  },
+  "expect": {
+   "eq": {
+    "exit": 0,
+    "beats": [
+     "b"
+    ],
+    "incomparable": []
+   }
+  }
+ },
+ {
+  "id": "RNK-014",
+  "kind": "board",
+  "area": "board",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "aaaa1111",
+     "date": "2026-10-16"
+    },
+    {
+     "impl": "b",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "aaaa1111",
+     "date": "2026-10-16"
+    }
+   ],
+   "selected": "a",
+   "strict": true
+  },
+  "expect": {
+   "not_contains": [
+    "beats the selected"
+   ],
+   "eq": {
+    "exit": 0,
+    "beats": [],
+    "incomparable": []
+   }
+  }
+ },
+ {
+  "id": "RNK-015",
+  "kind": "board",
+  "area": "board",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "aaaa1111",
+     "date": "2026-10-16"
+    },
+    {
+     "impl": "b",
+     "passed": 8,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "bbbb2222",
+     "date": "2026-10-16"
+    }
+   ],
+   "selected": "a",
+   "strict": true
+  },
+  "expect": {
+   "contains": [
+    "not comparable"
+   ],
+   "eq": {
+    "exit": 0,
+    "beats": [],
+    "incomparable": [
+     "b"
+    ]
+   }
+  }
+ },
+ {
+  "id": "RNK-016",
+  "kind": "board",
+  "area": "board",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "aaaa1111",
+     "date": "2026-10-16"
+    },
+    {
+     "impl": "b",
+     "passed": 8,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "",
+     "date": "2026-10-16"
+    }
+   ],
+   "selected": "a",
+   "strict": true
+  },
+  "expect": {
+   "contains": [
+    "unverified"
+   ],
+   "eq": {
+    "exit": 0,
+    "beats": [],
+    "incomparable": [
+     "b"
+    ]
+   }
+  }
+ },
+ {
+  "id": "RNK-017",
+  "kind": "board",
+  "area": "board",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "aaaa1111",
+     "date": "2026-10-16"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "aaaa1111",
+     "date": "2026-10-10"
+    },
+    {
+     "impl": "b",
+     "passed": 2,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "aaaa1111",
+     "date": "2026-10-15"
+    }
+   ],
+   "selected": "a",
+   "strict": true
+  },
+  "expect": {
+   "eq": {
+    "exit": 0,
+    "beats": [],
+    "incomparable": []
+   }
+  },
+  "heldout": true
+ },
+ {
+  "id": "RNK-018",
+  "kind": "rank",
+  "area": "winner",
+  "args": {
+   "rows": [
+    {
+     "impl": "b",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.96,
+     "tokens_in": 0,
+     "tokens_out": 0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 1.0,
+     "tokens_in": 0,
+     "tokens_out": 0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "ranked": [
+     "b",
+     "a"
+    ],
+    "beats": [],
+    "unverified": []
+   }
+  }
+ },
+ {
+  "id": "RNK-019",
+  "kind": "rank",
+  "area": "winner",
+  "args": {
+   "rows": [
+    {
+     "impl": "b",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.02,
+     "tokens_in": 1000000,
+     "tokens_out": 20000,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.2,
+     "tokens_in": 1040000,
+     "tokens_out": 21000,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "ranked": [
+     "b",
+     "a"
+    ],
+    "beats": [],
+    "unverified": []
+   }
+  }
+ },
+ {
+  "id": "RNK-020",
+  "kind": "verdict",
+  "area": "win by pass rate",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 6,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "WIN"
+   }
+  }
+ },
+ {
+  "id": "RNK-021",
+  "kind": "verdict",
+  "area": "equal pass rate at similar cost is a tie",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 6,
+     "cases": 10,
+     "cost_usd": 1.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 6,
+     "cases": 10,
+     "cost_usd": 1.05,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "TIE"
+   }
+  }
+ },
+ {
+  "id": "RNK-022",
+  "kind": "verdict",
+  "area": "equal pass rate at clearly lower spend is a win",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 6,
+     "cases": 10,
+     "cost_usd": 0.5,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 6,
+     "cases": 10,
+     "cost_usd": 1.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "WIN"
+   }
+  }
+ },
+ {
+  "id": "RNK-023",
+  "kind": "verdict",
+  "area": "a rival ahead is a loss",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 6,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "LOSS"
+   }
+  }
+ },
+ {
+  "id": "RNK-024",
+  "kind": "verdict",
+  "area": "equal pass rate with a clearly cheaper rival is a loss",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 6,
+     "cases": 10,
+     "cost_usd": 1.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 6,
+     "cases": 10,
+     "cost_usd": 0.5,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "LOSS"
+   }
+  }
+ },
+ {
+  "id": "RNK-025",
+  "kind": "verdict",
+  "area": "no rival measured",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 6,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "UNMEASURED"
+   }
+  }
+ },
+ {
+  "id": "RNK-026",
+  "kind": "verdict",
+  "area": "a rival on other cases is not compared",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 6,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "y"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "UNMEASURED"
+   }
+  }
+ },
+ {
+  "id": "RNK-027",
+  "kind": "verdict",
+  "area": "the selected implementation has no row",
+  "args": {
+   "rows": [
+    {
+     "impl": "b",
+     "passed": 6,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "UNMEASURED"
+   }
+  }
+ },
+ {
+  "id": "RNK-028",
+  "kind": "verdict",
+  "area": "an ablation scoring higher is no rival",
+  "args": {
+   "rows": [
+    {
+     "impl": "qar_planner",
+     "passed": 8,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "single_prompt",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "qar_planner",
+   "markers": {
+    "single_prompt": "ABLATION"
+   }
+  },
+  "expect": {
+   "eq": {
+    "verdict": "UNMEASURED",
+    "arms": {
+     "qar_planner": "",
+     "single_prompt": "ablation"
+    }
+   }
+  }
+ },
+ {
+  "id": "RNK-029",
+  "kind": "verdict",
+  "area": "a baseline is tagged and is a rival",
+  "args": {
+   "rows": [
+    {
+     "impl": "qar_planner",
+     "passed": 8,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "keyword_rules",
+     "passed": 8,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "qar_planner",
+   "markers": {
+    "keyword_rules": "BASELINE"
+   }
+  },
+  "expect": {
+   "eq": {
+    "verdict": "TIE",
+    "arms": {
+     "qar_planner": "",
+     "keyword_rules": "baseline"
+    }
+   }
+  }
+ },
+ {
+  "id": "RNK-030",
+  "kind": "verdict",
+  "area": "a validity arm is no rival",
+  "args": {
+   "rows": [
+    {
+     "impl": "dev_quest_chat",
+     "passed": 1,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "reference_replies",
+     "passed": 10,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "dev_quest_chat",
+   "markers": {
+    "reference_replies": "VALIDITY"
+   }
+  },
+  "expect": {
+   "eq": {
+    "verdict": "UNMEASURED",
+    "arms": {
+     "dev_quest_chat": "",
+     "reference_replies": "validity"
+    }
+   }
+  }
+ }
+]

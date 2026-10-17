@@ -1,0 +1,13 @@
+# esoi applied to this repository: the overall network and the detailed records are in structure/.
+package = "esoi"
+package_dir = "implementations/python/esoi"
+python_path = ["implementations/python"]
+layers = ["core", "tools", "cli"]
+structure_dir = "structure"
+evaluation_dir = "implementations/python/evaluation/components"
+overall = "structure/overall"
+# The intent template is read from the evolvable-structure skill's SKILL.md when ESOI_TEMPLATE_SOURCE (or --source)
+# names it; the documents below are generated from it by `esoi template sync`.
+templates_dir = "docs/templates"
+excerpts_file = "docs/explanation/from-the-skill.md"
+other_layers = ["docs", "evaluation", "examples", "scripts", "tests", "vendor", "prompts", "project"]
