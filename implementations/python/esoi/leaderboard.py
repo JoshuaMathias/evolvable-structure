@@ -87,10 +87,12 @@ def latest_results(path: Path) -> Dict[str, Rows]:
     out: Dict[str, Rows] = {}
     if not Path(path).exists():
         return out
-    with open(path, newline="", encoding="utf-8") as fh:
+    with open(path, newline="", encoding="utf-8-sig") as fh:
         for row in csv.DictReader(fh):
+            if not (row.get("component") and row.get("impl")):
+                continue   # a blank or half-written line is no result
             prev = out.setdefault(row["component"], {}).get(row["impl"])
-            if prev is None or row["date"] >= prev["date"]:
+            if prev is None or (row.get("date") or "") >= (prev.get("date") or ""):
                 out[row["component"]][row["impl"]] = row
     return out
 
@@ -105,12 +107,31 @@ def selected_impls(config: Config, solutions: List[Row]) -> Dict[str, str]:
 
 
 def pass_rate(row: Row) -> float:
-    return int(row["passed"]) / max(int(row["cases"]), 1)
+    """Passed over cases; a blank or malformed count reads as zero, so one bad line cannot stop the whole board."""
+    def count(name: str) -> int:
+        try:
+            return int(float(row.get(name) or 0))
+        except ValueError:
+            return 0
+    return count("passed") / max(count("cases"), 1)
+
+
+def dollars(row: Row) -> float:
+    """The recorded dollar cost; a model-calling run whose cost is blank (no price known) counts as unbounded, never
+    as free."""
+    if cost_known(row):
+        return float(row["cost_usd"])
+    return float("inf") if is_sampled(row) else 0.0
+
+
+def cost_known(row: Row) -> bool:
+    """Whether the row records a dollar cost (a blank cell means the price was unknown; 0 is a real zero)."""
+    return row.get("cost_usd") is not None and str(row["cost_usd"]).strip() != ""
 
 
 def rank(rows: Rows) -> List[Row]:
     """Best first: pass rate, then cost (lower is better)."""
-    return sorted(rows.values(), key=lambda r: (-pass_rate(r), float(r.get("cost_usd") or 0), r["impl"]))
+    return sorted(rows.values(), key=lambda r: (-pass_rate(r), dollars(r), r["impl"]))
 
 
 def unverified(row: Row) -> bool:
@@ -177,14 +198,14 @@ def noise(row: Row, other: Row, eval_dir: Optional[Path] = None) -> Tuple[float,
 def spend(row: Row) -> Tuple[str, float]:
     """What a run consumed: tokens when the run reports them (dollars swing with caching), else the dollars."""
     tokens = float(row.get("tokens_in") or 0) + float(row.get("tokens_out") or 0)
-    return ("tokens", tokens) if tokens > 0 else ("usd", float(row.get("cost_usd") or 0))
+    return ("tokens", tokens) if tokens > 0 else ("usd", dollars(row))
 
 
 def clearly_cheaper(row: Row, other: Row, eval_dir: Optional[Path] = None) -> bool:
     """True when ``row`` spent more than the spend tolerance less than ``other``, in the same unit."""
     (unit, mine), (other_unit, theirs) = spend(row), spend(other)
     if unit != other_unit:
-        unit, (mine, theirs) = "usd", (float(row.get("cost_usd") or 0), float(other.get("cost_usd") or 0))
+        unit, (mine, theirs) = "usd", (dollars(row), dollars(other))
     return mine < theirs * (1 - noise(row, other, eval_dir)[1])
 
 
@@ -197,6 +218,24 @@ def clearly_higher(row: Row, other: Row, eval_dir: Optional[Path] = None) -> boo
 def cheaper_without_passing_less(row: Row, other: Row, eval_dir: Optional[Path] = None) -> bool:
     """Spend settles a comparison only when the cheaper side passes at least as much."""
     return pass_rate(row) >= pass_rate(other) and clearly_cheaper(row, other, eval_dir)
+
+
+def rival_rows(rows: Rows, selected: str, eval_dir: Optional[Path] = None) -> List[Row]:
+    """The rows a verdict on ``selected`` rests on: comparable to it (same cases) and not an ablation or validity arm."""
+    cur = rows.get(selected)
+    if cur is None:
+        return []
+    return [r for r in rows.values() if r["impl"] != selected and comparable(r, cur) and not is_ablation(r, eval_dir)]
+
+
+def stale_rivals(config: Config, component: str, rows: Rows, selected: str,
+                 stale: Callable[[Config, str, Row, bool], str]) -> List[Tuple[str, str]]:
+    """``(implementation, reason)`` for each rival of ``selected`` whose recorded row no longer counts under the strict
+    rules (other cases, uncommitted code, or measured code that changed since its commit): a verdict that rests on it
+    (WIN or TIE) compares the selected arm's current number with a rival's old one. ``stale`` is
+    ``harness.stale_reason``, passed in because it needs git and the leaderboard is the inner layer."""
+    return [(r["impl"], why) for r in rival_rows(rows, selected, config.evaluation)
+            if (why := stale(config, component, r, True))]
 
 
 def challengers(rows: Rows, selected: str, eval_dir: Optional[Path] = None) -> List[Row]:
@@ -221,7 +260,7 @@ def verdict(rows: Rows, selected: str, eval_dir: Optional[Path] = None) -> Tuple
     cur = rows.get(selected)
     if cur is None:
         return "UNMEASURED", "the selected implementation has no recorded row"
-    rivals = [r for r in rows.values() if r["impl"] != selected and comparable(r, cur) and not is_ablation(r, eval_dir)]
+    rivals = rival_rows(rows, selected, eval_dir)
     if not rivals:
         return "UNMEASURED", "no rival implementation was measured on the same cases"
     beaten_by = [r["impl"] for r in challengers(rows, selected, eval_dir)]
@@ -291,14 +330,18 @@ def format_rows(rows: Rows, sel: Optional[str], eval_dir: Optional[Path] = None)
         tag = f"  [{kind.upper()}]" if kind else ""
         lines.append(f"  {mark} {r['impl']:<20} {r['passed']}/{r['cases']} (held-out {r.get('heldout', '')}) "
                      f"calls={r.get('model_calls', '')} tokens={tokens_label(r)} "
-                     f"cost=${float(r.get('cost_usd') or 0):.4f}  {r.get('date', '')}{tag}{flag}")
+                     f"cost={'$%.4f' % float(r['cost_usd']) if cost_known(r) else 'unknown'}  "
+                     f"{r.get('date', '')}{tag}{flag}")
         if (r.get("details") or "").strip():
             lines.append(f"      per-case reasons: {r['details'].strip()}")
     return lines
 
 
-def board(config: Config, registry: Registry, strict: bool = False, say: Callable[[str], None] = print) -> int:
-    """Print the leaderboard. Returns 1 when ``strict`` and a challenger beats a selected implementation."""
+def board(config: Config, registry: Registry, strict: bool = False, say: Callable[[str], None] = print,
+          stale: Optional[Callable[[Config, str, Row, bool], str]] = None) -> int:
+    """Print the leaderboard. Returns 1 when ``strict`` and a challenger beats a selected implementation, or a verdict
+    rests on a rival recorded before the measured code changed (``stale`` is ``harness.stale_reason``; without it
+    only the cases are compared)."""
     results = latest_results(config.results_path)
     selected = selected_impls(config, registry.solutions)
     invariants = invariant_components(config, registry.solutions)
@@ -321,6 +364,10 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
             flagged += 1
             say(f"  ! {r['impl']} beats the selected {sel}: decide whether to adopt it "
                 "(update the solution's `selected` and the live default together)")
+        for impl, why in (stale_rivals(config, component, rows, sel, stale) if sel and stale else []):
+            flagged += 1 if strict else 0
+            say(f"  ~ {impl} is a rival the verdict on {sel} rests on, but {why}; re-run it on the current code "
+                "before trusting the verdict")
     say("\nBy solution (WIN = the metric chose it; TIE = kept for the reason in selected_by, the metric did not "
         "separate it; UNMEASURED = no rival was compared)")
     for sid, v in sorted(solution_verdicts(config, registry.solutions, results).items()):

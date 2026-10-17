@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+Fixes from three adopter migrations:
+
+- A registry file that lacks a column the rules read (`port`, `gap`, `role` ...) is reported, not a crash; the record header
+  template now carries `port`.
+- Several implementations may live in one module: rule S14 also accepts a module listed by the `path` of an `implementations.csv`
+  record, and records are matched to a solution's `implementations` cell by id, `solution:name` or path.
+- A verdict that rests on a rival recorded before the measured code changed is flagged (S20 in strict mode, `esoi leaderboard`);
+  `esoi run --stale` re-runs those rivals too, and skips arms that spend money unless asked (`--include`, `--include-paid`,
+  `paid_arms`, `PAID = True`).
+- `code_paths` may point into a sibling repository; its commit is recorded per row in `code_shas`.
+- Rule S3 can be waived per file (`root_python_allow`, or a waiver by path).
+- The tracker lists a metric that serves several solutions once (no false S18), and the S18 message no longer blames file names.
+- `esoi hygiene` works outside a git checkout and takes your own secret patterns (`[hygiene.patterns]`).
+- `cost_usd` is computed from a `prices` table when the provider reports none, and left blank when the price is unknown.
+- A waiver for a finding only `--strict` reports is no longer called unused outside strict mode.
+- Plugin results remembered by `ctx.memo` are dropped when the configuration or a structure file changes.
+- Clear messages instead of tracebacks: a malformed `esoi.toml`, an unknown `--impl`, `--only` that matches nothing, `--sample 0`,
+  `esoi select` and `esoi consumer check` mistakes; a CSV with a byte-order mark is read; one malformed results line no longer stops
+  the board.
+
 - The author's `evolvable-structure` skill as a complete public folder (`skill/evolvable-structure/`), installable as a Claude Code
   plugin (`.claude-plugin/marketplace.json`), by downloading the folder, or with `esoi skill install`. It is generated from the
   author's own skill by `esoi skill sync`, and `esoi skill check` fails on a stale copy or a leak. See

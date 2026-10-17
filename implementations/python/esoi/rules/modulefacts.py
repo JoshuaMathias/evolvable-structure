@@ -3,7 +3,9 @@
 Parsing every module of a large package dominates the time of ``esoi check``, and the layout rules ask three questions
 of each module (is there a docstring, which package modules does it import, does it read the environment). This module
 answers all three from a single pass and remembers the answer in ``.esoi_cache/modules.json`` under the repository root,
-keyed by file size and modification time, so a second run only reads the files that changed. The cache is a pure
+keyed by file size and modification time, so a second run only reads the files that changed. A plugin's remembered
+results (``memo``) are also dropped whenever the configuration or any file of the structure folder changes, because a
+plugin can read a record whose header just changed without naming it in its globs. The cache is a pure
 accelerator: deleting it changes nothing but the time, ``cache = false`` in the configuration turns it off, and the
 folder is never listed as a repository file.
 """
@@ -85,9 +87,10 @@ def scan(path: Path) -> Facts:
 class Cache:
     """On-disk memory of ``scan`` results; ``get`` re-reads a file only when its size or modification time changed."""
 
-    def __init__(self, root: Path, enabled: bool = True):
+    def __init__(self, root: Path, enabled: bool = True, fingerprint: str = ""):
         self.root = Path(root)
         self.enabled = enabled
+        self.fingerprint = fingerprint
         self.path = self.root / CACHE_DIR / CACHE_FILE
         self.entries: Dict[str, dict] = {}
         self.memos: Dict[str, dict] = {}
@@ -98,6 +101,8 @@ class Cache:
                 if data.get("version") == VERSION:
                     self.entries = data.get("files", {})
                     self.memos = data.get("memos", {})
+                    if data.get("fingerprint", "") != fingerprint:   # the configuration or a record file changed
+                        self.memos, self.dirty = {}, True
             except (OSError, ValueError):
                 self.entries = {}
 
@@ -156,6 +161,7 @@ class Cache:
         files = {k: v for k, v in self.entries.items() if keep is None or k in keep}
         try:
             self.path.parent.mkdir(exist_ok=True)
-            self.path.write_text(json.dumps({"version": VERSION, "files": files, "memos": self.memos}), encoding="utf-8")
+            self.path.write_text(json.dumps({"version": VERSION, "fingerprint": self.fingerprint, "files": files,
+                                                         "memos": self.memos}), encoding="utf-8")
         except OSError:
             pass

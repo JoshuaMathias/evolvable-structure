@@ -92,3 +92,29 @@ def test_ctx_memo_is_invalidated_by_a_change_to_a_named_file(cfg):
     assert ctx.memo("n", ["demo/*.py"], lambda: calls.append(1) or ["b"]) == first and len(calls) == 1
     (cfg.root / "demo" / "greet.py").write_text('"""Changed."""\n')
     assert ctx.memo("n", ["demo/*.py"], lambda: calls.append(1) or ["c"]) == ["c"]
+
+
+def test_a_plugin_memo_is_dropped_when_a_record_header_or_the_configuration_changes(cfg):
+    """A plugin may read a record without naming it in its globs; a changed header must not serve its old answer."""
+    from esoi import check, tables
+    calls = []
+
+    def count_columns(ctx):
+        return ctx.memo("columns", ["demo/*.py"], lambda: calls.append(1) or tables.read_header(cfg.structure / "solutions.csv"))
+
+    def run_once():
+        ctx = check.build_context(cfg)
+        answer = count_columns(ctx)
+        ctx.modules.save(keep=set(ctx.files))
+        return answer
+
+    first = run_once()
+    rows, cols = tables.read_csv(cfg.structure / "solutions.csv"), tables.read_header(cfg.structure / "solutions.csv")
+    assert run_once() == first and len(calls) == 1   # nothing changed: the remembered answer is served
+    tables.write_csv(cfg.structure / "solutions.csv", cols + ["added"], rows)
+    assert "added" in run_once() and len(calls) == 2
+    run_once()
+    assert len(calls) == 2
+    cfg.max_lines = 7
+    run_once()
+    assert len(calls) == 3   # a configuration change drops the memos too

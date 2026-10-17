@@ -17,11 +17,13 @@ the repository. ``esoi run <component> --impl <name>`` drives it:
 from __future__ import annotations
 
 import argparse
+import ast
 import csv
 import datetime
 import functools
 import importlib
 import json
+import pkgutil
 import subprocess
 import sys
 import time
@@ -37,6 +39,10 @@ RESULT_COLUMNS = ["date", "component", "impl", "cases", "passed", "dev", "heldou
 
 class BudgetExceeded(RuntimeError):
     """The run made more model calls than its budget allows."""
+
+
+class RunError(ValueError):
+    """The run cannot start as asked (no such implementation, no case selected); the message says what to change."""
 
 
 class CallMeter:
@@ -100,7 +106,13 @@ def load_impl(spec: str, component: str) -> Callable:
     if ":" in spec:
         module, _, attr = spec.partition(":")
         return getattr(importlib.import_module(module), attr)
-    return importlib.import_module(f"{component}.impls.{spec}").build
+    try:
+        return importlib.import_module(f"{component}.impls.{spec}").build
+    except ModuleNotFoundError as exc:
+        if exc.name != f"{component}.impls.{spec}":
+            raise   # the implementation exists but one of its own imports is missing: that is the finding
+        known = sorted(m.name for m in pkgutil.iter_modules(importlib.import_module(f"{component}.impls").__path__))
+        raise RunError(f"{component} has no implementation {spec!r}; known: {', '.join(known) or 'none'}") from exc
 
 
 def stratified_sample(cases: List[dict], n: int, seed: int = 0) -> List[dict]:
@@ -140,15 +152,62 @@ def load_cases(component: str, config: Config) -> List[dict]:
 
 
 def git(config: Config, *args: str) -> str:
-    done = subprocess.run(["git", *args], cwd=config.root, capture_output=True, text=True)
+    return git_at(config.root, *args)
+
+
+def git_at(folder: Path, *args: str) -> str:
+    done = subprocess.run(["git", *args], cwd=folder, capture_output=True, text=True)
     return done.stdout.strip() if done.returncode == 0 else ""
+
+
+def is_external(config: Config, entry: str) -> bool:
+    """Whether a ``code_paths`` entry points outside this repository (``../sibling/pkg``): it is diffed in its own
+    repository's git."""
+    return not (config.root / entry).resolve().is_relative_to(config.root)
+
+
+def own_code_paths(config: Config) -> List[str]:
+    return [p for p in config.code_paths if not is_external(config, p)]
+
+
+def external_code_paths(config: Config) -> List[Tuple[str, Path, str]]:
+    """``(entry, repository folder, path inside it)`` for each external ``code_paths`` entry that exists and sits in a
+    git checkout; one that is not there (a sibling not checked out in CI) is left out, as a commit that cannot be
+    looked up is for the repository's own code."""
+    found = []
+    for entry in config.code_paths:
+        if not is_external(config, entry):
+            continue
+        full = (config.root / entry).resolve()
+        folder = full if full.is_dir() else full.parent
+        top = git_at(folder, "rev-parse", "--show-toplevel") if folder.is_dir() else ""
+        if top:
+            found.append((entry, Path(top), str(full.relative_to(Path(top).resolve())) or "."))
+    return found
+
+
+def code_shas(config: Config) -> str:
+    """The recorded commit of each external code path, ``entry@sha`` joined by ``;`` (``-dirty`` when that path has
+    uncommitted changes): the ``code_shas`` cell of a results row. Blank when the repository has none."""
+    parts = []
+    for entry, repo, inside in external_code_paths(config):
+        sha = git_at(repo, "rev-parse", "--short", "HEAD")
+        if sha and git_at(repo, "status", "--porcelain", "--untracked-files=no", "--", inside):
+            sha += "-dirty"
+        if sha:
+            parts.append(f"{entry}@{sha}")
+    return ";".join(parts)
+
+
+def parse_code_shas(cell: str) -> Dict[str, str]:
+    return {entry: sha for entry, _, sha in (part.rpartition("@") for part in (cell or "").split(";") if "@" in part)}
 
 
 def current_sha(config: Config) -> str:
     """The short commit, suffixed ``-dirty`` when the measured code has uncommitted changes (the results log
     itself is not the code under test)."""
     sha = git(config, "rev-parse", "--short", "HEAD")
-    if sha and git(config, "status", "--porcelain", "--untracked-files=no", "--", *config.code_paths,
+    if sha and git(config, "status", "--porcelain", "--untracked-files=no", "--", *own_code_paths(config),
                    config.evaluation_dir, f":(exclude){config.results}"):
         sha += "-dirty"
     return sha
@@ -158,15 +217,31 @@ def changed_since(config: Config, sha: str) -> Optional[List[str]]:
     """Tracked files of the measured code (and the evaluation folder, except the results log) that differ from the
     working tree since the commit a result was recorded at; ``None`` when that commit is not known here."""
     base = sha.removesuffix("-dirty")
-    done = subprocess.run(["git", "diff", "--name-only", base, "--", *config.code_paths, config.evaluation_dir,
+    done = subprocess.run(["git", "diff", "--name-only", base, "--", *own_code_paths(config), config.evaluation_dir,
                            f":(exclude){config.results}"], cwd=config.root, capture_output=True, text=True)
     return done.stdout.split() if done.returncode == 0 else None
+
+
+def external_reason(config: Config, row: Dict[str, str]) -> str:
+    """Why the code a row measured in other repositories (``code_paths`` outside this one) no longer counts."""
+    recorded = parse_code_shas(row.get("code_shas", ""))
+    for entry, repo, inside in external_code_paths(config):
+        sha = recorded.get(entry)
+        if not sha:
+            return f"its latest row records no commit for the code path {entry} in another repository (re-run with --record)"
+        if sha.endswith("-dirty"):
+            return f"its latest row was recorded on uncommitted code in {entry}"
+        done = subprocess.run(["git", "diff", "--name-only", sha, "--", inside], cwd=repo, capture_output=True, text=True)
+        if done.returncode == 0 and done.stdout.split():
+            changed = done.stdout.split()
+            return f"the measured code in {entry} changed since its commit {sha} ({changed[0]}{' and others' if len(changed) > 1 else ''})"
+    return ""
 
 
 def stale_reason(config: Config, component: str, row: Optional[Dict[str, str]], strict: bool = True) -> str:
     """Why a recorded result no longer counts, or an empty string when it is current. A result is stale when it is missing,
     has no commit, was run on other cases than the ones now on disk, and (strict) was run on uncommitted code or the
-    measured code has changed since its commit."""
+    measured code, in this repository or in another one named by ``code_paths``, has changed since its commit."""
     if row is None:
         return "it has no recorded result"
     if not row.get("git_sha", "").strip():
@@ -178,7 +253,34 @@ def stale_reason(config: Config, component: str, row: Optional[Dict[str, str]], 
         return "its latest row was recorded on uncommitted code"
     if strict and (changed := changed_since(config, row["git_sha"])):
         return f"the measured code changed since its commit {row['git_sha']} ({changed[0]}{' and others' if len(changed) > 1 else ''})"
-    return ""
+    return external_reason(config, row) if strict else ""
+
+
+def price_for(config: Config, model: Optional[str]) -> Optional[Dict[str, float]]:
+    """The ``prices`` entry for a model: the exact name, else the longest listed name that is a prefix of it (so a
+    dated model id finds its family's price)."""
+    if not model or not config.prices:
+        return None
+    if model in config.prices:
+        return config.prices[model]
+    listed = [name for name in config.prices if model.startswith(name)]
+    return config.prices[max(listed, key=len)] if listed else None
+
+
+def run_cost(config: Config, summary: Dict[str, Any], model: Optional[str]) -> Any:
+    """The dollar cost to record for a run: what the provider reported when that is more than zero, else tokens times
+    the configured price of the model, else 0.0 for a run that called no model, else ``""`` (unknown, never a
+    zero that reads as free). Prices are USD per million tokens, ``prices = { "model" = { input = 3.0, output = 15.0 } }``."""
+    reported = float(summary.get("cli_reported_cost_usd", summary.get("cost_usd", 0.0)) or 0.0)
+    if reported > 0:
+        return reported
+    if not summary.get("model_calls"):
+        return 0.0
+    price = price_for(config, model)
+    if price is None or not (summary.get("tokens_in") or summary.get("tokens_out")):
+        return ""
+    return round((float(summary.get("tokens_in") or 0) * float(price.get("input", 0))
+                  + float(summary.get("tokens_out") or 0) * float(price.get("output", 0))) / 1_000_000, 6)
 
 
 def record_result(summary: Dict[str, Any], config: Config, date: Optional[str] = None,
@@ -188,17 +290,35 @@ def record_result(summary: Dict[str, Any], config: Config, date: Optional[str] =
     model = summary.get("model") or (model_env if summary.get("model_calls") and model_env else
                                      ("unknown" if summary.get("model_calls") else "none"))
     row = dict(summary, date=date or datetime.date.today().isoformat(),
-               cost_usd=summary.get("cli_reported_cost_usd", summary.get("cost_usd", 0.0)),
+               cost_usd=run_cost(config, summary, model),
                git_sha=current_sha(config), model=model, cases_sha=cases_digest(comp, config.evaluation))
     target = Path(path) if path else config.results_path
-    new = not target.exists()
-    target.parent.mkdir(parents=True, exist_ok=True)
-    with open(target, "a", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=RESULT_COLUMNS, extrasaction="ignore", lineterminator="\n")
-        if new:
-            writer.writeheader()
-        writer.writerow(row)
+    wanted = bool(external_code_paths(config))
+    if wanted:
+        row["code_shas"] = code_shas(config)
+    append_row(target, row, wanted)
     return row
+
+
+def append_row(target: Path, row: Dict[str, Any], with_code_shas: bool) -> None:
+    """Append ``row`` to the results log. The log gains a trailing ``code_shas`` column the first time a repository with
+    code in another repository records (older rows keep it blank)."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    header: List[str] = []
+    old_rows: List[Dict[str, str]] = []
+    if target.exists():
+        with open(target, newline="", encoding="utf-8") as fh:
+            reader = csv.DictReader(fh)
+            header, old_rows = list(reader.fieldnames or []), list(reader)
+    wanted = RESULT_COLUMNS + (["code_shas"] if with_code_shas else [])
+    columns = header + [c for c in wanted if c not in header] if header else wanted
+    rewrite = not header or columns != header
+    with open(target, "w" if rewrite else "a", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=columns, extrasaction="ignore", lineterminator="\n")
+        if rewrite:
+            writer.writeheader()
+            writer.writerows(old_rows)
+        writer.writerow(row)
 
 
 def run_component(component: str, scorer: Callable, argv: List[str], config: Config,
@@ -217,7 +337,11 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     if args.only:
         keep = {c.strip() for c in args.only.split(",")}
         cases = [c for c in cases if c["id"] in keep]
-    if args.sample:
+        if not cases:
+            raise RunError(f"--only {args.only!r} matches no case of {component}")
+    if args.sample is not None:
+        if args.sample < 1:
+            raise RunError("--sample needs a number of cases of at least 1")
         cases = stratified_sample(cases, args.sample)
     budget = args.max_calls if args.max_calls is not None else "none"
     say(f"{component}: {len(cases)} case(s), impl {args.impl}, model-call budget {budget}: "
@@ -245,9 +369,10 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
                    model_calls=meter.calls, tokens_in=meter.tokens_in, tokens_out=meter.tokens_out,
                    cli_reported_cost_usd=round(meter.cost_usd, 4), seconds=round(time.time() - started, 1),
                    model=meter.model)
+    cost = run_cost(config, summary, summary["model"])
     say(f"\n{component} / {args.impl}: {passed}/{len(rows)} passed (dev {summary['dev']}, held-out "
         f"{summary['heldout']}), {meter.calls} model calls, {meter.tokens_in} in / {meter.tokens_out} out tokens, "
-        f"reported cost ${summary['cli_reported_cost_usd']}, {summary['seconds']}s")
+        f"cost {'$' + str(cost) if cost != '' else 'unknown (no price for the model in `prices`)'}, {summary['seconds']}s")
     score = importlib.import_module(f"{component}.score")
     if hasattr(score, "aggregate"):
         say(f"{component}: {score.aggregate(rows)}")
@@ -262,27 +387,77 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     return summary, rows
 
 
-def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool = True) -> int:
-    """Run every selected implementation whose recorded result is stale, and record it; the loop to run after changing
-    measured code or cases, on committed code."""
+def declares_paid(path: Path) -> bool:
+    """Whether an implementation module sets ``PAID = True`` at module level (it calls a model that costs money)."""
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+    except (OSError, SyntaxError, UnicodeDecodeError):
+        return False
+    return any(isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "PAID" for t in n.targets)
+               and isinstance(n.value, ast.Constant) and n.value.value is True for n in tree.body)
+
+
+def paid_reason(config: Config, component: str, impl: str, row: Optional[Dict[str, str]]) -> str:
+    """Why running an arm may spend money, or an empty string for an offline arm: it is listed in ``paid_arms``, its
+    module declares ``PAID = True``, or its last recorded run called a model."""
+    if f"{component}/{impl}" in config.paid_arms:
+        return "listed in paid_arms"
+    if declares_paid(config.evaluation / component / "impls" / f"{impl}.py"):
+        return "declares PAID = True"
+    if row and int(float(row.get("model_calls") or 0)) > 0:
+        return "its last recorded run called a model"
+    return ""
+
+
+def stale_arms(config: Config) -> List[Tuple[str, str]]:
+    """Each selected arm of the registry, then every other recorded arm of its component that competes with it (an
+    ablation or validity arm is no rival). A rival recorded on other cases is included: it is not compared until it is
+    re-run on the current ones."""
     from . import leaderboard
     from .registry import first_arm, load
-    prepare_path(config)
     latest = leaderboard.latest_results(config.results_path)
-    done = set()
+    arms: List[Tuple[str, str]] = []
     for row in load(config).solutions:
         comp, impl = first_arm(config, row.get("metric_command", ""))
-        if not comp or (comp, impl) in done:
+        if not comp:
             continue
-        done.add((comp, impl))
-        why = stale_reason(config, comp, latest.get(comp, {}).get(impl))
+        for arm in [(comp, impl)] + [(comp, name) for name, r in sorted(latest.get(comp, {}).items())
+                                 if not leaderboard.is_ablation(r, config.evaluation)]:
+            if arm not in arms:
+                arms.append(arm)
+    return arms
+
+
+def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool = True, include_paid: bool = False,
+                include: Optional[List[str]] = None) -> int:
+    """Run every selected implementation, and every rival recorded beside it, whose recorded result is stale, and record
+    it; the loop to run after changing measured code or cases, on committed code.
+
+    An arm that may spend money (``paid_reason``) is never run by default: it is listed as skipped with the command that
+    runs it. ``include_paid`` runs them all, ``include`` (``component/impl`` names) only those."""
+    from . import leaderboard
+    prepare_path(config)
+    latest = leaderboard.latest_results(config.results_path)
+    skipped: List[str] = []
+    for comp, impl in stale_arms(config):
+        row = latest.get(comp, {}).get(impl)
+        why = stale_reason(config, comp, row)
         if not why:
             say(f"{comp}/{impl}: current")
+            continue
+        paid = paid_reason(config, comp, impl, row)
+        if paid and not (include_paid or f"{comp}/{impl}" in (include or [])):
+            say(f"{comp}/{impl}: stale, {why}; SKIPPED because it may spend money ({paid})")
+            skipped.append(f"{comp}/{impl}")
             continue
         say(f"{comp}/{impl}: stale, {why}")
         score = importlib.import_module(f"{comp}.score")
         run_component(comp, score.score_case, ["--impl", impl] + (["--record"] if record else []), config, lambda text: None)
         say(f"{comp}/{impl}: run" + (" and recorded" if record else ""))
+    if skipped:
+        say(f"skipped {len(skipped)} paid arm(s); stage and budget them first (see the metric run policy), then run each with "
+            "`esoi run <component> --impl <name> --max-calls N --record`, or "
+            f"`esoi run --stale --include {' --include '.join(skipped)}`")
     return 0
 
 
@@ -290,12 +465,18 @@ def run_cli(argv: List[str], config: Config, say: Callable[[str], None] = print)
     """``esoi run <component> --impl <name> [flags]``, or ``esoi run --stale`` to re-run what is stale."""
     prepare_path(config)
     if argv and argv[0] == "--stale":
-        return rerun_stale(config, say, record="--no-record" not in argv)
+        include = [argv[i + 1] for i, word in enumerate(argv[:-1]) if word == "--include"]
+        return rerun_stale(config, say, record="--no-record" not in argv, include_paid="--include-paid" in argv,
+                           include=include)
     components = discover_components(config)
     if not argv or argv[0] not in components:
-        say("usage: esoi run <component> --impl <name> [--only IDS] [--sample N] [--max-calls N] [--record]  |  esoi run --stale")
+        say("usage: esoi run <component> --impl <name> [--only IDS] [--sample N] [--max-calls N] [--record]  |  esoi run --stale [--include-paid | --include COMPONENT/IMPL]")
         say("components: " + (", ".join(components) or "none found under " + config.evaluation_dir))
         return 2
     score = importlib.import_module(f"{argv[0]}.score")
-    run_component(argv[0], score.score_case, argv[1:], config, say)
+    try:
+        run_component(argv[0], score.score_case, argv[1:], config, say)
+    except RunError as exc:
+        say(f"esoi run: {exc}")
+        return 2
     return 0

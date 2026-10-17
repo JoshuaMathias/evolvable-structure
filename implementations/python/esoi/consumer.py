@@ -280,13 +280,13 @@ def cases_hash(files: List[str], root: Path) -> str:
 
 def check_solutions(report: ConsumerReport, rows: List[Dict[str, str]], solutions: Path, results: Path, root: Path) -> None:
     """C9 to C11: every integration point sits in a solution with a current recorded result."""
-    sols = {r["solution_id"]: r for r in read_csv(solutions)}
+    sols = {r.get("solution_id", ""): r for r in read_csv(solutions)}
     result_rows = read_csv(results)
     latest: Dict[str, Dict[str, str]] = {}
     for r in result_rows:
         if r.get("kind", "offline") in ("live", "component"):
             continue   # live proofs and scored components are recorded beside the gating offline run
-        latest[r["solution_id"]] = r
+        latest[r.get("solution_id", "")] = r
     used = set()
     for row in rows:
         sid = row.get("solution_id", "").strip()
@@ -345,7 +345,10 @@ def check_consumer(registry: Path, root: Path, options: Options, requirements: O
     root = Path(root).resolve()
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
-    with Path(registry).open(newline="", encoding="utf-8") as handle:
+    if not Path(registry).is_file():
+        report.problems.append(f"C1 {registry}: registry file not found")
+        return report
+    with Path(registry).open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
         missing = [c for c in options.required_columns if c not in (reader.fieldnames or [])]
         if missing:

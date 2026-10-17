@@ -66,3 +66,49 @@ def test_version(capsys):
 def test_run_stale_passes_its_flag_to_the_harness(repo, capsys):
     assert run(repo, "run", "--stale", "--no-record") == 0
     assert "greet_a_person/live: current" in capsys.readouterr().out
+
+
+def test_hygiene_outside_a_git_checkout_scans_the_folder(tmp_path, capsys):
+    (tmp_path / "a.txt").write_text("fine\n")
+    assert cli.main(["hygiene", "--root", str(tmp_path)]) == 0 and "clean" in capsys.readouterr().out
+    assert cli.main(["hygiene", "--root", str(tmp_path), "--staged"]) == 2 and "not a git checkout" in capsys.readouterr().out
+
+
+def test_a_bad_hygiene_pattern_in_the_config_is_a_message_not_a_traceback(tmp_path, capsys):
+    (tmp_path / "esoi.toml").write_text('[hygiene.patterns]\nbad = "("\n')
+    assert cli.main(["hygiene", "--root", str(tmp_path)]) == 2 and "not a regular expression" in capsys.readouterr().err
+
+
+def test_run_stale_lists_paid_arms_and_accepts_the_opt_in_flags(repo, capsys):
+    (repo / "esoi.toml").write_text((repo / "esoi.toml").read_text() + '\npaid_arms = ["greet_a_person/shout"]\n')
+    results = repo / "evaluation" / "components" / "greet_a_person" / "cases.json"
+    results.write_text(results.read_text() + " ")
+    assert run(repo, "run", "--stale", "--no-record") == 0
+    out = capsys.readouterr().out
+    assert "greet_a_person/shout: stale" in out and "SKIPPED" in out and "--include greet_a_person/shout" in out
+    assert run(repo, "run", "--stale", "--no-record", "--include", "greet_a_person/shout") == 0
+    assert "greet_a_person/shout: run" in capsys.readouterr().out
+
+
+def test_run_says_what_is_wrong_instead_of_a_traceback(repo, capsys):
+    assert run(repo, "run", "greet_a_person", "--impl", "nope") == 2 and "no implementation 'nope'; known: live, shout" in capsys.readouterr().out
+    assert run(repo, "run", "greet_a_person", "--impl", "live", "--only", "ZZ") == 2 and "matches no case" in capsys.readouterr().out
+    assert run(repo, "run", "greet_a_person", "--impl", "live", "--sample", "0") == 2 and "at least 1" in capsys.readouterr().out
+
+
+def test_a_malformed_config_is_a_message_for_every_command(tmp_path, capsys):
+    (tmp_path / "esoi.toml").write_text("bad = [\n")
+    for argv in (["check"], ["hygiene", "--root", str(tmp_path)]):
+        assert cli.main(["--config", str(tmp_path / "esoi.toml"), *argv]) == 2
+        assert "not valid TOML" in capsys.readouterr().err
+
+
+def test_select_and_consumer_report_their_own_mistakes(repo, capsys):
+    (repo / "esoi.toml").write_text((repo / "esoi.toml").read_text() + '\nselection = "demo/selection.py:SELECTION"\n')
+    (repo / "demo" / "selection.py").write_text('SELECTION = {"greet-a-person": {"default": "plain", "implementations": {"plain": "demo.greet:greet"}}}\n')
+    assert run(repo, "select", "greet-a-person") == 0 and "greet-a-person: plain" in capsys.readouterr().out
+    assert run(repo, "select", "ghost") == 2 and "no selection table entry" in capsys.readouterr().err
+    assert run(repo, "select", "greet-a-person", "--name", "ghost") == 2 and "unknown implementation" in capsys.readouterr().err
+    assert run(repo, "consumer", "check", "--registry", "none.csv") == 2 and "no library named" in capsys.readouterr().err
+    assert run(repo, "consumer", "check", "--registry", "none.csv", "--library", "demo") == 1
+    assert "registry file not found" in capsys.readouterr().out

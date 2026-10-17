@@ -12,13 +12,17 @@ layers = ["core", "adapters", ["cli", "tools"]]   # inner to outer; a nested lis
 other_layers = ["docs", "evaluation", "examples", "scripts", "tests", "vendor", "prompts"]   # non-code areas a component may name
 max_lines = 1500                       # the size ceiling for a Python module (rule S4)
 root_python_files = false              # allow .py files at the repository root (rule S3)
+root_python_allow = ["setup.py"]       # ... or only these root files (a waiver `S3 <file>` also works)
 docstring_exempt = ["/vendor/"]        # paths whose modules need no docstring (rule S5)
 structure_dir = "docs/structure"       # the records, components, waivers and the generated index
 overall = "docs/overall"               # the overall solution network's folder (five record files); detailed records link up to it
 evaluation_dir = "evaluation/components"   # one folder per evaluated component
 results = "evaluation/components/results.csv"
 shared_eval_dirs = ["__pycache__"]     # folders in evaluation_dir that are not a solution's metric
-code_paths = ["mylib"]                 # what counts as the measured code when marking a result "-dirty"
+code_paths = ["mylib"]                 # what counts as the measured code when marking a result "-dirty"; an entry may point into
+                                       # a sibling repository ("../sibling/pkg"): its own commit is recorded in `code_shas`
+paid_arms = ["chat/openai"]            # arms `esoi run --stale` skips because they spend money (also: PAID = True in the module)
+prices = { "model-x" = { input = 3.0, output = 15.0 } }   # USD per million tokens; computes cost_usd when a provider reports none
 metric_command = '(?:esoi run|run\.py) (\w+) --impl (\w+)'   # how a metric's command names a component and an implementation
 live_imports = ["mylib"]               # an evaluation implementation importing these drives live code (rule S12)
 live_calls = ["common.build_app"]      # ... or calls one of these attributes
@@ -54,6 +58,8 @@ Problems = { csv = "docs/structure/tracker/problems.csv", key = "problem_id", pr
 [hygiene]                              # for `esoi hygiene`
 allow_email_domains = ["corp.test"]
 exclude = ["tests/fixtures/"]
+[hygiene.patterns]                     # your own secret shapes, reported under these names
+acme-key = "acme_[A-Za-z0-9]{24,}"
 
 [skill]                                # for `esoi skill`: a public copy of a private skill (see esoi/skill.py)
 dir = "skill/myskill"                  # the primary copy; `copies` lists folders that must hold the identical copy
@@ -70,7 +76,19 @@ reason = "names a private folder"
 `structure_dir` holds `components.csv` (`component_id, layer, path, role, solutions`), `waivers.csv`
 (`rule, path, reason`) and the five record files, each with the template's fields as columns plus links:
 `problems.csv`, `ideals.csv`, `solutions.csv`, `implementations.csv`, `metrics.csv`. Headers to copy are in
-[docs/templates/record-headers/](../../../docs/templates/record-headers/).
+[docs/templates/record-headers/](../../../docs/templates/record-headers/). A rule that reads a column a file lacks reports it
+(`no `port` column ...`) and sees it as empty; `port` is only a finding when a Protocol class or a selection table needs it.
+A module may hold several implementations: list them as `path::name` in the solution's `implementations` cell and give each
+record in `implementations.csv` the same `path`; rule S14 accepts a selection-table module that either lists, and the record
+ids need not follow any pattern (the default is `solution:file-stem`, `solution:name` also matches).
+
+## Results log
+
+`esoi run --record` appends to `results` with columns `date, component, impl, cases, passed, dev, heldout, model_calls,
+tokens_in, tokens_out, cost_usd, seconds, git_sha, cases_sha, model, details`, plus `code_shas` (`../sibling/pkg@abc1234`,
+`;`-separated, `-dirty` for uncommitted changes) when `code_paths` names code in another repository. `cost_usd` is what the
+provider reported, else tokens times the `prices` entry of the model (an exact name, else the longest listed prefix), `0.0` when no
+model was called, and blank when the model has no price.
 
 ## Environment
 

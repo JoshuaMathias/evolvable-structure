@@ -18,7 +18,8 @@ COMPONENTS = harness.discover_components(CONFIG)
 LIVE = {"check_the_structure": "live_checker", "own_every_file": "live_checker", "record_intent": "live_checker",
         "sync_the_template": "live_parser", "select_an_implementation": "live_selector",
         "measure_implementations": "live_harness", "rank_implementations": "live_leaderboard",
-        "review_tracker": "live_tracker", "check_a_consumer": "live_consumer_check", "know_stale_results": "live_checker"}
+        "review_tracker": "live_tracker", "check_a_consumer": "live_consumer_check", "know_stale_results": "live_checker",
+        "sync_the_skill": "live_skill"}
 
 
 def score_all(component, spec):

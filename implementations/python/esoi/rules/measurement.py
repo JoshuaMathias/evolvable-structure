@@ -35,7 +35,8 @@ SUMMARIES = {
     "S16": "The latest results row of every implementation carries a cases_sha, or a waiver says why not.",
     "S20": "Every solution has a problem, an ideal, a metric, implementations, a selected implementation and a "
            "recorded run on the current cases with a git_sha; tests alone are not a metric. With --strict the run must "
-           "also be on committed code that has not changed since.",
+           "also be on committed code that has not changed since, and so must every rival it was compared with "
+           "(waive one rival as `<solution>:<implementation>`).",
     "S21": "Every evaluation folder is named by some solution's metric command, or is listed as shared.",
     "S22": "No score, percentage, dollar amount or case count in a gap, an action, a waiver reason or a record field; "
            "numbers live in the results log.",
@@ -203,8 +204,15 @@ def run(ctx: Context) -> List[str]:
         row = results.get(comp, {}).get(sel)
         if row is None:
             continue   # S10 reports the missing row
+        for impl, rival_why in leaderboard.stale_rivals(config, comp, results.get(comp, {}), sel, stale_reason):
+            waived = ctx.waived("S20", f"{sid}:{impl}")   # in use now, though only --strict reports the finding
+            if ctx.strict and not waived:
+                bad.append(f"S20 {sid}: the verdict compares {sel} with rival {impl}, but {rival_why}; re-run "
+                           f"`esoi run {comp} --impl {impl} --record` on committed code")
         why = stale_reason(config, comp, row, ctx.strict)
         if not why:
+            if not ctx.strict and stale_reason(config, comp, row, True):
+                ctx.waived("S20", sid)   # strict-only: a waiver for it is in use now, not unused
             continue
         if not ctx.waived("S20", sid):
             bad.append(f"S20 {sid}: {why}; re-run `esoi run {comp} --impl {sel} --record` on committed code")

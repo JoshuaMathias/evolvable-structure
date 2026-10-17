@@ -104,9 +104,17 @@ def main(argv: Optional[List[str]] = None) -> int:
         table = {}
         try:
             table = config_module.load(args.config, Path(args.root)).hygiene
-        except config_module.ConfigError:
-            pass
-        return hygiene.run_cli(Path(args.root), args.staged, args.history, hygiene.allowances_from(table))
+        except config_module.ConfigMissing:
+            pass   # a folder with no configuration is scanned with the built-in allowances
+        except config_module.ConfigError as exc:
+            print(f"esoi: {exc}", file=sys.stderr)
+            return 2
+        try:
+            allow = hygiene.allowances_from(table)
+        except hygiene.HygieneError as exc:
+            print(f"esoi hygiene: {exc}", file=sys.stderr)
+            return 2
+        return hygiene.run_cli(Path(args.root), args.staged, args.history, allow)
     try:
         config = config_module.load(args.config)
     except config_module.ConfigError as exc:
@@ -140,16 +148,20 @@ def main(argv: Optional[List[str]] = None) -> int:
         from . import harness
         return harness.run_cli(args.rest, config)
     if args.cmd == "leaderboard":
-        from . import leaderboard, registry
-        return leaderboard.board(config, registry.load(config), args.strict)
+        from . import harness, leaderboard, registry
+        return leaderboard.board(config, registry.load(config), args.strict, stale=harness.stale_reason)
     if args.cmd == "select":
         from .select import Selector, load_table
         if not config.selection:
             print("esoi: no selection table configured (set `selection` in the config)", file=sys.stderr)
             return 2
-        selector = Selector(load_table(config.selection, config.root))
-        name = selector.chosen_name(args.solution, args.name)
-        print(f"{args.solution}: {name} (choices: {', '.join(selector.names(args.solution))})")
+        try:
+            selector = Selector(load_table(config.selection, config.root))
+            name = selector.chosen_name(args.solution, args.name)
+            print(f"{args.solution}: {name} (choices: {', '.join(selector.names(args.solution))})")
+        except (ValueError, OSError, ImportError, AttributeError) as exc:   # unknown solution or name, table cannot load
+            print(f"esoi: {exc}", file=sys.stderr)
+            return 2
         return 0
     if args.cmd == "tracker":
         from . import registry, tracker
@@ -162,7 +174,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 1 if bad else 0
     if args.cmd == "consumer":
         from . import consumer
-        options = consumer.Options.from_config(config, args.library)
+        try:
+            options = consumer.Options.from_config(config, args.library)
+        except ValueError as exc:
+            print(f"esoi: {exc}", file=sys.stderr)
+            return 2
         report = consumer.check_consumer(Path(args.registry), Path(args.root), options,
                                          Path(args.requirements) if args.requirements else None,
                                          Path(args.solutions) if args.solutions else None,

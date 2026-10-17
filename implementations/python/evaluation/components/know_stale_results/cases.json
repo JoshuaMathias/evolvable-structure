@@ -253,5 +253,124 @@
    "rule": "S20",
    "contains": "changed since"
   }
+ },
+ {
+  "id": "STL-012",
+  "area": "staleness",
+  "kind": "repo",
+  "description": "strict mode rejects a verdict resting on a rival recorded before the measured code changed",
+  "args": {
+   "edits": [
+    {
+     "op": "git_record"
+    },
+    {
+     "op": "append",
+     "path": "demo/greet.py",
+     "content": "\n# changed after the rival was recorded\n"
+    },
+    {
+     "op": "git_commit"
+    },
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "live",
+     "col": "git_sha",
+     "value": "{HEAD}"
+    }
+   ],
+   "strict": true
+  },
+  "expect": {
+   "rule": "S20",
+   "contains": "rival shout"
+  }
+ },
+ {
+  "id": "STL-013",
+  "area": "staleness",
+  "kind": "repo",
+  "description": "a waiver for the stale rival excuses it in strict mode (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "git_record"
+    },
+    {
+     "op": "append",
+     "path": "demo/greet.py",
+     "content": "\n# changed after the rival was recorded\n"
+    },
+    {
+     "op": "git_commit"
+    },
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "live",
+     "col": "git_sha",
+     "value": "{HEAD}"
+    },
+    {
+     "op": "csv_append",
+     "path": "docs/structure/waivers.csv",
+     "row": {
+      "rule": "S20",
+      "path": "greet-a-person:shout",
+      "reason": "The rival is a fixed baseline."
+     }
+    }
+   ],
+   "strict": true
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "STL-014",
+  "area": "staleness",
+  "kind": "repo",
+  "description": "a waiver for a strict-only finding is in use outside strict mode (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "git_record"
+    },
+    {
+     "op": "append",
+     "path": "demo/greet.py",
+     "content": "\n# changed\n"
+    },
+    {
+     "op": "git_commit"
+    },
+    {
+     "op": "csv_append",
+     "path": "docs/structure/waivers.csv",
+     "row": {
+      "rule": "S20",
+      "path": "greet-a-person",
+      "reason": "Re-run once the change settles."
+     }
+    },
+    {
+     "op": "csv_append",
+     "path": "docs/structure/waivers.csv",
+     "row": {
+      "rule": "S20",
+      "path": "greet-a-person:shout",
+      "reason": "Fixed baseline."
+     }
+    }
+   ],
+   "strict": false
+  },
+  "expect": {
+   "clean": true
+  }
  }
 ]

@@ -254,5 +254,172 @@
     "bad_passed": 0
    }
   }
+ },
+ {
+  "id": "MSR-015",
+  "area": "cost",
+  "kind": "cost",
+  "description": "a model run is priced from the table, per million tokens",
+  "args": {
+   "prices": {
+    "model-x": {
+     "input": 3.0,
+     "output": 15.0
+    }
+   },
+   "model": "model-x-20260101",
+   "model_calls": 2,
+   "tokens_in": 1000000,
+   "tokens_out": 100000
+  },
+  "expect": {
+   "eq": {
+    "cost_usd": "4.5"
+   }
+  }
+ },
+ {
+  "id": "MSR-016",
+  "area": "cost",
+  "kind": "cost",
+  "description": "a model run whose model has no price records a blank cost, not zero",
+  "args": {
+   "prices": {
+    "model-x": {
+     "input": 3.0,
+     "output": 15.0
+    }
+   },
+   "model": "other",
+   "model_calls": 2,
+   "tokens_in": 1000,
+   "tokens_out": 10
+  },
+  "expect": {
+   "eq": {
+    "cost_usd": ""
+   }
+  }
+ },
+ {
+  "id": "MSR-017",
+  "area": "cost",
+  "kind": "cost",
+  "description": "a run that called no model costs zero",
+  "args": {
+   "model_calls": 0
+  },
+  "expect": {
+   "eq": {
+    "cost_usd": "0.0"
+   }
+  }
+ },
+ {
+  "id": "MSR-018",
+  "area": "cost",
+  "kind": "cost",
+  "description": "a cost the provider reported wins over the table",
+  "args": {
+   "prices": {
+    "model-x": {
+     "input": 3.0,
+     "output": 15.0
+    }
+   },
+   "model": "model-x",
+   "model_calls": 1,
+   "tokens_in": 1000,
+   "reported": 0.25
+  },
+  "expect": {
+   "eq": {
+    "cost_usd": "0.25"
+   }
+  }
+ },
+ {
+  "id": "MSR-019",
+  "area": "paid",
+  "kind": "paid",
+  "description": "an arm declaring PAID = True may spend money",
+  "args": {
+   "declares": true
+  },
+  "expect": {
+   "eq": {
+    "paid": true
+   }
+  }
+ },
+ {
+  "id": "MSR-020",
+  "area": "paid",
+  "kind": "paid",
+  "description": "an arm listed in paid_arms may spend money",
+  "args": {
+   "listed": true
+  },
+  "expect": {
+   "eq": {
+    "paid": true
+   }
+  }
+ },
+ {
+  "id": "MSR-021",
+  "area": "paid",
+  "kind": "paid",
+  "description": "an arm whose last run called a model may spend money",
+  "args": {
+   "row_calls": "4"
+  },
+  "expect": {
+   "eq": {
+    "paid": true
+   }
+  }
+ },
+ {
+  "id": "MSR-022",
+  "area": "paid",
+  "kind": "paid",
+  "description": "an offline arm is not paid",
+  "args": {},
+  "expect": {
+   "eq": {
+    "paid": false
+   }
+  }
+ },
+ {
+  "id": "MSR-023",
+  "area": "external",
+  "kind": "external",
+  "description": "code in another repository that changed since the recorded commit makes the result stale in strict mode only",
+  "args": {
+   "change": true
+  },
+  "expect": {
+   "eq": {
+    "recorded": true,
+    "stale": true,
+    "stale_outside_strict": false
+   }
+  }
+ },
+ {
+  "id": "MSR-024",
+  "area": "external",
+  "kind": "external",
+  "description": "code in another repository that is unchanged keeps the result current",
+  "args": {},
+  "expect": {
+   "eq": {
+    "recorded": true,
+    "stale": false,
+    "stale_outside_strict": false
+   }
+  }
  }
 ]

@@ -24,7 +24,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from functools import cached_property
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
@@ -71,8 +71,17 @@ class Context:
 
     def cache(self) -> Cache:
         if self.modules is None:
-            self.modules = Cache(self.root, self.config.cache)
+            self.modules = Cache(self.root, self.config.cache, self.fingerprint())
         return self.modules
+
+    def fingerprint(self) -> str:
+        """What every remembered plugin result depends on besides its own files: the configuration and the structure
+        folder (the records and their headers)."""
+        base = self.config.structure_dir.rstrip("/") + "/"
+        stats = [[f, (self.root / f).stat().st_size, (self.root / f).stat().st_mtime_ns]
+                 for f in self.files if f.startswith(base) and (self.root / f).is_file()]
+        settings = json.dumps(asdict(self.config), sort_keys=True, default=str)
+        return hashlib.sha1((settings + json.dumps(stats)).encode()).hexdigest()
 
     def facts(self, rel: str) -> Facts:
         """Docstring, imports, environment reads and line count of a Python module, from one cached parse."""

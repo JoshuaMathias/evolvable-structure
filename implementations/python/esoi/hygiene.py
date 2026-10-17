@@ -11,15 +11,24 @@ documentation can show the SHAPE of a secret. Findings print the pattern name an
 whole secret. A secret already committed must be rotated, not just removed: ``--history`` finds it.
 
 The ``[hygiene]`` table of the configuration adds to the allowances: ``allow_email_domains``, ``allow_mailboxes``,
-``allow_users`` (placeholder user names in paths) and ``exclude`` (path prefixes not scanned).
+``allow_users`` (placeholder user names in paths) and ``exclude`` (path prefixes not scanned). Its ``patterns`` table
+adds a repository's own secret shapes under their own names, so a finding says what kind of secret it is:
+
+    [hygiene.patterns]
+    acme-key = "acme_(?:live|test)_[A-Za-z0-9]{20,}"
+
+Outside a git checkout the folder is walked (skipping caches and virtual environments); ``--staged`` and ``--history``
+need git and say so.
 """
 from __future__ import annotations
 
 import re
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence
+
+from .tables import SKIP_DIRS
 
 PLACEHOLDER_USERS = {"user", "you", "me", "name", "username", "someone", "example", "runner", "alice", "bob", "foo"}
 ALLOWED_EMAIL_DOMAINS = ("localhost", "invalid", "test", "users.noreply.github.com")
@@ -63,6 +72,11 @@ class Allowances:
     mailboxes: Sequence[str] = ()
     users: Sequence[str] = ()
     exclude: Sequence[str] = ()
+    patterns: Dict[str, "re.Pattern[str]"] = field(default_factory=dict)   # the repository's own secret shapes, by name
+
+
+class HygieneError(RuntimeError):
+    """The scan cannot run as asked (not a git checkout for ``--staged`` or ``--history``, a bad pattern)."""
 
 
 def redact(hit: str) -> str:
@@ -91,9 +105,12 @@ def scan_text(text: str, path: str = "<text>", allow: Allowances = Allowances())
     """Every non-placeholder hit in ``text``, one Finding per hit."""
     found: List[Finding] = []
     for number, line in enumerate(text.splitlines(), 1):
-        for name, rx in PATTERNS.items():
+        named = [m.span() for rx in allow.patterns.values() for m in rx.finditer(line)]
+        for name, rx in {**PATTERNS, **allow.patterns}.items():
             for match in rx.finditer(line):
-                if not is_placeholder(name, match, allow):
+                if name == "api-key" and any(a < match.end() and match.start() < b for a, b in named):
+                    continue   # the repository's own pattern already names this secret
+                if name in allow.patterns or not is_placeholder(name, match, allow):
                     found.append(Finding(path, number, name, redact(match.group(0))))
     for name, rx in BLOCK_PATTERNS.items():
         for match in rx.finditer(text):
@@ -105,8 +122,16 @@ def repo_files(root: Path, staged: bool = False) -> List[Path]:
     """Files git knows about under ``root``: the staged ones, or tracked plus untracked-not-ignored."""
     cmd = ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"] if staged else \
         ["git", "ls-files", "--cached", "--others", "--exclude-standard"]
-    out = subprocess.run(cmd, cwd=root, capture_output=True, text=True, check=True).stdout
-    return sorted(p for p in (root / f for f in set(out.splitlines())) if p.is_file())
+    try:
+        done = subprocess.run(cmd, cwd=root, capture_output=True, text=True)
+    except OSError:
+        done = None
+    if done is None or done.returncode != 0:
+        if staged:
+            raise HygieneError(f"{root} is not a git checkout (or git is missing), so there is nothing staged to scan; "
+                               "run without --staged to scan the folder")
+        return sorted(p for p in Path(root).rglob("*") if p.is_file() and not (set(p.relative_to(root).parts) & SKIP_DIRS))
+    return sorted(p for p in (root / f for f in set(done.stdout.splitlines())) if p.is_file())
 
 
 def scan_repo(root: Path, paths: Optional[Iterable[Path]] = None, staged: bool = False,
@@ -129,8 +154,15 @@ def scan_repo(root: Path, paths: Optional[Iterable[Path]] = None, staged: bool =
 
 def scan_history(root: Path, allow: Allowances = Allowances()) -> List[Finding]:
     """Every line added by any commit on any branch, plus commit authors and messages."""
-    out = subprocess.run(["git", "log", "--all", "-p", "--no-color", "--format=commit %H%n%an <%ae>%n%B"], cwd=root,
-                         capture_output=True, text=True, check=True).stdout
+    try:
+        done = subprocess.run(["git", "log", "--all", "-p", "--no-color", "--format=commit %H%n%an <%ae>%n%B"], cwd=root,
+                              capture_output=True, text=True)
+    except OSError:
+        done = None
+    if done is None or done.returncode != 0:
+        raise HygieneError(f"{root} is not a git checkout with history (or git is missing), so --history has nothing "
+                           "to scan")
+    out = done.stdout
     findings: List[Finding] = []
     commit, path = "", ""
     for line in out.splitlines():
@@ -146,14 +178,24 @@ def scan_history(root: Path, allow: Allowances = Allowances()) -> List[Finding]:
 
 
 def allowances_from(table: Dict) -> Allowances:
+    patterns: Dict[str, "re.Pattern[str]"] = {}
+    for name, source in (table.get("patterns") or {}).items():
+        try:
+            patterns[name] = re.compile(source)
+        except (re.error, TypeError) as exc:
+            raise HygieneError(f"[hygiene.patterns] {name!r} is not a regular expression ({exc})") from exc
     return Allowances(table.get("allow_email_domains", ()), table.get("allow_mailboxes", ()),
-                      table.get("allow_users", ()), table.get("exclude", ()))
+                      table.get("allow_users", ()), table.get("exclude", ()), patterns)
 
 
 def run_cli(root: Path, staged: bool, history: bool, allow: Allowances, say=print) -> int:
-    findings = scan_repo(root.resolve(), staged=staged, allow=allow)
-    if history:
-        findings += scan_history(root.resolve(), allow)
+    try:
+        findings = scan_repo(root.resolve(), staged=staged, allow=allow)
+        if history:
+            findings += scan_history(root.resolve(), allow)
+    except HygieneError as exc:
+        say(f"esoi hygiene: {exc}")
+        return 2
     for finding in findings:
         say(str(finding))
     say(f"hygiene scan: {'FAIL, ' + str(len(findings)) + ' finding(s)' if findings else 'clean'}")

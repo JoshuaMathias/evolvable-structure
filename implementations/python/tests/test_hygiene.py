@@ -1,6 +1,8 @@
 """The public-repository hygiene scan."""
 import subprocess
 
+import pytest
+
 from esoi import hygiene
 
 
@@ -67,3 +69,25 @@ def test_run_cli_exit_codes(tmp_path):
     assert hygiene.run_cli(tmp_path, False, False, hygiene.Allowances(), lines.append) == 0 and lines[-1] == "hygiene scan: clean"
     (tmp_path / "b.txt").write_text("/home" + "/realperson/x\n")
     assert hygiene.run_cli(tmp_path, False, False, hygiene.Allowances(), lines.append) == 1
+
+
+def test_a_repository_names_its_own_secret_shapes(tmp_path):
+    secret = "acme_" + "A1b2C3d4E5f6G7h8I9j0K1l2M3"
+    own = hygiene.allowances_from({"patterns": {"acme-key": "acme_[A-Za-z0-9]{20,}"}})
+    found = hygiene.scan_text(f"key = {secret}", allow=own)
+    assert [f.pattern for f in found] == ["acme-key"]   # named once, not also as the generic api-key
+    assert [f.pattern for f in hygiene.scan_text(f"key = {secret}")] == ["api-key"]
+    assert hygiene.scan_text("acme_ is a prefix", allow=own) == []
+    with pytest.raises(hygiene.HygieneError, match="acme"):
+        hygiene.allowances_from({"patterns": {"acme": "("}})
+
+
+def test_outside_git_the_folder_is_walked_and_staged_or_history_say_why(tmp_path):
+    (tmp_path / "leak.txt").write_text("/home" + "/realperson/x\n")
+    (tmp_path / "node_modules").mkdir()
+    (tmp_path / "node_modules" / "skipped.txt").write_text("/home" + "/realperson/y\n")
+    assert [f.path for f in hygiene.scan_repo(tmp_path)] == ["leak.txt"]
+    lines = []
+    assert hygiene.run_cli(tmp_path, False, False, hygiene.Allowances(), lines.append) == 1
+    assert hygiene.run_cli(tmp_path, True, False, hygiene.Allowances(), lines.append) == 2 and "not a git checkout" in lines[-1]
+    assert hygiene.run_cli(tmp_path, False, True, hygiene.Allowances(), lines.append) == 2 and "--history" in lines[-1]

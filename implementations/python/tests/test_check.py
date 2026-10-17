@@ -187,3 +187,114 @@ def test_run_cli_prints_the_verdict_and_returns_the_exit_code(cfg):
     assert check.run_cli(cfg, False, False, lines.append) == 0 and lines[-1] == "structure check: ok"
     (cfg.root / "stray.py").write_text('"""x."""\n')
     assert check.run_cli(cfg, False, False, lines.append) == 1 and "FAIL" in lines[-1]
+
+
+PORT = '"""Port."""\nfrom typing import Protocol\n\n\nclass Greeter(Protocol):\n    """x."""\n'
+
+
+def drop_column(cfg, name, column):
+    path = cfg.structure / name
+    rows, cols = tables.read_csv(path), [c for c in tables.read_header(path) if c != column]
+    tables.write_csv(path, cols, rows)
+
+
+def commit(root, message="change"):
+    import subprocess
+    for args in (["add", "-A"], ["commit", "-q", "-m", message]):
+        subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid", *args], cwd=root, check=True,
+                       capture_output=True)
+    return subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
+
+
+def test_a_solutions_file_without_a_port_column_is_a_problem_when_something_needs_it_not_a_crash(cfg):
+    drop_column(cfg, "solutions.csv", "port")
+    assert check.check(cfg) == []   # no port, no selection table: nothing reads the column
+    (cfg.root / "demo" / "ports.py").write_text(PORT)
+    found = check.check(cfg)
+    assert any(line.startswith("S7") and "no `port` column" in line for line in found)
+    (cfg.root / "demo" / "selection.py").write_text(
+        '"""Table."""\nSELECTION = {"greet-a-person": {"default": "plain", "implementations": {"plain": "demo.greet:greet"}}}\n')
+    cfg.selection = "demo/selection.py:SELECTION"
+    assert any("no `port` column" in line for line in check.check(cfg))
+
+
+def test_every_column_the_rules_read_may_be_missing_without_a_crash(cfg):
+    from esoi.registry import RULE_COLUMNS
+    tables.write_csv(cfg.structure / "waivers.csv", ["rule", "path", "reason"], [dict(rule="S4", path="demo/greet.py", reason="x")])
+    for name, columns in RULE_COLUMNS.items():
+        for column in columns:
+            path = cfg.structure / name
+            original = path.read_text()
+            drop_column(cfg, name, column)
+            found = check.check(cfg)   # must return problems, not raise
+            assert any(f"`{column}` column" in line and name in line for line in found), (name, column, found[:3])
+            path.write_text(original)
+
+
+def test_several_implementations_in_one_module_are_listed_by_the_path_of_their_records(cfg):
+    (cfg.root / "demo" / "ports.py").write_text(PORT)
+    (cfg.root / "demo" / "providers.py").write_text('"""Four providers in one module."""\n')
+    (cfg.root / "demo" / "selection.py").write_text(
+        '"""Table."""\nSELECTION = {"greet-a-person": {"default": "plain", "implementations": {'
+        '"plain": "demo.greet:greet", "alpha": "demo.providers:Alpha", "beta": "demo.providers:Beta"}}}\n')
+    cfg.selection = "demo/selection.py:SELECTION"
+    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "port", "Greeter")
+    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "selected", "plain")
+    found = check.check(cfg)
+    assert sum("demo/providers.py, which" in line for line in found) == 2   # not listed anywhere yet
+    rows = tables.read_csv(cfg.structure / "implementations.csv")
+    first = next(r for r in rows if r["solution_id"] == "greet-a-person")
+    rows += [dict(first, implementation_id=f"greet-a-person:{name}", path="demo/providers.py::" + name) for name in ("alpha", "beta")]
+    tables.write_csv(cfg.structure / "implementations.csv", tables.read_header(cfg.structure / "implementations.csv"), rows)
+    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "implementations",
+         tables.read_csv(cfg.structure / "solutions.csv")[0]["implementations"] + ";demo/providers.py::alpha;demo/providers.py::beta")
+    check.write_docs(cfg, say=lambda text: None)
+    assert check.check(cfg) == []   # records are matched by path, so their ids need not follow a pattern
+
+
+def test_s3_allows_a_named_root_script_and_a_waiver_can_excuse_one(cfg):
+    (cfg.root / "setup.py").write_text('"""Setup."""\n')
+    (cfg.root / "tool.py").write_text('"""Tool."""\n')
+    assert {line.split(" ")[1].rstrip(":") for line in check.check(cfg) if line.startswith("S3")} == {"setup.py", "tool.py"}
+    cfg.root_python_allow = ["setup.py"]
+    assert [line.split(" ")[1].rstrip(":") for line in check.check(cfg) if line.startswith("S3")] == ["tool.py"]
+    tables.write_csv(cfg.structure / "waivers.csv", ["rule", "path", "reason"], [dict(rule="S3", path="tool.py", reason="A build entry point.")])
+    assert not [line for line in check.check(cfg) if line.startswith(("S3", "S9"))]
+
+
+def stale_rival_repo(cfg):
+    """A committed repository where the selected arm was recorded after the measured code changed and its rival before."""
+    import subprocess
+    subprocess.run(["git", "init", "-q"], cwd=cfg.root, check=True)
+    first = commit(cfg.root, "first")
+    (cfg.root / "demo" / "greet.py").write_text((cfg.root / "demo" / "greet.py").read_text() + "\n# changed\n")
+    second = commit(cfg.root, "second")
+    rows, cols = tables.read_csv(cfg.results_path), tables.read_header(cfg.results_path)
+    for r in rows:
+        r["git_sha"] = second if r["impl"] == "live" else first
+    tables.write_csv(cfg.results_path, cols, rows)
+    return first, second
+
+
+def test_strict_flags_a_verdict_resting_on_a_stale_rival(cfg):
+    stale_rival_repo(cfg)
+    assert check.check(cfg) == []
+    found = check.check(cfg, strict=True)
+    assert any(line.startswith("S20 greet-a-person") and "rival shout" in line and "changed since" in line for line in found)
+    tables.write_csv(cfg.structure / "waivers.csv", ["rule", "path", "reason"],
+                     [dict(rule="S20", path="greet-a-person:shout", reason="The rival is a fixed baseline.")])
+    assert check.check(cfg, strict=True) == []
+    assert check.check(cfg) == []   # in use, though only --strict reports the finding
+
+
+def test_a_waiver_for_a_strict_only_problem_is_not_unused_outside_strict_mode(cfg):
+    first, _ = stale_rival_repo(cfg)
+    rows, cols = tables.read_csv(cfg.results_path), tables.read_header(cfg.results_path)
+    for r in rows:
+        r["git_sha"] = first   # the selected arm too is now stale, which only --strict sees
+    tables.write_csv(cfg.results_path, cols, rows)
+    tables.write_csv(cfg.structure / "waivers.csv", ["rule", "path", "reason"], [
+        dict(rule="S20", path="greet-a-person", reason="Re-run once the change settles."),
+        dict(rule="S20", path="greet-a-person:shout", reason="Fixed baseline.")])
+    assert check.check(cfg) == []
+    assert check.check(cfg, strict=True) == []

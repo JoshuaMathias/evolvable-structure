@@ -102,3 +102,11 @@ def test_invariant_components_are_listed_apart(tmp_path):
     lines = []
     assert lb.board(cfg, registry, strict=True, say=lines.append) == 0
     assert any(line.startswith("Invariant solutions") or "Invariant solutions" in line for line in lines)
+
+
+def test_one_malformed_results_line_does_not_stop_the_board(tmp_path):
+    path = tmp_path / "results.csv"
+    path.write_text("date,component,impl,cases,passed\n2026-01-01,c,a,2,\n,,,,\n2026-01-01,c,b,x,1\n")
+    rows = lb.latest_results(path)
+    assert set(rows["c"]) == {"a", "b"}
+    assert lb.pass_rate(rows["c"]["a"]) == 0.0 and lb.pass_rate(rows["c"]["b"]) == 1.0
