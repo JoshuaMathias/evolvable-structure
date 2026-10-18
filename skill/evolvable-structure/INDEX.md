@@ -10,6 +10,7 @@ table in `principles.md`, which also gives that pattern's "reached when" test.
 | Read | When | Skip when |
 |---|---|---|
 | `steps.md` | defining or applying ESOI to anything new, or working through a project in order: the steps from purpose to selection by metric and where to loop back, and how the process itself is improved | you are only answering a narrow design question |
+| `python_tools.md` | the work is a code repository where ESOI's checks and measurements could be automated, the user asks whether a tool exists, or you are about to push a public repository: the optional `esoi` Python package, when to suggest it, and how to ask whether to use it and whether the repo may become a dependency | a first pass, or any non-code intent: do it by hand |
 | `principles.md` | you need concrete design or review questions for the ideals (the 15 patterns), you are deciding whether to generalize at all, writing up a design, or editing this skill. It is a sub-index for `principles/` | `SKILL.md` already settles the question |
 | `coding.md` | writing, reviewing or restructuring code, especially code AI writes. It is a sub-index for the project examples in `coding/` | the work is not code |
 | `other-categories.md` | products and settings, research method, teaching, coaching and certification, team processes and governance, documents | the work is only code |
@@ -33,6 +34,7 @@ table in `principles.md`, which also gives that pattern's "reached when" test.
 | How people propose, check and decide (reviews, votes, approval gates), or a process that should improve itself | `other-categories.md` "Collaborative innovation and process"; `principles/purpose.md` "A process is a structure too" | |
 | Writing or reviewing a CLAUDE.md or other always-loaded context file | `other-categories.md` "Context files (CLAUDE.md)" | `principles/difficulties.md` "Copies drift" |
 | Starting a project, product, course or process with ESOI, or asking "what do I do first?" | `steps.md` | |
+| Automating ESOI's checks or measurements, a tool to check the records, or scanning a repository before a public push | `python_tools.md` (ask the user first) | |
 | Writing up a design, a doc template, a project board | `principles.md` "How to think and document" | `other-categories.md` "Process, organization and documents" |
 | Someone proposes an abstraction, or how much structure the task deserves is unclear | `principles/difficulties.md`; `principles/purpose.md` (sizing to the purpose) | `principles/research.md`; `sources/INDEX.md` "When NOT to generalize" |
 | Deciding what stays stable and what is changeable | pattern 14; `principles/purpose.md` | `sources/INDEX.md` "Parts that change at different rates" |
