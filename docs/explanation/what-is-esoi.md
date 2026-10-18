@@ -16,6 +16,12 @@ are a limited translation of it. Automation can create intents of its own, but a
 The author's own definitions and principles are quoted in [from-the-skill.md](from-the-skill.md). They are the
 authority; this page only orients you.
 
+There happen to be thirteen principles, a number the author finds fitting. In numerology 13 reduces to 1 + 3 = 4,
+stability and hard work, and is read as a controlled clearing away of outgrown structures to make room for a fresh
+foundation; as an angel number it stands for focus, change and adaptability. That is close to what ESOI asks of a
+structure: stable enough to build on, and changeable without losing what came before. The count is a nicety, not a
+rule, and it will change if a principle ever needs splitting or merging.
+
 ## The loop
 
 1. **Say why.** Write the problem someone has and the ideal state that opposes it. See
