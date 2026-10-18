@@ -10,7 +10,7 @@ table in `principles.md`, which also gives that pattern's "reached when" test.
 | Read | When | Skip when |
 |---|---|---|
 | `steps.md` | defining or applying ESOI to anything new, or working through a project in order: the steps from purpose to selection by metric and where to loop back, and how the process itself is improved | you are only answering a narrow design question |
-| `python_tools.md` | the work is a code repository where ESOI's checks and measurements could be automated, the user asks whether a tool exists, or you are about to push a public repository: the optional `esoi` Python package, when to suggest it, and how to ask whether to use it and whether the repo may become a dependency | a first pass, or any non-code intent: do it by hand |
+| `python_tools.md` | the work is a code repository where ESOI's checks and measurements could be automated, the user asks whether a tool exists, or you are about to push a public repository: the optional `esoi` Python package, when to suggest it, and how to ask whether to use it and whether the repo may become a development or runtime dependency | a first pass, or any non-code intent: do it by hand |
 | `principles.md` | you need concrete design or review questions for the ideals (the 15 patterns), you are deciding whether to generalize at all, writing up a design, or editing this skill. It is a sub-index for `principles/` | `SKILL.md` already settles the question |
 | `coding.md` | writing, reviewing or restructuring code, especially code AI writes. It is a sub-index for the project examples in `coding/` | the work is not code |
 | `other-categories.md` | products and settings, research method, teaching, coaching and certification, team processes and governance, documents | the work is only code |
