@@ -22,7 +22,7 @@ dir = "skill/evolvable-structure"
 copies = ["implementations/python/esoi/data/skill/evolvable-structure"]
 private_dirs = ["archive"]
 include = [
-  "SKILL.md", "INDEX.md", "principles.md", "principles/*.md", "coding.md",
+  "SKILL.md", "INDEX.md", "steps.md", "principles.md", "principles/*.md", "coding.md",
   "coding/components.md", "coding/registry_and_templates.md", "coding/pipelines_and_experiments.md",
   "coding/writealyze.md", "coding/concept_ai_quest_qar.md", "other-categories.md",
   "sources/INDEX.md", "sources/public_research.md", "sources/components_research.md",

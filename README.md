@@ -12,6 +12,9 @@ implementation of the checking and measuring tools, and ESOI is applied to this 
 
 ## Start here
 
+To apply ESOI to something, follow [the steps](skill/evolvable-structure/steps.md): in order, from stating the
+purpose to selecting by metric and looping back. The rest of this repository explains and supports them.
+
 1. **Read** [docs/explanation/](docs/explanation/): what ESOI is, the five intent types, the overall solution network
    and the detailed records, [when to split a solution](docs/explanation/when-to-split.md), choosing by metric, [where the template came from](docs/explanation/project-documentation-board.md), [when metrics are run](docs/explanation/when-metrics-are-run.md), 
    applying it beyond code, [applying it to an AI agent's behaviour](docs/explanation/esoi-for-ai.md), and [related frameworks](docs/explanation/related-work.md).

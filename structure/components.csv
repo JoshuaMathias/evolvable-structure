@@ -29,13 +29,13 @@ eval-check-a-consumer,evaluation,implementations/python/evaluation/components/ch
 eval-know-stale-results,evaluation,implementations/python/evaluation/components/know_stale_results/**,Cases for telling a stale result from a current one.,py-metric-run-policy
 eval-shared,evaluation,implementations/python/evaluation/components/*.py;implementations/python/evaluation/components/results.csv,"Fixtures shared by the evaluations, and the results log.",py-check-runner;py-harness;py-consumer-check;py-metric-run-policy;behave-by-esoi;judge-esoi-behaviour
 python-project,project,implementations/python/pyproject.toml;implementations/python/README.md;implementations/python/conftest.py;implementations/python/docs/**,"Packaging, the implementation's readme and its reference documents.",py-check-runner
-documentation,docs,docs/**,"Explanation, guides and non-code templates (the main feature of the repository).",docs-and-templates
+documentation,docs,docs/**,"Explanation, guides and non-code templates (the main feature of the repository).",docs-and-templates;follow-the-steps
 examples,docs,examples/**,Adopters as short examples and testimonials.,docs-and-templates
 structure-registry,docs,structure/**,This repository's own overall network and detailed records.,py-records-check
 project-files,project,*,"Files at the repository root: readme, configuration, contributing, licence.",docs-and-templates
 ci,project,.github/**,The continuous integration workflow.,py-metric-run-policy
 skill-distribution,tools,implementations/python/esoi/skill.py,"Generating, checking and installing the public copy of the author's skill.",py-skill-distribution
-public-skill,docs,skill/**;.claude-plugin/**;implementations/python/esoi/data/skill/**,"The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package.",py-skill-distribution;behave-by-esoi
+public-skill,docs,skill/**;.claude-plugin/**;implementations/python/esoi/data/skill/**,"The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package.",py-skill-distribution;behave-by-esoi;follow-the-steps
 eval-sync-the-skill,evaluation,implementations/python/evaluation/components/sync_the_skill/**,"Cases for the sync, the drift check, leak detection and install.",py-skill-distribution
 behaviour,tools,implementations/python/esoi/behaviour.py,"Grading an AI agent's reply against a behaviour case: the pattern check, the judge prompt and verdict, and a command provider.",behave-by-esoi;judge-esoi-behaviour
 eval-behave-by-esoi,evaluation,implementations/python/evaluation/components/behave_by_esoi/**,"Cases, recorded replies and the arms for whether an agent acts by the principles.",behave-by-esoi

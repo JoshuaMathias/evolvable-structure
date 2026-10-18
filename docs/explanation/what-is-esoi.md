@@ -24,6 +24,8 @@ rule, and it will change if a principle ever needs splitting or merging.
 
 ## The loop
 
+This is the short version. The full order, step by step, is in [the steps](../../skill/evolvable-structure/steps.md).
+
 1. **Say why.** Write the problem someone has and the ideal state that opposes it. See
    [intent-types.md](intent-types.md).
 2. **Say what.** Write a solution: what it is for, what it must do, how you will know it works, and its interface.

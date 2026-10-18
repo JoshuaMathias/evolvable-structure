@@ -3,6 +3,11 @@
 No tools are needed. A folder of text files and a spreadsheet are enough, or a copy of the
 [Project Documentation board](../explanation/project-documentation-board.md). Plan on about an hour for the first pass.
 
+This guide is a short first pass through [the steps](../../skill/evolvable-structure/steps.md): section 1 covers steps
+1 to 10 in brief, section 2 steps 11, 12 and 16, section 3 steps 13, 14, 17 and 18, section 4 step 19, and section 5 steps
+20 to 23. It leaves out step 15 (review from other perspectives), so do that before relying on the result. When you
+have more than an hour, follow the steps themselves.
+
 ## 1. Write the overall network (about twenty minutes)
 
 Copy [overall-solution-network.md](../templates/overall-solution-network.md). Write one to three problems and ideals, one

@@ -35,6 +35,8 @@ card in a Documentation list, so the structure documents itself.
   better than another in achieving the Definition's goals."
 - **Recursion.** Sub-components of an implementation are themselves definitions with alternatives, which is how
   [sub-solutions](when-to-split.md) nest.
+- **An order to follow.** The board's "Steps to project completion" checklist is the starting point for
+  [the ESOI steps](../../skill/evolvable-structure/steps.md), which say what was kept and what changed.
 - **The loop does not end.** The board's last step reads "You're done! Or, keep improving, adjusting any problems, goals,
   and solutions as necessary."
 - **Reversible status, not deletion.** Lanes such as "To Consider", "Probably not" and "Not now" keep options visible and
