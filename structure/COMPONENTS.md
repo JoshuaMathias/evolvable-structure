@@ -40,6 +40,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `structure-registry` | docs | This repository's own overall network and detailed records. | py-records-check |
 | `project-files` | project | Files at the repository root: readme, configuration, contributing, licence. | docs-and-templates |
 | `ci` | project | The continuous integration workflow. | py-metric-run-policy |
+| `wiki` | scripts | Generating the GitHub wiki from docs/ on every push to main, so the docs stay the one source. | docs-and-templates |
 | `skill-distribution` | tools | Generating, checking and installing the public copy of the author's skill. | py-skill-distribution |
 | `public-skill` | docs | The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package. | py-skill-distribution, behave-by-esoi, follow-the-steps |
 | `eval-sync-the-skill` | evaluation | Cases for the sync, the drift check, leak detection and install. | py-skill-distribution |

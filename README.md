@@ -1,40 +1,32 @@
-# evolvable-structure
+# Evolvable Structure that Optimizes Intent (ESOI)
 
-Evolvable Structure that Optimizes Intent (ESOI) is Joshua Mathias's way of turning an intention into a
-structure that optimizes the fulfilling of that intent, while keeping the structure open to changes in the intent.
-Intent is written down as five linked kinds of record (problems, ideals, solutions, implementations and metrics),
-alternatives are compared by the metric the solution names as authoritative, and the best one is used automatically.
-So people need only review metrics to steer, not implementations, though they can still review and improve
-implementations and that still adds value.
+ESOI is Joshua Mathias's way to make sure what you intend actually happens, and keeps getting better. You put your
+intent into words as a few short kinds of record (the problem, the ideal you want, the solution, the ways of doing it,
+and how to measure them), try more than one way, and let a measurement pick the best. The structure stays steady while
+the ways of doing things improve, and it changes with you when your intent does.
 
-This repository is mostly explanation and fill-in templates that need no code. Python is one example
-implementation of the checking and measuring tools, and ESOI is applied to this repository too.
+It works for anything with an intent and more than one way to serve it: a product, code, a course, a coaching program,
+a team process, a personal schedule. You need no code to use it.
+
+**[Read the guide on the wiki](https://github.com/JoshuaMathias/evolvable-structure/wiki)**
 
 ## Start here
 
-To apply ESOI to something, follow [the steps](skill/evolvable-structure/steps.md): in order, from stating the
-purpose to selecting by metric and looping back. The rest of this repository explains and supports them.
+1. **[What ESOI is](https://github.com/JoshuaMathias/evolvable-structure/wiki/What-ESOI-is)**: the idea in five minutes.
+2. **[The ESOI steps](https://github.com/JoshuaMathias/evolvable-structure/wiki/The-ESOI-steps)**: what to do, in order,
+   from your purpose to choosing by a measurement.
+3. **[Apply ESOI by hand](https://github.com/JoshuaMathias/evolvable-structure/wiki/Apply-ESOI-by-hand)**: a first pass
+   in about an hour, with fill-in templates and no tools.
 
-1. **Read** [docs/explanation/](docs/explanation/): what ESOI is, the five intent types, the overall solution network
-   and the detailed records, [when to split a solution](docs/explanation/when-to-split.md), choosing by metric, [where the template came from](docs/explanation/project-documentation-board.md), [when metrics are run](docs/explanation/when-metrics-are-run.md), 
-   applying it beyond code, [applying it to an AI agent's behaviour](docs/explanation/esoi-for-ai.md), and [related frameworks](docs/explanation/related-work.md).
-2. **Fill in** [docs/templates/](docs/templates/): one template per intent type, an overall solution network,
-   record headers, a repository standard, a review sheet layout and a metric run policy. They are generated from the author's own
-   `SKILL.md`, so the questions are his words.
-3. **Follow** [docs/guides/](docs/guides/): apply ESOI to a new project by hand first, then with tools.
-4. **Install** the author's skill itself, as a plugin, a folder download or with `esoi`: [docs/guides/install-the-skill.md](docs/guides/install-the-skill.md).
+The wiki is generated from [docs/](docs/README.md) in this repository, so the same pages are here too.
 
-## What is here
+## Give the principles to an AI agent
 
-| Folder | What it holds |
-|---|---|
-| [`docs/`](docs/) | The main feature: explanation, guides and templates, all non-code |
-| [`skill/`](skill/) | The author's `evolvable-structure` skill as a self-contained folder and Claude Code plugin, generated from his own skill |
-| [`implementations/python/`](implementations/python/) | The `esoi` package and command: checks, measuring, a leaderboard, a review tracker. One example implementation |
-| [`examples/`](examples/) | Repositories that adopted ESOI, as short testimonials |
-| [`structure/`](structure/) | ESOI applied to this repository: its overall network and its detailed records |
+The author's `evolvable-structure` skill carries the principles and the steps for Claude Code and similar agents.
+[Install the skill](https://github.com/JoshuaMathias/evolvable-structure/wiki/Install-the-skill) as a plugin, a folder
+download or with `esoi`.
 
-## The Python implementation
+## Check and measure with Python (optional)
 
 ```bash
 pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git#subdirectory=implementations/python"
@@ -42,11 +34,22 @@ esoi init            # scaffold a small example repository that already passes
 esoi check           # run every structural rule
 ```
 
-More in [implementations/python/README.md](implementations/python/README.md) and
-[docs/guides/apply-with-tools.md](docs/guides/apply-with-tools.md). It needs Python 3.11 or later and has no
-dependencies in its core; Google Sheets sync is an optional extra (`esoi[sheets]`).
+More in [Apply ESOI with the Python tools](https://github.com/JoshuaMathias/evolvable-structure/wiki/Apply-ESOI-with-the-Python-tools)
+and [the package's README](implementations/python/README.md). It needs Python 3.11 or later and has no dependencies in
+its core; Google Sheets sync is an optional extra (`esoi[sheets]`).
+
+## What is in this repository
+
+| Folder | What it holds |
+|---|---|
+| [`docs/`](docs/README.md) | The main feature: explanation, guides and templates, all non-code. The wiki is generated from it |
+| [`skill/`](skill/) | The author's `evolvable-structure` skill as a self-contained folder and Claude Code plugin, generated from his own skill |
+| [`implementations/python/`](implementations/python/) | The `esoi` package and command: checks, measuring, a leaderboard, a review tracker. One example implementation |
+| [`examples/`](examples/) | Repositories that adopted ESOI, as short testimonials |
+| [`structure/`](structure/) | ESOI applied to this repository: its overall network and its detailed records |
 
 ## Contributing and licence
 
 Only Joshua, or an AI acting on his own prompt, edits this repository; others open an issue or a pull request that
-he reviews (see [CONTRIBUTING.md](CONTRIBUTING.md)). Apache-2.0, see [LICENSE](LICENSE).
+he reviews (see [CONTRIBUTING.md](CONTRIBUTING.md)). Edit pages in `docs/`, not on the wiki: the wiki is regenerated on
+every push. Apache-2.0, see [LICENSE](LICENSE).
