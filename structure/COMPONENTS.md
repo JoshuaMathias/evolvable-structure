@@ -5,6 +5,15 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 
 | Component | Layer | Role | Serves |
 |---|---|---|---|
+| `documentation` | docs | Explanation, guides and non-code templates (the main feature of the repository). | docs-and-templates, follow-the-steps |
+| `examples` | docs | Adopters as short examples and testimonials. | docs-and-templates |
+| `structure-registry` | docs | This repository's own overall network and detailed records. | py-records-check |
+| `project-files` | project | Files at the repository root: readme, configuration, contributing, licence. | docs-and-templates |
+| `wiki` | scripts | Generating the GitHub wiki from docs/ on every push to main, so the docs stay the one source. | docs-and-templates |
+| `public-skill` | docs | The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package. | py-skill-distribution, behave-by-esoi, follow-the-steps |
+| `behaviour` | tools | Grading an AI agent's reply against a behaviour case: the pattern check, the judge prompt and verdict, and a command provider. | behave-by-esoi, judge-esoi-behaviour |
+| `eval-behave-by-esoi` | evaluation | Cases, recorded replies and the arms for whether an agent acts by the principles. | behave-by-esoi |
+| `eval-judge-esoi-behaviour` | evaluation | Labelled replies and the arms for how far a judge agrees with them. | judge-esoi-behaviour |
 | `records-core` | core | Loading the configuration and the CSV records, and checking the intent records against the template. | py-records-check |
 | `template-reader` | core | Reading the intent template from its source and keeping the parsed copy. | py-template-reader |
 | `selection` | core | Resolving an implementation of a solution from a selection table. | py-selector |
@@ -35,15 +44,11 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `eval-know-stale-results` | evaluation | Cases for telling a stale result from a current one. | py-metric-run-policy |
 | `eval-shared` | evaluation | Fixtures shared by the evaluations, and the results log. | py-check-runner, py-harness, py-consumer-check, py-metric-run-policy, behave-by-esoi, judge-esoi-behaviour |
 | `python-project` | project | Packaging, the implementation's readme and its reference documents. | py-check-runner |
-| `documentation` | docs | Explanation, guides and non-code templates (the main feature of the repository). | docs-and-templates, follow-the-steps |
-| `examples` | docs | Adopters as short examples and testimonials. | docs-and-templates |
-| `structure-registry` | docs | This repository's own overall network and detailed records. | py-records-check |
-| `project-files` | project | Files at the repository root: readme, configuration, contributing, licence. | docs-and-templates |
 | `ci` | project | The continuous integration workflow. | py-metric-run-policy |
-| `wiki` | scripts | Generating the GitHub wiki from docs/ on every push to main, so the docs stay the one source. | docs-and-templates |
 | `skill-distribution` | tools | Generating, checking and installing the public copy of the author's skill. | py-skill-distribution |
-| `public-skill` | docs | The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package. | py-skill-distribution, behave-by-esoi, follow-the-steps |
 | `eval-sync-the-skill` | evaluation | Cases for the sync, the drift check, leak detection and install. | py-skill-distribution |
-| `behaviour` | tools | Grading an AI agent's reply against a behaviour case: the pattern check, the judge prompt and verdict, and a command provider. | behave-by-esoi, judge-esoi-behaviour |
-| `eval-behave-by-esoi` | evaluation | Cases, recorded replies and the arms for whether an agent acts by the principles. | behave-by-esoi |
-| `eval-judge-esoi-behaviour` | evaluation | Labelled replies and the arms for how far a judge agrees with them. | judge-esoi-behaviour |
+| `intent-tree` | core | Finding the intent folders of a repository and reading their records as one tree. | py-records-check |
+| `intent-migration` | tools | Moving a legacy two-level repository to the intent layout without inventing a sub-intent. | py-records-check |
+| `rules-intents` | tools | The rules about intents as containers: the sub-intent link, the opportunity and ids across the tree. | py-check-runner |
+| `local-index` | tools | The local ESOI index: projects, their relations and where to look. | local-application-index |
+| `eval-index-projects` | evaluation | Lookup cases over a small world of projects, the live index and the arms it is compared with. | local-application-index |

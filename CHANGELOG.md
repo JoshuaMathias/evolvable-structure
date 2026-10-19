@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+Intents are the containers and the unit of hierarchy (from the author's updated SKILL.md):
+
+- The intent template now has the **Intent** itself (name, vision statement) as its own item, parsed beside the five
+  specification templates; `esoi template sync` writes `docs/templates/intent.md`, an `intent.csv` header and the new
+  definitions and principle bullets verbatim.
+- **Layout.** An intent is a folder with an `intent.csv` and the five record files. The configured folder holds a project's
+  **top intent**, which is why that project exists, in its own words (a product's is about the product, not ESOI; in this repository it is
+  ESOI because that is why it exists). The evolvable structure a project applies is a **solution inside** its top intent, whose
+  implementation may use esoi's solutions. A **sub-intent** is a subfolder with its own `intent.csv`; it arises as an
+  implementation of a solution in its parent (`implements`, and `sub_intent` on that implementation) and states the
+  `opportunity` that justifies it. `implementations.csv` gains `sub_intent` and `uses_solution_ids` (`@project_id/solution_id`
+  for another project's solution). Ids are unique across the tree and links resolve anywhere in it. The folder default is one
+  constant (`DEFAULT_STRUCTURE_DIR`).
+- **Rules** S28 (intent folders and the sub-intent link) and S29 (ids across the tree, `uses_solution_ids`); S26 checks the
+  records of every intent as one set, reports the retired `overall_solution_ids`, and a solution with
+  `metric_kind` `specification` (defined, with alternatives, not yet measured by a run) needs no interface fields or metric command.
+- **Legacy.** The two-level `overall` layout loads and passes as before, with one note pointing at
+  `docs/guides/migrate-to-intents.md`. `esoi intent migrate [--apply]` moves the overall records into the top intent and
+  turns `overall_solution_ids` into `uses_solution_ids`; it leaves the top intent's name and vision for the project to
+  write and never invents a sub-intent.
+- `esoi init` writes the intent layout: a top intent with its name and vision left empty (the check reports them until the
+  project fills them), a starter `project-structure` solution that uses esoi, and no sub-intent.
+- **Local ESOI index.** `esoi projects init|add|list|check|index|where` keeps `projects.csv` and a generated `INDEX.md` in
+  `$ESOI_HOME` (else `~/.esoi`): which projects ESOI is applied to, how they relate and where to look first. No network calls.
+  This repository records it as the `local-application-index` solution with a measured live implementation, the retired
+  baseline of routing rows in a skill index, and the floor of each project's own records.
+- This repository's own `structure/` is converted: top intent `esoi`, sub-intents `esoi-python` and `esoi-for-ai-behaviour`.
+
 Fixes from an adopter report (a verdict that compared different samples):
 
 - The leaderboard compares arms only on the same cases and sample: the same `cases_sha`, the same new `sample` column (blank for

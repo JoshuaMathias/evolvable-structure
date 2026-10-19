@@ -1,9 +1,66 @@
-# The ESOI network of the evolvable structure itself
+# The intent tree of this repository
 
-This is the intent of the structure itself: the evolvable
-structure that every solution of an adopting repository is recorded, measured and selected through ("The structure itself is
-an implementation of a solution which defines the purpose of the structure", `SKILL.md`). Every field
-is a field of the intent template in the evolvable-structure skill's `SKILL.md`.
+**This is the special case, not the general one.** The top intent below is ESOI because ESOI is why this repository
+exists. Another project's top intent is its own purpose (a product's, a library's, an organization's), never ESOI; the
+folder that holds it is only a container, and the evolvable structure that project applies is a solution inside its own top
+intent ("The structure itself is an implementation of a solution which defines the purpose of the structure", `SKILL.md`),
+whose implementation may use the generic solutions kept here. Every field of every record is a field of the intent template
+in the evolvable-structure skill's `SKILL.md`; the CSV files beside this page are the source of truth and this page is the
+prose view.
+
+## The tree
+
+```text
+structure/                       top intent esoi: Evolvable structure that optimizes intent (ESOI)
+  intent.csv  problems.csv  ideals.csv  solutions.csv  implementations.csv  metrics.csv
+  python/                        sub-intent esoi-python, implements apply-esoi:python-tools
+  ai-behaviour/                  sub-intent esoi-for-ai-behaviour, implements esoi-for-ai:skill-as-standing-instructions
+```
+
+Hierarchy is only between intents, and a sub-intent is not a direct child of its parent intent: it arises as an
+implementation of a solution in the parent. Both sub-intents here do, and each states the opportunity that earns it a folder.
+
+### Top intent: `esoi`
+
+The vision statement is drawn from the skill's own words: every intention is turned into a structure that optimizes the
+fulfilling of that intent while supporting changes to it, and the intent and the structure evolve together in a continual
+feedback loop. It has a single top solution, `apply-esoi`, with two implementations: `documents-and-guidance` (selected; it
+builds on the other solutions of this intent through `uses_solution_ids`, which is how the skill's "Start with one at the
+top" bullet, "a single solution which encapsulates sub-solutions for more specific components", reads in terms of
+intents) and `python-tools` (the first sub-intent). Everything else that does not earn a folder stays a solution here: the
+registry, the template sync, the ownership map, selection, measurement, the leaderboard, the structure check, the review
+tracker, the consumer check, the standard, the structure budget, when metrics are run, skill distribution, the steps,
+guiding agents (`esoi-for-ai`) and the local index (`local-application-index`). The local index is a solution, not a
+sub-intent: its implementations are alternatives compared by one metric and it brings no opportunity beyond the solution
+it implements.
+
+### Sub-intent `esoi-python` (folder `python/`)
+
+- **Arises as:** the `python-tools` implementation of `apply-esoi`.
+- **Opportunity that justifies it:** tools open what documents cannot, the automatic use of the best implementation by
+  checks, measurement, selection and a review tracker, which AI can scale across projects. A checker, a measurement harness,
+  a leaderboard and a selector are each a rich creative space with alternatives to compare, which goes outside what the top
+  solution (applying ESOI by documents and templates) defines.
+- **Holds:** the detailed `py-*` solutions, their implementations, metrics and components. The solutions of the top intent
+  whose chosen implementation these realize name them in `uses_solution_ids`.
+
+### Sub-intent `esoi-for-ai-behaviour` (folder `ai-behaviour/`)
+
+- **Arises as:** the `skill-as-standing-instructions` implementation of `esoi-for-ai`, the solution for guiding agents.
+- **Opportunity that justifies it:** AI agents are how structure is applied at scale, and whether an agent holds back, keeps
+  a qualifier and builds through solution interfaces is itself measurable and improvable. Behaviour cases, the ways of
+  giving an agent the principles and a calibrated judge are a creative space beyond guiding agents by standing
+  instructions, and meaningful enough to deserve focused attention and iteration.
+- **Holds:** `esoi-behaviour-judge`, `behave-by-esoi` and `judge-esoi-behaviour` with their problem, ideal, metrics and
+  components.
+
+No sub-intent was created for risks or uncertainties alone: those are disadvantages of an implementation or the solution's
+metric. The detailed solutions that were once linked up to an overall network with `overall_solution_ids` are now either
+solutions of this intent, solutions of a sub-intent, or named by `uses_solution_ids` on the implementation that builds on them.
+
+## The top intent's specifications, as first written
+
+The records below were first written as prose; they are kept as a reading view of the top intent and may lag the CSV files.
 
 ## Problems
 
@@ -463,7 +520,7 @@ is a field of the intent template in the evolvable-structure skill's `SKILL.md`.
 
 ### IM17 Written weighing rule (Structure budget, selected)
 - **Name:** Written weighing rule
-- **Description:** Before adding a sub-solution, rule or record, weigh its build and upkeep cost against what comparing alternatives and defining it clearly would gain, counted to the next highest priority milestone (`docs/explanation/when-to-split.md`), and weigh it again at each milestone.
+- **Description:** Before adding a sub-intent, rule or record, weigh its build and upkeep cost against what comparing alternatives and defining it clearly would gain, counted to the next highest priority milestone (`docs/explanation/when-to-create-a-sub-intent.md`), and weigh it again at each milestone.
 - **Advantages:** Costs nothing to adopt, works without code, applies to any project.
 - **Disadvantages:** Depends on people applying it; nothing measures the structure's cost automatically.
 - **Implements:** SO12

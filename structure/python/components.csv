@@ -1,0 +1,39 @@
+component_id,layer,path,role,solutions
+records-core,core,implementations/python/esoi/__init__.py;implementations/python/esoi/tables.py;implementations/python/esoi/config.py;implementations/python/esoi/registry.py;implementations/python/esoi/records.py,"Loading the configuration and the CSV records, and checking the intent records against the template.",py-records-check
+template-reader,core,implementations/python/esoi/template.py;implementations/python/esoi/data/*,Reading the intent template from its source and keeping the parsed copy.,py-template-reader
+selection,core,implementations/python/esoi/select.py,Resolving an implementation of a solution from a selection table.,py-selector
+expectations,core,implementations/python/esoi/expect.py,The declarative check that case-driven evaluations share.,py-harness
+leaderboard,core,implementations/python/esoi/leaderboard.py,Ranking implementations from the results log and calling a verdict.,py-leaderboard
+template-documents,tools,implementations/python/esoi/templates.py,Generating the non-code templates and excerpts from the template source.,py-template-reader
+rules-ownership,tools,implementations/python/esoi/rules/__init__.py;implementations/python/esoi/rules/base.py;implementations/python/esoi/rules/layout.py;implementations/python/esoi/rules/modulefacts.py,The rule interface and the placement and layering rules.,py-ownership-rules;py-check-runner
+rules-registry,tools,implementations/python/esoi/rules/registry_rules.py,The rules about the registry's own shape and the selection table.,py-check-runner;py-selector
+rules-measurement,tools,implementations/python/esoi/rules/measurement.py,"The rules about measurement, provenance and discriminating cases.",py-check-runner;py-leaderboard
+rules-generated,tools,implementations/python/esoi/rules/generated.py,"The rules about generated files, the tracker and the records.",py-check-runner;py-tracker;py-template-reader
+check-runner,tools,implementations/python/esoi/check.py,Running every rule over a repository and reporting problems.,py-check-runner
+harness,tools,implementations/python/esoi/harness.py;implementations/python/esoi/hermetic.py,Running one implementation over a component's cases and recording the result.,py-harness
+tracker,tools,implementations/python/esoi/tracker.py;implementations/python/esoi/sheets.py,Building the review tracker tabs and syncing them with a sheet.,py-tracker
+consumer,tools,implementations/python/esoi/consumer.py,Checking a consuming repository's integration registry.,py-consumer-check
+hygiene,tools,implementations/python/esoi/hygiene.py,Scanning a public repository for secrets and private data.,py-check-runner
+scaffold,tools,implementations/python/esoi/scaffold.py,Writing the passing example repository that the init command produces.,py-check-runner
+command-line,cli,implementations/python/esoi/cli.py;implementations/python/esoi/__main__.py,"The esoi command, a thin call into the module that owns each behaviour.",py-check-runner;py-harness;py-leaderboard;py-tracker;py-consumer-check;py-template-reader
+python-tests,tests,implementations/python/tests/**,Offline tests that pin each module.,py-check-runner
+eval-check-the-structure,evaluation,implementations/python/evaluation/components/check_the_structure/**,Mutation cases for the whole check.,py-check-runner
+eval-own-every-file,evaluation,implementations/python/evaluation/components/own_every_file/**,Mutation cases for placement and layering.,py-ownership-rules
+eval-record-intent,evaluation,implementations/python/evaluation/components/record_intent/**,Mutation cases for the intent records.,py-records-check
+eval-sync-the-template,evaluation,implementations/python/evaluation/components/sync_the_template/**,Cases for reading the template.,py-template-reader
+eval-select-an-implementation,evaluation,implementations/python/evaluation/components/select_an_implementation/**,Cases for resolving a selection.,py-selector
+eval-measure-implementations,evaluation,implementations/python/evaluation/components/measure_implementations/**,Cases for the harness.,py-harness
+eval-rank-implementations,evaluation,implementations/python/evaluation/components/rank_implementations/**,Cases for the leaderboard.,py-leaderboard
+eval-review-tracker,evaluation,implementations/python/evaluation/components/review_tracker/**,Cases for the tracker.,py-tracker
+eval-check-a-consumer,evaluation,implementations/python/evaluation/components/check_a_consumer/**,Mutation cases for the consumer check.,py-consumer-check
+eval-know-stale-results,evaluation,implementations/python/evaluation/components/know_stale_results/**,Cases for telling a stale result from a current one.,py-metric-run-policy
+eval-shared,evaluation,implementations/python/evaluation/components/*.py;implementations/python/evaluation/components/results.csv,"Fixtures shared by the evaluations, and the results log.",py-check-runner;py-harness;py-consumer-check;py-metric-run-policy;behave-by-esoi;judge-esoi-behaviour
+python-project,project,implementations/python/pyproject.toml;implementations/python/README.md;implementations/python/conftest.py;implementations/python/docs/**,"Packaging, the implementation's readme and its reference documents.",py-check-runner
+ci,project,.github/workflows/check.yml,The continuous integration workflow.,py-metric-run-policy
+skill-distribution,tools,implementations/python/esoi/skill.py,"Generating, checking and installing the public copy of the author's skill.",py-skill-distribution
+eval-sync-the-skill,evaluation,implementations/python/evaluation/components/sync_the_skill/**,"Cases for the sync, the drift check, leak detection and install.",py-skill-distribution
+intent-tree,core,implementations/python/esoi/intents.py,Finding the intent folders of a repository and reading their records as one tree.,py-records-check
+intent-migration,tools,implementations/python/esoi/migrate.py,Moving a legacy two-level repository to the intent layout without inventing a sub-intent.,py-records-check
+rules-intents,tools,implementations/python/esoi/rules/intents.py,"The rules about intents as containers: the sub-intent link, the opportunity and ids across the tree.",py-check-runner
+local-index,tools,implementations/python/esoi/projects.py,"The local ESOI index: projects, their relations and where to look.",local-application-index
+eval-index-projects,evaluation,implementations/python/evaluation/components/index_projects/**,"Lookup cases over a small world of projects, the live index and the arms it is compared with.",local-application-index

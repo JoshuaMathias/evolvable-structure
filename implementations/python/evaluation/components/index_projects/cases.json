@@ -1,0 +1,436 @@
+[
+ {
+  "id": "IDX-001",
+  "kind": "where",
+  "area": "find",
+  "args": {
+   "projects": [
+    {
+     "id": "alpha",
+     "dir": "alpha",
+     "name": "Alpha",
+     "vision": "Alpha serves its people well.",
+     "files": {
+      "CLAUDE.md": "x",
+      "src/main.py": "x"
+     },
+     "start_here": "CLAUDE.md",
+     "relations": "uses:beta"
+    },
+    {
+     "id": "beta",
+     "dir": "beta",
+     "name": "Beta",
+     "vision": "Beta stays reliable.",
+     "files": {
+      "docs/structure/network.md": "x"
+     },
+     "start_here": "docs/structure/network.md",
+     "relations": "used-by:alpha"
+    }
+   ],
+   "path": "alpha/src/main.py"
+  },
+  "expect": {
+   "eq": {
+    "project_id": "alpha",
+    "start_here": "CLAUDE.md",
+    "specifications": "esoi.toml"
+   }
+  },
+  "description": "a file inside a listed project finds the project and where to start"
+ },
+ {
+  "id": "IDX-002",
+  "kind": "where",
+  "area": "find",
+  "args": {
+   "projects": [
+    {
+     "id": "alpha",
+     "dir": "alpha",
+     "name": "Alpha",
+     "vision": "Alpha serves its people well.",
+     "files": {
+      "CLAUDE.md": "x",
+      "src/main.py": "x"
+     },
+     "start_here": "CLAUDE.md",
+     "relations": "uses:beta"
+    },
+    {
+     "id": "beta",
+     "dir": "beta",
+     "name": "Beta",
+     "vision": "Beta stays reliable.",
+     "files": {
+      "docs/structure/network.md": "x"
+     },
+     "start_here": "docs/structure/network.md",
+     "relations": "used-by:alpha"
+    }
+   ],
+   "path": "beta"
+  },
+  "expect": {
+   "eq": {
+    "project_id": "beta",
+    "start_here": "docs/structure/network.md",
+    "specifications": "esoi.toml"
+   }
+  },
+  "description": "the project folder itself finds the project"
+ },
+ {
+  "id": "IDX-003",
+  "kind": "where",
+  "area": "new project",
+  "args": {
+   "projects": [
+    {
+     "id": "alpha",
+     "dir": "alpha",
+     "name": "Alpha",
+     "vision": "Alpha serves its people well.",
+     "files": {
+      "CLAUDE.md": "x",
+      "src/main.py": "x"
+     },
+     "start_here": "CLAUDE.md",
+     "relations": "uses:beta"
+    },
+    {
+     "id": "beta",
+     "dir": "beta",
+     "name": "Beta",
+     "vision": "Beta stays reliable.",
+     "files": {
+      "docs/structure/network.md": "x"
+     },
+     "start_here": "docs/structure/network.md",
+     "relations": "used-by:alpha"
+    },
+    {
+     "id": "gamma",
+     "dir": "gamma",
+     "name": "Gamma",
+     "vision": "Gamma is a new project.",
+     "files": {
+      "README.md": "x"
+     },
+     "start_here": "README.md"
+    }
+   ],
+   "path": "gamma/README.md"
+  },
+  "expect": {
+   "eq": {
+    "project_id": "gamma",
+    "start_here": "README.md"
+   }
+  },
+  "description": "a project added after the skill was written is found"
+ },
+ {
+  "id": "IDX-004",
+  "kind": "where",
+  "area": "moved",
+  "args": {
+   "projects": [
+    {
+     "id": "alpha",
+     "dir": "alpha",
+     "name": "Alpha",
+     "vision": "Alpha serves its people well.",
+     "files": {
+      "docs/playbook.md": "x",
+      "src/main.py": "x"
+     },
+     "start_here": "docs/playbook.md",
+     "relations": "uses:beta"
+    },
+    {
+     "id": "beta",
+     "dir": "beta",
+     "name": "Beta",
+     "vision": "Beta stays reliable.",
+     "files": {
+      "docs/structure/network.md": "x"
+     },
+     "start_here": "docs/structure/network.md",
+     "relations": "used-by:alpha"
+    }
+   ],
+   "path": "alpha/src/main.py"
+  },
+  "expect": {
+   "eq": {
+    "project_id": "alpha",
+    "start_here": "docs/playbook.md"
+   }
+  },
+  "description": "a project whose first file to read changed is routed to the new file"
+ },
+ {
+  "id": "IDX-005",
+  "kind": "where",
+  "area": "nested",
+  "args": {
+   "projects": [
+    {
+     "id": "outer",
+     "dir": "outer",
+     "name": "Alpha",
+     "vision": "Alpha serves its people well.",
+     "files": {
+      "CLAUDE.md": "x"
+     },
+     "start_here": "CLAUDE.md",
+     "relations": ""
+    },
+    {
+     "id": "inner",
+     "dir": "outer/packages/inner",
+     "name": "Beta",
+     "vision": "Beta stays reliable.",
+     "files": {
+      "docs/structure/network.md": "x"
+     },
+     "start_here": "docs/structure/network.md",
+     "relations": "sub-intent-of:outer"
+    }
+   ],
+   "path": "outer/packages/inner/docs"
+  },
+  "expect": {
+   "eq": {
+    "project_id": "inner"
+   }
+  },
+  "description": "the deepest project containing a path is the one found"
+ },
+ {
+  "id": "IDX-006",
+  "kind": "where",
+  "area": "outside",
+  "args": {
+   "projects": [
+    {
+     "id": "alpha",
+     "dir": "alpha",
+     "name": "Alpha",
+     "vision": "Alpha serves its people well.",
+     "files": {
+      "CLAUDE.md": "x",
+      "src/main.py": "x"
+     },
+     "start_here": "CLAUDE.md",
+     "relations": "uses:beta"
+    },
+    {
+     "id": "beta",
+     "dir": "beta",
+     "name": "Beta",
+     "vision": "Beta stays reliable.",
+     "files": {
+      "docs/structure/network.md": "x"
+     },
+     "start_here": "docs/structure/network.md",
+     "relations": "used-by:alpha"
+    }
+   ],
+   "path": "elsewhere/notes.txt"
+  },
+  "expect": {
+   "eq": {
+    "project_id": null,
+    "start_here": ""
+   }
+  },
+  "description": "a path in no listed project finds none"
+ },
+ {
+  "id": "IDX-007",
+  "kind": "related",
+  "area": "relations",
+  "args": {
+   "projects": [
+    {
+     "id": "alpha",
+     "dir": "alpha",
+     "name": "Alpha",
+     "vision": "Alpha serves its people well.",
+     "files": {
+      "CLAUDE.md": "x",
+      "src/main.py": "x"
+     },
+     "start_here": "CLAUDE.md",
+     "relations": "uses:beta"
+    },
+    {
+     "id": "beta",
+     "dir": "beta",
+     "name": "Beta",
+     "vision": "Beta stays reliable.",
+     "files": {
+      "docs/structure/network.md": "x"
+     },
+     "start_here": "docs/structure/network.md",
+     "relations": "used-by:alpha"
+    }
+   ],
+   "project": "alpha",
+   "relation": "uses"
+  },
+  "expect": {
+   "eq": {
+    "ids": [
+     "beta"
+    ]
+   }
+  },
+  "description": "what a project builds on"
+ },
+ {
+  "id": "IDX-008",
+  "kind": "related",
+  "area": "relations",
+  "args": {
+   "projects": [
+    {
+     "id": "alpha",
+     "dir": "alpha",
+     "name": "Alpha",
+     "vision": "Alpha serves its people well.",
+     "files": {
+      "CLAUDE.md": "x",
+      "src/main.py": "x"
+     },
+     "start_here": "CLAUDE.md",
+     "relations": "uses:beta"
+    },
+    {
+     "id": "beta",
+     "dir": "beta",
+     "name": "Beta",
+     "vision": "Beta stays reliable.",
+     "files": {
+      "docs/structure/network.md": "x"
+     },
+     "start_here": "docs/structure/network.md",
+     "relations": "used-by:alpha"
+    }
+   ],
+   "project": "beta",
+   "relation": "used-by"
+  },
+  "expect": {
+   "eq": {
+    "ids": [
+     "alpha"
+    ]
+   }
+  },
+  "description": "what builds on a project"
+ },
+ {
+  "id": "IDX-009",
+  "kind": "related",
+  "area": "relations",
+  "args": {
+   "projects": [
+    {
+     "id": "alpha",
+     "dir": "alpha",
+     "name": "Alpha",
+     "vision": "Alpha serves its people well.",
+     "files": {
+      "CLAUDE.md": "x",
+      "src/main.py": "x"
+     },
+     "start_here": "CLAUDE.md",
+     "relations": "uses:beta"
+    },
+    {
+     "id": "beta",
+     "dir": "beta",
+     "name": "Beta",
+     "vision": "Beta stays reliable.",
+     "files": {
+      "docs/structure/network.md": "x"
+     },
+     "start_here": "docs/structure/network.md",
+     "relations": "used-by:alpha"
+    },
+    {
+     "id": "gamma",
+     "dir": "gamma",
+     "name": "Gamma",
+     "vision": "Gamma is a new project.",
+     "files": {
+      "README.md": "x"
+     },
+     "start_here": "README.md"
+    }
+   ],
+   "project": "gamma",
+   "relation": "uses"
+  },
+  "expect": {
+   "eq": {
+    "ids": []
+   }
+  },
+  "description": "a project with no relations has none"
+ },
+ {
+  "id": "IDX-010",
+  "kind": "listed",
+  "area": "list",
+  "args": {
+   "projects": [
+    {
+     "id": "alpha",
+     "dir": "alpha",
+     "name": "Alpha",
+     "vision": "Alpha serves its people well.",
+     "files": {
+      "CLAUDE.md": "x",
+      "src/main.py": "x"
+     },
+     "start_here": "CLAUDE.md",
+     "relations": "uses:beta"
+    },
+    {
+     "id": "beta",
+     "dir": "beta",
+     "name": "Beta",
+     "vision": "Beta stays reliable.",
+     "files": {
+      "docs/structure/network.md": "x"
+     },
+     "start_here": "docs/structure/network.md",
+     "relations": "used-by:alpha"
+    },
+    {
+     "id": "roadmap",
+     "dir": "",
+     "name": "Roadmap",
+     "vision": "The roadmap is shared.",
+     "location": "https://example.org/board/1",
+     "kind": "board"
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "ids": [
+     "alpha",
+     "beta",
+     "roadmap"
+    ]
+   }
+  },
+  "description": "a project that lives online is listed beside local ones"
+ }
+]
