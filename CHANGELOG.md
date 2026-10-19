@@ -10,7 +10,8 @@ and the migration steps in `docs/guides/migrate-to-intents.md`:
   `ESOI_SELECT_<SCOPE>_<ID>` first). A scope also tells the lookup where to start before anything is imported, and the
   folders around a package installed into `site-packages` are not searched for records (it reads its snapshot). `selection_env`
   in `esoi.toml` keeps an older environment variable working, named in the error. An unknown solution lists the solutions that
-  have implementations; `explain` returns where each name came from.
+  have implementations; `explain` returns where each name came from. `register(..., replace=True)` lets a consumer put its own
+  implementation under a name a package declares, whichever is imported first.
 - **Gentle default folder.** When `structure_dir` is not set and `esoi/` does not exist, a previous default (`docs/structure`,
   `structure`) that holds records is used, with one note suggesting `git mv docs/structure esoi`. Two folders holding records
   are never guessed between: the error names both. The same resolution serves `esoi projects` and the consumer check.

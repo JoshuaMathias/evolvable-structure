@@ -93,6 +93,7 @@ class Entry:
     interface: Any = None
     origin: Optional[Path] = None
     implementations: Dict[str, Any] = field(default_factory=dict)   # name -> the object, or "module:Attr" to import
+    replaced: set = field(default_factory=set)   # names a consumer replaced on purpose: a later declaration of one is ignored
 
 
 @dataclass
@@ -222,18 +223,26 @@ def implementation(solution_id: str, name: Optional[str] = None, scope: Optional
     return declare
 
 
-def register(solution_id: str, name: str, target: Any, scope: Optional[str] = None) -> None:
+def register(solution_id: str, name: str, target: Any, scope: Optional[str] = None, replace: bool = False) -> None:
     """Declare an implementation that is not a decorated function or class: an instance, an object of another package, or
-    ``"module:Attr"`` imported when chosen. The scope is the package of the module that calls this, unless given."""
+    ``"module:Attr"`` imported when chosen. The scope is the package of the module that calls this, unless given.
+    ``replace=True`` lets a consumer put its own implementation under a name the package already declares, whether that
+    declaration comes before or after (without it, two different objects under one name raise)."""
     found, origin = caller_scope_and_origin(2)
-    add(solution_id, name, target, origin, found if scope is None else scope)
+    add(solution_id, name, target, origin, found if scope is None else scope, replace)
 
 
-def add(solution_id: str, name: str, target: Any, origin: Optional[Path], scope: str = "") -> None:
+def add(solution_id: str, name: str, target: Any, origin: Optional[Path], scope: str = "", replace: bool = False) -> None:
     label = key(name)
     if not label:
         raise SelectionError(f"an implementation of {solution_id!r} needs a name")
     entry = entry_for(solution_id, origin, scope)
+    if label in entry.replaced and not replace:
+        return   # the consumer chose its own under this name; the package's declaration, imported later, steps aside
+    if replace:
+        entry.replaced.add(label)
+        entry.implementations[label] = target
+        return
     old = entry.implementations.get(label)
     same = old is target or (old is not None and getattr(old, "__qualname__", 0) == getattr(target, "__qualname__", 1)
                              and getattr(old, "__module__", 0) == getattr(target, "__module__", 1))

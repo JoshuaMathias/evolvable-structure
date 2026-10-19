@@ -141,3 +141,22 @@ def test_an_older_variable_listed_in_the_configuration_still_selects(repo, monke
         assert runtime.choose("greet-a-person").source == runtime.env_name("greet-a-person")
     finally:
         runtime.PROJECTS.clear()
+
+
+def test_a_consumer_may_replace_a_name_the_package_declares_before_or_after(isolated):
+    class Mine:
+        pass
+
+    class Theirs:
+        pass
+
+    try:
+        implementation("t-replace", "same", scope="pkg_a")(Theirs)
+        with pytest.raises(SelectionError, match="already has an implementation named 'same'"):
+            runtime.register("t-replace", "same", Mine, scope="pkg_a")
+        runtime.register("t-replace", "same", Mine, scope="pkg_a", replace=True)
+        assert runtime.fetch("t-replace", "same", None, "pkg_a") is Mine
+        implementation("t-replace", "same", scope="pkg_a")(Theirs)   # imported later: steps aside
+        assert runtime.fetch("t-replace", "same", None, "pkg_a") is Mine
+    finally:
+        runtime.forget("t-replace")
