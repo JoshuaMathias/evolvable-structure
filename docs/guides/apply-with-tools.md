@@ -12,10 +12,36 @@ pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git
 Add `@<commit>` after `.git` to pin a version. Python 3.11 or later; no dependencies in the core. For Google Sheets sync add
 the extra: `esoi[sheets]`.
 
+## The graceful path: declare, call, measure, promote
+
+State each fact once, where the code is ([the full page](../explanation/graceful-selection.md)):
+
+```python
+from esoi import implementation, solution
+
+@solution("greet-a-person")                  # declare the interface once
+def greet(name: str) -> str: ...
+
+@implementation("greet-a-person", "plain")   # and each alternative beside its code
+def plain(name: str) -> str:
+    return f"Hello, {name}!"
+
+greet("Ada")                                 # call: runs the project default from the records
+greet("Ada", using="plain")                  # this call only; a block: `with override("greet-a-person", "plain"):`
+```
+
+```bash
+esoi records sync                            # the records follow the declaration (you write only the text it leaves empty)
+esoi run greet_a_person --impl plain --record    # measure it beside the others; no wrapper file needed
+esoi select --promote                        # switch to the winner when its own metric says so (or print the proposal)
+```
+
+The selection table (below) is the advanced layer underneath. `esoi new solution <id>` starts a whole solution in one command.
+
 ## A new repository
 
 ```bash
-esoi init                                  # writes a small example; the check names what only you can write
+esoi init                                  # writes a small example (specifications in esoi/); the check names what only you can write
 git init && git add . && git commit -m "esoi example"
 esoi run greet_a_person --impl live --record
 esoi check --strict
@@ -58,7 +84,7 @@ esoi check --strict                       # every recorded result is current
 recorded before the measured code changed is flagged by `esoi check --strict`, waive one as `S20 <solution>:<implementation>`),
 on the sample the selected arm's latest row used (`--full` runs the whole set), so a re-record stays comparable; a rival
 recorded on another sample is not stale, it is not comparable, and is re-run too. It never runs an arm that may spend money: one that declares `PAID = True`, is listed in `paid_arms`, or whose last run called a
-model. Those are listed as skipped with the command to run them; opt in with `--include <component>/<impl>` or `--include-paid`.
+model (unless it declares `SIMULATED = True`, a deterministic stand-in that counts calls and spends nothing). Those are listed as skipped with the command to run them; opt in with `--include <component>/<impl>` or `--include-paid`.
 Code the measurement depends on may sit in a sibling repository: name it in `code_paths` (`../sibling/pkg`) and the results log
 records that repository's commit in a `code_shas` column. Give `prices` in the configuration and a model run's `cost_usd` is
 computed from its tokens; with no price it is left blank, never `0`.
@@ -92,6 +118,10 @@ tells you whether they are stale; a new field appears as a missing column in you
 | `esoi skill sync\|check\|install` | Generates and verifies the public copy of the skill, or installs it ([guide](install-the-skill.md)) |
 | `esoi consumer check` | Checks a repository that builds on a library |
 | `esoi hygiene [--history]` | Scans for secrets and private data before a public push (a folder that is not a git checkout is walked; `[hygiene.patterns]` adds your own secret shapes) |
-| `esoi select <solution>` | Shows what a selection table resolves |
+| `esoi select <solution>` | Shows which implementation runs and which layer of the cascade chose it |
+| `esoi select --promote [solution] [--dry-run]` | Switches `selected` to the rival that clearly wins on the solution's metric, or prints the proposal |
+| `esoi select --snapshot FILE` | Writes the defaults and modules for a package shipped without the records |
+| `esoi records sync [--intent ID] [--dry-run]` | Writes the rows the code declares and the records lack |
+| `esoi new solution <id> [--intent ID]` | Writes the records, a code skeleton with the decorators and an evaluation folder for a new solution |
 | `esoi projects init\|add\|list\|check\|index\|where` | Keeps a local index of the projects ESOI is applied to ([local-index.md](../explanation/local-index.md)) |
 | `esoi init` | Writes the passing example |

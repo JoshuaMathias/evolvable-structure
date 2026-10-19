@@ -13,14 +13,14 @@ template-documents,tools,implementations/python/esoi/templates.py,Generating the
 rules-ownership,tools,implementations/python/esoi/rules/__init__.py;implementations/python/esoi/rules/base.py;implementations/python/esoi/rules/layout.py;implementations/python/esoi/rules/modulefacts.py,The rule interface and the placement and layering rules.,ownership-map;structure-check
 rules-registry,tools,implementations/python/esoi/rules/registry_rules.py,The rules about the registry's own shape and the selection table.,structure-check;runtime-selection
 rules-measurement,tools,implementations/python/esoi/rules/measurement.py,"The rules about measurement, provenance and discriminating cases.",structure-check;leaderboard
-rules-generated,tools,implementations/python/esoi/rules/generated.py,"The rules about generated files, the tracker and the records.",structure-check;review-tracker;template-sync
-check-runner,tools,implementations/python/esoi/check.py,Running every rule over a repository and reporting problems.,structure-check
+rules-generated,tools,implementations/python/esoi/rules/generated.py,"The rules about generated files, the tracker and the records.",structure-check;review-tracker;template-sync;readable-records
+check-runner,tools,implementations/python/esoi/check.py,Running every rule over a repository and reporting problems.,structure-check;readable-records
 harness,tools,implementations/python/esoi/harness.py;implementations/python/esoi/hermetic.py,Running one implementation over a component's cases and recording the result.,measurement-harness
 tracker,tools,implementations/python/esoi/tracker.py;implementations/python/esoi/sheets.py,Building the review tracker tabs and syncing them with a sheet.,review-tracker
 consumer,tools,implementations/python/esoi/consumer.py,Checking a consuming repository's integration registry.,consumer-check
 hygiene,tools,implementations/python/esoi/hygiene.py,Scanning a public repository for secrets and private data.,structure-check
 scaffold,tools,implementations/python/esoi/scaffold.py,Writing the passing example repository that the init command produces.,structure-check
-command-line,cli,implementations/python/esoi/cli.py;implementations/python/esoi/__main__.py,"The esoi command, a thin call into the module that owns each behaviour.",structure-check;measurement-harness;leaderboard;review-tracker;consumer-check;template-sync
+command-line,cli,implementations/python/esoi/cli.py;implementations/python/esoi/__main__.py,"The esoi command, a thin call into the module that owns each behaviour.",structure-check;measurement-harness;leaderboard;review-tracker;consumer-check;template-sync;specify-from-code;promote-the-winner;runtime-selection
 python-tests,tests,implementations/python/tests/**,Offline tests that pin each module.,structure-check
 eval-check-the-structure,evaluation,implementations/python/evaluation/components/check_the_structure/**,Mutation cases for the whole check.,structure-check
 eval-own-every-file,evaluation,implementations/python/evaluation/components/own_every_file/**,Mutation cases for placement and layering.,ownership-map
@@ -31,7 +31,7 @@ eval-rank-implementations,evaluation,implementations/python/evaluation/component
 eval-review-tracker,evaluation,implementations/python/evaluation/components/review_tracker/**,Cases for the tracker.,review-tracker
 eval-check-a-consumer,evaluation,implementations/python/evaluation/components/check_a_consumer/**,Mutation cases for the consumer check.,consumer-check
 eval-know-stale-results,evaluation,implementations/python/evaluation/components/know_stale_results/**,Cases for telling a stale result from a current one.,when-metrics-are-run
-eval-shared,evaluation,implementations/python/evaluation/components/*.py;implementations/python/evaluation/components/results.csv,"Fixtures shared by the evaluations, and the results log.",structure-check;measurement-harness;consumer-check;when-metrics-are-run;behave-by-esoi;judge-esoi-behaviour
+eval-shared,evaluation,implementations/python/evaluation/components/*.py;implementations/python/evaluation/components/results.csv,"Fixtures shared by the evaluations, and the results log.",structure-check;measurement-harness;consumer-check;when-metrics-are-run;behave-by-esoi;judge-esoi-behaviour;specify-from-code;readable-records;promote-the-winner
 python-project,project,implementations/python/pyproject.toml;implementations/python/README.md;implementations/python/conftest.py;implementations/python/docs/**,"Packaging, the implementation's readme and its reference documents.",structure-check
 ci,project,.github/workflows/check.yml,The continuous integration workflow.,when-metrics-are-run
 skill-distribution,tools,implementations/python/esoi/skill.py,"Generating, checking and installing the public copy of the author's skill.",skill-distribution
@@ -44,3 +44,10 @@ eval-index-projects,evaluation,implementations/python/evaluation/components/inde
 behaviour,tools,implementations/python/esoi/behaviour.py,"Grading an AI agent's reply against a behaviour case: the pattern check, the judge prompt and verdict, and a command provider.",behave-by-esoi;judge-esoi-behaviour
 eval-behave-by-esoi,evaluation,implementations/python/evaluation/components/behave_by_esoi/**,"Cases, recorded replies and the arms for whether an agent acts by the principles.",behave-by-esoi
 eval-judge-esoi-behaviour,evaluation,implementations/python/evaluation/components/judge_esoi_behaviour/**,Labelled replies and the arms for how far a judge agrees with them.,judge-esoi-behaviour
+declarations,tools,implementations/python/esoi/declarations.py;implementations/python/esoi/rules/declarations.py,"Reading the declarations in the code, the drift rule S30 and the sync of the records.",specify-from-code
+new-solution,tools,implementations/python/esoi/newsolution.py,Creating a whole solution with one command.,specify-from-code
+readme-renderer,tools,implementations/python/esoi/readme.py,"The README of each intent folder, generated from its records.",readable-records
+promotion,tools,implementations/python/esoi/promote.py,"Switching the selected implementation to the winner of the solution's own metric, or proposing it.",promote-the-winner
+eval-specify-from-code,evaluation,implementations/python/evaluation/components/specify_from_code/**,"Cases for reading declarations, syncing the records and creating a solution.",specify-from-code
+eval-readable-records,evaluation,implementations/python/evaluation/components/readable_records/**,Cases for the generated README of an intent folder.,readable-records
+eval-promote-the-winner,evaluation,implementations/python/evaluation/components/promote_the_winner/**,Cases for promoting the winner of a solution's metric.,promote-the-winner

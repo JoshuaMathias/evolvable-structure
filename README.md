@@ -26,16 +26,40 @@ The author's `evolvable-structure` skill carries the principles and the steps fo
 [Install the skill](https://github.com/JoshuaMathias/evolvable-structure/wiki/Install-the-skill) as a plugin, a folder
 download or with `esoi`.
 
-## Check and measure with Python (optional)
+## Check, measure and select with Python (optional)
 
 ```bash
 pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git#subdirectory=implementations/python"
-esoi init            # scaffold a small example repository that already passes
+esoi init            # scaffold a small example repository that already passes (its specifications are in esoi/)
 esoi check           # run every structural rule
 ```
 
+The graceful path: declare once where the code is, call, measure, promote.
+
+```python
+from esoi import implementation, solution
+
+@solution("greet-a-person")                  # declare: the interface
+def greet(name: str) -> str: ...
+
+@implementation("greet-a-person", "plain")   # declare: an alternative, beside its code
+def plain(name: str) -> str:
+    return f"Hello, {name}!"
+
+greet("Ada")                                 # call: runs the project default (the records' "selected")
+greet("Ada", using="plain")                  # or by name for one call; `with override(...)` for a block
+```
+
+```bash
+esoi records sync                                # the records follow your declaration
+esoi run greet_a_person --impl plain --record    # measure it beside the others
+esoi select --promote                            # promote the winner of its own metric (or print the proposal)
+```
+
+The selection table is the advanced layer underneath, for a project that wants every choice as data.
+
 More in [Apply ESOI with the Python tools](https://github.com/JoshuaMathias/evolvable-structure/wiki/Apply-ESOI-with-the-Python-tools)
-and [the package's README](implementations/python/README.md). It needs Python 3.11 or later and has no dependencies in
+[Declare, call, measure, promote](docs/explanation/graceful-selection.md) and [the package's README](implementations/python/README.md). It needs Python 3.11 or later and has no dependencies in
 its core; Google Sheets sync is an optional extra (`esoi[sheets]`).
 
 ## What is in this repository

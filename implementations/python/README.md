@@ -15,11 +15,27 @@ From a checkout: `pip install -e implementations/python`.
 
 ## Quick start
 
+```python
+from esoi import implementation, solution
+
+@solution("greet-a-person")                  # declare once, where the code is
+def greet(name: str) -> str: ...
+
+@implementation("greet-a-person", "plain")
+def plain(name: str) -> str:
+    return f"Hello, {name}!"
+
+greet("Ada")                                 # call: the project default, from the records
+greet("Ada", using="plain")                  # or by name for one call
+```
+
 ```bash
 esoi init                   # scaffold a small example repository that already passes
 esoi check                  # every rule; --strict also rejects results recorded on uncommitted code
-esoi run greet_a_person --impl live --record
+esoi records sync           # the records follow what the code declares
+esoi run greet_a_person --impl plain --record   # measure
 esoi leaderboard
+esoi select --promote       # promote the winner of the solution's own metric
 ```
 
 The full walk through is [docs/guides/apply-with-tools.md](../../docs/guides/apply-with-tools.md).
@@ -32,7 +48,11 @@ The full walk through is [docs/guides/apply-with-tools.md](../../docs/guides/app
 | `esoi.records`, `esoi.registry`, `esoi.tables` | Loading and checking the five record files |
 | `esoi.template`, `esoi.templates` | Reading the intent template from `SKILL.md` and generating the non-code templates |
 | `esoi.check`, `esoi.rules` | The rule runner and the built-in rule groups; a plugin interface for your own |
-| `esoi.select` | Resolve an implementation from a selection table at run time |
+| `esoi.runtime` | Declare solutions and alternatives in code (`@solution`, `@implementation`, `register`) and run the selected one: per call, context, environment, deployment, then the records' default |
+| `esoi.select` | The selection table and `Selector`, the lower layer; defaults may come from the records |
+| `esoi.declarations`, `esoi.newsolution` | Read the declarations from the source, sync the records, start a new solution |
+| `esoi.promote` | Switch the selected implementation to the winner of the solution's own metric, or propose it |
+| `esoi.readme` | The README of each intent folder, generated from its records |
 | `esoi.harness`, `esoi.expect`, `esoi.hermetic` | Run an implementation over a component's cases and record it with provenance |
 | `esoi.leaderboard` | Rank, call a verdict, mark baselines and ablations |
 | `esoi.tracker`, `esoi.sheets` | The review sheet tabs and their two-way sync |
@@ -44,14 +64,16 @@ The full walk through is [docs/guides/apply-with-tools.md](../../docs/guides/app
 Reference: [configuration](docs/configuration.md), [evaluation components](docs/evaluation-components.md),
 [rules](docs/rules.md).
 
-## Using the selector from your code
+## Using the table from your code (the advanced layer)
 
 ```python
-from esoi.select import Selector, load_table
+from esoi.select import Selector
 
-selector = Selector(load_table("mylib/selection.py:SELECTION", root))
+selector = Selector.from_config(config)      # the table `selection` names; an entry without a "default" takes the records' `selected`
 implementation = selector.resolve("greet", overrides={"greet": "loud"})
 ```
+
+The decorators above and this table are one set of names; see [Declare, call, measure, promote](../../docs/explanation/graceful-selection.md).
 
 ## Tests
 

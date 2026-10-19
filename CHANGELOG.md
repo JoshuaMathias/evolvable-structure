@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+Graceful declarations (declare once where the code is; derive or check the rest). See `docs/explanation/graceful-selection.md`
+and the migration steps in `docs/guides/migrate-to-intents.md`:
+
+- **Declare in code.** `@solution("id")` on an interface and `@implementation("id", "name")` on each alternative (or
+  `register(...)` for another package's class). Calling the interface runs the selected implementation; `using="name"` picks
+  one for a call, `with override(...)` for a block, `ESOI_SELECT_<ID>` for a process, `[selection]` in `esoi.toml` for a
+  deployment, and the solution's `selected` in the records is the project default. Unknown names fail with the choices and the
+  layer that named them. The selection table and `Selector` remain the lower layer, and their names join the declared ones.
+- **One copy of the default.** A table entry may omit `default`; the records' `selected` is used (`Selector.from_config`). Rule
+  S23 compares only a table that still holds its own default. `esoi select --snapshot` writes the defaults for a package
+  shipped without the records.
+- **Records follow the code.** `esoi records sync` writes the solution and implementation rows the code declares and the records
+  lack, never over text a person wrote; rule S30 reports the drift. `esoi new solution <id>` writes the records, a code skeleton
+  with the decorators and an evaluation folder. The harness runs a declared implementation without an `impls/` wrapper.
+- **Promote the winner.** `esoi select --promote` switches `selected`, the metric's command and the evidence in `selected_by`
+  when a rival clearly wins on the solution's own metric and the solution's `promotion` cell is `automatic`, otherwise prints the
+  exact proposal. It never acts on unverified, incomparable or stale rows.
+- **Readable records.** `esoi check --write-docs` writes a `README.md` in each intent folder from its records; rule S8 keeps
+  it current.
+- **Simulated arms.** An arm that meters a deterministic stand-in for a model declares `SIMULATED = True`: its runs record
+  model `simulated` and cost 0.0, `esoi run --stale` does not treat it as paid, and the leaderboard compares it on model calls
+  instead of calling a known $0 baseline cheaper than an unknown cost (the false LOSS).
+- `esoi init` writes the example declared in code.
+
 Intents are the containers and the unit of hierarchy (from the author's updated SKILL.md):
 
 - **Default folder `esoi/`.** A new project's specifications live in `esoi/` (the one constant `DEFAULT_STRUCTURE_DIR`); the name

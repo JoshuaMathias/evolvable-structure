@@ -71,3 +71,38 @@ The checks cover: every sub-intent's `implements` resolves to an implementation 
 implementation names the sub-intent back, every sub-intent has an `opportunity`, intent ids and record ids are unique
 across the tree, and `uses_solution_ids` resolve. Fix what it names, commit, and add the project to your
 [local index](../explanation/local-index.md) if you keep one.
+
+# Move to the graceful layer
+
+A project that already has a selection table (say `selection = "pkg/core/selection_table.py:SELECTION"`) and a configured
+`structure_dir = "docs/structure"` needs no change to keep working: the table, `Selector` and every configured folder behave as
+before. These steps are what to do to gain the graceful layer, in small commits, running `esoi check` after each. Install the
+new version first (`pip install -U` with the same command as before).
+
+1. **The specifications folder (optional).** New projects get `esoi/`. To follow, `git mv docs/structure esoi`, set
+   `structure_dir = "esoi"` (or delete the line, `esoi` is the default), change the path glob of the component that owns the
+   folder in `components.csv` (`docs/structure/**` becomes `esoi/**`), and change any `docs/structure/...` path in your own
+   configuration (a `[sheets.tabs]` csv, for example). Leaving it as it is works.
+2. **Write the project default once.** Delete the `"default": "..."` key from each entry of the selection table. The default is
+   now the solution's `selected` in `solutions.csv`, rule S23 has nothing to compare for that entry (it still compares an entry
+   that keeps its `default`, so you can move one entry at a time), and `esoi select --promote` can change it. Where your code builds a
+   `Selector` itself, build it with `Selector.from_config(config)`, or `Selector(table, defaults)` with `defaults` from
+   `esoi.select.records_defaults(config)`. A package that is installed without the records cannot read them: keep the `default`
+   in the table (S23 keeps checking it), or write `esoi select --snapshot esoi_selection.json`, ship that file beside the top
+   package and pass `esoi.select.snapshot_defaults(path)` as `defaults`.
+3. **Declare alternatives where they are (optional).** Put `from esoi import implementation, solution` in the module, `@solution("id")` on
+   the interface function and `@implementation("id", "name")` on each alternative (or `register` for a class of another
+   package), run `esoi records sync` to write the rows, and fill the text it leaves empty. Table names and declared names are
+   one set. An evaluation wrapper `impls/<name>.py` is then needed only for a baseline or reference arm: delete the others and
+   point the metric's command at the declared name (`esoi run <component> --impl <name>`).
+4. **Deployment choices.** If the deployment layer is wanted, turn `selection = "..."` into a table, after the top-level keys:
+   `[selection]`, then `table = "pkg/core/selection_table.py:SELECTION"` and one line `solution-id = "name"` per choice. A
+   string and a table cannot both be written.
+5. **Offline stand-ins.** An arm that counts the calls of a deterministic stand-in for a model gets `SIMULATED = True` at the top
+   of its module. Re-record it (`esoi run --stale`): it records model `simulated` and cost 0.0, is no longer skipped as paid, and
+   is compared on calls.
+6. **Promotion.** Put `automatic` in a `promotion` column of `solutions.csv` (add the column) for each solution whose policy lets
+   the metric decide; leave it empty to review each proposal printed by `esoi select --promote`.
+7. **Generated READMEs.** Run `esoi check --write-docs` once and commit the `README.md` it writes in each intent folder (rule S8
+   keeps them current). A hand-kept summary of the records beside them can go; your own prose about the network stays.
+8. **Check.** `esoi check --strict`.

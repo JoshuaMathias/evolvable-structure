@@ -28,12 +28,17 @@ prices = { "model-x" = { input = 3.0, output = 15.0 } }   # USD per million toke
 metric_command = '(?:esoi run|run\.py) (\w+) --impl (\w+)'   # how a metric's command names a component and an implementation
 live_imports = ["mylib"]               # an evaluation implementation importing these drives live code (rule S12)
 live_calls = ["common.build_app"]      # ... or calls one of these attributes
-selection = "mylib/selection.py:SELECTION"   # a selection table, file path or module (rules S7, S14, S23)
+selection = "mylib/selection.py:SELECTION"   # a selection table, file path or module (rules S7, S14, S23); an entry may omit "default"
+                                       # (the records' `selected` is then the default). Write it as a [selection] table to add deployment choices.
 template_source = "path/to/SKILL.md"   # where the intent template is read from (or set ESOI_TEMPLATE_SOURCE)
 templates_dir = "docs/templates"       # generated non-code templates; excerpts_file = "docs/explanation/from-the-skill.md"
 plugins = ["tools/my_rules.py"]        # extra rule modules (a file path or an importable module)
 disable = ["S13"]                      # rule ids that do not apply here
 tracker_extra = { solutions = ["area"] }   # extra record columns kept on the tracker tabs, after the key
+
+[selection]                            # instead of the string above: deployment choices (the third layer of the cascade of esoi.runtime)
+table = "mylib/selection.py:SELECTION" # optional: the selection table
+greet-a-person = "loud"                # solution_id = "implementation name"; the environment variable ESOI_SELECT_GREET_A_PERSON beats it
 
 [rules.S13]                            # per-rule options
 layers = ["core"]                      # layers (or paths = ["mylib/core/"]) that may not read the environment
@@ -83,6 +88,11 @@ reason = "names a private folder"
 A module may hold several implementations: list them as `path::name` in the solution's `implementations` cell and give each
 record in `implementations.csv` the same `path`; rule S14 accepts a selection-table module that either lists, and the record
 ids need not follow any pattern (the default is `solution:file-stem`, `solution:name` also matches).
+
+`solutions.csv` may carry two optional columns beyond the template: `promotion` (`automatic` lets `esoi select --promote`
+switch the selected implementation when a rival clearly wins on the solution's own metric; empty means a person applies the
+printed proposal) and, as for any record, nothing else is required. The code under `code_paths` is read (not imported) for
+`@solution`, `@implementation` and `register` declarations (rule S30; `esoi records sync` writes the missing rows).
 
 ## Results log
 

@@ -40,6 +40,10 @@ cases change: before committing, and again in continuous integration. It is chea
 structure honest. Run the part that covers what you changed, not everything, while you work; run all of it before you rely
 on the result.
 
+An offline arm that counts the calls of a deterministic stand-in for a model declares itself (`SIMULATED = True`) so that it is
+run with the offline arms. Its cost is then known to be zero; a missing price alone never makes an arm free, and never makes it
+paid.
+
 ### Results are recorded on committed code
 
 A recorded result carries the commit it was run on and a hash of the case files. Re-record after any change to the measured

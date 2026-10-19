@@ -24,6 +24,7 @@ a team process, a personal schedule.
 - [When to create a sub-intent](explanation/when-to-create-a-sub-intent.md)
 - [The local ESOI index](explanation/local-index.md): where ESOI is applied on a machine.
 - [Choosing by metric](explanation/choosing-by-metric.md)
+- [Declare, call, measure, promote](explanation/graceful-selection.md): the graceful way to declare alternatives in code and let the metric pick.
 - [When metrics are run](explanation/when-metrics-are-run.md): when to run each metric and who approves the spend.
 
 ## Where it applies

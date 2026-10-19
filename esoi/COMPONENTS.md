@@ -19,14 +19,14 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `rules-ownership` | tools | The rule interface and the placement and layering rules. | ownership-map, structure-check |
 | `rules-registry` | tools | The rules about the registry's own shape and the selection table. | structure-check, runtime-selection |
 | `rules-measurement` | tools | The rules about measurement, provenance and discriminating cases. | structure-check, leaderboard |
-| `rules-generated` | tools | The rules about generated files, the tracker and the records. | structure-check, review-tracker, template-sync |
-| `check-runner` | tools | Running every rule over a repository and reporting problems. | structure-check |
+| `rules-generated` | tools | The rules about generated files, the tracker and the records. | structure-check, review-tracker, template-sync, readable-records |
+| `check-runner` | tools | Running every rule over a repository and reporting problems. | structure-check, readable-records |
 | `harness` | tools | Running one implementation over a component's cases and recording the result. | measurement-harness |
 | `tracker` | tools | Building the review tracker tabs and syncing them with a sheet. | review-tracker |
 | `consumer` | tools | Checking a consuming repository's integration registry. | consumer-check |
 | `hygiene` | tools | Scanning a public repository for secrets and private data. | structure-check |
 | `scaffold` | tools | Writing the passing example repository that the init command produces. | structure-check |
-| `command-line` | cli | The esoi command, a thin call into the module that owns each behaviour. | structure-check, measurement-harness, leaderboard, review-tracker, consumer-check, template-sync |
+| `command-line` | cli | The esoi command, a thin call into the module that owns each behaviour. | structure-check, measurement-harness, leaderboard, review-tracker, consumer-check, template-sync, specify-from-code, promote-the-winner, runtime-selection |
 | `python-tests` | tests | Offline tests that pin each module. | structure-check |
 | `eval-check-the-structure` | evaluation | Mutation cases for the whole check. | structure-check |
 | `eval-own-every-file` | evaluation | Mutation cases for placement and layering. | ownership-map |
@@ -37,7 +37,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `eval-review-tracker` | evaluation | Cases for the tracker. | review-tracker |
 | `eval-check-a-consumer` | evaluation | Mutation cases for the consumer check. | consumer-check |
 | `eval-know-stale-results` | evaluation | Cases for telling a stale result from a current one. | when-metrics-are-run |
-| `eval-shared` | evaluation | Fixtures shared by the evaluations, and the results log. | structure-check, measurement-harness, consumer-check, when-metrics-are-run, behave-by-esoi, judge-esoi-behaviour |
+| `eval-shared` | evaluation | Fixtures shared by the evaluations, and the results log. | structure-check, measurement-harness, consumer-check, when-metrics-are-run, behave-by-esoi, judge-esoi-behaviour, specify-from-code, readable-records, promote-the-winner |
 | `python-project` | project | Packaging, the implementation's readme and its reference documents. | structure-check |
 | `ci` | project | The continuous integration workflow. | when-metrics-are-run |
 | `skill-distribution` | tools | Generating, checking and installing the public copy of the author's skill. | skill-distribution |
@@ -50,5 +50,13 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `behaviour` | tools | Grading an AI agent's reply against a behaviour case: the pattern check, the judge prompt and verdict, and a command provider. | behave-by-esoi, judge-esoi-behaviour |
 | `eval-behave-by-esoi` | evaluation | Cases, recorded replies and the arms for whether an agent acts by the principles. | behave-by-esoi |
 | `eval-judge-esoi-behaviour` | evaluation | Labelled replies and the arms for how far a judge agrees with them. | judge-esoi-behaviour |
+| `declarations` | tools | Reading the declarations in the code, the drift rule S30 and the sync of the records. | specify-from-code |
+| `new-solution` | tools | Creating a whole solution with one command. | specify-from-code |
+| `readme-renderer` | tools | The README of each intent folder, generated from its records. | readable-records |
+| `promotion` | tools | Switching the selected implementation to the winner of the solution's own metric, or proposing it. | promote-the-winner |
+| `eval-specify-from-code` | evaluation | Cases for reading declarations, syncing the records and creating a solution. | specify-from-code |
+| `eval-readable-records` | evaluation | Cases for the generated README of an intent folder. | readable-records |
+| `eval-promote-the-winner` | evaluation | Cases for promoting the winner of a solution's metric. | promote-the-winner |
 | `selection` | core | Resolving an implementation of a solution from a selection table. | runtime-selection |
 | `eval-select-an-implementation` | evaluation | Cases for resolving a selection. | runtime-selection |
+| `runtime` | core | Declarations in code and the cascade that picks the implementation a call runs. | runtime-selection |

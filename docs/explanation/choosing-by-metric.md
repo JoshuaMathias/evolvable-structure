@@ -29,11 +29,23 @@ For a selected implementation, comparing it with its rivals on the same cases gi
 | LOSS | A rival beats it; adopt the rival or write down why not |
 | UNMEASURED | No rival was measured on the same cases |
 
+## Adopting the winner
+
+A LOSS is a decision, and `esoi select --promote` makes it from the evidence: it switches the solution's `selected`, the metric's
+command and the reason, or prints exactly that for a person, by the solution's `promotion` cell. It only acts on rows with a
+`cases_sha`, scored on the same cases and sample, whose results are current. See
+[declare, call, measure, promote](graceful-selection.md).
+
 ## Noise
 
 Runs that call a model move between repeats of the same code, so a small gap between two of them is noise. Use exact
 counts when nothing was sampled, and a pass-rate margin and a spend tolerance when something was. State the margin where
 the comparison is made rather than reading differences into it.
+
+## Stand-ins
+
+An arm that meters a deterministic stand-in for a model declares `SIMULATED = True`: it spends nothing, so it records cost 0.0
+and model `simulated`, and it is compared on model calls. A missing price alone never makes an arm free or paid.
 
 ## Reference arms
 

@@ -21,6 +21,21 @@ model-call budget.
 Most components give each case a `kind`, `args` and a declarative `expect` (see `esoi.expect`): `eq`, `has`, `contains`,
 `not_contains`, `max_len`, `min_len`, `approx`. A new case is then data only.
 
+## Declared implementations
+
+An implementation the code declares (`@implementation` in `esoi.runtime`) needs no `impls/<name>.py`: `esoi run <component>
+--impl <name>` imports the module its record names and calls the implementation with each case's `args` as keyword arguments.
+A `score.py` may define `adapt(implementation, meter) -> fn` to call it another way. A wrapper file stays for a baseline, a
+reference arm, or an implementation that needs the call meter.
+
+## Simulated arms
+
+An arm that meters a deterministic stand-in for a model (it counts the calls a real model would make, with no tokens and no
+price) sets `SIMULATED = True` at module level. Its runs record model `simulated` and cost `0.0`, `esoi run --stale` never
+treats it as paid (a `PAID = True` marker or `paid_arms` still wins), and the leaderboard compares it on model calls, never
+against a dollar figure. Without the marker the cost stays blank (unknown), the arm is treated as paid, and a known `$0`
+baseline is not called cheaper than a cost that is merely unknown.
+
 ## Reference arms
 
 Open an implementation's docstring with `BASELINE`, `FLOOR`, `ABLATION`, `ALTERNATIVE` or `VALIDITY` (or set

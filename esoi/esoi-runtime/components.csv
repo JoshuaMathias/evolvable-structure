@@ -1,3 +1,4 @@
 component_id,layer,path,role,solutions
 selection,core,implementations/python/esoi/select.py,Resolving an implementation of a solution from a selection table.,runtime-selection
 eval-select-an-implementation,evaluation,implementations/python/evaluation/components/select_an_implementation/**,Cases for resolving a selection.,runtime-selection
+runtime,core,implementations/python/esoi/runtime.py,Declarations in code and the cascade that picks the implementation a call runs.,runtime-selection
