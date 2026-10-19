@@ -1,0 +1,323 @@
+[
+ {
+  "id": "SFC-001",
+  "kind": "scan",
+  "area": "the decorators declare a solution and its alternatives, named or by function name",
+  "description": "the decorators declare a solution and its alternatives, named or by function name",
+  "args": {
+   "files": {
+    "pkg/a.py": "from esoi import implementation, solution, register\n\n\n@solution(\"s\")\ndef s(x): ...\n\n\n@implementation(\"s\", \"one\")\ndef first(x): return 1\n\n\n@implementation(\"s\")\ndef Two(x): return 2\n"
+   }
+  },
+  "expect": {
+   "eq": {
+    "solutions": [
+     "s"
+    ],
+    "implementations": [
+     "s:one",
+     "s:two"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SFC-002",
+  "kind": "scan",
+  "area": "the name may be a keyword",
+  "description": "the name may be a keyword",
+  "args": {
+   "files": {
+    "pkg/a.py": "from esoi import implementation, solution, register\n\n\n@implementation(\"s\", name=\"kw\")\ndef anything(x): return 1\n"
+   }
+  },
+  "expect": {
+   "eq": {
+    "solutions": [],
+    "implementations": [
+     "s:kw"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SFC-003",
+  "kind": "scan",
+  "area": "a registration call declares an implementation of another package",
+  "description": "a registration call declares an implementation of another package",
+  "args": {
+   "files": {
+    "pkg/a.py": "from esoi import implementation, solution, register\n\n\nregister(\"s\", \"Theirs\", \"other.pkg:Thing\")\n"
+   }
+  },
+  "expect": {
+   "eq": {
+    "implementations": [
+     "s:theirs"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SFC-004",
+  "kind": "scan",
+  "area": "the attribute form of the decorators is read too",
+  "description": "the attribute form of the decorators is read too",
+  "args": {
+   "files": {
+    "pkg/a.py": "import esoi\n\n\n@esoi.solution(\"s\")\ndef s(x): ...\n\n\n@esoi.implementation(\"s\", \"one\")\ndef one(x): return 1\n"
+   }
+  },
+  "expect": {
+   "eq": {
+    "solutions": [
+     "s"
+    ],
+    "implementations": [
+     "s:one"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SFC-005",
+  "kind": "scan",
+  "area": "a file that does not use esoi is ignored, even with a decorator of the same name",
+  "description": "a file that does not use esoi is ignored, even with a decorator of the same name",
+  "args": {
+   "files": {
+    "pkg/a.py": "def solution(x):\n    return lambda f: f\n\n\n@solution(\"s\")\ndef s(x): ...\n"
+   }
+  },
+  "expect": {
+   "eq": {
+    "solutions": [],
+    "implementations": []
+   }
+  }
+ },
+ {
+  "id": "SFC-006",
+  "kind": "scan",
+  "area": "a Protocol class interface is the port of its solution",
+  "description": "a Protocol class interface is the port of its solution",
+  "args": {
+   "files": {
+    "pkg/a.py": "from esoi import implementation, solution, register\n\n\nfrom typing import Protocol\n\n\n@solution(\"s\")\nclass Thing(Protocol):\n    def go(self) -> int: ...\n"
+   }
+  },
+  "expect": {
+   "eq": {
+    "solutions": [
+     "s"
+    ],
+    "ports": {
+     "s": "Thing"
+    }
+   }
+  }
+ },
+ {
+  "id": "SFC-007",
+  "kind": "scan",
+  "area": "the signature of the interface is the solution's parameters and outputs",
+  "description": "the signature of the interface is the solution's parameters and outputs",
+  "args": {
+   "files": {
+    "pkg/a.py": "from esoi import implementation, solution, register\n\n\n@solution(\"s\")\ndef s(x: int, y=2) -> str: ...\n"
+   }
+  },
+  "expect": {
+   "eq": {
+    "parameters": {
+     "s": "x: int, y=2"
+    },
+    "outputs": {
+     "s": "str"
+    }
+   }
+  }
+ },
+ {
+  "id": "SFC-008",
+  "kind": "sync",
+  "area": "sync writes the rows a declared solution and its alternative lack",
+  "description": "sync writes the rows a declared solution and its alternative lack",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/extra.py",
+     "content": "\"\"\"Declared in code.\"\"\"\nfrom esoi import implementation, solution\n\n\n@solution(\"shout-it\")\ndef shout(text: str, loud: bool = True) -> str:\n    \"\"\"Shout a text.\"\"\"\n\n\n@implementation(\"shout-it\", \"caps\")\ndef caps(text, loud=True):\n    \"\"\"Upper-case it.\"\"\"\n    return text.upper()\n"
+    }
+   ],
+   "solution": "shout-it"
+  },
+  "expect": {
+   "eq": {
+    "before_count": 2,
+    "after_count": 0,
+    "changes": 2,
+    "row": {
+     "name": "Shout",
+     "parameters": "text: str, loud: bool=True",
+     "outputs": "str",
+     "selected": "caps",
+     "metric_kind": "specification",
+     "implementations": "caps"
+    }
+   }
+  }
+ },
+ {
+  "id": "SFC-009",
+  "kind": "sync",
+  "area": "sync is idempotent: a second one writes nothing",
+  "description": "sync is idempotent: a second one writes nothing",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/extra.py",
+     "content": "\"\"\"Declared in code.\"\"\"\nfrom esoi import implementation, solution\n\n\n@solution(\"shout-it\")\ndef shout(text: str, loud: bool = True) -> str:\n    \"\"\"Shout a text.\"\"\"\n\n\n@implementation(\"shout-it\", \"caps\")\ndef caps(text, loud=True):\n    \"\"\"Upper-case it.\"\"\"\n    return text.upper()\n"
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "second": 0
+   }
+  }
+ },
+ {
+  "id": "SFC-010",
+  "kind": "sync",
+  "area": "sync adds an alternative of an existing solution and lists it",
+  "description": "sync adds an alternative of an existing solution and lists it",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/friendly.py",
+     "content": "\"\"\"Another alternative of the example solution.\"\"\"\nfrom esoi import implementation\n\n\n@implementation(\"greet-a-person\", \"friendly\")\ndef friendly(name):\n    \"\"\"A friendlier greeting.\"\"\"\n    return f\"Hi {name}!\"\n"
+    }
+   ],
+   "solution": "greet-a-person"
+  },
+  "expect": {
+   "eq": {
+    "before_count": 1,
+    "after_count": 0,
+    "changes": 2
+   }
+  }
+ },
+ {
+  "id": "SFC-011",
+  "kind": "sync",
+  "area": "sync never overwrites text a person wrote, and fills only an empty path",
+  "description": "sync never overwrites text a person wrote, and fills only an empty path",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/friendly.py",
+     "content": "\"\"\"Another alternative of the example solution.\"\"\"\nfrom esoi import implementation\n\n\n@implementation(\"greet-a-person\", \"friendly\")\ndef friendly(name):\n    \"\"\"A friendlier greeting.\"\"\"\n    return f\"Hi {name}!\"\n"
+    },
+    {
+     "op": "csv_append",
+     "path": "esoi/implementations.csv",
+     "row": {
+      "implementation_id": "greet-a-person:friendly",
+      "solution_id": "greet-a-person",
+      "name": "Mine",
+      "description": "written by hand"
+     }
+    }
+   ],
+   "keep": {
+    "path": "esoi/implementations.csv",
+    "key_col": "implementation_id",
+    "key": "greet-a-person:friendly",
+    "col": "description",
+    "value": "written by hand"
+   }
+  },
+  "expect": {
+   "eq": {
+    "kept": true,
+    "after_count": 0
+   }
+  }
+ },
+ {
+  "id": "SFC-012",
+  "kind": "sync",
+  "area": "a record whose path names another file stays flagged for a person to correct",
+  "description": "a record whose path names another file stays flagged for a person to correct",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/friendly.py",
+     "content": "\"\"\"Another alternative of the example solution.\"\"\"\nfrom esoi import implementation\n\n\n@implementation(\"greet-a-person\", \"friendly\")\ndef friendly(name):\n    \"\"\"A friendlier greeting.\"\"\"\n    return f\"Hi {name}!\"\n"
+    },
+    {
+     "op": "csv_append",
+     "path": "esoi/implementations.csv",
+     "row": {
+      "implementation_id": "greet-a-person:friendly",
+      "solution_id": "greet-a-person",
+      "name": "Mine",
+      "path": "demo/elsewhere.py"
+     }
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "after_count": 1
+   }
+  }
+ },
+ {
+  "id": "SFC-013",
+  "kind": "new",
+  "area": "one command writes a whole new solution",
+  "description": "one command writes a whole new solution",
+  "args": {
+   "id": "voice-greeting"
+  },
+  "expect": {
+   "eq": {
+    "text_only": true,
+    "valid": true,
+    "refused": true
+   },
+   "has": {
+    "files": [
+     "demo/voice_greeting.py",
+     "evaluation/components/voice_greeting/cases.json",
+     "evaluation/components/voice_greeting/score.py",
+     "esoi/solutions.csv"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SFC-014",
+  "kind": "new",
+  "area": "the id is normalised to a kebab-case id and a snake-case module",
+  "description": "the id is normalised to a kebab-case id and a snake-case module",
+  "args": {
+   "id": "Voice  Greeting!"
+  },
+  "expect": {
+   "has": {
+    "files": [
+     "demo/voice_greeting.py"
+    ]
+   }
+  }
+ }
+]

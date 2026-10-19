@@ -31,3 +31,12 @@ def test_the_recorded_numbers_are_what_the_harness_measures(tmp_path):
 def test_python_name_makes_a_valid_package_name():
     assert scaffold.python_name("My Repo-1") == "my_repo_1" and scaffold.python_name("9lives") == "pkg_9lives"
     assert scaffold.python_name("---") == "mypackage"
+
+
+def test_the_example_is_declared_in_code_and_its_specifications_live_in_the_default_folder(tmp_path):
+    scaffold.init(tmp_path, "declared_demo", say=lambda text: None)
+    assert (tmp_path / "esoi" / "intent.csv").is_file() and (tmp_path / "esoi" / "README.md").is_file()
+    source = (tmp_path / "declared_demo" / "greet.py").read_text()
+    assert '@solution("greet-a-person")' in source and '@implementation("greet-a-person", "greet")' in source
+    assert not (tmp_path / "evaluation" / "components" / "greet_a_person" / "impls" / "greet.py").exists()   # no wrapper needed
+    assert scaffold.DEFAULT_STRUCTURE_DIR == "esoi" == config.DEFAULT_STRUCTURE_DIR

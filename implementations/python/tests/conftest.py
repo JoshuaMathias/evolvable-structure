@@ -33,9 +33,8 @@ def fill_top_intent(root):
         advantages="One place to start.", disadvantages="Nothing rival has been compared."))
     edit("problems.csv", lambda r: r["problem_id"] == "greeting-by-hand" and r.update(solution_ids=r["solution_ids"] + ";project-purpose"))
     edit("metrics.csv", lambda r: r["metric_id"] == "greeting-pass-rate" and r.update(solution_ids=r["solution_ids"] + ";project-purpose"))
-    from esoi import registry, tracker   # the tracker tabs follow the records
-    cfg = config.load(root)
-    tracker.write(cfg, registry.load(cfg), say=lambda text: None)
+    from esoi import check   # the tracker tabs and the READMEs follow the records
+    check.write_docs(config.load(root), say=lambda text: None)
 
 
 @pytest.fixture

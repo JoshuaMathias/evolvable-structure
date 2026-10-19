@@ -3,8 +3,8 @@
 The example is a top intent holding three solutions: ``project-purpose``, the single solution at the top whose
 implementation builds on the other two; ``project-structure``, the evolvable structure the project applies, whose
 implementation uses esoi (``@esoi/structure-check`` names a solution of another project); and a stand-in for the
-project's own work, ``greet-a-person``, with two implementations (the package function and a shouting baseline), one
-ideal, one problem, a metric (``esoi run greet_a_person --impl live``), the component rows that own every file and a
+project's own work, ``greet-a-person``, declared in code (``@solution`` on the interface, ``@implementation`` on the
+package function: calling ``greet`` runs the one the records select) with a shouting baseline, one ideal, one problem, a metric (``esoi run greet_a_person --impl live``), the component rows that own every file and a
 recorded run.
 
 The top intent is why your project exists, in your own words, and the top solution is how it is carried out, so
@@ -109,11 +109,18 @@ package = "{package}"
 layers = ["core"]
 code_paths = ["{package}"]
 '''
-GREET = '''"""The example solution: greet a person by name."""
+GREET = '''"""The example solution, declared where it lives: the interface, and the alternative the project ships."""
+from esoi import implementation, solution
 
 
+@solution("greet-a-person")
 def greet(name: str) -> str:
-    """The greeting for ``name`` in the standard form."""
+    """Greet one person by name in plain text."""
+
+
+@implementation("greet-a-person", "greet")
+def standard_greeting(name: str) -> str:
+    """The standard greeting. The project default is the solution's `selected` in the records, not a copy here."""
     return f"Hello, {name}!"
 '''
 INIT = '"""{package}: replace this docstring with what the package is for."""\n'

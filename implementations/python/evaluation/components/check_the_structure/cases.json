@@ -1729,5 +1729,241 @@
   "expect": {
    "clean": true
   }
+ },
+ {
+  "id": "CTS-071",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a solution declared in code that no solutions.csv row records",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/extra.py",
+     "content": "\"\"\"Declared in code.\"\"\"\nfrom esoi import implementation, solution\n\n\n@solution(\"shout-it\")\ndef shout(text: str) -> str:\n    \"\"\"Shout a text.\"\"\"\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S30",
+   "contains": "no solutions.csv row"
+  }
+ },
+ {
+  "id": "CTS-072",
+  "area": "repo",
+  "kind": "repo",
+  "description": "an implementation declared in code that implementations.csv does not record",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/friendly.py",
+     "content": "\"\"\"Another alternative of the example solution.\"\"\"\nfrom esoi import implementation\n\n\n@implementation(\"greet-a-person\", \"friendly\")\ndef friendly(name):\n    \"\"\"A friendlier greeting.\"\"\"\n    return f\"Hi {name}!\"\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S30",
+   "contains": "implementations.csv has no such record"
+  }
+ },
+ {
+  "id": "CTS-073",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a recorded implementation whose path names another file than the one that declares it",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/friendly.py",
+     "content": "\"\"\"Another alternative of the example solution.\"\"\"\nfrom esoi import implementation\n\n\n@implementation(\"greet-a-person\", \"friendly\")\ndef friendly(name):\n    \"\"\"A friendlier greeting.\"\"\"\n    return f\"Hi {name}!\"\n"
+    },
+    {
+     "op": "csv_append",
+     "path": "esoi/implementations.csv",
+     "row": {
+      "implementation_id": "greet-a-person:friendly",
+      "solution_id": "greet-a-person",
+      "name": "Friendly",
+      "description": "Says hi.",
+      "advantages": "Warm.",
+      "disadvantages": "Informal.",
+      "path": "demo/elsewhere.py"
+     }
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S30",
+   "contains": "its record's `path` says"
+  }
+ },
+ {
+  "id": "CTS-074",
+  "area": "repo",
+  "kind": "repo",
+  "description": "an implementation declared in code and recorded with its path (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/friendly.py",
+     "content": "\"\"\"Another alternative of the example solution.\"\"\"\nfrom esoi import implementation\n\n\n@implementation(\"greet-a-person\", \"friendly\")\ndef friendly(name):\n    \"\"\"A friendlier greeting.\"\"\"\n    return f\"Hi {name}!\"\n"
+    },
+    {
+     "op": "csv_append",
+     "path": "esoi/implementations.csv",
+     "row": {
+      "implementation_id": "greet-a-person:friendly",
+      "solution_id": "greet-a-person",
+      "name": "Friendly",
+      "description": "Says hi.",
+      "advantages": "Warm.",
+      "disadvantages": "Informal.",
+      "path": "demo/friendly.py"
+     }
+    },
+    {
+     "op": "csv_cell",
+     "path": "esoi/solutions.csv",
+     "key_col": "solution_id",
+     "key": "greet-a-person",
+     "col": "implementations",
+     "value": "demo/greet.py;evaluation/components/greet_a_person/impls/live.py;evaluation/components/greet_a_person/impls/shout.py;friendly"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "CTS-075",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a selection table that still holds a default equal to the records' selected (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "demo/selection.py",
+     "content": "\"\"\"Selection.\"\"\"\nSELECTION = {\"greet-a-person\": {\"default\": \"plain\", \"implementations\": {\"plain\": \"demo.greet:greet\"}}}\n"
+    }
+   ]
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "CTS-076",
+  "area": "repo",
+  "kind": "repo",
+  "description": "the specifications folder named structure/ and configured (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "move",
+     "path": "esoi",
+     "to": "structure"
+    },
+    {
+     "op": "replace",
+     "path": "esoi.toml",
+     "old": "layers = [\"core\", \"adapters\"]",
+     "new": "layers = [\"core\", \"adapters\"]\nstructure_dir = \"structure\""
+    },
+    {
+     "op": "csv_cell",
+     "path": "structure/components.csv",
+     "key_col": "component_id",
+     "key": "structure-registry",
+     "col": "path",
+     "value": "structure/**"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "CTS-077",
+  "area": "repo",
+  "kind": "repo",
+  "description": "the specifications folder named docs/structure/ and configured (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "move",
+     "path": "esoi",
+     "to": "docs/structure"
+    },
+    {
+     "op": "replace",
+     "path": "esoi.toml",
+     "old": "layers = [\"core\", \"adapters\"]",
+     "new": "layers = [\"core\", \"adapters\"]\nstructure_dir = \"docs/structure\""
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/components.csv",
+     "key_col": "component_id",
+     "key": "structure-registry",
+     "col": "path",
+     "value": "docs/structure/**"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "CTS-078",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a harness command naming an implementation declared in code, with no wrapper file (clean)",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "esoi/metrics.csv",
+     "key_col": "metric_id",
+     "key": "greeting-pass-rate",
+     "col": "command",
+     "value": "esoi run greet_a_person --impl greet"
+    },
+    {
+     "op": "csv_clone",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "live",
+     "row": {
+      "impl": "greet"
+     }
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "clean": true
+  }
  }
 ]

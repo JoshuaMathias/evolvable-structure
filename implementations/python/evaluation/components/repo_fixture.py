@@ -21,7 +21,8 @@ from esoi import check, config, scaffold
 
 PORTS = ('"""The fixture port."""\nfrom typing import Protocol\n\n\nclass Greeter(Protocol):\n'
          '    """Says hello."""\n\n    def greet(self, name: str) -> str: ...\n')
-SELECTION = ('"""Selection as data."""\nSELECTION = {"greet-a-person": {"default": "plain", "implementations": '
+# the table holds no default of its own: the records' `selected` is the one copy (a table that still holds one is a case)
+SELECTION = ('"""Selection as data."""\nSELECTION = {"greet-a-person": {"implementations": '
              '{"plain": "demo.greet:greet"}}}\n')
 ADAPTERS = '"""Fixture adapters layer."""\n'
 TOML_EXTRA = '''
@@ -104,7 +105,7 @@ def apply_edits(root: Path, edits: List[dict]) -> None:
     ``csv_dup``, ``csv_clone`` (a copy with the cells of ``row`` replaced) and ``csv_append`` act on a CSV row found by
     ``key_col`` == ``key``; ``csv_drop_col`` removes the column ``col``; a ``csv_cell`` value of ``{HEAD}`` is the
     current short commit; ``git_commit`` commits what changed without restamping the results; ``regen`` re-runs the live
-    ``--write-docs`` so a case can isolate one rule from stale generated docs."""
+    ``--write-docs`` so a case can isolate one rule from stale generated docs; ``move`` renames ``path`` to ``to``."""
     root = Path(root)
     for e in edits:
         op, rel = e["op"], e.get("path", "")
@@ -119,6 +120,9 @@ def apply_edits(root: Path, edits: List[dict]) -> None:
             path.write_text(text.replace(e["old"], e["new"], 1))
         elif op == "delete":
             path.unlink()
+        elif op == "move":
+            (root / e["to"]).parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(path), str(root / e["to"]))
         elif op == "git_record":
             git_record(root)
         elif op == "git_commit":
