@@ -6,12 +6,16 @@ One solution id names every part of one idea. Nothing in the repository exists o
 not done until a recorded run says how well it works. This page is enough to add a solution; the numbered rules that
 enforce it are a reference.
 
-## Two levels
+## Intents
 
-- **The overall solution network** (write this first): the repository's problems, ideals, overall solution, its
-  alternatives and top metrics. Folder: <!-- path -->.
-- **The detailed records**: one solution per part, with its implementations and a metric. Each names the part of the
-  overall network it serves with `parent_problem_ids`, `parent_ideal_ids`, `overall_solution_ids` or `parent_metric_ids`.
+- **The top intent** (write this first): why the project exists, in its own words: `intent.csv` with its name and
+  vision statement, its top solution (the project's structure is one), problems, ideals and metrics. Folder:
+  <!-- path -->, which only holds it.
+- **Sub-intents**: a subfolder with its own `intent.csv`, only where it brings insights on opportunities that do not
+  emerge directly from the parent intent or the solution it implements. It arises as an implementation of a solution in
+  the parent intent and says which in `implements`.
+- **Solutions** are recorded in the intent they serve; an implementation that builds on solutions of other intents lists
+  them in `uses_solution_ids`.
 
 ## The shape of one solution
 
@@ -44,6 +48,15 @@ recorded run, is never ranked, and keeps a deliberately naive baseline that its 
 Generated from the intent template by `esoi template sync`; the records in the structure
 folder carry exactly these columns (a `Specify:` field is required, an interface field is optional and
 meant for a solution that is technology).
+
+**Intent**: In ESOI, intents are meaningful containers of a set of specifications. For human understanding, they serve as a personal category of interest or relate to a tangible container such as an organization.
+
+| Column | Required | Question |
+|---|---|---|
+| `name` | yes | What is a specific phrase which distinguishes the topic of the intent from other intents? |
+| `vision_statement` | yes | What is this intent manifesting in present tense? e.g. "I am ..." or "The world is ..." Any subject and verb can be used. |
+
+What it is not: A general category like "parenting" or "career." An intent is also not an organization itself, rather the container of specification that clarifies why the organization exists (as a solution and implementation within an intent). In this example, different versions of the same organization can be documented as separate alternative implementations.
 
 **Problem**: A description of what motivated the intent. A challenge, difficulty, or description of how an ideal is not reached.
 

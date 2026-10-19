@@ -126,4 +126,4 @@ One row per Metric record the policy governs, in the repository's own records (t
 - On the policy's solution record, list the governed metrics in `governs_metric_ids`.
 - On each governed Metric record, name the policy in `run_policy_ids`. The two must agree.
 - Give the policy's own solution a Metric (copy [metric.md](metric.md)): for example the share of decisions that were backed by a current result, and the spend per decision.
-- If the repository has an overall solution network, link the policy to it with `parent_problem_ids`, `parent_ideal_ids` and `overall_solution_ids`.
+- Link the policy's problems and ideals to the intent's own with `parent_problem_ids` and `parent_ideal_ids` where they elaborate one.

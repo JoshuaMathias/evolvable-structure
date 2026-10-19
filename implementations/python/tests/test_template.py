@@ -44,7 +44,7 @@ def test_parse_reads_fields_groups_and_meta():
 
 def test_a_missing_block_parses_to_nothing():
     rows, notes = template.parse("# nothing\n")
-    assert rows == [] and "no 'Intent template definitions'" in notes[0]
+    assert rows == [] and "no 'Intent specification' block" in notes[0]
 
 
 def test_the_shipped_copy_matches_what_the_parser_makes_of_its_own_rows():

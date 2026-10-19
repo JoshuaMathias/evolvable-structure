@@ -360,7 +360,7 @@
     "keys": {}
    },
    "contains": [
-    "no 'Intent template definitions' block"
+    "no 'Intent specification' block"
    ]
   }
  },

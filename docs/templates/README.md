@@ -5,8 +5,9 @@ intent template in the author's `SKILL.md`; the questions are his words. To chan
 
 | File | Use it to |
 |---|---|
-| [problem.md](problem.md), [ideal.md](ideal.md), [solution.md](solution.md), [implementation.md](implementation.md), [metric.md](metric.md) | Write one record of that type |
-| [overall-solution-network.md](overall-solution-network.md) | Write a repository's overall solution network |
+| [intent.md](intent.md), [problem.md](problem.md), [ideal.md](ideal.md), [solution.md](solution.md), [implementation.md](implementation.md), [metric.md](metric.md) | Write one record of that type (the intent template is the intent's own record) |
+| [intent-layout.md](intent-layout.md) | Lay out an intent as a folder, with sub-intents as subfolders |
+| [overall-solution-network.md](overall-solution-network.md) | Legacy two-level layout only: write a repository's overall solution network |
 | [repository-standard.md](repository-standard.md) | Start the standard for how your repository applies ESOI |
 | [review-sheet.md](review-sheet.md) | Lay the records out as a spreadsheet for review |
 | [metric-run-policy.md](metric-run-policy.md) | Record when your metrics are run, who approves the spend, and when a result is stale |
