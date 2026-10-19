@@ -14,7 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable, List, Optional
 
-from . import leaderboard, rules, template, tracker
+from . import intents, leaderboard, readme, rules, template, tracker
 from .config import Config
 from .registry import load as load_registry
 from .rules.base import Context
@@ -26,9 +26,9 @@ from .tables import repo_files
 def build_context(config: Config, strict: bool = False, files: Optional[List[str]] = None) -> Context:
     registry = load_registry(config)
     table, error = None, ""
-    if config.selection:
+    if config.selection_table:
         try:
-            table = dict(load_table(config.selection, config.root))
+            table = dict(load_table(config.selection_table, config.root))
         except Exception as exc:   # any failure to load is the finding, reported as S14
             error = f"{type(exc).__name__}: {exc}"
     return Context(config=config, registry=registry, files=repo_files(config.root) if files is None else files,
@@ -77,6 +77,9 @@ def write_docs(config: Config, say: Callable[[str], None] = print) -> None:
     registry = load_registry(config)
     config.structure.mkdir(parents=True, exist_ok=True)
     (config.structure / "COMPONENTS.md").write_text(render_components_doc(registry.components, config.structure_dir), encoding="utf-8")
+    if config.intent_mode:
+        for intent in intents.discover(config):
+            (intent.folder / "README.md").write_text(readme.render(registry, intent), encoding="utf-8")
     if config.tracker_dir.is_dir() or registry.solutions:
         tracker.write(config, registry, say=lambda text: None)
     ctx = build_context(config)

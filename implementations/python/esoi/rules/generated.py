@@ -12,7 +12,7 @@ from typing import Dict, List
 
 from .. import template as template_module
 from .. import tracker
-from .. import intents
+from .. import intents, readme
 from ..records import check_headers, check_records, overall_ids, tables_of
 from .base import Context, RuleGroup
 
@@ -26,7 +26,8 @@ KEYS = {"problem": "problem_id", "ideal": "ideal_id", "solution": "solution_id",
         "metric": "metric_id"}
 
 SUMMARIES = {
-    "S8": "COMPONENTS.md matches components.csv (esoi check --write-docs regenerates it).",
+    "S8": "COMPONENTS.md matches components.csv, and each intent folder's README.md matches its records (esoi check "
+          "--write-docs regenerates them).",
     "S17": "The tracker tabs match what the registry and the results log now produce (only tracking_* columns are "
            "hand-edited). Checked when the tracker folder exists.",
     "S26": "The intent records fill every field of the evolvable-structure template and link as it says "
@@ -59,6 +60,12 @@ def run(ctx: Context) -> List[str]:
     doc = config.structure / "COMPONENTS.md"
     if not doc.exists() or doc.read_text(encoding="utf-8") != render_components_doc(ctx.components, config.structure_dir):
         bad.append(f"S8 {config.structure_dir}/COMPONENTS.md: out of date (run `esoi check --write-docs`)")
+
+    if config.intent_mode:
+        for intent in intents.discover(config):
+            page = intent.folder / "README.md"
+            if not page.exists() or page.read_text(encoding="utf-8") != readme.render(ctx.registry, intent):
+                bad.append(f"S8 {page.relative_to(config.root)}: out of date (run `esoi check --write-docs`)")
 
     if config.tracker_dir.is_dir():
         template = ctx.template

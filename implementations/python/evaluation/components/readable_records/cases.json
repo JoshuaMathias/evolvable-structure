@@ -1,0 +1,217 @@
+[
+ {
+  "id": "RDM-001",
+  "kind": "readme",
+  "area": "the first line says these are ESOI records and that the page is generated",
+  "description": "the first line says these are ESOI records and that the page is generated",
+  "args": {
+   "edits": []
+  },
+  "expect": {
+   "contains": [
+    "These are ESOI records (evolvable structure that optimizes intent): why this project exists",
+    "generated from the CSV files"
+   ]
+  }
+ },
+ {
+  "id": "RDM-002",
+  "kind": "readme",
+  "area": "the page carries the intent's name and vision statement from the record",
+  "description": "the page carries the intent's name and vision statement from the record",
+  "args": {
+   "edits": []
+  },
+  "expect": {
+   "contains": [
+    "# Consistent greetings",
+    "Every person is greeted by their own name."
+   ]
+  }
+ },
+ {
+  "id": "RDM-003",
+  "kind": "readme",
+  "area": "the page lists the problems, ideals, solutions, implementations and metrics by id",
+  "description": "the page lists the problems, ideals, solutions, implementations and metrics by id",
+  "args": {
+   "edits": []
+  },
+  "expect": {
+   "contains": [
+    "## Problems",
+    "`greeting-by-hand`",
+    "## Ideals",
+    "## Solutions",
+    "`greet-a-person`",
+    "## Implementations",
+    "`greet-a-person:greet`",
+    "## Metrics",
+    "`greeting-pass-rate`",
+    "esoi run greet_a_person --impl live"
+   ]
+  }
+ },
+ {
+  "id": "RDM-004",
+  "kind": "sub",
+  "area": "a sub-intent's page says which implementation it arises from and its opportunity",
+  "description": "a sub-intent's page says which implementation it arises from and its opportunity",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "esoi/voices/intent.csv",
+     "content": "intent_id,name,vision_statement,implements,opportunity\nvoices,Greeting voices,Every greeting is spoken warmly.,greet-a-person:live,Speaking greetings aloud is a creative space the written greeting does not cover.\n"
+    },
+    {
+     "op": "csv_cell",
+     "path": "esoi/implementations.csv",
+     "key_col": "implementation_id",
+     "key": "greet-a-person:live",
+     "col": "sub_intent",
+     "value": "voices"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "contains": [
+    "This sub-intent arises as the implementation `greet-a-person:live` of its parent intent `demo`",
+    "Speaking greetings aloud"
+   ]
+  }
+ },
+ {
+  "id": "RDM-005",
+  "kind": "readme",
+  "area": "the parent's page links its sub-intent from the implementation that is specified as one",
+  "description": "the parent's page links its sub-intent from the implementation that is specified as one",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "esoi/voices/intent.csv",
+     "content": "intent_id,name,vision_statement,implements,opportunity\nvoices,Greeting voices,Every greeting is spoken warmly.,greet-a-person:live,Speaking greetings aloud is a creative space the written greeting does not cover.\n"
+    },
+    {
+     "op": "csv_cell",
+     "path": "esoi/implementations.csv",
+     "key_col": "implementation_id",
+     "key": "greet-a-person:live",
+     "col": "sub_intent",
+     "value": "voices"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "contains": [
+    "[voices](voices/README.md)"
+   ]
+  }
+ },
+ {
+  "id": "RDM-006",
+  "kind": "check",
+  "area": "a clean project reports no README out of date",
+  "description": "a clean project reports no README out of date",
+  "args": {
+   "edits": []
+  },
+  "expect": {
+   "eq": {
+    "stale": 0
+   }
+  }
+ },
+ {
+  "id": "RDM-007",
+  "kind": "check",
+  "area": "a record changed without regenerating the page is reported",
+  "description": "a record changed without regenerating the page is reported",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "esoi/problems.csv",
+     "key_col": "problem_id",
+     "key": "greeting-by-hand",
+     "col": "problem",
+     "value": "People are greeted by hand, and the greetings come out inconsistent."
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "stale": 1
+   },
+   "contains": [
+    "esoi/README.md"
+   ]
+  }
+ },
+ {
+  "id": "RDM-008",
+  "kind": "check",
+  "area": "a page edited by hand is reported",
+  "description": "a page edited by hand is reported",
+  "args": {
+   "edits": [
+    {
+     "op": "append",
+     "path": "esoi/README.md",
+     "content": "A line added by hand.\n"
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "stale": 1
+   }
+  }
+ },
+ {
+  "id": "RDM-009",
+  "kind": "check",
+  "area": "a missing page is reported",
+  "description": "a missing page is reported",
+  "args": {
+   "edits": [
+    {
+     "op": "delete",
+     "path": "esoi/README.md"
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "stale": 1
+   }
+  }
+ },
+ {
+  "id": "RDM-010",
+  "kind": "check",
+  "area": "a person's own network.md beside the records is left alone",
+  "description": "a person's own network.md beside the records is left alone",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "esoi/network.md",
+     "content": "# Network\n\nWritten by hand.\n"
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "stale": 0
+   }
+  }
+ }
+]
