@@ -1,6 +1,6 @@
 # Components
 
-Generated from `structure/components.csv` by `esoi check --write-docs`.
+Generated from `esoi/components.csv` by `esoi check --write-docs`.
 Edit the CSV, never this file. The rules are listed by `esoi rules`.
 
 | Component | Layer | Role | Serves |

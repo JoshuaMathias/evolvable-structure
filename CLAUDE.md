@@ -28,7 +28,7 @@ The main feature is explanation and templates that need no code; Python is one e
 | `docs/templates/`, `docs/explanation/from-the-skill.md` | Generated from Joshua's `SKILL.md`; never hand-edit | the template changes (run `esoi template sync`) |
 | `skill/`, `.claude-plugin/`, `implementations/python/esoi/data/skill/` | Public copy of the author's skill; generated, never hand-edit | the skill changes (run `esoi skill sync` with `ESOI_SKILL_SOURCE`) |
 | `implementations/python/` | The `esoi` package, its tests and evaluation components | changing the tools |
-| `structure/` | ESOI applied to this repository. It holds the top intent (here ESOI itself, because that is why this repository exists; another project's top intent is its own purpose); `esoi-runtime/` is a sub-intent with its own `intent.csv`; its folder is named by its intent id | adding or changing a part |
+| `esoi/` | ESOI applied to this repository. It holds the top intent (here ESOI itself, because that is why this repository exists; another project's top intent is its own purpose); `esoi-runtime/` is a sub-intent with its own `intent.csv`; its folder is named by its intent id | adding or changing a part |
 | `examples/` | Adopters as short testimonials | an adopter has a paragraph to add |
 
 ## Rules for work here
@@ -42,8 +42,8 @@ The main feature is explanation and templates that need no code; Python is one e
 - **No em dashes** anywhere, and no underscore-prefixed names in Python (dunders are fine).
 - **ESOI applies here too.** Before committing: `esoi check` from the repository root (it reads `esoi.toml`; `pip install -e implementations/python` first), and
   the tests: `python -m pytest implementations/python/tests` (offline). A new part of the Python package belongs to a
-  component in `structure/components.csv` and serves a solution in `structure/solutions.csv`.
-- **Metric runs follow `structure/metric-run-policy.md`.** Every recorded metric here is offline: run the part you changed, then
+  component in `esoi/components.csv` and serves a solution in `esoi/solutions.csv`.
+- **Metric runs follow `esoi/metric-run-policy.md`.** Every recorded metric here is offline: run the part you changed, then
   `esoi check`; after committing measured code or cases, `esoi run --stale` (it skips paid arms) and commit the results log. The
   paid arms (those that call a model, declared `PAID = True`) need a cost estimate, a staged sample (3, 10, 30), a call budget and
   Joshua's approval first; never run one without it.

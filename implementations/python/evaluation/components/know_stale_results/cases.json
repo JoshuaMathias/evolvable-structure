@@ -221,7 +221,7 @@
     },
     {
      "op": "write",
-     "path": "docs/structure/NOTES.md",
+     "path": "esoi/NOTES.md",
      "content": "notes\n"
     }
    ],
@@ -316,7 +316,7 @@
     },
     {
      "op": "csv_append",
-     "path": "docs/structure/waivers.csv",
+     "path": "esoi/waivers.csv",
      "row": {
       "rule": "S20",
       "path": "greet-a-person:shout",
@@ -350,7 +350,7 @@
     },
     {
      "op": "csv_append",
-     "path": "docs/structure/waivers.csv",
+     "path": "esoi/waivers.csv",
      "row": {
       "rule": "S20",
       "path": "greet-a-person",
@@ -359,7 +359,7 @@
     },
     {
      "op": "csv_append",
-     "path": "docs/structure/waivers.csv",
+     "path": "esoi/waivers.csv",
      "row": {
       "rule": "S20",
       "path": "greet-a-person:shout",

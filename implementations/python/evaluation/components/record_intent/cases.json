@@ -20,7 +20,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/problems.csv",
+     "path": "esoi/problems.csv",
      "key_col": "problem_id",
      "key": "greeting-by-hand",
      "col": "who_has_it",
@@ -45,7 +45,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/problems.csv",
+     "path": "esoi/problems.csv",
      "key_col": "problem_id",
      "key": "greeting-by-hand",
      "col": "problem",
@@ -70,7 +70,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "problem_ids",
@@ -78,7 +78,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "parent_problem_ids",
@@ -103,7 +103,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/ideals.csv",
+     "path": "esoi/ideals.csv",
      "key_col": "ideal_id",
      "key": "consistent-greeting",
      "col": "problem_ids",
@@ -128,7 +128,7 @@
    "edits": [
     {
      "op": "csv_drop",
-     "path": "docs/structure/implementations.csv",
+     "path": "esoi/implementations.csv",
      "key_col": "implementation_id",
      "key": "greet-a-person:shout"
     },
@@ -151,7 +151,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "parent_ideal_ids",
@@ -176,7 +176,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/problems.csv",
+     "path": "esoi/problems.csv",
      "key_col": "problem_id",
      "key": "greeting-by-hand",
      "col": "parent_problem_ids",
@@ -201,7 +201,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/problems.csv",
+     "path": "esoi/problems.csv",
      "key_col": "problem_id",
      "key": "purpose-unrecorded",
      "col": "who_has_it",
@@ -226,7 +226,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/implementations.csv",
+     "path": "esoi/implementations.csv",
      "key_col": "implementation_id",
      "key": "greet-a-person:greet",
      "col": "implementation_id",
@@ -250,12 +250,12 @@
    "edits": [
     {
      "op": "write",
-     "path": "docs/structure/voices/intent.csv",
+     "path": "esoi/voices/intent.csv",
      "content": "intent_id,name,vision_statement,implements,opportunity\nvoices,Greeting voices,Every greeting is spoken warmly.,greet-a-person:live,Speaking greetings aloud is a creative space the written greeting does not cover.\n"
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/implementations.csv",
+     "path": "esoi/implementations.csv",
      "key_col": "implementation_id",
      "key": "greet-a-person:live",
      "col": "sub_intent",
@@ -279,12 +279,12 @@
    "edits": [
     {
      "op": "write",
-     "path": "docs/structure/voices/intent.csv",
+     "path": "esoi/voices/intent.csv",
      "content": "intent_id,name,vision_statement,implements,opportunity\nvoices,Greeting voices,Every greeting is spoken warmly.,greet-a-person:live,\n"
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/implementations.csv",
+     "path": "esoi/implementations.csv",
      "key_col": "implementation_id",
      "key": "greet-a-person:live",
      "col": "sub_intent",
@@ -309,7 +309,7 @@
    "edits": [
     {
      "op": "write",
-     "path": "docs/structure/voices/intent.csv",
+     "path": "esoi/voices/intent.csv",
      "content": "intent_id,name,vision_statement,implements,opportunity\nvoices,Greeting voices,Every greeting is spoken warmly.,greet-a-person:live,A creative space.\n"
     },
     {
@@ -331,7 +331,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/implementations.csv",
+     "path": "esoi/implementations.csv",
      "key_col": "implementation_id",
      "key": "greet-a-person:live",
      "col": "uses_solution_ids",

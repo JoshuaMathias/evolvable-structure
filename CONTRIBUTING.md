@@ -26,5 +26,5 @@ python -m pytest implementations/python/tests     # offline, no network
 python -m esoi check                              # ESOI applied to this repository
 ```
 
-A new part of the package joins a component in `structure/components.csv` and serves a solution in
-`structure/solutions.csv`; a new rule needs a mutation case in the `check_the_structure` evaluation component.
+A new part of the package joins a component in `esoi/components.csv` and serves a solution in
+`esoi/solutions.csv`; a new rule needs a mutation case in the `check_the_structure` evaluation component.

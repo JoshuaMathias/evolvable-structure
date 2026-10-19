@@ -4,6 +4,10 @@
 
 Intents are the containers and the unit of hierarchy (from the author's updated SKILL.md):
 
+- **Default folder `esoi/`.** A new project's specifications live in `esoi/` (the one constant `DEFAULT_STRUCTURE_DIR`); the name
+  matches `esoi.toml`, `~/.esoi` and the skill. `structure/` and `docs/structure/` keep working when `structure_dir` names them.
+  This repository's own `structure/` is now `esoi/`.
+
 - The intent template now has the **Intent** itself (name, vision statement) as its own item, parsed beside the five
   specification templates; `esoi template sync` writes `docs/templates/intent.md`, an `intent.csv` header and the new
   definitions and principle bullets verbatim.

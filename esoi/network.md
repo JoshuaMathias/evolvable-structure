@@ -11,7 +11,7 @@ prose view.
 ## The tree
 
 ```text
-structure/                       top intent esoi: Evolvable structure that optimizes intent (ESOI)
+esoi/                            top intent esoi: Evolvable structure that optimizes intent (ESOI)
   intent.csv  problems.csv  ideals.csv  solutions.csv  implementations.csv  metrics.csv
   esoi-runtime/                  sub-intent esoi-runtime, implements implementation-selection:selection-table
 ```
@@ -433,7 +433,7 @@ The records below were first written as prose; they are kept as a reading view o
 
 ### IM1 Hand-edited CSV records in the repository (Intent registry, selected)
 - **Name:** CSV records in the repository
-- **Description:** One CSV per intent type under `docs/structure/`, edited by hand and read by the check, the tracker and the selection.
+- **Description:** One CSV per intent type under the project's `esoi/` folder, edited by hand and read by the check, the tracker and the selection.
 - **Advantages:** Versioned with the code it describes, diffable, readable by any tool and any AI, public with the repository.
 - **Disadvantages:** Long text is awkward in CSV, and concurrent edits by several agents can collide.
 - **Implements:** SO1
@@ -538,7 +538,7 @@ The records below were first written as prose; they are kept as a reading view o
 
 ### IM16 STANDARD.md (The standard, selected)
 - **Name:** Standard document
-- **Description:** `docs/structure/STANDARD.md` gives the shape of a solution end to end and the adoption steps.
+- **Description:** `esoi/STANDARD.md` gives the shape of a solution end to end and the adoption steps.
 - **Advantages:** One short document to read first.
 - **Disadvantages:** Prose can drift from the rules unless updated with them.
 - **Implements:** SO11

@@ -23,7 +23,7 @@ DEFAULT_OTHER_LAYERS = ["docs", "evaluation", "examples", "scripts", "tests", "v
 # The folder that holds a project's top intent. One place, so renaming the default is one edit. The folder only HOLDS the
 # top intent (its intent.csv and its specifications): the top intent itself is the project's own purpose, why the project
 # exists, whatever the folder is called.
-DEFAULT_STRUCTURE_DIR = "docs/structure"
+DEFAULT_STRUCTURE_DIR = "esoi"
 DEFAULT_METRIC_COMMAND = r"(?:esoi run|run\.py) (\w+) --impl (\w+)"
 
 

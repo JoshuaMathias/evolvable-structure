@@ -4,7 +4,7 @@ The author's skill says it is not only for code: its description names "general 
 and implements business offerings to reflect Joshua's principles". Applying ESOI to an AI agent's behaviour is therefore an
 part of ESOI's own intent, with the same five record types: a solution for guiding agents (`esoi-for-ai`), the solution
 whose cases and arms its metric uses (`behave-by-esoi`), and the judge that grades replies (`esoi-behaviour-judge` and
-`judge-esoi-behaviour`). This page says how each part maps; the records are in [structure/](../../structure/). It was once a
+`judge-esoi-behaviour`). This page says how each part maps; the records are in [esoi/](../../esoi/). It was once a
 sub-intent of its own; it is not, because its opportunity repeated the goals and metric of `esoi-for-ai` (an uncertainty,
 which a metric handles), and version history keeps the earlier records.
 
@@ -77,6 +77,6 @@ correction is measured from then on and the instructions can change without losi
 
 ## Where it is here
 
-The solutions are in the top intent of [structure/](../../structure/). The cases and arms are in `implementations/python/evaluation/components/behave_by_esoi/` and `judge_esoi_behaviour/`, the
+The solutions are in the top intent of [esoi/](../../esoi/). The cases and arms are in `implementations/python/evaluation/components/behave_by_esoi/` and `judge_esoi_behaviour/`, the
 grading in `implementations/python/esoi/behaviour.py`. Run the offline arms with
 `esoi run behave_by_esoi --impl reference_good`. Whether the skill changes behaviour is not yet measured.

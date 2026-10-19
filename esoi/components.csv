@@ -1,7 +1,7 @@
 component_id,layer,path,role,solutions
 documentation,docs,docs/**,"Explanation, guides and non-code templates (the main feature of the repository).",docs-and-templates;follow-the-steps
 examples,docs,examples/**,Adopters as short examples and testimonials.,docs-and-templates
-structure-registry,docs,structure/**,This repository's own overall network and detailed records.,intent-registry
+structure-registry,docs,esoi/**,This repository's own overall network and detailed records.,intent-registry
 project-files,project,*,"Files at the repository root: readme, configuration, contributing, licence.",docs-and-templates
 wiki,scripts,scripts/docs_to_wiki.py,"Generating the GitHub wiki from docs/ on every push to main, so the docs stay the one source.",docs-and-templates
 public-skill,docs,skill/**;.claude-plugin/**;implementations/python/esoi/data/skill/**,"The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package.",skill-distribution;behave-by-esoi;follow-the-steps

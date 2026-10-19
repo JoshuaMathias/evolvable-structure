@@ -1,4 +1,4 @@
-# esoi applied to this repository. The top intent (why this repository exists: ESOI itself) is held by structure/; its
+# esoi applied to this repository. The top intent (why this repository exists: ESOI itself) is held by esoi/; its
 # sub-intents are the subfolders that carry their own intent.csv.
 package = "esoi"
 package_dir = "implementations/python/esoi"
@@ -6,7 +6,7 @@ python_path = ["implementations/python"]
 # The bundled skill copy is text, not measured code: editing it must not stale every metric.
 code_paths = ["implementations/python/esoi", ":(exclude)implementations/python/esoi/data"]
 layers = ["core", "tools", "cli"]
-structure_dir = "structure"
+structure_dir = "esoi"
 evaluation_dir = "implementations/python/evaluation/components"
 # The intent template is read from the evolvable-structure skill's SKILL.md when ESOI_TEMPLATE_SOURCE (or --source)
 # names it; the documents below are generated from it by `esoi template sync`.

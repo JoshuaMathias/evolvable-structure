@@ -8,7 +8,7 @@ running `esoi check` after each.
 
 ## 1. Make the overall network the top intent
 
-1. Pick the folder that will be the top intent (usually the configured structure folder). Move the overall network's
+1. Pick the folder that will be the top intent (the configured structure folder, `esoi/` by default). Move the overall network's
    problems, ideals, solutions, implementations and metrics into it, beside the detailed records, keeping the ids
    unchanged. Ids are unique across the whole tree, so nothing that links to them breaks.
 2. Add `intent.csv` there with one row: `intent_id`, `name`, `vision_statement`, and empty `implements` and `opportunity`.

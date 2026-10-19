@@ -23,12 +23,12 @@ specified as sub-intents, and implementations that build on solutions of this or
 
 ESOI does not require folders. A repository records its intents as folders, which is the selected implementation of the
 `intent-registry` solution; its rival, records kept beside the code they describe, stays listed beside it in this
-repository's own [structure](../../structure/solutions.csv). The specifications stay apart from the code they describe, in
+repository's own [records](../../esoi/solutions.csv). The specifications stay apart from the code they describe, in
 a structure folder, and esoi helps keep the two in step: the ownership map ties every file to a solution, and the check
 names a file with no solution and a record with no file.
 
 ```text
-structure/                  the folder that holds the top intent
+esoi/                       the folder that holds the top intent (the default; `structure/` and `docs/structure/` work when configured)
   intent.csv                its record: name, vision statement
   problems.csv  solutions.csv  implementations.csv  ideals.csv  metrics.csv
   network.md                optional prose view

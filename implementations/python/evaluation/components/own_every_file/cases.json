@@ -39,7 +39,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "tests",
      "col": "path",
@@ -61,7 +61,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "tests",
      "col": "path",
@@ -83,7 +83,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "tests",
      "col": "role",
@@ -105,7 +105,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "tests",
      "col": "layer",
@@ -288,7 +288,7 @@
     },
     {
      "op": "csv_append",
-     "path": "docs/structure/waivers.csv",
+     "path": "esoi/waivers.csv",
      "row": {
       "rule": "S3",
       "path": "tool.py",

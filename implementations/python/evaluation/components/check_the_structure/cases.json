@@ -39,7 +39,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "tests",
      "col": "path",
@@ -61,7 +61,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "tests",
      "col": "path",
@@ -83,7 +83,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "tests",
      "col": "role",
@@ -105,7 +105,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "tests",
      "col": "layer",
@@ -283,7 +283,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "port",
@@ -307,7 +307,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "selected",
@@ -329,7 +329,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "implementations",
@@ -351,7 +351,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/metrics.csv",
+     "path": "esoi/metrics.csv",
      "key_col": "metric_id",
      "key": "greeting-pass-rate",
      "col": "command",
@@ -373,7 +373,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/metrics.csv",
+     "path": "esoi/metrics.csv",
      "key_col": "metric_id",
      "key": "greeting-pass-rate",
      "col": "command",
@@ -395,7 +395,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "tests",
      "col": "role",
@@ -417,7 +417,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "selected_by",
@@ -439,7 +439,7 @@
    "edits": [
     {
      "op": "csv_dup",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person"
     }
@@ -459,7 +459,7 @@
    "edits": [
     {
      "op": "csv_dup",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "tests"
     }
@@ -479,7 +479,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "package",
      "col": "solutions",
@@ -504,7 +504,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "package",
      "col": "solutions",
@@ -512,7 +512,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "evaluation",
      "col": "solutions",
@@ -520,7 +520,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "tests",
      "col": "solutions",
@@ -528,7 +528,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "structure-registry",
      "col": "solutions",
@@ -536,7 +536,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "project-files",
      "col": "solutions",
@@ -544,7 +544,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "adapters",
      "col": "solutions",
@@ -569,7 +569,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "package",
      "col": "solutions",
@@ -594,7 +594,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "metric_kind",
@@ -619,7 +619,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "metric_kind",
@@ -644,7 +644,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "metric_kind",
@@ -652,7 +652,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "invariant_reason",
@@ -677,7 +677,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "metric_kind",
@@ -685,7 +685,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "invariant_reason",
@@ -802,7 +802,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "selected",
@@ -900,7 +900,7 @@
    "edits": [
     {
      "op": "csv_append",
-     "path": "docs/structure/waivers.csv",
+     "path": "esoi/waivers.csv",
      "row": {
       "rule": "S4",
       "path": "demo/greet.py",
@@ -923,7 +923,7 @@
    "edits": [
     {
      "op": "csv_append",
-     "path": "docs/structure/waivers.csv",
+     "path": "esoi/waivers.csv",
      "row": {
       "rule": "S4",
       "path": "demo/greet.py",
@@ -946,7 +946,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "tests",
      "col": "solutions",
@@ -1012,7 +1012,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "ideal_ids",
@@ -1020,7 +1020,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "parent_ideal_ids",
@@ -1045,7 +1045,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/metrics.csv",
+     "path": "esoi/metrics.csv",
      "key_col": "metric_id",
      "key": "greeting-pass-rate",
      "col": "command",
@@ -1089,7 +1089,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "gap",
@@ -1114,7 +1114,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/problems.csv",
+     "path": "esoi/problems.csv",
      "key_col": "problem_id",
      "key": "greeting-by-hand",
      "col": "why_it_matters",
@@ -1139,7 +1139,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/metrics.csv",
+     "path": "esoi/metrics.csv",
      "key_col": "metric_id",
      "key": "greeting-pass-rate",
      "col": "command",
@@ -1164,7 +1164,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "gap",
@@ -1172,7 +1172,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "action",
@@ -1197,7 +1197,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "gap",
@@ -1205,7 +1205,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "action",
@@ -1230,7 +1230,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/problems.csv",
+     "path": "esoi/problems.csv",
      "key_col": "problem_id",
      "key": "greeting-by-hand",
      "col": "who_has_it",
@@ -1255,7 +1255,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/problems.csv",
+     "path": "esoi/problems.csv",
      "key_col": "problem_id",
      "key": "greeting-by-hand",
      "col": "problem",
@@ -1280,7 +1280,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "problem_ids",
@@ -1288,7 +1288,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "parent_problem_ids",
@@ -1313,7 +1313,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/ideals.csv",
+     "path": "esoi/ideals.csv",
      "key_col": "ideal_id",
      "key": "consistent-greeting",
      "col": "problem_ids",
@@ -1338,7 +1338,7 @@
    "edits": [
     {
      "op": "csv_drop",
-     "path": "docs/structure/implementations.csv",
+     "path": "esoi/implementations.csv",
      "key_col": "implementation_id",
      "key": "greet-a-person:shout"
     },
@@ -1361,7 +1361,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "parent_ideal_ids",
@@ -1386,7 +1386,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/problems.csv",
+     "path": "esoi/problems.csv",
      "key_col": "problem_id",
      "key": "greeting-by-hand",
      "col": "parent_problem_ids",
@@ -1411,7 +1411,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/problems.csv",
+     "path": "esoi/problems.csv",
      "key_col": "problem_id",
      "key": "purpose-unrecorded",
      "col": "who_has_it",
@@ -1476,7 +1476,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/components.csv",
+     "path": "esoi/components.csv",
      "key_col": "component_id",
      "key": "project-files",
      "col": "path",
@@ -1608,7 +1608,7 @@
     },
     {
      "op": "write",
-     "path": "docs/structure/NOTES.md",
+     "path": "esoi/NOTES.md",
      "content": "notes\n"
     }
    ],
@@ -1650,7 +1650,7 @@
    "edits": [
     {
      "op": "csv_drop_col",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "col": "port"
     }
    ]
@@ -1705,7 +1705,7 @@
     },
     {
      "op": "csv_clone",
-     "path": "docs/structure/implementations.csv",
+     "path": "esoi/implementations.csv",
      "key_col": "implementation_id",
      "key": "greet-a-person:greet",
      "row": {
@@ -1715,7 +1715,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "implementations",

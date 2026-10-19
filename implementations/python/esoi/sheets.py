@@ -14,7 +14,7 @@ the tabs are a map of tab title to CSV path:
     credentials_env = "ESOI_SHEETS_CREDENTIALS"     # the variable that holds the key file path (the default)
     state_file = ".esoi_sync_state.json"            # last-synced row hashes (gitignored)
     [sheets.tabs]
-    Problems = { csv = "docs/structure/tracker/problems.csv", key = "problem_id", prefix = "PROB-" }
+    Problems = { csv = "esoi/tracker/problems.csv", key = "problem_id", prefix = "PROB-" }
 
 Without ``[sheets.tabs]`` the five tracker tabs are synced. The service account must be shared on the sheet.
 

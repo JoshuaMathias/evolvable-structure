@@ -23,7 +23,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "selected_by",
@@ -48,7 +48,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/problems.csv",
+     "path": "esoi/problems.csv",
      "key_col": "problem_id",
      "key": "greeting-by-hand",
      "col": "why_hard",
@@ -73,7 +73,7 @@
    "edits": [
     {
      "op": "delete",
-     "path": "docs/structure/tracker/ideals.csv"
+     "path": "esoi/tracker/ideals.csv"
     }
    ]
   },
@@ -94,7 +94,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/tracker/solutions.csv",
+     "path": "esoi/tracker/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "tracking_status",
@@ -120,7 +120,7 @@
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/tracker/solutions.csv",
+     "path": "esoi/tracker/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "col": "tracking_notes",
@@ -128,7 +128,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/problems.csv",
+     "path": "esoi/problems.csv",
      "key_col": "problem_id",
      "key": "greeting-by-hand",
      "col": "why_hard",
@@ -220,7 +220,7 @@
    "edits": [
     {
      "op": "csv_clone",
-     "path": "docs/structure/solutions.csv",
+     "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
      "row": {
@@ -229,7 +229,7 @@
     },
     {
      "op": "csv_cell",
-     "path": "docs/structure/metrics.csv",
+     "path": "esoi/metrics.csv",
      "key_col": "metric_id",
      "key": "greeting-pass-rate",
      "col": "solution_ids",

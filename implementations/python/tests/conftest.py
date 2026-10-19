@@ -14,7 +14,7 @@ TEMPLATE_REPO = {}
 def fill_top_intent(root):
     """The scaffold leaves the top intent and the top solution to the project; the fixture writes the stand-in project's own."""
     from esoi import tables
-    folder = Path(root) / "docs" / "structure"
+    folder = Path(root) / "esoi"
 
     def edit(name, change):
         rows, cols = tables.read_csv(folder / name), tables.read_header(folder / name)

@@ -46,7 +46,7 @@ its core; Google Sheets sync is an optional extra (`esoi[sheets]`).
 | [`skill/`](skill/) | The author's `evolvable-structure` skill as a self-contained folder and Claude Code plugin, generated from his own skill |
 | [`implementations/python/`](implementations/python/) | The `esoi` package and command: checks, measuring, a leaderboard, a review tracker. One example implementation |
 | [`examples/`](examples/) | Repositories that adopted ESOI, as short testimonials |
-| [`structure/`](structure/) | ESOI applied to this repository: its top intent and its records |
+| [`esoi/`](esoi/) | ESOI applied to this repository: its top intent and its records |
 
 ## Contributing and licence
 

@@ -45,7 +45,7 @@ read for a kind of task in a given project. The generated part is rewritten each
 | `name`, `vision_statement` | Optional overrides for a project that has no top `intent.csv` (a board, a file, a project not yet migrated). A project that has one is read from it by `list`, `index` and `where`, so the index never holds a second copy; `check` reports a row that disagrees with it |
 | `location` | A local path (`~` allowed) or a URL |
 | `kind` | `repository`, `folder`, `file` or `board` |
-| `specifications` | Where its ESOI specifications are, relative to `location`: `esoi.toml`, `structure/`, a single markdown file, a sheet URL |
+| `specifications` | Where its ESOI specifications are, relative to `location`: `esoi.toml`, `esoi/`, `structure/`, a single markdown file, a sheet URL |
 | `start_here` | The file to read first when applying ESOI there: a contributor guide, a network overview, a playbook |
 | `relations` | `;`-separated `<kind>:<project_id>`, kind one of `uses` (builds on its solutions), `used-by`, `sub-intent-of`, `example-of`, `related`. `used-by` follows from another row's `uses`, so write `uses` once |
 | `notes` | One line on what differs when applying ESOI there |
@@ -56,7 +56,7 @@ These projects are made up.
 
 ```csv
 project_id,name,vision_statement,location,kind,specifications,start_here,relations,notes
-orchard-app,,,~/code/orchard-app,repository,structure/,CONTRIBUTING.md,uses:weather-feed,Metrics run offline; the field trial is paid
+orchard-app,,,~/code/orchard-app,repository,esoi/,CONTRIBUTING.md,uses:weather-feed,Metrics run offline; the field trial is paid
 weather-feed,,,~/code/weather-feed,repository,esoi.toml,docs/network.md,,
 choir-year,Choir year,The choir sings well and enjoys it,~/notes/choir,folder,plan.md,plan.md,,One markdown file; no code
 ```

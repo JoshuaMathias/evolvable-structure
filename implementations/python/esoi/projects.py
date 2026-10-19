@@ -36,8 +36,8 @@ RELATIONS = ["uses", "used-by", "sub-intent-of", "example-of", "related"]
 START = "<!-- esoi-projects:start -->"
 END = "<!-- esoi-projects:end -->"
 URL = re.compile(r"^[a-z][a-z0-9+.-]*://", re.I)
-START_HERE_CANDIDATES = ["CLAUDE.md", "structure/network.md", "docs/structure/network.md", "README.md"]
-STRUCTURE_CANDIDATES = ["esoi.toml", "structure", "docs/structure"]
+START_HERE_CANDIDATES = ["CLAUDE.md", "esoi/network.md", "structure/network.md", "docs/structure/network.md", "README.md"]
+STRUCTURE_CANDIDATES = ["esoi.toml", "esoi", "structure", "docs/structure"]
 Row = Dict[str, str]
 
 
@@ -119,7 +119,7 @@ def project_config(root: Path) -> Optional[config_module.Config]:
 
 def structure_of(root: Path) -> Tuple[str, Optional[Path]]:
     """(specifications entry, the folder holding the top intent) for a local project: the structure folder its
-    configuration names, else ``structure`` or ``docs/structure``, else nothing."""
+    configuration names, else ``esoi``, ``structure`` or ``docs/structure``, else nothing."""
     loaded = project_config(root)
     if loaded is not None:
         return (loaded.source.name if loaded.source else config_module.CONFIG_NAME, loaded.structure)

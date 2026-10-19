@@ -14,7 +14,7 @@ max_lines = 1500                       # the size ceiling for a Python module (r
 root_python_files = false              # allow .py files at the repository root (rule S3)
 root_python_allow = ["setup.py"]       # ... or only these root files (a waiver `S3 <file>` also works)
 docstring_exempt = ["/vendor/"]        # paths whose modules need no docstring (rule S5)
-structure_dir = "docs/structure"       # the folder that holds the top intent: its intent.csv, records, components, waivers and the generated index
+structure_dir = "esoi"                 # the folder that holds the top intent (default "esoi"; "structure" and "docs/structure" work when set)
 tracker_folder = "tracker"             # the generated review tracker inside structure_dir; never read as an intent
 overall = "docs/overall"               # the overall solution network's folder (five record files); detailed records link up to it
 evaluation_dir = "evaluation/components"   # one folder per evaluated component
@@ -55,7 +55,7 @@ sheet_id_env = "ESOI_SHEET_ID"
 credentials_env = "ESOI_SHEETS_CREDENTIALS"
 state_file = ".esoi_sync_state.json"
 [sheets.tabs]
-Problems = { csv = "docs/structure/tracker/problems.csv", key = "problem_id", prefix = "PROB-" }
+Problems = { csv = "esoi/tracker/problems.csv", key = "problem_id", prefix = "PROB-" }
 
 [hygiene]                              # for `esoi hygiene`
 allow_email_domains = ["corp.test"]

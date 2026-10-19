@@ -59,7 +59,7 @@ def test_the_scaffold_leaves_the_top_intent_and_the_top_solution_to_the_project(
     assert any(line.startswith("S26 R2 project-purpose:") for line in problems) and any("project-purpose: addresses no problem" in line for line in problems)
     assert all("project-purpose" in line or line.startswith("S28") for line in problems)   # nothing else is left to the project
     for name in ("intent.csv", "solutions.csv", "implementations.csv"):
-        assert "ESOI" not in (tmp_path / "docs" / "structure" / name).read_text()
+        assert "ESOI" not in (tmp_path / "esoi" / name).read_text()
     fill_top_intent(tmp_path)
     assert check.check(config.load(tmp_path)) == []
 
@@ -157,7 +157,7 @@ def test_a_sub_intents_folder_is_named_by_its_intent_id(cfg):
 
 def test_the_configured_tracker_folder_is_never_an_intent(repo):
     for folder in ("tracker", "review"):
-        write_intent(repo / "docs" / "structure" / folder, f"in-{folder}", "")
+        write_intent(repo / "esoi" / folder, f"in-{folder}", "")
     default = config.load(repo)
     assert {i.intent_id for i in intents.discover(default)} == {"demo", "in-review"}   # only tracker/ is skipped
     (repo / "esoi.toml").write_text((repo / "esoi.toml").read_text() + 'tracker_folder = "review"\n')
@@ -176,7 +176,7 @@ TOP = {"purpose-unrecorded", "explicit-purpose", "project-structure", "structure
 
 def make_legacy(repo):
     """Turn the scaffold into the legacy two-level layout: overall records in structure/overall, parent links in place."""
-    structure = repo / "docs" / "structure"
+    structure = repo / "esoi"
     overall = structure / "overall"
     overall.mkdir()
     (structure / "intent.csv").unlink()
@@ -205,7 +205,7 @@ def make_legacy(repo):
                                               and c not in ("port", "selected", "selected_by", "invariant_reason", "gap",
                                                             "action", "command")] + (["command"] if False else []), top)
         tables.write_csv(path, cols, rest)
-    (repo / "esoi.toml").write_text((repo / "esoi.toml").read_text() + 'overall = "docs/structure/overall"\n')
+    (repo / "esoi.toml").write_text((repo / "esoi.toml").read_text() + 'overall = "esoi/overall"\n')
     return repo
 
 
@@ -224,7 +224,7 @@ def test_migrate_moves_the_overall_network_into_the_top_intent(repo):
     done, manual = migrate.plan(cfg, apply=False)
     assert not (cfg.structure / "intent.csv").exists() and any("intent.csv" in line for line in done)
     migrate.plan(cfg, apply=True)
-    (repo / "esoi.toml").write_text((repo / "esoi.toml").read_text().replace('overall = "docs/structure/overall"\n', ""))
+    (repo / "esoi.toml").write_text((repo / "esoi.toml").read_text().replace('overall = "esoi/overall"\n', ""))
     shutil.rmtree(cfg.structure / "overall")
     after = config.load(repo)
     assert after.intent_mode

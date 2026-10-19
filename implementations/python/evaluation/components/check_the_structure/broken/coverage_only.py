@@ -8,7 +8,7 @@ def coverage(root):
     files = repo_files(root)
     owners = {f: [] for f in files}
     problems = []
-    for r in read_csv(root / "docs/structure/components.csv"):
+    for r in read_csv(root / "esoi/components.csv"):
         for pattern in ids(r["path"]):
             hit = [f for f in files if glob_re(pattern).match(f)]
             if not hit:
