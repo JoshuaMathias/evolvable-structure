@@ -30,6 +30,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 - `prob-simulated-arm-false-loss`: An arm that meters a deterministic stand-in for a model counts the calls a real model would make but spends nothing. It is recorded with an unknown model and cost, so the harness skips it as paid and the ranking rates a free baseline cheaper than a cost that is merely unknown, reporting a loss that is not real.
 - `prob-selection-default-kept-twice`: The default implementation of a solution is written in the selection table and again in the records, and only a check holds the two equal. Choosing a winner means editing both, and a mismatch fails the build.
 - `prob-swappable-needs-ceremony`: Making a part swappable takes a port class, a table entry with an import path for every alternative, a wrapper file to measure each one, and edits wherever the choice is made, so most parts are never made swappable.
+- `prob-rules-unjustified`: A rule is kept in code with no record of the mistake that justified it or of what it has caught since, so nobody can tell whether it still earns its place or why its limit has its value.
 
 ## Ideals
 
@@ -53,6 +54,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 - `ideal-calibrated-judging`, Calibrated judging: A judge's verdicts agree with the human verdicts they stand in for, and where they disagree is known.
 - `ideal-declared-once`, Declared once: Each fact is stated once, where it belongs, and everything else is derived from it or measured; a second copy held in step by a check is upkeep, not structure.
 - `ideal-readable-intent`, Readable intent: Anyone opening an intent's folder learns what it is for, and what it contains, from a page the records themselves produce.
+- `ideal-rules-earn-their-place`, Rules earn their place: Every rule can say which mistake it prevents, and is removed when it stops catching any.
 
 ## Solutions
 
@@ -66,7 +68,8 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 | `measurement-harness` | Measurement harness | component-harness | Provenance completeness |
 | `leaderboard` | Leaderboard | margin-leaderboard | Ranking correctness |
 | `discriminating-cases` | Discriminating cases | broken-baselines | Case discrimination |
-| `structure-check` | Structure check | rule-script | Violation detection |
+| `structure-check` | Rule engine | rule-script | Check dependability |
+| `structure-rules` | Structure rules | rule-modules | Violation detection |
 | `review-tracker` | Review tracker | tracker-and-sheet | Review coverage |
 | `consumer-check` | Consumer check | consumer-command | Consumer soundness |
 | `the-standard` | The standard | standard-document | Adoption effort |
@@ -104,6 +107,8 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 | `leaderboard:margin-leaderboard` | Margin leaderboard | implementations/python/esoi/leaderboard.py |  |
 | `discriminating-cases:broken-baselines` | Broken baselines |  |  |
 | `structure-check:rule-script` | Rule script | implementations/python/esoi/check.py |  |
+| `structure-rules:rule-modules` | Numbered rule modules | implementations/python/esoi/rules/__init__.py |  |
+| `structure-rules:prose-rules` | Rules in prose |  |  |
 | `review-tracker:tracker-and-sheet` | Tracker and sheet | implementations/python/esoi/tracker.py |  |
 | `consumer-check:consumer-command` | Consumer command | implementations/python/esoi/consumer.py |  |
 | `the-standard:standard-document` | Standard document |  |  |
@@ -154,6 +159,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 - `metric-ranking-correctness`, Ranking correctness: `esoi run rank_implementations --impl live_leaderboard`
 - `metric-case-discrimination`, Case discrimination: `none`
 - `metric-violation-detection`, Violation detection: `esoi run check_the_structure --impl live_checker`
+- `metric-check-dependability`, Check dependability: `esoi run check_the_structure --impl live_checker`
 - `metric-review-coverage`, Review coverage: `esoi run review_tracker --impl live_tracker`
 - `metric-consumer-soundness`, Consumer soundness: `esoi run check_a_consumer --impl live_consumer_check`
 - `metric-adoption-effort`, Adoption effort: `none`

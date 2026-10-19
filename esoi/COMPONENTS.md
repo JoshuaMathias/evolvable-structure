@@ -16,10 +16,11 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `expectations` | core | The declarative check that case-driven evaluations share. | measurement-harness |
 | `leaderboard` | core | Ranking implementations from the results log and calling a verdict. | leaderboard |
 | `template-documents` | tools | Generating the non-code templates and excerpts from the template source. | template-sync |
-| `rules-ownership` | tools | The rule interface and the placement and layering rules. | ownership-map, structure-check |
-| `rules-registry` | tools | The rules about the registry's own shape and the selection table. | structure-check, runtime-selection |
-| `rules-measurement` | tools | The rules about measurement, provenance and discriminating cases. | structure-check, leaderboard |
-| `rules-generated` | tools | The rules about generated files, the tracker and the records. | structure-check, review-tracker, template-sync, readable-records |
+| `rule-interface` | tools | The rule interface: what a rule group is, what a rule sees, and the cache of module facts the rules share. | structure-check |
+| `rules-ownership` | tools | The placement and layering rules. | ownership-map, structure-rules |
+| `rules-registry` | tools | The rules about the registry's own shape and the selection table. | structure-rules, runtime-selection |
+| `rules-measurement` | tools | The rules about measurement, provenance and discriminating cases. | structure-rules, leaderboard |
+| `rules-generated` | tools | The rules about generated files, the tracker and the records. | structure-rules, review-tracker, template-sync, readable-records |
 | `check-runner` | tools | Running every rule over a repository and reporting problems. | structure-check, readable-records |
 | `harness` | tools | Running one implementation over a component's cases and recording the result. | measurement-harness |
 | `tracker` | tools | Building the review tracker tabs and syncing them with a sheet. | review-tracker |
@@ -27,8 +28,8 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `hygiene` | tools | Scanning a public repository for secrets and private data. | structure-check |
 | `scaffold` | tools | Writing the passing example repository that the init command produces. | structure-check |
 | `command-line` | cli | The esoi command, a thin call into the module that owns each behaviour. | structure-check, measurement-harness, leaderboard, review-tracker, consumer-check, template-sync, specify-from-code, promote-the-winner, runtime-selection |
-| `python-tests` | tests | Offline tests that pin each module. | structure-check |
-| `eval-check-the-structure` | evaluation | Mutation cases for the whole check. | structure-check |
+| `python-tests` | tests | Offline tests that pin each module. | structure-check, structure-rules |
+| `eval-check-the-structure` | evaluation | Mutation cases for the whole check. | structure-check, structure-rules |
 | `eval-own-every-file` | evaluation | Mutation cases for placement and layering. | ownership-map |
 | `eval-record-intent` | evaluation | Mutation cases for the intent records. | intent-registry |
 | `eval-sync-the-template` | evaluation | Cases for reading the template. | template-sync |
@@ -44,7 +45,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `eval-sync-the-skill` | evaluation | Cases for the sync, the drift check, leak detection and install. | skill-distribution |
 | `intent-tree` | core | Finding the intent folders of a repository and reading their records as one tree. | intent-registry |
 | `intent-migration` | tools | Moving a legacy two-level repository to the intent layout without inventing a sub-intent. | intent-registry |
-| `rules-intents` | tools | The rules about intents as containers: the sub-intent link, the opportunity and ids across the tree. | structure-check |
+| `rules-intents` | tools | The rules about intents as containers: the sub-intent link, the opportunity and ids across the tree. | structure-rules |
 | `local-index` | tools | The local ESOI index: projects, their relations and where to look. | local-application-index |
 | `eval-index-projects` | evaluation | Lookup cases over a small world of projects, the live index and the arms it is compared with. | local-application-index |
 | `behaviour` | tools | Grading an AI agent's reply against a behaviour case: the pattern check, the judge prompt and verdict, and a command provider. | behave-by-esoi, judge-esoi-behaviour |

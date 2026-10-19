@@ -10,10 +10,11 @@ template-reader,core,implementations/python/esoi/template.py;implementations/pyt
 expectations,core,implementations/python/esoi/expect.py,The declarative check that case-driven evaluations share.,measurement-harness
 leaderboard,core,implementations/python/esoi/leaderboard.py,Ranking implementations from the results log and calling a verdict.,leaderboard
 template-documents,tools,implementations/python/esoi/templates.py,Generating the non-code templates and excerpts from the template source.,template-sync
-rules-ownership,tools,implementations/python/esoi/rules/__init__.py;implementations/python/esoi/rules/base.py;implementations/python/esoi/rules/layout.py;implementations/python/esoi/rules/modulefacts.py,The rule interface and the placement and layering rules.,ownership-map;structure-check
-rules-registry,tools,implementations/python/esoi/rules/registry_rules.py,The rules about the registry's own shape and the selection table.,structure-check;runtime-selection
-rules-measurement,tools,implementations/python/esoi/rules/measurement.py,"The rules about measurement, provenance and discriminating cases.",structure-check;leaderboard
-rules-generated,tools,implementations/python/esoi/rules/generated.py,"The rules about generated files, the tracker and the records.",structure-check;review-tracker;template-sync;readable-records
+rule-interface,tools,implementations/python/esoi/rules/__init__.py;implementations/python/esoi/rules/base.py;implementations/python/esoi/rules/modulefacts.py,"The rule interface: what a rule group is, what a rule sees, and the cache of module facts the rules share.",structure-check
+rules-ownership,tools,implementations/python/esoi/rules/layout.py,The placement and layering rules.,ownership-map;structure-rules
+rules-registry,tools,implementations/python/esoi/rules/registry_rules.py,The rules about the registry's own shape and the selection table.,structure-rules;runtime-selection
+rules-measurement,tools,implementations/python/esoi/rules/measurement.py,"The rules about measurement, provenance and discriminating cases.",structure-rules;leaderboard
+rules-generated,tools,implementations/python/esoi/rules/generated.py,"The rules about generated files, the tracker and the records.",structure-rules;review-tracker;template-sync;readable-records
 check-runner,tools,implementations/python/esoi/check.py,Running every rule over a repository and reporting problems.,structure-check;readable-records
 harness,tools,implementations/python/esoi/harness.py;implementations/python/esoi/hermetic.py,Running one implementation over a component's cases and recording the result.,measurement-harness
 tracker,tools,implementations/python/esoi/tracker.py;implementations/python/esoi/sheets.py,Building the review tracker tabs and syncing them with a sheet.,review-tracker
@@ -21,8 +22,8 @@ consumer,tools,implementations/python/esoi/consumer.py,Checking a consuming repo
 hygiene,tools,implementations/python/esoi/hygiene.py,Scanning a public repository for secrets and private data.,structure-check
 scaffold,tools,implementations/python/esoi/scaffold.py,Writing the passing example repository that the init command produces.,structure-check
 command-line,cli,implementations/python/esoi/cli.py;implementations/python/esoi/__main__.py,"The esoi command, a thin call into the module that owns each behaviour.",structure-check;measurement-harness;leaderboard;review-tracker;consumer-check;template-sync;specify-from-code;promote-the-winner;runtime-selection
-python-tests,tests,implementations/python/tests/**,Offline tests that pin each module.,structure-check
-eval-check-the-structure,evaluation,implementations/python/evaluation/components/check_the_structure/**,Mutation cases for the whole check.,structure-check
+python-tests,tests,implementations/python/tests/**,Offline tests that pin each module.,structure-check;structure-rules
+eval-check-the-structure,evaluation,implementations/python/evaluation/components/check_the_structure/**,Mutation cases for the whole check.,structure-check;structure-rules
 eval-own-every-file,evaluation,implementations/python/evaluation/components/own_every_file/**,Mutation cases for placement and layering.,ownership-map
 eval-record-intent,evaluation,implementations/python/evaluation/components/record_intent/**,Mutation cases for the intent records.,intent-registry
 eval-sync-the-template,evaluation,implementations/python/evaluation/components/sync_the_template/**,Cases for reading the template.,template-sync
@@ -38,7 +39,7 @@ skill-distribution,tools,implementations/python/esoi/skill.py,"Generating, check
 eval-sync-the-skill,evaluation,implementations/python/evaluation/components/sync_the_skill/**,"Cases for the sync, the drift check, leak detection and install.",skill-distribution
 intent-tree,core,implementations/python/esoi/intents.py,Finding the intent folders of a repository and reading their records as one tree.,intent-registry
 intent-migration,tools,implementations/python/esoi/migrate.py,Moving a legacy two-level repository to the intent layout without inventing a sub-intent.,intent-registry
-rules-intents,tools,implementations/python/esoi/rules/intents.py,"The rules about intents as containers: the sub-intent link, the opportunity and ids across the tree.",structure-check
+rules-intents,tools,implementations/python/esoi/rules/intents.py,"The rules about intents as containers: the sub-intent link, the opportunity and ids across the tree.",structure-rules
 local-index,tools,implementations/python/esoi/projects.py,"The local ESOI index: projects, their relations and where to look.",local-application-index
 eval-index-projects,evaluation,implementations/python/evaluation/components/index_projects/**,"Lookup cases over a small world of projects, the live index and the arms it is compared with.",local-application-index
 behaviour,tools,implementations/python/esoi/behaviour.py,"Grading an AI agent's reply against a behaviour case: the pattern check, the judge prompt and verdict, and a command provider.",behave-by-esoi;judge-esoi-behaviour
