@@ -3,17 +3,17 @@
 The ideals in `SKILL.md` apply to every codebase. The project examples do not: each shows how one of
 Joshua's projects met an ideal with that project's own mechanism. Carry over the purpose, and copy a
 mechanism only when the codebase already uses it or truly has the same problem. The codebase's own
-conventions and playbook come first. Load only the subfile the current task needs.
+conventions and playbook come first (the local ESOI index, if any, says where they are). Load only the subfile the current task needs.
 
 ## Where to look
 
-| File | Source project | Examples | Load when |
-|---|---|---|---|
-| `coding/components.md` | several (applies to any codebase) | 17 | building a part meant for other systems, versioning or publishing it |
-| `coding/registry_and_templates.md` | a name-keyed registry library, a repository template library, easyinfo; Project Documentation board | 1, 2, 8, 12 | finding code by name, scaffolding, packaging, documenting parameters |
-| `coding/pipelines_and_experiments.md` | a data-science pipeline library of Joshua's | 3 to 7 | pipeline stages, data model and storage routing, environments, experiments, one function for many entry points |
-| `coding/writealyze.md` | Writealyze design and notebooks | 9, 13, 14, 15 | versions and swappable implementations, class contracts, tuning against one metric |
-| `coding/concept_ai_quest_qar.md` | Concept AI, Quest, quest-ai-runner | 10, 11, 16 | those codebases, domain engines, keeping a product generic, deployments as config |
+| File | Technique it teaches (examples) | Load when |
+|---|---|---|
+| `coding/components.md` | making a part other systems reuse, with versions and no consumer logic inside (17) | building a part meant for other systems, versioning or publishing it |
+| `coding/registry_and_templates.md` | finding code by name, scaffolding from templates, dependency-pruned packaging, documenting parameters (1, 2, 8, 12) | finding code by name, scaffolding, packaging, documenting parameters |
+| `coding/pipelines_and_experiments.md` | declaring pipeline stages once, data model and storage routing, environments, experiments compared by a metric, one function for every entry point (3 to 7) | pipeline stages, data model and storage routing, environments, experiments, one function for many entry points |
+| `coding/writealyze.md` | versions and swappable implementations, class contracts, tuning several implementations against one metric (9, 13, 14, 15) | versions and swappable implementations, class contracts, tuning against one metric |
+| `coding/concept_ai_quest_qar.md` | one engine with domains as data and measured weights (10), keeping a product core generic while specific tools connect from outside (11), a deployment as one config file behind one front door (16) | a second case that differs only in data, a core one party's logic is creeping into, or many deployments of one program |
 
 Each project file ends with what went wrong in that project, so it is not copied.
 
@@ -23,7 +23,7 @@ Joshua's own code and AI-written code differ mostly in how code is grouped and f
 length: his is many small files, one or two functions each, named for what they are and found by
 name; AI code tends toward large modules that grow a method or route per feature. These are tendencies to move toward, not a style to copy:
 - Start from how the part is called: write the interface and one example call first, and keep one
-  call shape across siblings, as the conceptai draft does for `domain(...)`, `decision(...)` and
+  call shape across siblings, as one project's draft did for `domain(...)`, `decision(...)` and
   `action(...)`.
 - Prefer small parts named for what they are and found by that name over a new section in a big
   module. A file that keeps growing is a signal to split by definition.

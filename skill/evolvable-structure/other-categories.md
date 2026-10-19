@@ -5,24 +5,25 @@ documents. Evidence pointers use `sources/<file> > <heading>`; `INDEX.md` maps t
 
 ## Product and UI
 
-- **One generic feature, attached to specific users from outside.** Quest is a product for every
-  user, and Spiritual Data's own tools connect through the public API or webhook. The working test: would this
-  screen make sense to a stranger's team?
-- **Generic is not yet a reason to keep it.** Team Reports was made generic, then removed, because only
-  one org's workflow used it.
-- **Collections are a generic data primitive.** A dream journal, a habit or a course assignment is a
-  collection from a template the user can use as is or customize.
-- **Templates improve without overwriting people.** A new template version reaches each quest except
-  the fields its owner changed.
-- **Every quest is a context card.** The quest's outcome, state and the person's preferences go into
-  every AI call, so one AI behaves differently for each person.
-- **Autonomy is a setting a person chooses.** Autopilot is "Off by default; a quest never opts itself
-  in.", planning is per quest (`plan_and_work`), and per-person AI handling is auto, ask or never, with
-  a flag recording whether the person actually chose it.
+- **One generic feature, attached to specific users from outside.** A product serves every user, and
+  the owner's own tools connect through its public API or a webhook. The working test: would this
+  screen make sense to a stranger's team? For example, Quest carries nothing only its author's
+  organization needs.
+- **Generic is not yet a reason to keep it.** A feature only one organization's workflow uses can leave
+  the product instead of being generalized further. For example, Quest's Team Reports was made generic, then removed.
+- **One generic data primitive, many uses.** For example, in Quest a dream journal, a habit or a course
+  assignment is a collection from a template the user can use as is or customize.
+- **Templates improve without overwriting people.** A new template version reaches each copy except
+  the fields its owner changed (in Quest, each quest).
+- **Personal context enters every AI call.** The person's goal, its state and their preferences go
+  into each call, so one AI behaves differently for each person. In Quest every quest is a context card.
+- **Autonomy is a setting a person chooses.** Record whether the person actually chose it. In Quest,
+  autopilot is "Off by default; a quest never opts itself in.", planning is per quest (`plan_and_work`), and
+  per-person AI handling is auto, ask or never.
 - **New behaviour starts opt-in, and a default that acts at scale is bounded.** After calendar sync
   flooded Joshua's calendar, sync became opt-in and its window a user setting.
-- **Settings grow without the screen growing.** The Autopilot panel is four groups, and nothing not
-  yet set is drawn until asked for. One control holds new affordances instead of a nav entry per team.
+- **Settings grow without the screen growing.** Group them and draw nothing not yet set until asked for;
+  one control holds new affordances instead of a nav entry per team. For example, Quest's Autopilot panel is four groups.
 - **Default workspaces per role, all overridable.** Writealyze planned presets for translators, data
   scientists and students, each changeable.
 
@@ -35,8 +36,8 @@ documents. Evidence pointers use `sources/<file> > <heading>`; `INDEX.md` maps t
   once the metric is high enough.
 - **The dissertation method is theory-agnostic.** The domain is the content fed in, labels stay out of
   the ranking, and the phases loop. No second-domain run is reported yet.
-- **Concept AI: a domain is a parameter, and weight is earned.** One engine, domains as YAML, sources
-  weighted by measured reliability, and a wrong method kept as a comparison arm.
+- **A domain is a parameter, and weight is earned.** For example, Concept AI has one engine, domains as
+  YAML, sources weighted by measured reliability, and a wrong method kept as a comparison arm.
 - **Flexibility has a cost worth naming.** Joshua marked Lucas (1974) on this as a key quote; the text
   is in `principles/difficulties.md`.
 
@@ -53,8 +54,8 @@ documents. Evidence pointers use `sources/<file> > <heading>`; `INDEX.md` maps t
   in one place. The same test
   applies to a lesson, a protocol or a template: improvable inside, usable in another system with only its
   parameters changed.
-- **One structure for any big goal.** Quest holds a grounded strategy (a public plan), personal context, and daily
-  execution. In the marathon example the plan came from a public training plan, and a sore knee became a comment
+- **One structure for any big goal.** A grounded strategy (a public plan), personal context, and daily
+  execution. In a Quest marathon example the plan came from a public training plan, and a sore knee became a comment
   ("walk instead") on that day, not a new plan.
 - **The Quest course is a Quest cohort.** Assignments are collections tied to each student's own goals,
   each week building on the last. Promising founder-built features per student pulls against the
@@ -91,8 +92,8 @@ and player governance proposals (proposals, not records of how they worked).
   irreversible acts wait for a person.
 - **One quality gate reused everywhere.** Draft, critic, human approval, with the confirmation step as
   the parameter.
-- **Standing rules as small retrievable cards.** QAR stores rules as cards tagged with when they apply,
-  and keeps paid-for lessons as dated invariants.
+- **Standing rules as small retrievable cards.** Tag each rule with when it applies, retrieve rather than
+  paste, and keep paid-for lessons as dated invariants. For example, quest-ai-runner does both.
 - **Documentation as problem, ideals, definitions and implementations.** Joshua's Project Documentation
   board is the model `principles.md` follows ("How to think and document"). (`trello_project_documentation.md > Documentation`, `> Solution Definitions`)
 - **Apply it to the document, not only to the tool that plans it.** When building an instrument for a
@@ -146,5 +147,5 @@ Shape (only the opening is required; headings are named, not numbered):
 
 - **Where moved material goes:** on-demand docs in `.claude/docs/` beside the CLAUDE.md (or an
   existing `docs/`); superseded status and dated history in `history.md` or `archive/`, not deleted.
-- **Generated blocks** (a tool writing between markers, such as quest-ai-runner's quest-folder block)
+- **Generated blocks** (a tool writing between markers, such as a generated block listing a goal's folder)
   render this same shape, stay short, and put detail in the file it governs.

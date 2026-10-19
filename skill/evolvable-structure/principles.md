@@ -55,7 +55,7 @@ timeframe); 2 → 1, 2, 6, 7, 9, 13, 15; 3 → 4, 13; 4 → 2, 8, 9, 15; 5 → 8
 and `principles/difficulties.md` (a general claim needs a real case; an extension point counts once built
 and tested): verify in the real system and against the outcome metric, not only in unit tests; 11 → 4, 8 and
 `principles/purpose.md` (one source of truth refined in place; lessons carried to the next round), the
-same idea quest-ai-runner's quest folders apply with a source-of-truth file; 12 → 1, 3, 4, 5, 10; 13 → 2, 7, 10
+same idea one project's goal folders apply with a source-of-truth file; 12 → 1, 3, 4, 5, 10; 13 → 2, 7, 10
 and `INDEX.md`'s read-when routing.
 
 ## Difficulties
@@ -86,7 +86,7 @@ problems nobody has defined yet. Before building, look for an existing structure
 public source that already serves the definition. When AI writes code, start from the interface and
 one example call (`coding.md`).
 
-**A problem is not a restated solution; every type is written as itself.** Lesson from QAR, 2026-10-17.
+**A problem is not a restated solution; every type is written as itself.** Lesson from an AI-runner project, 2026-10-17.
 Joshua: "Not a single problem is written as a problem", and "keep in mind my feedback is about all five
 types of things". The registry had generated one "problem" per solution, worded as the job ("Decide per
 message whether to answer..."), and similar restatements stood in for ideals and metrics. Each of Problem,
@@ -104,19 +104,18 @@ explicitly deny the possibility of humans reviewing implementations." A paraphra
 only if", "relatively", "pragmatically" or a parenthetical turns a sufficiency into a prohibition or a rule into an
 absolute. Quote SKILL.md, or keep every qualifier, and check a restatement against the original sentence.
 
-**Define the top intent first; per-repo tooling comes from the shared utilities.** Lesson from
-conceptai, 2026-10-17. Asked to apply ESOI to conceptai, AI started copying QAR's registry and checker
-into the repo. Joshua: "Apply esoi to the overall structure which the practical structures in repo will
-implement, but keep in mind the new evolvable-structure repository will provide guidance or utilities for
-doing that in general, but you should define the overall solution of conceptai and have me review right
-away." So the first deliverable is the top-level network (the product's own problems, ideals, solutions,
-implementations, metrics), validated with the evolvable-structure repository's tools and sent for review before any
-per-module registry. A review pass then found the same draft had drifted into framework plumbing
-(runtime, providers, stores promoted to top-level ideals) and missed evaluation and evidence ingestion: at
-the top level, ideals come from the owner's stated requirements, the core capabilities are the ones users
-and the evaluation depend on, and how the code is built is one level down. Comparison arms (baselines) go
-in a metric's record, not in implementations; status, gaps and numbers go on Quest or dated result files,
-not in the records.
+**Define the top intent first; per-repo tooling comes from the shared utilities.** Lesson from a research-engine
+project, 2026-10-17. Asked to apply ESOI to it, AI started copying a sibling project's registry and checker into the
+repository. Joshua: "Apply esoi to the overall structure which the practical structures in repo will implement, but keep
+in mind the new evolvable-structure repository will provide guidance or utilities for doing that in general, but you
+should define the overall solution of conceptai and have me review right away." So the first deliverable is the
+top-level network (the product's own problems, ideals, solutions, implementations, metrics), validated with the ESOI
+tools and sent for review before any per-module registry. A review pass then found the same draft had drifted into
+framework plumbing (runtime, providers, stores promoted to top-level ideals) and missed evaluation and evidence
+ingestion: at the top level, ideals come from the owner's stated requirements, the core capabilities are the ones users
+and the evaluation depend on, and how the code is built is one level down. Comparison arms (baselines) go in a metric's
+record, not in implementations; status, gaps and numbers go in the project's tracker or dated result files, not in the
+records. The project's own notes are in the local ESOI index.
 
 **Hierarchy is intents, not solutions (Joshua, 2026-10-18).** Joshua: "In ESOI have hierarchy be defined in terms of intents and sub-intents instead of solutions and sub-solutions." An intent is a clear, encapsulating container (in a repository, a folder with its own record). A sub-intent arises as an implementation of a solution in the parent intent, and is specified "if and only if that intent brings insights on opportunities that don't emerge directly from the parent intent or solution that the sub-intent is implementing". Risks and uncertainties alone do not justify one: risks are disadvantages of the implementation, and the metric of the solution handles uncertainty. Implementations are ideas that can start as sub-intents or evolve into them. The two-level "overall network plus detailed records" layout is legacy (it maps to the top intent plus sub-intents and `uses_solution_ids`). The 2026-10-17 answers below that say "sub-solution" are from before this change.
 
