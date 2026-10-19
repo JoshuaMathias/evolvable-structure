@@ -5,6 +5,9 @@
 Graceful declarations (declare once where the code is; derive or check the rest). See `docs/explanation/graceful-selection.md`
 and the migration steps in `docs/guides/migrate-to-intents.md`:
 
+- **Gentle default folder.** When `structure_dir` is not set and `esoi/` does not exist, a previous default (`docs/structure`,
+  `structure`) that holds records is used, with one note suggesting `git mv docs/structure esoi`. Two folders holding records
+  are never guessed between: the error names both. The same resolution serves `esoi projects` and the consumer check.
 - **Declare in code.** `@solution("id")` on an interface and `@implementation("id", "name")` on each alternative (or
   `register(...)` for another package's class). Calling the interface runs the selected implementation; `using="name"` picks
   one for a call, `with override(...)` for a block, `ESOI_SELECT_<ID>` for a process, `[selection]` in `esoi.toml` for a

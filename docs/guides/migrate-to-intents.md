@@ -82,7 +82,7 @@ new version first (`pip install -U` with the same command as before).
 1. **The specifications folder (optional).** New projects get `esoi/`. To follow, `git mv docs/structure esoi`, set
    `structure_dir = "esoi"` (or delete the line, `esoi` is the default), change the path glob of the component that owns the
    folder in `components.csv` (`docs/structure/**` becomes `esoi/**`), and change any `docs/structure/...` path in your own
-   configuration (a `[sheets.tabs]` csv, for example). Leaving it as it is works.
+   configuration (a `[sheets.tabs]` csv, for example). Leaving it as it is works, with or without `structure_dir` set: when the line is absent and `esoi/` does not exist, the previous default (`docs/structure` or `structure`) is used with a one-line note suggesting the rename.
 2. **Write the project default once.** Delete the `"default": "..."` key from each entry of the selection table. The default is
    now the solution's `selected` in `solutions.csv`, rule S23 has nothing to compare for that entry (it still compares an entry
    that keeps its `default`, so you can move one entry at a time), and `esoi select --promote` can change it. Where your code builds a
