@@ -13,10 +13,14 @@ never install or require them on your own.
   and says which one the metric selects.
 - `esoi tracker` and `esoi sheet-sync` build a review sheet (and sync it with a Google Sheet) so a person can steer by
   reviewing problems, ideals and metrics instead of reading implementations.
-- `esoi.select` is the part meant for production: code asks it which implementation of a solution is currently selected
-  (`Selector(load_table(...)).resolve("greet")`, with per-call overrides), so the selection recorded in the structure is what
-  actually runs and changing it needs no code change. `esoi consumer check` verifies a repository that builds on a library
-  this way.
+- The runtime part is meant for production, and is declared once where the code is: `@solution("greet")` on the
+  interface and `@implementation("greet", "loud")` on each alternative. Calling the interface runs the implementation the
+  records select; `using="loud"` per call, an `override(...)` block, `ESOI_SELECT_<ID>` or `[selection]` in `esoi.toml`
+  choose another by context. `esoi records sync` writes the record rows the declarations imply, `esoi new solution <id>`
+  starts records, code and cases in one step, and `esoi select --promote` switches the selection when a rival wins on
+  the solution's own metric (or prints the proposal when a person must decide). The older selection table
+  (`Selector(...).resolve("greet")`) still works underneath. `esoi consumer check` verifies a repository that builds on a
+  library this way.
 - `esoi projects` keeps a local ESOI index (`projects.csv` and `INDEX.md` under `$ESOI_HOME` or `~/.esoi/`) of the projects ESOI is
   applied to, how they relate and where to look in each; `esoi projects where` names the project the working directory is in.
 - `esoi hygiene` scans for secrets and private data before a public push. `esoi init` writes a small example that passes.
