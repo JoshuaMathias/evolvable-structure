@@ -42,12 +42,12 @@ read for a kind of task in a given project. The generated part is rewritten each
 | Column | Holds |
 |---|---|
 | `project_id` | A short stable id other rows refer to |
-| `name`, `vision_statement` | The top intent's name and vision statement (`esoi projects add` fills them from its `intent.csv`) |
+| `name`, `vision_statement` | Optional overrides for a project that has no top `intent.csv` (a board, a file, a project not yet migrated). A project that has one is read from it by `list`, `index` and `where`, so the index never holds a second copy; `check` reports a row that disagrees with it |
 | `location` | A local path (`~` allowed) or a URL |
 | `kind` | `repository`, `folder`, `file` or `board` |
 | `specifications` | Where its ESOI specifications are, relative to `location`: `esoi.toml`, `structure/`, a single markdown file, a sheet URL |
 | `start_here` | The file to read first when applying ESOI there: a contributor guide, a network overview, a playbook |
-| `relations` | `;`-separated `<kind>:<project_id>`, kind one of `uses` (builds on its solutions), `used-by`, `sub-intent-of`, `example-of`, `related` |
+| `relations` | `;`-separated `<kind>:<project_id>`, kind one of `uses` (builds on its solutions), `used-by`, `sub-intent-of`, `example-of`, `related`. `used-by` follows from another row's `uses`, so write `uses` once |
 | `notes` | One line on what differs when applying ESOI there |
 
 ### Examples
@@ -56,10 +56,13 @@ These projects are made up.
 
 ```csv
 project_id,name,vision_statement,location,kind,specifications,start_here,relations,notes
-orchard-app,Orchard planner,Growers know what to prune this week,~/code/orchard-app,repository,structure/,CONTRIBUTING.md,uses:weather-feed,Metrics run offline; the field trial is paid
-weather-feed,Weather feed,Every app has trustworthy local weather,~/code/weather-feed,repository,esoi.toml,docs/network.md,used-by:orchard-app,
+orchard-app,,,~/code/orchard-app,repository,structure/,CONTRIBUTING.md,uses:weather-feed,Metrics run offline; the field trial is paid
+weather-feed,,,~/code/weather-feed,repository,esoi.toml,docs/network.md,,
 choir-year,Choir year,The choir sings well and enjoys it,~/notes/choir,folder,plan.md,plan.md,,One markdown file; no code
 ```
+
+The first two projects have a top `intent.csv`, which holds their name and vision statement. The third is one markdown
+file with no `intent.csv`, so its row states them.
 
 A project that already has ESOI specifications keeps them where they are. The index points at them, and records no copy of
 what they say. A user whose specifications are a single file or a sheet gets a row with `kind` `file` or `board` and the
@@ -67,9 +70,11 @@ location of that file; the row is still a reference, not a second source of trut
 
 ## The tools
 
-`esoi projects` has `init` (create the folder and an empty `projects.csv`), `add <path-or-url>` (add a row, filling the
-name and vision statement from the project's top `intent.csv`, its legacy overall records, or flags), `list`, `check`
-(locations and specifications exist, relations resolve, ids are unique), `index` (write `INDEX.md`) and `where [path]`.
+`esoi projects` has `init` (create the folder and an empty `projects.csv`), `add <path-or-url>` (add a row,
+finding the specifications and the first file to read; the name and vision statement stay in the project's top
+`intent.csv`, and a project without one takes them from flags, nothing is guessed from its other records), `list`,
+`check` (locations and specifications exist, relations resolve, ids are unique, and a name or vision statement does not
+disagree with the project's `intent.csv`), `index` (write `INDEX.md`) and `where [path]`.
 Nothing is fetched from the network: a URL is listed, not opened. The csv is plain, so the same index works by hand.
 
 ## Alternatives considered

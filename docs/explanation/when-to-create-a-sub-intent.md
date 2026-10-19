@@ -45,9 +45,10 @@ words are the author's and are quoted as written. See [intents-and-sub-intents.m
 ## What a sub-intent is
 
 A sub-intent is not a child of the parent intent as a whole. It arises as an **implementation of a solution** in the
-parent intent. The parent's solution says what is wanted; one implementation of it turns out to be big or interesting
-enough to be an intent with its own problems, solutions, ideals and metrics. That makes its role clear: it is one
-alternative for that solution, and the solution's metric compares it with the others.
+parent intent. The parent's solution says what is wanted; one implementation of it is specified further as an intent with
+its own problems, solutions, ideals and metrics, when it brings insights on opportunities that do not emerge directly from
+the parent intent or the solution (the test below). That makes its role clear: it is one alternative for that solution, and
+the solution's metric compares it with the others.
 
 Implementations are essentially ideas, so an implementation can start as a sub-intent or evolve into one. Nothing is
 lost either way: the implementation record stays in the parent and names the sub-intent, and the sub-intent names the
@@ -55,22 +56,25 @@ implementation it came from.
 
 ## The opportunity test
 
-Specify a sub-intent if and only if it brings insights on opportunities that do not emerge directly from the parent
-intent or from the solution it implements. An opportunity suggests creative value in the implementation that goes
-outside the scope of the solution, or something meaningful enough that someone wants to give that implementation
-focused attention, specify it further and iterate on its potential.
+The author recommends "specifying a sub-intent if and only if that intent brings insights on opportunities that don't
+emerge directly from the parent intent or solution that the sub-intent is implementing. Opportunities suggest that there
+may be creative value in the implementation, which goes outside the scope of the solution or is sufficiently meaningful to
+consciousness that they desire to bring focused attention into that implementation to specify it further."
 
-An intent brings insights on risks, uncertainties and opportunities, and each already has a home:
+His definition of an intent says where the three kinds of insight go: "An intent brings insights on risks, uncertanties,
+and opportunities. Risks are addressed by considering disadvantages of Implementations and Metrics, uncertainties are
+addressed by Metrics, and opportunities are addressed by Solutions."
 
-| Insight | Where it goes | Why that is enough |
-|---|---|---|
-| Risk | The disadvantages of the implementation (or of the metric) | A risk of one way of doing it is a disadvantage of that implementation |
-| Uncertainty | The metric of the existing solution | Measuring is how an uncertainty is resolved |
-| Opportunity | The solution, or an advantage of the implementation | An opportunity may be creative value beyond the solution's scope; only then is a sub-intent worth it |
+| Insight | Where it goes |
+|---|---|
+| Risk | The disadvantages of the implementation (or of the metric) |
+| Uncertainty | The metric of the existing solution |
+| Opportunity | The solution; only an opportunity that goes outside it, or deserves focused attention, is worth a sub-intent |
 
-So do not create a sub-intent because of a risk or an uncertainty alone. The three aspects of an intent are already part
-of the solution and implementation definitions. An opportunity is the one that can point outside them: there may be
-something here the solution does not ask for, or something that deserves its own attention.
+So do not create a sub-intent because of a risk or an uncertainty alone: a risk of one way of doing it is a disadvantage
+of that implementation, and measuring is how an uncertainty is resolved. An opportunity is the one that can point
+outside the solution: there may be something here the solution does not ask for, or something that deserves its own
+attention.
 
 Questions to ask:
 
@@ -110,8 +114,7 @@ A solution can be a dependency of implementations in other intents. Implementati
 solution interfaces wherever the solutions exist, so an implementation in one intent records the solutions it builds on
 (`uses_solution_ids`), wherever they are in the tree. This is a web of dependencies, kept safe by solution abstractions,
 alternative implementations and metrics: if a dependency fails, its metric shows it and another implementation can be
-selected. Count these uses when weighing a sub-intent: a solution several implementations build on is often worth its own
-intent sooner than one only its parent uses.
+selected.
 
 ## Whether best differs: separate solutions inside an intent
 
@@ -147,8 +150,9 @@ at each milestone) is often enough.
 ## Merging back
 
 The tests apply again as things change. When a sub-intent's opportunity turns out to be covered by its solution, or its
-implementation stops deserving focused attention, fold it back into an implementation of the parent solution, keep the
-parent's metric, and park the retired records rather than deleting them, so their results and reasoning stay findable.
+implementation stops deserving focused attention, fold it back into an implementation of the parent solution and keep the
+parent's metric. Move the records that still serve the parent into its intent and delete the rest; version history keeps
+them findable, and a line in the parent's `network.md` says what was folded and why.
 Two solutions whose definitions of best converge are merged the same way.
 
 ## An example
@@ -178,9 +182,8 @@ metric. Neither is a sub-intent.
 3. For a candidate sub-intent, write the opportunity in one line, outside what the parent intent or solution already
    states. If it is only a risk or an uncertainty, put it in the implementation's disadvantages or the solution's metric
    and stop.
-4. Weigh the cost to create and maintain it against the benefit, including uses by implementations elsewhere, within the
-   timeframe to the next highest priority milestone. If the cost outweighs the benefit, stop for now and weigh again at the
-   next milestone.
+4. Weigh the cost to create and maintain it against the benefit within the timeframe to the next highest priority
+   milestone. If the cost outweighs the benefit, stop for now and weigh again at the next milestone.
 5. Otherwise make it an implementation of the parent's solution, as a sub-intent, linking both ways; give it a metric or
    inherit the solution's, and list the solutions it builds on.
 6. If an intent has grown unwieldy, look for independent clusters in its network and restructure.

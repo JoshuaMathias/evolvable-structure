@@ -2,8 +2,8 @@
 
 Older ESOI repositories wrote an **overall solution network** (configured as `overall`) and **detailed records** that
 named their parents in `overall_solution_ids`, `parent_problem_ids`, `parent_ideal_ids` and `parent_metric_ids`. That
-layout still loads and checks. This guide moves it to the intent model, where an intent is a folder and hierarchy is
-between intents (see [intents-and-sub-intents.md](../explanation/intents-and-sub-intents.md)). Do it in small commits,
+layout still loads and checks. This guide moves it to the intent model, where hierarchy is between intents and a
+repository records an intent as a folder (the selected implementation of the `intent-registry` solution; see [intents-and-sub-intents.md](../explanation/intents-and-sub-intents.md)). Do it in small commits,
 running `esoi check` after each.
 
 ## 1. Make the overall network the top intent
@@ -12,10 +12,14 @@ running `esoi check` after each.
    problems, ideals, solutions, implementations and metrics into it, beside the detailed records, keeping the ids
    unchanged. Ids are unique across the whole tree, so nothing that links to them breaks.
 2. Add `intent.csv` there with one row: `intent_id`, `name`, `vision_statement`, and empty `implements` and `opportunity`.
-   Write the vision statement in present tense ("The world is ..."; see the [intent template](../templates/intent.md)).
-   The overall network's prose can be kept as `network.md`.
+   The top intent's name and vision statement are the project's purpose, why the project exists, in its own words
+   (present tense, "The world is ..."; see the [intent template](../templates/intent.md)). Do not copy them from the
+   overall network when that network was written about the structure ("the structure that ..."): the evolvable structure
+   the project applies is a solution inside the top intent, not the top intent. The overall network's ideals are a place
+   to look for the purpose, not to copy. The network's prose can be kept as `network.md`.
 3. Check that the intent has a single top solution that everything implemented falls under. If the overall network had
-   several overall solutions, either choose the one that encapsulates the rest or write a new one.
+   several overall solutions, either choose the one that encapsulates the rest or write a new one. A top solution that
+   only describes the structure is a solution inside the intent; the top solution says what the project is for.
 
 ## 2. Turn the overall solution's areas into implementations, solutions or sub-intents
 
@@ -35,7 +39,8 @@ intent; it can become a sub-intent later.
 
 For each sub-intent:
 
-1. Create the subfolder, move its records into it, and add its `intent.csv`.
+1. Create the subfolder, named by the sub-intent's `intent_id` (the check requires it), move its records into it, and add
+   its `intent.csv`.
 2. Set `implements` to the full id of the implementation in the parent intent it arises from. If no such implementation
    exists yet, add one to the parent's `implementations.csv` first.
 3. Write the `opportunity` in one line.

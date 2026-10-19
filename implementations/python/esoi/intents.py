@@ -22,7 +22,7 @@ from .config import Config
 from .tables import read_csv, read_header
 
 INTENT_FILE = "intent.csv"
-SKIPPED_FOLDERS = {"tracker", "__pycache__"}
+SKIPPED_FOLDERS = {"__pycache__"}   # the configured tracker folder is skipped too (Config.tracker_dir)
 Row = Dict[str, str]
 
 
@@ -56,7 +56,7 @@ def discover(config: Config) -> List[Intent]:
             found.append(Intent(row.get("intent_id", "").strip(), folder, parent, row, len(records)))
             here = row.get("intent_id", "").strip() or f"<{folder.name}>"
         for child in sorted(p for p in folder.iterdir() if p.is_dir()):
-            if child.name in SKIPPED_FOLDERS or child.name.startswith("."):
+            if child.name in SKIPPED_FOLDERS or child.name.startswith(".") or child == config.tracker_dir:
                 continue
             visit(child, here)
 

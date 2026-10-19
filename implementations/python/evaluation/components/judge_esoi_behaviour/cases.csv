@@ -99,3 +99,7 @@ EB-049-good,EB-049,good,code,pass,,
 EB-049-bad,EB-049,bad,code,fail,,
 EB-050-good,EB-050,good,ai_behaviour,pass,,yes
 EB-050-bad,EB-050,bad,ai_behaviour,fail,,yes
+EB-051-good,EB-051,good,process,pass,,
+EB-051-bad,EB-051,bad,process,fail,,
+EB-052-good,EB-052,good,process,pass,,
+EB-052-bad,EB-052,bad,process,fail,,

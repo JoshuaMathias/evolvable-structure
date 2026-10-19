@@ -28,7 +28,17 @@ Intents are the containers and the unit of hierarchy (from the author's updated 
   `$ESOI_HOME` (else `~/.esoi`): which projects ESOI is applied to, how they relate and where to look first. No network calls.
   This repository records it as the `local-application-index` solution with a measured live implementation, the retired
   baseline of routing rows in a skill index, and the floor of each project's own records.
-- This repository's own `structure/` is converted: top intent `esoi`, sub-intents `esoi-python` and `esoi-for-ai-behaviour`.
+- This repository's own `structure/` is converted: top intent `esoi` with one sub-intent, `esoi-runtime` (the package as a
+  runtime dependency of other people's code; its opportunity is marked unconfirmed). The earlier `esoi-python` and
+  `esoi-for-ai-behaviour` sub-intents are folded back: their opportunities were not opportunities (the first mirrored top
+  solutions one to one, the second repeated the goals and metric of `esoi-for-ai`).
+- **Corrections after review.** A sub-intent's folder must be named by its intent id (S28). `esoi init` also writes a
+  `project-purpose` top solution, left empty for the project, whose implementation builds on the project's other solutions;
+  the structure is a solution inside the top intent, not the top. `esoi projects` reads a project's name and vision statement
+  from its top `intent.csv` (the index cells are overrides for a project without one), reports a row that disagrees, derives
+  `used-by` from other rows' `uses`, resolves `add .`, no longer guesses a name from legacy records, and reads
+  `[tool.esoi]` in `pyproject.toml`. `esoi intent migrate` reports an overall solution with no implementation instead of
+  dropping the dependency. The tracker folder name is configurable (`tracker_folder`) and never read as an intent.
 
 Fixes from an adopter report (a verdict that compared different samples):
 

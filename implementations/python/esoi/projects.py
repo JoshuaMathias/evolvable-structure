@@ -12,17 +12,21 @@ A project row is ``project_id, name, vision_statement, location, kind, specifica
 ``specifications`` and ``start_here`` are relative to a local ``location``; ``relations`` is ``;``-separated
 ``<kind>:<project_id>`` with kind ``uses``, ``used-by``, ``sub-intent-of``, ``example-of`` or ``related``.
 
+The project's own top ``intent.csv`` is the single source of its name and vision statement: ``list``, ``index`` and
+``where`` read them from it, and the ``name`` and ``vision_statement`` cells of a row are only for a project that has no
+top intent record (a URL, a board, a project not yet migrated). ``check`` reports a row whose cells disagree with the
+project's ``intent.csv``. ``used-by`` is derived from the ``uses`` of other rows, so only ``uses`` need be written.
+
 Nothing here touches the network: a URL is listed, never fetched. Every function takes the index folder as an
 argument; the command line is the one place that reads ``ESOI_HOME``. Standard library only.
 """
 from __future__ import annotations
 
 import re
-import tomllib
 from pathlib import Path
 from typing import Dict, List, Mapping, Optional, Tuple
 
-from .config import DEFAULT_STRUCTURE_DIR
+from . import config as config_module
 from .tables import SEP, ids, read_csv, render_csv
 
 HOME_ENV = "ESOI_HOME"
@@ -101,16 +105,24 @@ def home_relative(path: Path) -> str:
         return str(path.resolve())
 
 
+def project_config(root: Path) -> Optional[config_module.Config]:
+    """The configuration kept in ``root`` itself (``esoi.toml``, else ``[tool.esoi]`` in ``pyproject.toml``), or None
+    when ``root`` has none or it does not load. A configuration of a parent folder is not this project's."""
+    found = config_module.find(root)
+    if found is None or found.parent != Path(root).resolve():
+        return None
+    try:
+        return config_module.load(found)
+    except config_module.ConfigError:
+        return None
+
+
 def structure_of(root: Path) -> Tuple[str, Optional[Path]]:
     """(specifications entry, the folder holding the top intent) for a local project: the structure folder its
-    ``esoi.toml`` names, else ``structure`` or ``docs/structure``, else ``esoi.toml`` alone."""
-    config = root / "esoi.toml"
-    if config.is_file():
-        try:
-            folder = tomllib.loads(config.read_text(encoding="utf-8")).get("structure_dir", DEFAULT_STRUCTURE_DIR)
-        except tomllib.TOMLDecodeError:
-            folder = DEFAULT_STRUCTURE_DIR
-        return ("esoi.toml", root / folder)
+    configuration names, else ``structure`` or ``docs/structure``, else nothing."""
+    loaded = project_config(root)
+    if loaded is not None:
+        return (loaded.source.name if loaded.source else config_module.CONFIG_NAME, loaded.structure)
     for candidate in STRUCTURE_CANDIDATES[1:]:
         if (root / candidate).is_dir():
             return (candidate + "/", root / candidate)
@@ -118,42 +130,51 @@ def structure_of(root: Path) -> Tuple[str, Optional[Path]]:
 
 
 def describe(root: Path) -> Tuple[str, str]:
-    """(name, vision statement) of the project at ``root``: its top ``intent.csv``, else the legacy overall network's
-    first solution name and first ideal principle; empty strings when neither is there."""
+    """(name, vision statement) of the project at ``root``, read from its top ``intent.csv``; empty strings when it has
+    none. A project without a top intent record (a legacy one) states its name in the index instead; nothing is guessed
+    from its other records."""
     _, folder = structure_of(root)
     if folder is None:
         return ("", "")
     intent = read_csv(folder / "intent.csv")
-    if intent:
-        return (intent[0].get("name", ""), intent[0].get("vision_statement", ""))
-    config = root / "esoi.toml"
-    overall = ""
-    if config.is_file():
-        try:
-            overall = tomllib.loads(config.read_text(encoding="utf-8")).get("overall", "")
-        except tomllib.TOMLDecodeError:
-            overall = ""
-    if overall:
-        solutions, ideals = read_csv(root / overall / "solutions.csv"), read_csv(root / overall / "ideals.csv")
-        return (solutions[0].get("name", "") if solutions else "", ideals[0].get("principle", "") if ideals else "")
-    return ("", "")
+    return (intent[0].get("name", ""), intent[0].get("vision_statement", "")) if intent else ("", "")
+
+
+def resolve(rows: List[Row]) -> List[Row]:
+    """The rows with name and vision statement read from each local project's top ``intent.csv`` where it has one
+    (an empty cell of the intent leaves the row's own); the rows are copied."""
+    out = []
+    for row in rows:
+        row = dict(row)
+        root = local_path(row["location"])
+        if root is not None and root.is_dir():
+            name, vision = describe(root)
+            row["name"], row["vision_statement"] = name or row["name"], vision or row["vision_statement"]
+        out.append(row)
+    return out
 
 
 def add(home: Path, location: str, project_id: str = "", name: str = "", vision: str = "", kind: str = "",
         specifications: str = "", start_here: str = "", relations: str = "", notes: str = "",
         replace: bool = False) -> Row:
-    """Add (or with ``replace`` update) one project. Fields not given are filled from the project itself when it is a
-    local folder with ESOI specifications; a URL has nothing to read, so its name and vision come from the flags."""
+    """Add (or with ``replace`` update) one project. The specifications and first file are found in the project when it
+    is a local folder. Its name and vision statement stay in its own top ``intent.csv`` and are left out of the row; a
+    project without one (a URL, a board, a legacy project) gets them from the flags, the name defaulting to the folder
+    name."""
     home = Path(home)
     path = local_path(location)
+    if path is not None and path.exists():
+        path = path.resolve()
     stored = location if is_url(location) else home_relative(path) if path is not None and path.exists() else location
-    guessed_name, guessed_vision, guessed_spec, guessed_start = "", "", "", ""
+    own_name, own_vision, guessed_spec, guessed_start = "", "", "", ""
     if path is not None and path.is_dir():
-        guessed_name, guessed_vision = describe(path)
+        own_name, own_vision = describe(path)
         guessed_spec = structure_of(path)[0]
         guessed_start = next((c for c in START_HERE_CANDIDATES if (path / c).exists()), "")
-    row = {"project_id": project_id or slug(name or guessed_name or (path.name if path else location.rsplit("/", 1)[-1])),
-           "name": name or guessed_name or (path.name if path else location), "vision_statement": vision or guessed_vision,
+    base = path.name if path is not None and path.name else location.rstrip("/").rsplit("/", 1)[-1]
+    # a project that has a top intent record keeps its name and vision there, so the row holds them only when given
+    row = {"project_id": project_id or slug(name or own_name or base),
+           "name": name or ("" if own_name else base), "vision_statement": vision,
            "location": stored, "kind": kind or guess_kind(location), "specifications": specifications or guessed_spec,
            "start_here": start_here or guessed_start, "relations": relations, "notes": notes}
     rows = read_projects(home)
@@ -177,6 +198,8 @@ def check(home: Path) -> List[str]:
     rows = read_projects(home)
     known = [r["project_id"] for r in rows]
     bad: List[str] = []
+    sources = {r["project_id"]: describe(root) for r in rows
+               if (root := local_path(r["location"])) is not None and root.is_dir()}
     for ident in sorted({i for i in known if known.count(i) > 1}):
         bad.append(f"{ident}: project_id appears more than once")
     for r in rows:
@@ -184,7 +207,14 @@ def check(home: Path) -> List[str]:
         if not ident:
             bad.append("a row has no project_id")
             continue
-        for column in ("name", "location", "kind"):
+        own_name, own_vision = sources.get(ident, ("", ""))
+        for column, source in (("name", own_name), ("vision_statement", own_vision)):
+            if source and r[column].strip() and r[column].strip() != source.strip():
+                bad.append(f"{ident}: {column} {r[column].strip()!r} disagrees with the top intent.csv of the project "
+                           f"({source.strip()!r}); empty the cell, the intent.csv is the source")
+        if not r["name"].strip() and not own_name.strip():
+            bad.append(f"{ident}: name is empty (the project has no top intent.csv with one)")
+        for column in ("location", "kind"):
             if not r[column].strip():
                 bad.append(f"{ident}: {column} is empty")
         if r["kind"] and r["kind"] not in KINDS:
@@ -209,6 +239,19 @@ def check(home: Path) -> List[str]:
     return bad
 
 
+def relations_of(rows: List[Row]) -> List[Tuple[str, str, str]]:
+    """Every ``(project, kind, target)`` the rows state, plus the ``used-by`` that follows from another row's ``uses``,
+    each once, so a relation need only be written on one side."""
+    found: List[Tuple[str, str, str]] = []
+    for r in rows:
+        for entry in ids(r["relations"]):
+            kind, _, target = entry.partition(":")
+            found.append((r["project_id"], kind, target))
+            if kind == "uses":
+                found.append((target, "used-by", r["project_id"]))
+    return list(dict.fromkeys(found))
+
+
 def render_block(rows: List[Row]) -> str:
     """The generated part of INDEX.md: a table of the projects and how they relate."""
     lines = [START, "", "Generated from `projects.csv` by `esoi projects index`; edit the CSV, not this block.", ""]
@@ -222,10 +265,10 @@ def render_block(rows: List[Row]) -> str:
             lines.append(f"| `{r['project_id']}` {cell('name')} | {cell('vision_statement')} | {cell('kind')} | "
                          f"{cell('location')} | {cell('start_here')} | {cell('specifications')} |")
         lines.append("")
-        related = [(r["project_id"], entry) for r in rows for entry in ids(r["relations"])]
+        related = relations_of(rows)
         if related:
             lines += ["How they relate:", ""]
-            lines += [f"- `{ident}` {entry.partition(':')[0]} `{entry.partition(':')[2]}`" for ident, entry in related]
+            lines += [f"- `{ident}` {kind} `{target}`" for ident, kind, target in related]
             lines.append("")
         notes = [r for r in rows if r["notes"].strip()]
         if notes:
@@ -249,7 +292,7 @@ def index(home: Path) -> Path:
     markers gets the block appended; no file gets a short header and the block."""
     home = Path(home)
     path = home / "INDEX.md"
-    block = render_block(read_projects(home))
+    block = render_block(resolve(read_projects(home)))
     if path.exists():
         text = path.read_text(encoding="utf-8")
         if START in text and END in text:
@@ -266,11 +309,13 @@ def index(home: Path) -> Path:
 
 
 def where(home: Path, target: Path) -> Optional[Row]:
-    """The project that contains ``target`` (the deepest one when several do), or None."""
+    """The project that contains ``target`` (the deepest one when several do), or None. Its name and vision statement
+    come from its top ``intent.csv`` where it has one."""
     target = Path(target).resolve()
     best: Optional[Row] = None
     depth = -1
-    for r in read_projects(home):
+    rows = read_projects(home)
+    for r in rows:
         root = local_path(r["location"])
         if root is None or not root.exists():
             continue
@@ -278,7 +323,12 @@ def where(home: Path, target: Path) -> Optional[Row]:
         if target == root or root in target.parents:
             if len(root.parts) > depth:
                 best, depth = r, len(root.parts)
-    return best
+    if best is None:
+        return None
+    resolved = resolve([best])[0]
+    derived = [f"{kind}:{target}" for owner, kind, target in relations_of(rows) if owner == best["project_id"]]
+    resolved["relations"] = SEP.join(dict.fromkeys(derived))
+    return resolved
 
 
 def render_where(row: Row) -> List[str]:

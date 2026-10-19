@@ -4,12 +4,13 @@ import importlib
 from esoi import check, config, harness, scaffold, tables
 
 
-def test_init_passes_every_rule_but_the_top_intent_and_does_not_overwrite(tmp_path):
+def test_init_passes_every_rule_but_the_top_intent_and_solution_and_does_not_overwrite(tmp_path):
     lines = []
     written = scaffold.init(tmp_path, "my-demo", say=lines.append)
     assert "esoi.toml" in written and (tmp_path / "my_demo" / "greet.py").exists()
     cfg = config.load(tmp_path)
-    assert cfg.package == "my_demo" and [l[:3] for l in check.check(cfg)] == ["S28"]   # only the top intent is left to you
+    assert cfg.package == "my_demo" and {l[:3] for l in check.check(cfg)} == {"S26", "S28"}
+    assert all(line.startswith("S28") or "project-purpose" in line for line in check.check(cfg))   # only the top is left to you
     (tmp_path / "my_demo" / "greet.py").write_text('"""Mine."""\n')
     again = scaffold.init(tmp_path, "my-demo", say=lines.append)
     assert "my_demo/greet.py" not in again and (tmp_path / "my_demo" / "greet.py").read_text() == '"""Mine."""\n'

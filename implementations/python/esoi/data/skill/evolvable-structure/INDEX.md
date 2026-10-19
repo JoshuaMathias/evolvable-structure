@@ -9,7 +9,7 @@ table in `principles.md`, which also gives that pattern's "reached when" test.
 
 If a local ESOI index exists (`$ESOI_HOME/INDEX.md`, or `~/.esoi/INDEX.md`), read it to find how ESOI is already applied to
 the project you are in, and go where it says. If none exists and the user applies ESOI to several projects, offer to start
-one (`esoi projects init` if the Python tools are in use, otherwise a `projects.csv` by hand). This index deliberately does not
+one (`esoi projects init` if the Python tools are in use, otherwise a `projects.csv` by hand; the layout is described in the ESOI repository at https://github.com/JoshuaMathias/evolvable-structure/blob/main/docs/explanation/local-index.md). This index deliberately does not
 list projects: it routes by kind of task, and which projects exist is the user's own, so it lives in the local index.
 
 ## Which file, and when
@@ -41,7 +41,7 @@ list projects: it routes by kind of task, and which projects exist is the user's
 | How people propose, check and decide (reviews, votes, approval gates), or a process that should improve itself | `other-categories.md` "Collaborative innovation and process"; `principles/purpose.md` "A process is a structure too" | |
 | Writing or reviewing a CLAUDE.md or other always-loaded context file | `other-categories.md` "Context files (CLAUDE.md)" | `principles/difficulties.md` "Copies drift" |
 | Starting a project, product, course or process with ESOI, or asking "what do I do first?" | `steps.md` | |
-| Deciding whether a part of a project should become a sub-intent, a separate solution or just an implementation; an intent that has grown too large | `steps.md` step 11; `principles.md` "Hierarchy is intents, not solutions"; the ESOI repository's "When to create a sub-intent" | `principles/difficulties.md` "The right level" |
+| Deciding whether a part of a project should become a sub-intent, a separate solution or just an implementation; an intent that has grown too large | `steps.md` step 11; `principles.md` "Hierarchy is intents, not solutions"; "When to create a sub-intent" at https://github.com/JoshuaMathias/evolvable-structure/blob/main/docs/explanation/when-to-create-a-sub-intent.md | `principles/difficulties.md` "The right level" |
 | Where ESOI is already applied on this machine, how projects relate, or recording a new project | the local ESOI index (First, above); `python_tools.md` for `esoi projects` | |
 | Automating ESOI's checks or measurements, a tool to check the records, or scanning a repository before a public push | `python_tools.md` (ask the user first) | |
 | Writing up a design, a doc template, a project board | `principles.md` "How to think and document" | `other-categories.md` "Process, organization and documents" |

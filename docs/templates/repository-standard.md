@@ -9,13 +9,17 @@ enforce it are a reference.
 ## Intents
 
 - **The top intent** (write this first): why the project exists, in its own words: `intent.csv` with its name and
-  vision statement, its top solution (the project's structure is one), problems, ideals and metrics. Folder:
-  <!-- path -->, which only holds it.
-- **Sub-intents**: a subfolder with its own `intent.csv`, only where it brings insights on opportunities that do not
-  emerge directly from the parent intent or the solution it implements. It arises as an implementation of a solution in
-  the parent intent and says which in `implements`.
+  vision statement, then its problems, ideals, metrics and solutions. It has a single top solution, which the
+  project's other solutions serve through its implementation (`uses_solution_ids`). The evolvable structure the
+  project applies is one of those other solutions, not the top. The top intent need not sit in the top folder. The
+  folder that holds it: <!-- path -->.
+- **Sub-intents**: a subfolder named by its `intent_id`, with its own `intent.csv`, only where it brings insights on
+  opportunities that do not emerge directly from the parent intent or the solution it implements. It arises as an
+  implementation of a solution in the parent intent and says which in `implements`.
 - **Solutions** are recorded in the intent they serve; an implementation that builds on solutions of other intents lists
   them in `uses_solution_ids`.
+- **Folders** are how this layout carries intents: it is the selected implementation of the `intent-registry` solution,
+  and its rival, records kept beside the code they describe, stays a listed alternative.
 
 ## The shape of one solution
 

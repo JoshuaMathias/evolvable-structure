@@ -2,33 +2,46 @@
 
 An **intent** is a container. In the author's words, "An intent is like a folder containing the files of the other five
 specification types": problems, solutions, implementations, ideals and metrics. It has a name and a vision statement in
-present tense (for example "The world is ..."), from the [intent template](../templates/intent.md). It is not a general
-category like "parenting", and not an organization itself, but the container that says why something exists.
+present tense (for example "The world is ..."), from the [intent template](../templates/intent.md). The template says what
+it is not: "A general category like "parenting" or "career." An intent is also not an organization itself, rather the
+container of specification that clarifies why the organization exists (as a solution and implementation within an intent)."
 
 ## The top intent and its single top solution
 
-Every project, repository, organization or big goal is a top intent. It has a single top solution, and everything
-implemented falls under a solution. The top solution's implementations are the ways of carrying it out: some are plain
-implementations, and some are big or interesting enough to be intents of their own (sub-intents). A top solution may also
-build on solutions in other intents.
+A project's top intent is custom to the project: its name and vision statement say why the project exists, in the
+project's own words. It is never "the structure", and it is not the folder that holds it. The evolvable structure a
+project applies is a solution inside its top intent ("The structure itself is an implementation of a solution which
+defines the purpose of the structure"), whose implementation may use the generic solutions kept in this repository. The
+top intent need not sit in the top folder of a repository; a configuration says which folder holds it.
 
-## Sub-intents are folders
+The author's bullet: "Start with one at the top: Every project, repository, organization, big goal, etc. has a single
+solution which encapsulates sub-solutions for more specific components." Everything implemented falls under a solution.
+The top solution's implementations are the ways of carrying it out: plain implementations, implementations that are
+specified as sub-intents, and implementations that build on solutions of this or other intents.
 
-In a repository, an intent is a folder.
+## How a repository records intents
+
+ESOI does not require folders. A repository records its intents as folders, which is the selected implementation of the
+`intent-registry` solution; its rival, records kept beside the code they describe, stays listed beside it in this
+repository's own [structure](../../structure/solutions.csv). The specifications stay apart from the code they describe, in
+a structure folder, and esoi helps keep the two in step: the ownership map ties every file to a solution, and the check
+names a file with no solution and a record with no file.
 
 ```text
-structure/                  the top intent
+structure/                  the folder that holds the top intent
   intent.csv                its record: name, vision statement
   problems.csv  solutions.csv  implementations.csv  ideals.csv  metrics.csv
   network.md                optional prose view
-  review-sheets/            a sub-intent: a folder with its own intent.csv
+  review-sheets/            a sub-intent: a folder named by its intent_id, with its own intent.csv
     intent.csv              its record, plus `implements` and `opportunity`
     solutions.csv ...
 ```
 
-- The top intent is the configured structure folder.
+- The top intent's folder is the configured structure folder.
 - A sub-intent is a subfolder of its parent intent's folder that contains an `intent.csv`. Folders without one (a
   generated tracker, for example) are not intents.
+- Naming convention: a sub-intent's folder is named by its `intent_id` (rule S28 checks it), so the folder name finds
+  the intent and the intent id finds the folder.
 - A sub-intent's `intent.csv` has `implements`, the full id of the implementation in the parent intent that it arises
   from, and `opportunity`, the opportunity that justifies it. The top intent leaves both empty.
 - The parent's `implementations.csv` names the sub-intent in an optional `sub_intent` column, so the link can be followed
@@ -51,7 +64,8 @@ solution's interface.
 The quoted bullet says the single top solution "encapsulates sub-solutions for more specific components". In the current
 terms, the more specific components are what the top solution's implementations are made of: sub-intents (each with
 solutions of its own) and the solutions those implementations build on. The words are the author's; the structure that
-carries them is intents.
+carries them is intents. In this repository the top solution is `apply-esoi`, whose implementation builds on the other
+solutions of the top intent.
 
 ## The legacy two-level layout
 

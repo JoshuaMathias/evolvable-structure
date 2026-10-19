@@ -1,3 +1,0 @@
-rule,path,reason
-S10,behave-by-esoi:unmeasured,"The selected implementation calls a model, and a paid run waits for Joshua's approval of the spend (structure/metric-run-policy.md). Remove this waiver once the staged runs are recorded."
-S10,judge-esoi-behaviour:unmeasured,"The selected implementation calls a model, and a paid run waits for Joshua's approval of the spend (structure/metric-run-policy.md). Remove this waiver once the staged runs are recorded."

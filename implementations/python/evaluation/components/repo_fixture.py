@@ -70,6 +70,17 @@ def baseline_repo(dest: Path) -> Path:
     scaffold.init(root, "demo", say=lambda text: None)
     set_cell(root, "docs/structure/intent.csv", "intent_id", "demo", "name", "Consistent greetings")
     set_cell(root, "docs/structure/intent.csv", "intent_id", "demo", "vision_statement", "Every person is greeted by their own name.")
+    # the scaffold also leaves its top solution to the project: write the stand-in project's own
+    for column, value in dict(name="Greetings sent", scoped_purpose="Everything that greets a person for this project.",
+                              goals="Every greeting is consistent.", knowledge="The house style for greetings.",
+                              measures_of_success="The greeting cases pass.", problem_ids="greeting-by-hand",
+                              ideal_ids="consistent-greeting", metric_ids="greeting-pass-rate").items():
+        set_cell(root, "docs/structure/solutions.csv", "solution_id", "project-purpose", column, value)
+    for column, value in dict(name="The project", description="The greeting function and the structure that records it.",
+                              advantages="One place to start.", disadvantages="Nothing rival has been compared.").items():
+        set_cell(root, "docs/structure/implementations.csv", "implementation_id", "project-purpose:the-project", column, value)
+    set_cell(root, "docs/structure/problems.csv", "problem_id", "greeting-by-hand", "solution_ids", "greet-a-person;project-purpose")
+    set_cell(root, "docs/structure/metrics.csv", "metric_id", "greeting-pass-rate", "solution_ids", "greet-a-person;project-purpose")
     toml = (root / "esoi.toml").read_text().replace('layers = ["core"]', 'layers = ["core", "adapters"]')
     write(root, "esoi.toml", toml + TOML_EXTRA)
     write(root, "demo/ports.py", PORTS)

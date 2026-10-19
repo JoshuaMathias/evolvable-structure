@@ -83,11 +83,13 @@ def intent_layout_template(entities: Dict[str, Dict[str, object]]) -> str:
            "An intent is a folder. Its record is `intent.csv` (one row) and its specifications are the five record files "
            "beside it. The top intent is why the project exists, in the project's own words (it is custom to the project, never "
            "about ESOI unless ESOI is the project); the configured folder only holds it. The evolvable structure the project "
-           "applies is a solution inside the top intent, whose implementation may use the esoi solutions. A sub-intent is a subfolder that holds its own "
-           "`intent.csv`; it arises as an implementation of a solution in the parent intent, so the folders mirror the "
-           "hierarchy.", "",
+           "applies is a solution inside the top intent, whose implementation may use the esoi solutions. A sub-intent is a subfolder, named by "
+           "its `intent_id`, that holds its own `intent.csv`; it arises as an implementation of a solution in the parent intent. "
+           "Recording intents as folders is the selected implementation of the `intent-registry` solution; its rival, "
+           "records kept beside the code they describe, stays a listed alternative, so the folder layout is one way to record the "
+           "hierarchy, not the only one.", "",
            "```", "<folder>/                   holds the top intent", "  intent.csv", "  problems.csv  ideals.csv  solutions.csv  "
-           "implementations.csv  metrics.csv", "  <sub-intent>/             a sub-intent (its own intent.csv and five files)", "```", "",
+           "implementations.csv  metrics.csv", "  <sub-intent-id>/          a sub-intent, in a folder named by its intent_id (its own intent.csv and five files)", "```", "",
            "## intent.csv", "", "| Column | Filled by | Question or meaning |", "|---|---|---|", "| `intent_id` | you | "
            "A short stable id, unique across the tree. |"]
     for row in intent["specify"] + intent["interface"]:
@@ -228,13 +230,17 @@ enforce it are a reference.
 ## Intents
 
 - **The top intent** (write this first): why the project exists, in its own words: `intent.csv` with its name and
-  vision statement, its top solution (the project's structure is one), problems, ideals and metrics. Folder:
-  <!-- path -->, which only holds it.
-- **Sub-intents**: a subfolder with its own `intent.csv`, only where it brings insights on opportunities that do not
-  emerge directly from the parent intent or the solution it implements. It arises as an implementation of a solution in
-  the parent intent and says which in `implements`.
+  vision statement, then its problems, ideals, metrics and solutions. It has a single top solution, which the
+  project's other solutions serve through its implementation (`uses_solution_ids`). The evolvable structure the
+  project applies is one of those other solutions, not the top. The top intent need not sit in the top folder. The
+  folder that holds it: <!-- path -->.
+- **Sub-intents**: a subfolder named by its `intent_id`, with its own `intent.csv`, only where it brings insights on
+  opportunities that do not emerge directly from the parent intent or the solution it implements. It arises as an
+  implementation of a solution in the parent intent and says which in `implements`.
 - **Solutions** are recorded in the intent they serve; an implementation that builds on solutions of other intents lists
   them in `uses_solution_ids`.
+- **Folders** are how this layout carries intents: it is the selected implementation of the `intent-registry` solution,
+  and its rival, records kept beside the code they describe, stays a listed alternative.
 
 ## The shape of one solution
 

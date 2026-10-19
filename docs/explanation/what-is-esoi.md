@@ -38,8 +38,11 @@ This is the short version. The full order, step by step, is in [the steps](../..
 5. **Choose and review.** The best implementation by the authoritative metric is used automatically. To steer, people
    need only review the problems, ideals, metrics and results, not the implementations. They can still read, review
    and improve an implementation, and that still adds value; what changes is that choosing no longer depends on it.
-6. **Grow by intents.** A part that brings its own opportunity becomes a sub-intent: a container of its own, arising
-   as an implementation of a solution. See [intents-and-sub-intents.md](intents-and-sub-intents.md).
+6. **Grow by intents.** Specify a sub-intent if and only if it brings insights on opportunities that don't emerge
+   directly from the parent intent or solution that the sub-intent is implementing, and only if the resources to create
+   and maintain it do not outweigh its benefits within the timeframe currently prioritized. It is a container of its
+   own, arising as an implementation of a solution in the parent intent. See
+   [intents-and-sub-intents.md](intents-and-sub-intents.md) and [when-to-create-a-sub-intent.md](when-to-create-a-sub-intent.md).
 7. **Evolve.** When the intent changes, or a better implementation appears, or the metric turns out to be wrong, change
    the record and run the loop again. The structure is itself a solution with its own records.
 

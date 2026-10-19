@@ -48,6 +48,7 @@ class Config:
     root_python_allow: List[str] = field(default_factory=list)
     docstring_exempt: List[str] = field(default_factory=lambda: ["/vendor/"])
     structure_dir: str = DEFAULT_STRUCTURE_DIR
+    tracker_folder: str = "tracker"   # the generated review tracker, a folder inside structure_dir (never an intent)
     evaluation_dir: str = "evaluation/components"
     results: str = ""
     shared_eval_dirs: List[str] = field(default_factory=lambda: ["__pycache__"])
@@ -105,7 +106,7 @@ class Config:
 
     @property
     def tracker_dir(self) -> Path:
-        return self.structure / "tracker"
+        return self.structure / self.tracker_folder
 
     @property
     def layer_names(self) -> List[str]:

@@ -118,11 +118,11 @@ def projects_command(args: argparse.Namespace) -> int:
             print(f"esoi: {exc}", file=sys.stderr)
             return 2
         print(f"added {row['project_id']} ({row['kind']}, {row['location']})")
-        if not row["vision_statement"]:
-            print("note: no vision statement found; add one with --vision --replace")
+        if not projects.resolve([row])[0]["vision_statement"]:
+            print("note: no vision statement found in the project's top intent.csv; add one there (or with --vision --replace)")
         return 0
     if args.action == "list":
-        for line in projects.render_list(projects.read_projects(home)):
+        for line in projects.render_list(projects.resolve(projects.read_projects(home))):
             print(line)
         return 0
     if args.action == "check":

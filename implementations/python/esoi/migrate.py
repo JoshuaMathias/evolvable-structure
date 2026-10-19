@@ -65,9 +65,14 @@ def plan(config: Config, apply: bool = False) -> Tuple[List[str], List[str]]:
         first_of.setdefault(row.get("solution_id", ""), row.get("implementation_id", ""))
 
     uses: Dict[str, List[str]] = {}
+    unplaced: Dict[str, List[str]] = {}   # overall solution without any implementation -> detailed solutions that served it
     for row in read_csv(structure / "solutions.csv"):
         for target in ids(row.get(RETIRED, "")):
-            uses.setdefault(selected_of.get(target) or first_of.get(target, ""), []).append(row["solution_id"])
+            chosen = selected_of.get(target) or first_of.get(target, "")
+            if chosen:
+                uses.setdefault(chosen, []).append(row["solution_id"])
+            else:
+                unplaced.setdefault(target, []).append(row["solution_id"])
 
     merged: Dict[str, Tuple[List[str], List[Row]]] = {}
     for entity, (filename, _) in FILES.items():
@@ -90,12 +95,15 @@ def plan(config: Config, apply: bool = False) -> Tuple[List[str], List[str]]:
         done.append(f"merge {len(rows)} {entity} record(s) of the overall network and the detailed records into "
                     f"{config.structure_dir}/{filename}")
     if uses:
-        done.append("turn overall_solution_ids into uses_solution_ids on: " + ", ".join(sorted(k for k in uses if k)))
+        done.append("turn overall_solution_ids into uses_solution_ids on: " + ", ".join(sorted(uses)))
     if apply:
         write_csv(structure / "intent.csv", list(intent_row), [intent_row])
         for filename, (header, rows) in merged.items():
             write_csv(structure / filename, header, rows)
     manual = [
+        f"The overall solution {target} has no implementation, so {', '.join(sorted(users))} could not be recorded as "
+        "solutions its implementation builds on and the dropped overall_solution_ids link is lost: add an implementation "
+        f"of {target} and list them in its uses_solution_ids." for target, users in sorted(unplaced.items())] + [
         f"Fill {config.structure_dir}/intent.csv: the name and the vision statement (present tense) say why this project "
         "exists, in its own words, and are not about ESOI. The check reports both until you do.",
         "The evolvable structure this project applies is a solution inside the top intent; its implementation may use the "

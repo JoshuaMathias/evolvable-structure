@@ -2,7 +2,7 @@
 
 Researched and accessed 2026-10-17. Companion to `public_research.md` (which covers modularity, variability, evolutionary architecture including Ford, Parsons and Kua fitness functions, cybernetics, and counter-evidence; not repeated here). The readable public version is `docs/explanation/related-work.md` in the public ESOI repository.
 
-Verification key: V-page = the primary page was fetched and read through a summarising fetch tool (so quotes are as returned by that tool, not copied from raw HTML); V-abs = arXiv abstract page read; NV = could not be fetched or confirmed, content below is background knowledge and marked as such. Ideal numbers refer to SKILL.md principles 1 to 13 (4 = automatic best implementation, humans review metrics; 2 = ontology and when to split; 7 = humility).
+Verification key: V-page = the primary page was fetched and read through a summarising fetch tool (so quotes are as returned by that tool, not copied from raw HTML); V-abs = arXiv abstract page read; NV = could not be fetched or confirmed, content below is background knowledge and marked as such. Ideal numbers refer to SKILL.md principles 1 to 13 (4 = automatic best implementation, humans need only review metrics but can still add value to implementations; 2 = ontology and when to split; 7 = humility).
 
 ## 1. Layered models of trustworthy agents
 
@@ -117,7 +117,7 @@ Link: https://arxiv.org/abs/2210.10760 (V-abs; Gao, Schulman, Hilton). An imperf
 Link: https://arxiv.org/abs/2406.18665 (V-abs; Ong et al., v4 February 2025). Router models trained on human preference data choose a stronger or weaker LLM per query; cost cut by over half in some cases without quality loss (reported); routers keep working when the model pair is swapped.
 ### Not Diamond
 Link: https://www.notdiamond.ai/ (V-page). Commercial router; routing by predicted quality, prompt adaptation, custom routers trained on a customer's evals. Figures on the page (about 5% accuracy gain, about 20% cost saving, projected annual saving) are vendor claims, unverified. Martian (another router vendor named in the brief) was not fetched: NV.
-Shares: automatic selection by metric. Differs: selection per request versus ESOI's per solution; shows that "best" can vary by input, the first test in `when-to-split.md`. Borrow: a router as a fourth selection mode alongside always-the-winner, for solutions where split tests show the winner varies.
+Shares: automatic selection by metric. Differs: selection per request versus ESOI's per solution; shows that "best" can vary by input, the first test in "Whether best differs" at https://github.com/JoshuaMathias/evolvable-structure/blob/main/docs/explanation/when-to-create-a-sub-intent.md. Borrow: a router as a fourth selection mode alongside always-the-winner, for solutions where split tests show the winner varies.
 
 ### Feature toggles (Fowler)
 Link: https://martinfowler.com/articles/feature-toggles.html (V-page). Release, experiment, ops and permissioning toggles; experiment toggles route users to cohorts and "needs to remain in place with the same configuration long enough to generate statistically significant results". Borrow: do not change an implementation's configuration mid-measurement; kill-switch (ops toggle) as the safe fallback for a selected implementation that regresses.

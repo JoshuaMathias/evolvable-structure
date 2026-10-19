@@ -1,4 +1,0 @@
-component_id,layer,path,role,solutions
-behaviour,tools,implementations/python/esoi/behaviour.py,"Grading an AI agent's reply against a behaviour case: the pattern check, the judge prompt and verdict, and a command provider.",behave-by-esoi;judge-esoi-behaviour
-eval-behave-by-esoi,evaluation,implementations/python/evaluation/components/behave_by_esoi/**,"Cases, recorded replies and the arms for whether an agent acts by the principles.",behave-by-esoi
-eval-judge-esoi-behaviour,evaluation,implementations/python/evaluation/components/judge_esoi_behaviour/**,Labelled replies and the arms for how far a judge agrees with them.,judge-esoi-behaviour

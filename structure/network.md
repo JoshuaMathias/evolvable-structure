@@ -13,50 +13,75 @@ prose view.
 ```text
 structure/                       top intent esoi: Evolvable structure that optimizes intent (ESOI)
   intent.csv  problems.csv  ideals.csv  solutions.csv  implementations.csv  metrics.csv
-  python/                        sub-intent esoi-python, implements apply-esoi:python-tools
-  ai-behaviour/                  sub-intent esoi-for-ai-behaviour, implements esoi-for-ai:skill-as-standing-instructions
+  esoi-runtime/                  sub-intent esoi-runtime, implements implementation-selection:selection-table
 ```
 
 Hierarchy is only between intents, and a sub-intent is not a direct child of its parent intent: it arises as an
-implementation of a solution in the parent. Both sub-intents here do, and each states the opportunity that earns it a folder.
+implementation of a solution in the parent. The one sub-intent here does, and states the opportunity that earns it a folder.
 
 ### Top intent: `esoi`
 
 The vision statement is drawn from the skill's own words: every intention is turned into a structure that optimizes the
 fulfilling of that intent while supporting changes to it, and the intent and the structure evolve together in a continual
-feedback loop. It has a single top solution, `apply-esoi`, with two implementations: `documents-and-guidance` (selected; it
-builds on the other solutions of this intent through `uses_solution_ids`, which is how the skill's "Start with one at the
-top" bullet, "a single solution which encapsulates sub-solutions for more specific components", reads in terms of
-intents) and `python-tools` (the first sub-intent). Everything else that does not earn a folder stays a solution here: the
-registry, the template sync, the ownership map, selection, measurement, the leaderboard, the structure check, the review
-tracker, the consumer check, the standard, the structure budget, when metrics are run, skill distribution, the steps,
-guiding agents (`esoi-for-ai`) and the local index (`local-application-index`). The local index is a solution, not a
-sub-intent: its implementations are alternatives compared by one metric and it brings no opportunity beyond the solution
-it implements.
+feedback loop. It has a single top solution, `apply-esoi`, with two implementations:
 
-### Sub-intent `esoi-python` (folder `python/`)
+- `documents-templates-and-tools` (selected): explanation, templates, steps and the author's skill, read by people and
+  agents, with the esoi tools beside them, so the records are checked and the best implementation is selected by metric
+  (principle 4). It builds on the other solutions of this intent through `uses_solution_ids`, which is how the skill's
+  "Start with one at the top" bullet, "a single solution which encapsulates sub-solutions for more specific components",
+  reads in terms of intents.
+- `documents-only` (a real rival): the same documents applied by hand, with nothing installed, checked or selected
+  automatically. Its advantages (no install, quickest start) and disadvantages (records drift, nothing selects) are the
+  trade the choice rests on. No recorded trial compares the two, which `apply-esoi` records as a known gap with a review date.
 
-- **Arises as:** the `python-tools` implementation of `apply-esoi`.
-- **Opportunity that justifies it:** tools open what documents cannot, the automatic use of the best implementation by
-  checks, measurement, selection and a review tracker, which AI can scale across projects. A checker, a measurement harness,
-  a leaderboard and a selector are each a rich creative space with alternatives to compare, which goes outside what the top
-  solution (applying ESOI by documents and templates) defines.
-- **Holds:** the detailed `py-*` solutions, their implementations, metrics and components. The solutions of the top intent
-  whose chosen implementation these realize name them in `uses_solution_ids`.
+Everything else that does not earn a folder stays a solution here: the registry, the template sync, the ownership map,
+selection, measurement, the leaderboard, the structure check, the review tracker, the consumer check, the standard, the
+structure budget, when metrics are run, skill distribution, the steps, guiding agents (`esoi-for-ai`, whose metric is
+carried out by `behave-by-esoi`, calibrated by `esoi-behaviour-judge`) and the local index (`local-application-index`).
+The local index is a solution, not a sub-intent: its implementations are alternatives compared by one metric and it
+brings no opportunity beyond the solution it implements.
 
-### Sub-intent `esoi-for-ai-behaviour` (folder `ai-behaviour/`)
+How specifications relate to code (decided by Joshua): they are kept separate, in this structure folder, and esoi helps keep
+them in step with the code (the ownership map ties every file to a solution and the check names what drifted). Recording
+intents as folders is the selected implementation of the `intent-registry` solution; its rival,
+`records-beside-the-code`, stays listed.
 
-- **Arises as:** the `skill-as-standing-instructions` implementation of `esoi-for-ai`, the solution for guiding agents.
-- **Opportunity that justifies it:** AI agents are how structure is applied at scale, and whether an agent holds back, keeps
-  a qualifier and builds through solution interfaces is itself measurable and improvable. Behaviour cases, the ways of
-  giving an agent the principles and a calibrated judge are a creative space beyond guiding agents by standing
-  instructions, and meaningful enough to deserve focused attention and iteration.
-- **Holds:** `esoi-behaviour-judge`, `behave-by-esoi` and `judge-esoi-behaviour` with their problem, ideal, metrics and
-  components.
+### Sub-intent `esoi-runtime` (folder `esoi-runtime/`)
+
+- **Arises as:** the `selection-table` implementation of `implementation-selection`.
+- **Opportunity that justifies it (unconfirmed: for Joshua to confirm):** the Python package can become a runtime
+  dependency inside other people's production code, not only a tool run on a repository: selection at run time, graceful
+  declarations of alternatives (decorators, for example) and embedding without forking. That is a creative space beyond
+  selecting an implementation by a table in one repository, and it does not emerge from the parent intent (applying ESOI to a
+  project) or from the solution it implements (switching which implementation serves a solution).
+- **Holds:** one solution, `runtime-selection` (the selector in `esoi/select.py`, with its cases), which
+  `implementation-selection:selection-table` builds on. Nothing is claimed for decorators or embedding beyond that yet.
+
+### Retired in 2026-10
+
+- **`ai-behaviour/` (sub-intent `esoi-for-ai-behaviour`)** is retired. Its opportunity repeated the goals and metric of
+  `esoi-for-ai` (an uncertainty, which a metric handles, not an opportunity), and it hung off one alternative while its
+  cases measure all four. Its solutions `behave-by-esoi`, `judge-esoi-behaviour` and `esoi-behaviour-judge`, with their
+  implementations, metrics, problem, ideal, components and waivers, moved into the top intent as what the metric of
+  `esoi-for-ai` uses. Version history keeps the earlier folder.
+- **`python/` (sub-intent `esoi-python`)** is retired. `python-tools` was not a real alternative to the documents (its
+  chosen parts built on the tools of the unselected alternative), and its eleven `py-*` solutions mirrored top solutions one
+  to one. Each was folded into the top solution it mirrored: that solution's selected implementation points at the code
+  path, the component maps to it, and the cases metric is the solution's metric (so those solutions are now `invariant`
+  and measured, where they were `specification`). The selector is the exception, kept as `runtime-selection` in
+  `esoi-runtime` for the opportunity above. Version history keeps the earlier folder.
 
 No sub-intent was created for risks or uncertainties alone: those are disadvantages of an implementation or the solution's
 metric. The detailed solutions that were once linked up to an overall network with `overall_solution_ids` are now either
-solutions of this intent, solutions of a sub-intent, or named by `uses_solution_ids` on the implementation that builds on them.
+solutions of this intent, the solution of the sub-intent, or named by `uses_solution_ids` on the implementation that builds
+on them.
+
+### Known gaps with a review date
+
+A solution of `metric_kind` `specification` is defined and has alternatives, but no run measures it, so it is not yet a
+way to follow principle 4 (the best implementation selected automatically). Each is recorded with a `gap` and an `action`
+whose review date is 2026-12-31, so none is a permanent escape: `apply-esoi`, `implementation-selection`,
+`discriminating-cases`, `the-standard`, `structure-budget`, `esoi-for-ai`, `the-steps` and `esoi-behaviour-judge`.
 
 ## The top intent's specifications, as first written
 

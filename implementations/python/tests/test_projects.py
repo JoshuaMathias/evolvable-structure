@@ -31,7 +31,9 @@ def test_init_add_list_check_index_where_through_the_command_line(home, tmp_path
     project = make_project(tmp_path / "greeter")
     assert cli.main(["projects", "init"]) == 0 and (home / "projects.csv").exists() and (home / "INDEX.md").exists()
     assert cli.main(["projects", "add", str(project), "--notes", "Records live under docs."]) == 0
-    row = projects.read_projects(home)[0]
+    stored = projects.read_projects(home)[0]
+    assert stored["name"] == "" and stored["vision_statement"] == ""   # the project's own intent.csv is the source
+    row = projects.resolve([stored])[0]
     assert row["project_id"] == "greeter" and row["name"] == "Greeter" and row["vision_statement"].startswith("Every person")
     assert row["specifications"] == "esoi.toml" and row["start_here"] == "CLAUDE.md" and row["kind"] == "folder"
     capsys.readouterr()
@@ -96,3 +98,93 @@ def test_where_picks_the_deepest_project(home, tmp_path):
     projects.add(home, str(inner), project_id="inner")
     assert projects.where(home, inner / "docs")["project_id"] == "inner"
     assert projects.where(home, outer / "docs")["project_id"] == "outer"
+
+
+def test_adding_the_working_folder_names_the_project_after_it(home, tmp_path, monkeypatch):
+    project = tmp_path / "work" / "ledger"
+    project.mkdir(parents=True)
+    monkeypatch.chdir(project)
+    row = projects.add(home, ".")
+    assert row["project_id"] == "ledger" and row["name"] == "ledger" and row["location"].endswith("ledger")
+    assert projects.check(home) == []
+
+
+def test_a_legacy_project_gets_no_name_or_vision_guessed_from_its_other_records(home, tmp_path):
+    project = tmp_path / "old"
+    (project / "docs" / "structure" / "overall").mkdir(parents=True)
+    (project / "esoi.toml").write_text('structure_dir = "docs/structure"\noverall = "docs/structure/overall"\n')
+    tables.write_csv(project / "docs" / "structure" / "overall" / "solutions.csv", ["solution_id", "name"],
+                     [dict(solution_id="whole", name="Some overall solution")])
+    tables.write_csv(project / "docs" / "structure" / "overall" / "ideals.csv", ["ideal_id", "principle"],
+                     [dict(ideal_id="i", principle="An ideal that is not a vision")])
+    assert projects.describe(project) == ("", "")
+    row = projects.add(home, str(project), name="Old ledger")
+    assert row["name"] == "Old ledger" and row["vision_statement"] == ""
+    assert projects.resolve([row])[0]["vision_statement"] == ""
+
+
+def test_structure_of_reads_the_configuration_in_pyproject(tmp_path):
+    project = tmp_path / "lib"
+    (project / "specs").mkdir(parents=True)
+    (project / "pyproject.toml").write_text('[tool.esoi]\nstructure_dir = "specs"\n')
+    tables.write_csv(project / "specs" / "intent.csv", ["intent_id", "name", "vision_statement", "implements", "opportunity"],
+                     [dict(intent_id="lib", name="Library", vision_statement="The library is used.")])
+    assert projects.structure_of(project) == ("pyproject.toml", project / "specs")
+    assert projects.describe(project) == ("Library", "The library is used.")
+    inner = project / "docs"   # a parent's configuration is not the project's
+    inner.mkdir()
+    assert projects.structure_of(inner) == ("", None)
+
+
+def test_a_location_under_the_home_folder_is_kept_with_a_tilde_and_round_trips(home, tmp_path, monkeypatch):
+    user = tmp_path / "user"
+    monkeypatch.setenv("HOME", str(user))
+    project = make_project(user / "work" / "greeter")
+    row = projects.add(home, str(project))
+    assert row["location"] == "~/work/greeter"
+    assert projects.read_projects(home)[0]["location"] == "~/work/greeter"
+    assert projects.check(home) == []
+    assert projects.where(home, project / "docs")["project_id"] == "greeter"
+    assert projects.local_path("~/work/greeter") == project
+
+
+def test_name_and_vision_come_from_the_intent_and_a_disagreeing_row_is_reported(home, tmp_path):
+    project = make_project(tmp_path / "greeter")
+    projects.add(home, str(project))
+    assert projects.check(home) == []
+    rows = projects.read_projects(home)
+    rows[0].update(name="Old name", vision_statement="An old vision.")
+    projects.write_projects(home, rows)
+    bad = projects.check(home)
+    assert any("name 'Old name' disagrees with the top intent.csv" in line for line in bad)
+    assert any("vision_statement" in line and "disagrees" in line for line in bad)
+    assert projects.resolve(projects.read_projects(home))[0]["name"] == "Greeter"   # the intent wins in every output
+    projects.index(home)
+    text = (home / "INDEX.md").read_text()
+    assert "Greeter" in text and "Old name" not in text
+
+
+def test_a_project_without_a_top_intent_keeps_its_own_name_and_a_nameless_one_is_reported(home, tmp_path):
+    projects.add(home, "https://example.org/board/1", name="Roadmap", vision="The roadmap is shared.", kind="board")
+    assert projects.resolve(projects.read_projects(home))[0]["name"] == "Roadmap"
+    rows = projects.read_projects(home)
+    rows[0]["name"] = ""
+    projects.write_projects(home, rows)
+    assert any("name is empty" in line for line in projects.check(home))
+
+
+def test_used_by_follows_from_the_uses_of_other_rows(home, tmp_path):
+    library = make_project(tmp_path / "library", name="Library")
+    app = make_project(tmp_path / "app", name="App")
+    projects.add(home, str(library), project_id="library")
+    projects.add(home, str(app), project_id="app", relations="uses:library")
+    assert projects.check(home) == []
+    projects.index(home)
+    text = (home / "INDEX.md").read_text()
+    assert "- `app` uses `library`" in text and "- `library` used-by `app`" in text
+    assert "used-by:app" in projects.where(home, library)["relations"]
+    rows = projects.read_projects(home)
+    rows[0]["relations"] = "used-by:app"   # also written by hand: still one line
+    projects.write_projects(home, rows)
+    projects.index(home)
+    assert (home / "INDEX.md").read_text().count("`library` used-by `app`") == 1

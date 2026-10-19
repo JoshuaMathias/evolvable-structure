@@ -1,13 +1,16 @@
 """``esoi init``: write a small repository as a starting point, passing every rule except the two cells only you can write.
 
-The example is a top intent plus one solution, ``greet-a-person``, with two implementations (the package function and a
-shouting baseline), one ideal, one problem, a metric (``esoi run greet_a_person --impl live``), the component rows that
-own every file and a recorded run. The top intent is why your project exists, in your own words, so ``intent.csv`` is
-written with its name and vision statement empty and ``esoi check`` reports both until you fill them; it is never filled
-with text about ESOI. The evolvable structure the project applies is a solution inside that top intent
-(``project-structure``), whose implementation uses esoi (``@esoi/structure-check`` names a solution of another project).
-There is no sub-intent: one needs an opportunity that a person names. Rename the parts, replace the example text with
-your own, and keep running ``esoi check``.
+The example is a top intent holding three solutions: ``project-purpose``, the single solution at the top whose
+implementation builds on the other two; ``project-structure``, the evolvable structure the project applies, whose
+implementation uses esoi (``@esoi/structure-check`` names a solution of another project); and a stand-in for the
+project's own work, ``greet-a-person``, with two implementations (the package function and a shouting baseline), one
+ideal, one problem, a metric (``esoi run greet_a_person --impl live``), the component rows that own every file and a
+recorded run.
+
+The top intent is why your project exists, in your own words, and the top solution is how it is carried out, so
+``intent.csv`` and the ``project-purpose`` records are written empty and ``esoi check`` reports them until you fill
+them; nothing is filled with text about ESOI. There is no sub-intent: one needs an opportunity that a person names.
+Rename the parts, replace the example text with your own, and keep running ``esoi check``.
 
 The records carry every field of the shipped intent template. A field the template has that this module has no
 sample text for is written empty, so ``esoi check`` names it instead of passing a placeholder.
@@ -25,6 +28,7 @@ from .records import FILES, TEMPLATE_DATA, fields, load_template
 from .tables import render_csv
 
 SOLUTION = "greet-a-person"
+PURPOSE = "project-purpose"
 COMPONENT = "greet_a_person"
 
 SAMPLE: Dict[str, Dict[str, str]] = {
@@ -72,9 +76,10 @@ IMPLEMENTATIONS = {
 # name and the vision statement until the project fills them. The sample below is a stand-in project (greetings) only to
 # show the shape; replace it with your own.
 SAMPLE["intent"] = {"name": "", "vision_statement": ""}
-# The starter solution for the project's own structure: how its intent is recorded, measured and selected. Its
-# implementation uses the generic esoi solutions; whatever is specific to this project belongs here in its top intent.
-OVERALL = {
+# The starter solution for the evolvable structure the project applies: how its intent is recorded, measured and
+# selected. It is a solution inside the top intent, not the top solution; its implementation uses the generic esoi
+# solutions, and whatever is specific to this project belongs in the project's own solutions.
+STRUCTURE = {
     "problem": {
         "problem": "What this project is for has no single written statement, so its parts drift from any shared intent.",
         "who_has_it": "People and AI agents who change the project.",
@@ -85,14 +90,14 @@ OVERALL = {
         "name": "Explicit purpose",
         "principle": "Every part of the project traces up to a stated problem and ideal.",
         "state_description": "Opening any record, you can follow it up to the project's purpose.",
-        "hints_of_measurement": "Every solution is built on, or builds, the project's structure."},
+        "hints_of_measurement": "Every solution is reached from the top solution, through the solutions its implementation builds on."},
     "solution": {
         "name": "Project structure",
         "scoped_purpose": "How this project records its intent, measures alternatives and selects the best by metric; "
                           "its implementation uses the esoi solutions and holds whatever is specific to this project.",
         "goals": "Each building block of the structure has a metric and a recorded run.",
         "knowledge": "The project's own history and goals, and the esoi documentation.",
-        "measures_of_success": "Every solution of the project links up to it."},
+        "measures_of_success": "Every solution of the project is recorded with a problem, an ideal and a metric, and the check passes."},
     "metric": {
         "name": "Coverage by measured solutions",
         "scoped_purpose": "Measures whether the structure's building blocks each have a recorded run.",
@@ -174,9 +179,14 @@ def files_for(package: str, template) -> Dict[str, str]:
                       ideal_ids="consistent-greeting", metric_ids="greeting-pass-rate", port="",
                       implementations=";".join(greet_paths), selected=greet_paths[0], selected_by="measured on the example cases",
                       metric_kind="eval", invariant_reason="", gap="", action="")
-    top = record("solution", template, OVERALL["solution"], solution_id="project-structure", problem_ids="purpose-unrecorded",
-                 ideal_ids="explicit-purpose", metric_ids="structure-coverage", implementations="esoi-records",
-                 selected="esoi-records", selected_by="the only way to carry it out so far", metric_kind="specification")
+    structure_solution = record("solution", template, STRUCTURE["solution"], solution_id="project-structure",
+                                problem_ids="purpose-unrecorded", ideal_ids="explicit-purpose", metric_ids="structure-coverage",
+                                implementations="esoi-records", selected="esoi-records",
+                                selected_by="the only way to carry it out so far", metric_kind="specification")
+    # The single solution at the top: why the project exists is the project's own, so every cell is left for it to write
+    # and `esoi check` reports each one. Its implementation builds on the project's other solutions.
+    purpose_solution = record("solution", template, {}, solution_id=PURPOSE, implementations="the-project",
+                              selected="the-project", metric_kind="specification")
     impl_rows = []
     for path in greet_paths:
         stem = path.rsplit("/", 1)[-1][:-3]
@@ -187,7 +197,9 @@ def files_for(package: str, template) -> Dict[str, str]:
                                                              advantages="Reuses the generic esoi solutions instead of building them again.",
                                                              disadvantages="Depends on esoi; no rival has been compared yet."),
                             implementation_id="project-structure:esoi-records", solution_id="project-structure",
-                            uses_solution_ids=SOLUTION + ";@esoi/structure-check"))
+                            uses_solution_ids="@esoi/structure-check"))
+    impl_rows.append(record("implementation", template, {}, implementation_id=f"{PURPOSE}:the-project", solution_id=PURPOSE,
+                            uses_solution_ids=f"{SOLUTION};project-structure"))
     out: Dict[str, str] = {}
     out[f"{structure}/intent.csv"] = render_csv(
         ["intent_id"] + fields(template, "intent", True) + ["implements", "opportunity"],
@@ -196,22 +208,23 @@ def files_for(package: str, template) -> Dict[str, str]:
         ["problem_id"] + fields(template, "problem", True) + ["solution_ids", "ideal_ids", "parent_problem_ids", "parent_ideal_ids"],
         [record("problem", template, SAMPLE["problem"], problem_id="greeting-by-hand", solution_ids=SOLUTION,
                 ideal_ids="consistent-greeting"),
-         record("problem", template, OVERALL["problem"], problem_id="purpose-unrecorded", solution_ids="project-structure",
+         record("problem", template, STRUCTURE["problem"], problem_id="purpose-unrecorded", solution_ids="project-structure",
                 ideal_ids="explicit-purpose")])
     out[f"{structure}/ideals.csv"] = render_csv(
         ["ideal_id"] + fields(template, "ideal", True) + ["problem_ids", "parent_ideal_ids"],
         [record("ideal", template, SAMPLE["ideal"], ideal_id="consistent-greeting", problem_ids="greeting-by-hand"),
-         record("ideal", template, OVERALL["ideal"], ideal_id="explicit-purpose", problem_ids="purpose-unrecorded")])
+         record("ideal", template, STRUCTURE["ideal"], ideal_id="explicit-purpose", problem_ids="purpose-unrecorded")])
     out[f"{structure}/solutions.csv"] = render_csv(
         sol_cols(["problem_ids", "ideal_ids", "metric_ids", "port", "implementations", "selected", "selected_by", "metric_kind",
-                  "invariant_reason", "gap", "action", "parent_problem_ids", "parent_ideal_ids"]), [solution, top])
+                  "invariant_reason", "gap", "action", "parent_problem_ids", "parent_ideal_ids"]),
+        [solution, structure_solution, purpose_solution])
     out[f"{structure}/implementations.csv"] = render_csv(
         ["implementation_id", "solution_id", "path"] + fields(template, "implementation", True)
         + ["sub_intent", "uses_solution_ids"], impl_rows)
     out[f"{structure}/metrics.csv"] = render_csv(
         ["metric_id"] + fields(template, "metric", True) + ["solution_ids", "command", "parent_metric_ids"],
         [record("metric", template, SAMPLE["metric"], metric_id="greeting-pass-rate", solution_ids=SOLUTION, command=command),
-         record("metric", template, OVERALL["metric"], metric_id="structure-coverage", solution_ids="project-structure")])
+         record("metric", template, STRUCTURE["metric"], metric_id="structure-coverage", solution_ids="project-structure")])
     components = [
         ("package", "core", f"{package}/**", "The package's code.", SOLUTION),
         ("evaluation", "evaluation", "evaluation/**", "Cases, scorers and implementations the harness runs.", SOLUTION),

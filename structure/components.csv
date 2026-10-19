@@ -1,7 +1,46 @@
 component_id,layer,path,role,solutions
 documentation,docs,docs/**,"Explanation, guides and non-code templates (the main feature of the repository).",docs-and-templates;follow-the-steps
 examples,docs,examples/**,Adopters as short examples and testimonials.,docs-and-templates
-structure-registry,docs,structure/**,This repository's own overall network and detailed records.,py-records-check
+structure-registry,docs,structure/**,This repository's own overall network and detailed records.,intent-registry
 project-files,project,*,"Files at the repository root: readme, configuration, contributing, licence.",docs-and-templates
 wiki,scripts,scripts/docs_to_wiki.py,"Generating the GitHub wiki from docs/ on every push to main, so the docs stay the one source.",docs-and-templates
-public-skill,docs,skill/**;.claude-plugin/**;implementations/python/esoi/data/skill/**,"The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package.",py-skill-distribution;behave-by-esoi;follow-the-steps
+public-skill,docs,skill/**;.claude-plugin/**;implementations/python/esoi/data/skill/**,"The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package.",skill-distribution;behave-by-esoi;follow-the-steps
+records-core,core,implementations/python/esoi/__init__.py;implementations/python/esoi/tables.py;implementations/python/esoi/config.py;implementations/python/esoi/registry.py;implementations/python/esoi/records.py,"Loading the configuration and the CSV records, and checking the intent records against the template.",intent-registry
+template-reader,core,implementations/python/esoi/template.py;implementations/python/esoi/data/*,Reading the intent template from its source and keeping the parsed copy.,template-sync
+expectations,core,implementations/python/esoi/expect.py,The declarative check that case-driven evaluations share.,measurement-harness
+leaderboard,core,implementations/python/esoi/leaderboard.py,Ranking implementations from the results log and calling a verdict.,leaderboard
+template-documents,tools,implementations/python/esoi/templates.py,Generating the non-code templates and excerpts from the template source.,template-sync
+rules-ownership,tools,implementations/python/esoi/rules/__init__.py;implementations/python/esoi/rules/base.py;implementations/python/esoi/rules/layout.py;implementations/python/esoi/rules/modulefacts.py,The rule interface and the placement and layering rules.,ownership-map;structure-check
+rules-registry,tools,implementations/python/esoi/rules/registry_rules.py,The rules about the registry's own shape and the selection table.,structure-check;runtime-selection
+rules-measurement,tools,implementations/python/esoi/rules/measurement.py,"The rules about measurement, provenance and discriminating cases.",structure-check;leaderboard
+rules-generated,tools,implementations/python/esoi/rules/generated.py,"The rules about generated files, the tracker and the records.",structure-check;review-tracker;template-sync
+check-runner,tools,implementations/python/esoi/check.py,Running every rule over a repository and reporting problems.,structure-check
+harness,tools,implementations/python/esoi/harness.py;implementations/python/esoi/hermetic.py,Running one implementation over a component's cases and recording the result.,measurement-harness
+tracker,tools,implementations/python/esoi/tracker.py;implementations/python/esoi/sheets.py,Building the review tracker tabs and syncing them with a sheet.,review-tracker
+consumer,tools,implementations/python/esoi/consumer.py,Checking a consuming repository's integration registry.,consumer-check
+hygiene,tools,implementations/python/esoi/hygiene.py,Scanning a public repository for secrets and private data.,structure-check
+scaffold,tools,implementations/python/esoi/scaffold.py,Writing the passing example repository that the init command produces.,structure-check
+command-line,cli,implementations/python/esoi/cli.py;implementations/python/esoi/__main__.py,"The esoi command, a thin call into the module that owns each behaviour.",structure-check;measurement-harness;leaderboard;review-tracker;consumer-check;template-sync
+python-tests,tests,implementations/python/tests/**,Offline tests that pin each module.,structure-check
+eval-check-the-structure,evaluation,implementations/python/evaluation/components/check_the_structure/**,Mutation cases for the whole check.,structure-check
+eval-own-every-file,evaluation,implementations/python/evaluation/components/own_every_file/**,Mutation cases for placement and layering.,ownership-map
+eval-record-intent,evaluation,implementations/python/evaluation/components/record_intent/**,Mutation cases for the intent records.,intent-registry
+eval-sync-the-template,evaluation,implementations/python/evaluation/components/sync_the_template/**,Cases for reading the template.,template-sync
+eval-measure-implementations,evaluation,implementations/python/evaluation/components/measure_implementations/**,Cases for the harness.,measurement-harness
+eval-rank-implementations,evaluation,implementations/python/evaluation/components/rank_implementations/**,Cases for the leaderboard.,leaderboard
+eval-review-tracker,evaluation,implementations/python/evaluation/components/review_tracker/**,Cases for the tracker.,review-tracker
+eval-check-a-consumer,evaluation,implementations/python/evaluation/components/check_a_consumer/**,Mutation cases for the consumer check.,consumer-check
+eval-know-stale-results,evaluation,implementations/python/evaluation/components/know_stale_results/**,Cases for telling a stale result from a current one.,when-metrics-are-run
+eval-shared,evaluation,implementations/python/evaluation/components/*.py;implementations/python/evaluation/components/results.csv,"Fixtures shared by the evaluations, and the results log.",structure-check;measurement-harness;consumer-check;when-metrics-are-run;behave-by-esoi;judge-esoi-behaviour
+python-project,project,implementations/python/pyproject.toml;implementations/python/README.md;implementations/python/conftest.py;implementations/python/docs/**,"Packaging, the implementation's readme and its reference documents.",structure-check
+ci,project,.github/workflows/check.yml,The continuous integration workflow.,when-metrics-are-run
+skill-distribution,tools,implementations/python/esoi/skill.py,"Generating, checking and installing the public copy of the author's skill.",skill-distribution
+eval-sync-the-skill,evaluation,implementations/python/evaluation/components/sync_the_skill/**,"Cases for the sync, the drift check, leak detection and install.",skill-distribution
+intent-tree,core,implementations/python/esoi/intents.py,Finding the intent folders of a repository and reading their records as one tree.,intent-registry
+intent-migration,tools,implementations/python/esoi/migrate.py,Moving a legacy two-level repository to the intent layout without inventing a sub-intent.,intent-registry
+rules-intents,tools,implementations/python/esoi/rules/intents.py,"The rules about intents as containers: the sub-intent link, the opportunity and ids across the tree.",structure-check
+local-index,tools,implementations/python/esoi/projects.py,"The local ESOI index: projects, their relations and where to look.",local-application-index
+eval-index-projects,evaluation,implementations/python/evaluation/components/index_projects/**,"Lookup cases over a small world of projects, the live index and the arms it is compared with.",local-application-index
+behaviour,tools,implementations/python/esoi/behaviour.py,"Grading an AI agent's reply against a behaviour case: the pattern check, the judge prompt and verdict, and a command provider.",behave-by-esoi;judge-esoi-behaviour
+eval-behave-by-esoi,evaluation,implementations/python/evaluation/components/behave_by_esoi/**,"Cases, recorded replies and the arms for whether an agent acts by the principles.",behave-by-esoi
+eval-judge-esoi-behaviour,evaluation,implementations/python/evaluation/components/judge_esoi_behaviour/**,Labelled replies and the arms for how far a judge agrees with them.,judge-esoi-behaviour

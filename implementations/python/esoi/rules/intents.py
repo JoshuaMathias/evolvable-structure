@@ -18,9 +18,9 @@ CROSS_PROJECT = re.compile(r"^@[\w.-]+/[\w.-]+$")
 
 SUMMARIES = {
     "S28": "Each intent folder has one intent.csv row with a unique intent_id and every field of the intent template; the "
-           "top intent leaves implements and opportunity empty; a sub-intent names, in implements, an implementation of "
-           "its parent intent, that implementation names it back in sub_intent, and the sub-intent states the "
-           "opportunity that justifies it.",
+           "top intent leaves implements and opportunity empty; a sub-intent is in a folder named by its intent_id, "
+           "names, in implements, an implementation of its parent intent, that implementation names it back in "
+           "sub_intent, and the sub-intent states the opportunity that justifies it.",
     "S29": "A record id is used once across the whole tree (also across record types and intents), and every "
            "uses_solution_ids entry names a solution somewhere in the tree other than the implementation's own, or is written "
            "@project_id/solution_id for a solution of another project (listed in the local ESOI index, not read here).",
@@ -57,6 +57,9 @@ def run(ctx: Context) -> List[str]:
                 bad.append(f"S28 {intent.intent_id}: the top intent is no implementation of anything; leave implements "
                            "and opportunity empty")
             continue
+        if intent.folder.name != intent.intent_id:
+            bad.append(f"S28 {intent.intent_id}: its folder is named {intent.folder.name!r}; a sub-intent's folder is "
+                       "named by its intent_id (rename the folder, or the id with every record that names it)")
         if not opportunity:
             bad.append(f"S28 {intent.intent_id}: a sub-intent states in `opportunity` the opportunity that does not emerge "
                        "directly from its parent intent or the solution it implements (risks and uncertainties alone "

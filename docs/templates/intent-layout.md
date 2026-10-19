@@ -4,13 +4,13 @@
 
 > In ESOI, intents are meaningful containers of a set of specifications. For human understanding, they serve as a personal category of interest or relate to a tangible container such as an organization.
 
-An intent is a folder. Its record is `intent.csv` (one row) and its specifications are the five record files beside it. The top intent is why the project exists, in the project's own words (it is custom to the project, never about ESOI unless ESOI is the project); the configured folder only holds it. The evolvable structure the project applies is a solution inside the top intent, whose implementation may use the esoi solutions. A sub-intent is a subfolder that holds its own `intent.csv`; it arises as an implementation of a solution in the parent intent, so the folders mirror the hierarchy.
+An intent is a folder. Its record is `intent.csv` (one row) and its specifications are the five record files beside it. The top intent is why the project exists, in the project's own words (it is custom to the project, never about ESOI unless ESOI is the project); the configured folder only holds it. The evolvable structure the project applies is a solution inside the top intent, whose implementation may use the esoi solutions. A sub-intent is a subfolder, named by its `intent_id`, that holds its own `intent.csv`; it arises as an implementation of a solution in the parent intent. Recording intents as folders is the selected implementation of the `intent-registry` solution; its rival, records kept beside the code they describe, stays a listed alternative, so the folder layout is one way to record the hierarchy, not the only one.
 
 ```
 <folder>/                   holds the top intent
   intent.csv
   problems.csv  ideals.csv  solutions.csv  implementations.csv  metrics.csv
-  <sub-intent>/             a sub-intent (its own intent.csv and five files)
+  <sub-intent-id>/          a sub-intent, in a folder named by its intent_id (its own intent.csv and five files)
 ```
 
 ## intent.csv

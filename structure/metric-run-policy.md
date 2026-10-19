@@ -1,13 +1,13 @@
 # When this repository's metrics are run
 
 The filled-in [metric run policy](../docs/templates/metric-run-policy.md) for this repository. The records are in this folder
-(`overall/` for the overall network, the other files for the detailed ones); this page is the readable version.
+(and in its sub-intent folder); this page is the readable version.
 
 ## Problem and ideal
 
-The problem is `prob-metrics-run-at-the-wrong-time` and the ideal is `ideal-timely-affordable-evidence`, both in
-`overall/`. The detailed solution is `py-metric-run-policy`; it governs every other detailed Metric through
-`governs_metric_ids`, and each of them names it in `run_policy_ids`.
+The problem is `prob-metrics-run-at-the-wrong-time` and the ideal is `ideal-timely-affordable-evidence`. The solution is
+`when-metrics-are-run`, whose selected implementation is the continuous integration workflow; it governs every other Metric
+through `governs_metric_ids`, and each of them names it in `run_policy_ids`.
 
 ## The decision
 
@@ -22,8 +22,8 @@ The problem is `prob-metrics-run-at-the-wrong-time` and the ideal is `ideal-time
 
 | Metric | Arm | Trigger | Stages | Call budget | Cost | Approver | Stale when |
 |---|---|---|---|---|---|---|---|
-| every other detailed metric in `metrics.csv` | offline | every change to the measured code or its cases | the whole set | none, no model is called | none | none needed | the cases changed, the measured code changed since the recorded commit, or it was run on uncommitted code |
-| `metric-py-skill-distribution` (sync drift and leak detection) | offline | every change to `esoi/skill.py` or its cases; the live freshness check also runs after every edit of the author's skill, where its source and private term list are reachable | the whole set | none, no model is called | none | none needed | the cases changed, `skill.py` changed since the recorded commit, or it was run on uncommitted code |
+| every other metric in `metrics.csv` | offline | every change to the measured code or its cases | the whole set | none, no model is called | none | none needed | the cases changed, the measured code changed since the recorded commit, or it was run on uncommitted code |
+| `metric-skill-copy-agreement` (sync drift and leak detection) | offline | every change to `esoi/skill.py` or its cases; the live freshness check also runs after every edit of the author's skill, where its source and private term list are reachable | the whole set | none, no model is called | none | none needed | the cases changed, `skill.py` changed since the recorded commit, or it was run on uncommitted code |
 | `metric-behave-by-esoi`, arms `reference_good` and `reference_bad` (validity) | offline | every change to the cases, `esoi/behaviour.py` or the arms | the whole set | none, no model is called | none | none needed | the cases changed, the measured code changed since the recorded commit, or it was run on uncommitted code |
 | `metric-judge-esoi-behaviour`, arm `regex_only` (validity) | offline | every change to its cases, which follow the behaviour cases | the whole set | none, no model is called | none | none needed | as above |
 | `metric-behave-by-esoi`, arms `standing_instructions`, `skill_on_request` and `no_skill` | paid | on a decision: choosing between ways of giving an agent the principles, a change to the skill that should be checked, a new model | a stratified sample of 3, then 10, then 30; the whole set only if the 30 is not clear; stop and report after each stage | 3 calls per case for each arm (9, 30 and 90 per arm by stage) | about 1 to 3 USD for all three arms and the judge across the three stages, from the assumptions below; none on a subscription command | Joshua | the cases changed, the skill or `esoi/behaviour.py` changed since the recorded commit, the model changed, or it was run on uncommitted code |

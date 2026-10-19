@@ -24,23 +24,51 @@ def add_sub_intent(cfg, opportunity="A creative space the parent solution does n
     return sub
 
 
+def write_intent(folder, intent_id, implements, opportunity="A creative space the parent solution does not cover."):
+    folder.mkdir(exist_ok=True)
+    tables.write_csv(folder / "intent.csv", ["intent_id", "name", "vision_statement", "implements", "opportunity"],
+                     [dict(intent_id=intent_id, name=intent_id.title(), vision_statement=f"The {intent_id} are spoken well.",
+                           implements=implements, opportunity=opportunity)])
+
+
+def add_solution(cfg, folder, solution_id, implementation, sub_intent=""):
+    """A specification solution with one implementation in the intent folder ``folder``, linked both ways to the
+    scaffold's problem, ideal and metric."""
+    base = next(r for r in tables.read_csv(cfg.structure / "solutions.csv") if r["solution_id"] == "project-structure")
+    row = dict(base, solution_id=solution_id, problem_ids="greeting-by-hand", ideal_ids="consistent-greeting",
+               metric_ids="greeting-pass-rate", implementations=implementation, selected=implementation)
+    tables.write_csv(folder / "solutions.csv", tables.read_header(cfg.structure / "solutions.csv"), [row])
+    impl = dict(implementation_id=f"{solution_id}:{implementation}", solution_id=solution_id, name="By voice", description="Spoken.",
+                advantages="Warm.", disadvantages="Slow.", sub_intent=sub_intent)
+    tables.write_csv(folder / "implementations.csv", tables.read_header(cfg.structure / "implementations.csv"), [impl])
+    rewrite(cfg.structure / "problems.csv", lambda rows, cols: [r.update(solution_ids=r["solution_ids"] + f";{solution_id}")
+                                                                 for r in rows if r["problem_id"] == "greeting-by-hand"])
+    rewrite(cfg.structure / "metrics.csv", lambda rows, cols: [r.update(solution_ids=r["solution_ids"] + f";{solution_id}")
+                                                                for r in rows if r["metric_id"] == "greeting-pass-rate"])
+
+
 def lines(cfg, rule):
     return [line for line in check.check(cfg) if line.startswith(rule)]
 
 
-def test_the_scaffold_leaves_the_top_intent_to_the_project(tmp_path):
+def test_the_scaffold_leaves_the_top_intent_and_the_top_solution_to_the_project(tmp_path):
     from esoi import scaffold
     scaffold.init(tmp_path, "mine", say=lambda text: None)
     problems = check.check(config.load(tmp_path))
-    assert len(problems) == 1 and problems[0].startswith("S28") and "name, vision_statement" in problems[0]
-    assert "ESOI" not in (tmp_path / "docs" / "structure" / "intent.csv").read_text()
+    assert any(line.startswith("S28") and "name, vision_statement" in line for line in problems)
+    assert any(line.startswith("S26 R2 project-purpose:") for line in problems) and any("project-purpose: addresses no problem" in line for line in problems)
+    assert all("project-purpose" in line or line.startswith("S28") for line in problems)   # nothing else is left to the project
+    for name in ("intent.csv", "solutions.csv", "implementations.csv"):
+        assert "ESOI" not in (tmp_path / "docs" / "structure" / name).read_text()
     fill_top_intent(tmp_path)
     assert check.check(config.load(tmp_path)) == []
 
 
-def test_the_scaffold_has_a_structure_solution_that_uses_esoi(cfg):
-    row = next(r for r in tables.read_csv(cfg.structure / "implementations.csv") if r["solution_id"] == "project-structure")
-    assert "@esoi/structure-check" in row["uses_solution_ids"] and "greet-a-person" in row["uses_solution_ids"]
+def test_the_scaffold_has_a_top_solution_whose_implementation_builds_on_the_others(cfg):
+    rows = {r["implementation_id"]: r for r in tables.read_csv(cfg.structure / "implementations.csv")}
+    assert set(tables.ids(rows["project-purpose:the-project"]["uses_solution_ids"])) == {"greet-a-person", "project-structure"}
+    structure = rows["project-structure:esoi-records"]["uses_solution_ids"]
+    assert structure == "@esoi/structure-check"   # the structure is one solution inside the top intent, not the top
 
 
 def test_a_cross_project_use_must_be_written_with_a_project_id(cfg):
@@ -102,6 +130,40 @@ def test_ids_are_unique_across_the_tree_and_uses_solution_ids_resolve(cfg):
     assert any("'ghost'" in line for line in lines(cfg, "S29"))
     rewrite(cfg.structure / "problems.csv", lambda rows, cols: [r.update(problem_id="greet-a-person") for r in rows[:1]])
     assert any("more than one kind" in line for line in lines(cfg, "S29"))
+
+
+def test_a_sub_intent_cannot_name_a_grandparents_implementation(cfg):
+    voices = add_sub_intent(cfg)
+    write_intent(voices / "accents", "accents", "greet-a-person:live")   # an implementation of the top intent, not of voices
+    found = {i.intent_id: i.parent for i in intents.discover(cfg)}
+    assert found["accents"] == "voices"
+    assert any("accents" in line and "not in its parent intent 'voices'" in line for line in lines(cfg, "S28"))
+
+
+def test_sub_intents_nest_through_the_implementations_of_their_parent_intent(cfg):
+    voices = add_sub_intent(cfg)
+    add_solution(cfg, voices, "speak-it", "aloud", sub_intent="accents")
+    write_intent(voices / "accents", "accents", "speak-it:aloud")
+    assert {i.intent_id: i.parent for i in intents.discover(cfg)} == {"demo": "", "voices": "demo", "accents": "voices"}
+    assert not lines(cfg, "S28") and not lines(cfg, "S29") and not lines(cfg, "S26")
+
+
+def test_a_sub_intents_folder_is_named_by_its_intent_id(cfg):
+    sub = add_sub_intent(cfg)
+    assert not lines(cfg, "S28")
+    sub.rename(cfg.structure / "speech")
+    assert any("'speech'" in line and "named by its intent_id" in line for line in lines(cfg, "S28"))
+
+
+def test_the_configured_tracker_folder_is_never_an_intent(repo):
+    for folder in ("tracker", "review"):
+        write_intent(repo / "docs" / "structure" / folder, f"in-{folder}", "")
+    default = config.load(repo)
+    assert {i.intent_id for i in intents.discover(default)} == {"demo", "in-review"}   # only tracker/ is skipped
+    (repo / "esoi.toml").write_text((repo / "esoi.toml").read_text() + 'tracker_folder = "review"\n')
+    renamed = config.load(repo)
+    assert renamed.tracker_dir == renamed.structure / "review"
+    assert {i.intent_id for i in intents.discover(renamed)} == {"demo", "in-tracker"}
 
 
 def test_a_folder_without_an_intent_file_is_not_an_intent(cfg):
@@ -167,7 +229,7 @@ def test_migrate_moves_the_overall_network_into_the_top_intent(repo):
     after = config.load(repo)
     assert after.intent_mode
     rows = {r["implementation_id"]: r for r in tables.read_csv(after.structure / "implementations.csv")}
-    assert rows["project-structure:esoi-records"]["uses_solution_ids"] == "greet-a-person"
+    assert set(tables.ids(rows["project-structure:esoi-records"]["uses_solution_ids"])) == {"greet-a-person", "project-purpose"}
     solution = next(r for r in tables.read_csv(after.structure / "solutions.csv") if r["solution_id"] == "project-structure")
     assert solution["metric_kind"] == "specification" and solution["selected"] == "esoi-records"
     assert "overall_solution_ids" not in tables.read_header(after.structure / "solutions.csv")
@@ -176,6 +238,16 @@ def test_migrate_moves_the_overall_network_into_the_top_intent(repo):
     assert unfilled and all(line.startswith("S28") and "name" in line and "vision_statement" in line for line in unfilled)
     fill_top_intent(repo)
     assert check.check(after) == []
+
+
+def test_migrate_reports_a_dependency_it_cannot_place(repo):
+    make_legacy(repo)
+    cfg = config.load(repo)
+    overall = cfg.structure / "overall" / "implementations.csv"
+    rewrite(overall, lambda rows, cols: rows.clear())   # the overall solution has no implementation to build on the detailed ones
+    done, manual = migrate.plan(cfg, apply=False)
+    assert any("project-structure has no implementation" in line and "greet-a-person" in line for line in manual)
+    assert not any("turn overall_solution_ids" in line for line in done)
 
 
 def test_migrate_refuses_where_there_is_nothing_to_migrate(cfg):

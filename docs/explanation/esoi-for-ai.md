@@ -2,8 +2,11 @@
 
 The author's skill says it is not only for code: its description names "general improvements to how AI behaves, builds,
 and implements business offerings to reflect Joshua's principles". Applying ESOI to an AI agent's behaviour is therefore an
-intent of its own within ESOI (a sub-intent, arising as an implementation of ESOI's solution for guiding agents), with the same five record types. This page says how each part maps; the records are
-`esoi-for-ai` and `esoi-behaviour-judge` in [structure/](../../structure/).
+part of ESOI's own intent, with the same five record types: a solution for guiding agents (`esoi-for-ai`), the solution
+whose cases and arms its metric uses (`behave-by-esoi`), and the judge that grades replies (`esoi-behaviour-judge` and
+`judge-esoi-behaviour`). This page says how each part maps; the records are in [structure/](../../structure/). It was once a
+sub-intent of its own; it is not, because its opportunity repeated the goals and metric of `esoi-for-ai` (an uncertainty,
+which a metric handles), and version history keeps the earlier records.
 
 ## The problem is behaviour that nobody can see drifting
 
@@ -13,6 +16,10 @@ agent starts the next session without the correction. The ideal is **principled 
 principles in its own work, including holding back where structure costs more than it returns.
 
 ## The skill is an implementation
+
+The solution `esoi-for-ai` has the implementations below, and its metric, behaviour adherence, is carried out by the
+solution `behave-by-esoi`: the same cases run once per implementation (its arms), and the solution `esoi-behaviour-judge`
+says how far the grading of those runs can be trusted.
 
 The skill is not the solution, it is one way of giving an agent the principles. Others are to load it only when the task
 looks like design or reuse, to give the agent nothing, or to have it check a draft against named perspectives. Each is an
@@ -70,6 +77,6 @@ correction is measured from then on and the instructions can change without losi
 
 ## Where it is here
 
-The cases and arms are in `implementations/python/evaluation/components/behave_by_esoi/` and `judge_esoi_behaviour/`, the
+The solutions are in the top intent of [structure/](../../structure/). The cases and arms are in `implementations/python/evaluation/components/behave_by_esoi/` and `judge_esoi_behaviour/`, the
 grading in `implementations/python/esoi/behaviour.py`. Run the offline arms with
 `esoi run behave_by_esoi --impl reference_good`. Whether the skill changes behaviour is not yet measured.

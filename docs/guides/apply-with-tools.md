@@ -15,14 +15,14 @@ the extra: `esoi[sheets]`.
 ## A new repository
 
 ```bash
-esoi init                                  # writes a small example that already passes
+esoi init                                  # writes a small example; the check names what only you can write
 git init && git add . && git commit -m "esoi example"
 esoi run greet_a_person --impl live --record
 esoi check --strict
 esoi leaderboard
 ```
 
-Rename the example's parts, replace its text with your own intent, and keep running `esoi check`. The example is a top intent (a folder with an `intent.csv`) and its records.
+Rename the example's parts, replace its text with your own intent, and keep running `esoi check`. The example is a top intent (a folder with an `intent.csv`) holding a single top solution, `project-purpose`, and the solutions it builds on: the evolvable structure the project applies (`project-structure`) and a stand-in for your own work (`greet-a-person`). The check names, until you fill them, the top intent's name and vision statement (why your project exists, in your words) and the top solution (what it is for).
 
 ## An existing repository
 

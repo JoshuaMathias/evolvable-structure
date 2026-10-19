@@ -7,48 +7,48 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 |---|---|---|---|
 | `documentation` | docs | Explanation, guides and non-code templates (the main feature of the repository). | docs-and-templates, follow-the-steps |
 | `examples` | docs | Adopters as short examples and testimonials. | docs-and-templates |
-| `structure-registry` | docs | This repository's own overall network and detailed records. | py-records-check |
+| `structure-registry` | docs | This repository's own overall network and detailed records. | intent-registry |
 | `project-files` | project | Files at the repository root: readme, configuration, contributing, licence. | docs-and-templates |
 | `wiki` | scripts | Generating the GitHub wiki from docs/ on every push to main, so the docs stay the one source. | docs-and-templates |
-| `public-skill` | docs | The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package. | py-skill-distribution, behave-by-esoi, follow-the-steps |
+| `public-skill` | docs | The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package. | skill-distribution, behave-by-esoi, follow-the-steps |
+| `records-core` | core | Loading the configuration and the CSV records, and checking the intent records against the template. | intent-registry |
+| `template-reader` | core | Reading the intent template from its source and keeping the parsed copy. | template-sync |
+| `expectations` | core | The declarative check that case-driven evaluations share. | measurement-harness |
+| `leaderboard` | core | Ranking implementations from the results log and calling a verdict. | leaderboard |
+| `template-documents` | tools | Generating the non-code templates and excerpts from the template source. | template-sync |
+| `rules-ownership` | tools | The rule interface and the placement and layering rules. | ownership-map, structure-check |
+| `rules-registry` | tools | The rules about the registry's own shape and the selection table. | structure-check, runtime-selection |
+| `rules-measurement` | tools | The rules about measurement, provenance and discriminating cases. | structure-check, leaderboard |
+| `rules-generated` | tools | The rules about generated files, the tracker and the records. | structure-check, review-tracker, template-sync |
+| `check-runner` | tools | Running every rule over a repository and reporting problems. | structure-check |
+| `harness` | tools | Running one implementation over a component's cases and recording the result. | measurement-harness |
+| `tracker` | tools | Building the review tracker tabs and syncing them with a sheet. | review-tracker |
+| `consumer` | tools | Checking a consuming repository's integration registry. | consumer-check |
+| `hygiene` | tools | Scanning a public repository for secrets and private data. | structure-check |
+| `scaffold` | tools | Writing the passing example repository that the init command produces. | structure-check |
+| `command-line` | cli | The esoi command, a thin call into the module that owns each behaviour. | structure-check, measurement-harness, leaderboard, review-tracker, consumer-check, template-sync |
+| `python-tests` | tests | Offline tests that pin each module. | structure-check |
+| `eval-check-the-structure` | evaluation | Mutation cases for the whole check. | structure-check |
+| `eval-own-every-file` | evaluation | Mutation cases for placement and layering. | ownership-map |
+| `eval-record-intent` | evaluation | Mutation cases for the intent records. | intent-registry |
+| `eval-sync-the-template` | evaluation | Cases for reading the template. | template-sync |
+| `eval-measure-implementations` | evaluation | Cases for the harness. | measurement-harness |
+| `eval-rank-implementations` | evaluation | Cases for the leaderboard. | leaderboard |
+| `eval-review-tracker` | evaluation | Cases for the tracker. | review-tracker |
+| `eval-check-a-consumer` | evaluation | Mutation cases for the consumer check. | consumer-check |
+| `eval-know-stale-results` | evaluation | Cases for telling a stale result from a current one. | when-metrics-are-run |
+| `eval-shared` | evaluation | Fixtures shared by the evaluations, and the results log. | structure-check, measurement-harness, consumer-check, when-metrics-are-run, behave-by-esoi, judge-esoi-behaviour |
+| `python-project` | project | Packaging, the implementation's readme and its reference documents. | structure-check |
+| `ci` | project | The continuous integration workflow. | when-metrics-are-run |
+| `skill-distribution` | tools | Generating, checking and installing the public copy of the author's skill. | skill-distribution |
+| `eval-sync-the-skill` | evaluation | Cases for the sync, the drift check, leak detection and install. | skill-distribution |
+| `intent-tree` | core | Finding the intent folders of a repository and reading their records as one tree. | intent-registry |
+| `intent-migration` | tools | Moving a legacy two-level repository to the intent layout without inventing a sub-intent. | intent-registry |
+| `rules-intents` | tools | The rules about intents as containers: the sub-intent link, the opportunity and ids across the tree. | structure-check |
+| `local-index` | tools | The local ESOI index: projects, their relations and where to look. | local-application-index |
+| `eval-index-projects` | evaluation | Lookup cases over a small world of projects, the live index and the arms it is compared with. | local-application-index |
 | `behaviour` | tools | Grading an AI agent's reply against a behaviour case: the pattern check, the judge prompt and verdict, and a command provider. | behave-by-esoi, judge-esoi-behaviour |
 | `eval-behave-by-esoi` | evaluation | Cases, recorded replies and the arms for whether an agent acts by the principles. | behave-by-esoi |
 | `eval-judge-esoi-behaviour` | evaluation | Labelled replies and the arms for how far a judge agrees with them. | judge-esoi-behaviour |
-| `records-core` | core | Loading the configuration and the CSV records, and checking the intent records against the template. | py-records-check |
-| `template-reader` | core | Reading the intent template from its source and keeping the parsed copy. | py-template-reader |
-| `selection` | core | Resolving an implementation of a solution from a selection table. | py-selector |
-| `expectations` | core | The declarative check that case-driven evaluations share. | py-harness |
-| `leaderboard` | core | Ranking implementations from the results log and calling a verdict. | py-leaderboard |
-| `template-documents` | tools | Generating the non-code templates and excerpts from the template source. | py-template-reader |
-| `rules-ownership` | tools | The rule interface and the placement and layering rules. | py-ownership-rules, py-check-runner |
-| `rules-registry` | tools | The rules about the registry's own shape and the selection table. | py-check-runner, py-selector |
-| `rules-measurement` | tools | The rules about measurement, provenance and discriminating cases. | py-check-runner, py-leaderboard |
-| `rules-generated` | tools | The rules about generated files, the tracker and the records. | py-check-runner, py-tracker, py-template-reader |
-| `check-runner` | tools | Running every rule over a repository and reporting problems. | py-check-runner |
-| `harness` | tools | Running one implementation over a component's cases and recording the result. | py-harness |
-| `tracker` | tools | Building the review tracker tabs and syncing them with a sheet. | py-tracker |
-| `consumer` | tools | Checking a consuming repository's integration registry. | py-consumer-check |
-| `hygiene` | tools | Scanning a public repository for secrets and private data. | py-check-runner |
-| `scaffold` | tools | Writing the passing example repository that the init command produces. | py-check-runner |
-| `command-line` | cli | The esoi command, a thin call into the module that owns each behaviour. | py-check-runner, py-harness, py-leaderboard, py-tracker, py-consumer-check, py-template-reader |
-| `python-tests` | tests | Offline tests that pin each module. | py-check-runner |
-| `eval-check-the-structure` | evaluation | Mutation cases for the whole check. | py-check-runner |
-| `eval-own-every-file` | evaluation | Mutation cases for placement and layering. | py-ownership-rules |
-| `eval-record-intent` | evaluation | Mutation cases for the intent records. | py-records-check |
-| `eval-sync-the-template` | evaluation | Cases for reading the template. | py-template-reader |
-| `eval-select-an-implementation` | evaluation | Cases for resolving a selection. | py-selector |
-| `eval-measure-implementations` | evaluation | Cases for the harness. | py-harness |
-| `eval-rank-implementations` | evaluation | Cases for the leaderboard. | py-leaderboard |
-| `eval-review-tracker` | evaluation | Cases for the tracker. | py-tracker |
-| `eval-check-a-consumer` | evaluation | Mutation cases for the consumer check. | py-consumer-check |
-| `eval-know-stale-results` | evaluation | Cases for telling a stale result from a current one. | py-metric-run-policy |
-| `eval-shared` | evaluation | Fixtures shared by the evaluations, and the results log. | py-check-runner, py-harness, py-consumer-check, py-metric-run-policy, behave-by-esoi, judge-esoi-behaviour |
-| `python-project` | project | Packaging, the implementation's readme and its reference documents. | py-check-runner |
-| `ci` | project | The continuous integration workflow. | py-metric-run-policy |
-| `skill-distribution` | tools | Generating, checking and installing the public copy of the author's skill. | py-skill-distribution |
-| `eval-sync-the-skill` | evaluation | Cases for the sync, the drift check, leak detection and install. | py-skill-distribution |
-| `intent-tree` | core | Finding the intent folders of a repository and reading their records as one tree. | py-records-check |
-| `intent-migration` | tools | Moving a legacy two-level repository to the intent layout without inventing a sub-intent. | py-records-check |
-| `rules-intents` | tools | The rules about intents as containers: the sub-intent link, the opportunity and ids across the tree. | py-check-runner |
-| `local-index` | tools | The local ESOI index: projects, their relations and where to look. | local-application-index |
-| `eval-index-projects` | evaluation | Lookup cases over a small world of projects, the live index and the arms it is compared with. | local-application-index |
+| `selection` | core | Resolving an implementation of a solution from a selection table. | runtime-selection |
+| `eval-select-an-implementation` | evaluation | Cases for resolving a selection. | runtime-selection |
