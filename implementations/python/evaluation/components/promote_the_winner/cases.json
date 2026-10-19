@@ -1,0 +1,511 @@
+[
+ {
+  "id": "PRM-001",
+  "kind": "decide",
+  "area": "a rival that clearly wins is promoted when the solution's promotion is automatic",
+  "description": "a rival that clearly wins is promoted when the solution's promotion is automatic",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "promotion": "automatic"
+  },
+  "expect": {
+   "eq": {
+    "status": "promote",
+    "winner": "b",
+    "selected": "b",
+    "command": "esoi run mini --impl b",
+    "count": 1
+   }
+  }
+ },
+ {
+  "id": "PRM-002",
+  "kind": "decide",
+  "area": "the same win is only a proposal when the policy asks for a person",
+  "description": "the same win is only a proposal when the policy asks for a person",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "status": "propose",
+    "winner": "b",
+    "selected": "b"
+   }
+  }
+ },
+ {
+  "id": "PRM-003",
+  "kind": "decide",
+  "area": "a tie promotes nothing",
+  "description": "a tie promotes nothing",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "promotion": "automatic"
+  },
+  "expect": {
+   "eq": {
+    "status": "none",
+    "count": 0
+   }
+  }
+ },
+ {
+  "id": "PRM-004",
+  "kind": "decide",
+  "area": "a rival inside the noise of a sampled run promotes nothing",
+  "description": "a rival inside the noise of a sampled run promotes nothing",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 8,
+     "cases": 10,
+     "cases_sha": "x",
+     "model_calls": 3,
+     "model": "m"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "x",
+     "model_calls": 3,
+     "model": "m"
+    }
+   ],
+   "selected": "a",
+   "promotion": "automatic"
+  },
+  "expect": {
+   "eq": {
+    "status": "none"
+   }
+  }
+ },
+ {
+  "id": "PRM-005",
+  "kind": "decide",
+  "area": "a rival scored on other cases promotes nothing",
+  "description": "a rival scored on other cases promotes nothing",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "y"
+    }
+   ],
+   "selected": "a",
+   "promotion": "automatic"
+  },
+  "expect": {
+   "eq": {
+    "status": "none"
+   }
+  }
+ },
+ {
+  "id": "PRM-006",
+  "kind": "decide",
+  "area": "a rival with no cases_sha (unverified) promotes nothing",
+  "description": "a rival with no cases_sha (unverified) promotes nothing",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": ""
+    }
+   ],
+   "selected": "a",
+   "promotion": "automatic"
+  },
+  "expect": {
+   "eq": {
+    "status": "none"
+   }
+  }
+ },
+ {
+  "id": "PRM-007",
+  "kind": "decide",
+  "area": "a rival whose result is stale is blocked, not promoted",
+  "description": "a rival whose result is stale is blocked, not promoted",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "promotion": "automatic",
+   "stale": [
+    "b"
+   ]
+  },
+  "expect": {
+   "eq": {
+    "status": "blocked"
+   },
+   "contains": [
+    "does not count"
+   ]
+  }
+ },
+ {
+  "id": "PRM-008",
+  "kind": "decide",
+  "area": "a selected arm whose result is stale blocks the switch",
+  "description": "a selected arm whose result is stale blocks the switch",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "promotion": "automatic",
+   "stale": [
+    "a"
+   ]
+  },
+  "expect": {
+   "eq": {
+    "status": "blocked"
+   },
+   "contains": [
+    "does not count"
+   ]
+  }
+ },
+ {
+  "id": "PRM-009",
+  "kind": "decide",
+  "area": "a selection table that still holds its own default blocks the switch",
+  "description": "a selection table that still holds its own default blocks the switch",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "promotion": "automatic",
+   "table_default": true
+  },
+  "expect": {
+   "eq": {
+    "status": "blocked"
+   },
+   "contains": [
+    "holds its own default"
+   ]
+  }
+ },
+ {
+  "id": "PRM-010",
+  "kind": "decide",
+  "area": "a selected cell written as a path is switched to the winner's path",
+  "description": "a selected cell written as a path is switched to the winner's path",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "evaluation/components/mini/impls/a.py",
+   "promotion": "automatic",
+   "records": [
+    {
+     "implementation_id": "mini-solution:b",
+     "solution_id": "mini-solution",
+     "path": "evaluation/components/mini/impls/b.py"
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "status": "promote",
+    "selected": "evaluation/components/mini/impls/b.py",
+    "command": "esoi run mini --impl b"
+   }
+  }
+ },
+ {
+  "id": "PRM-011",
+  "kind": "decide",
+  "area": "a path-style selection with no record or file of the winner is blocked",
+  "description": "a path-style selection with no record or file of the winner is blocked",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "evaluation/components/mini/impls/a.py",
+   "promotion": "automatic"
+  },
+  "expect": {
+   "eq": {
+    "status": "blocked"
+   },
+   "contains": [
+    "no implementation record or impls file"
+   ]
+  }
+ },
+ {
+  "id": "PRM-012",
+  "kind": "decide",
+  "area": "a selected cell written as solution:name keeps that style",
+  "description": "a selected cell written as solution:name keeps that style",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "mini-solution:a",
+   "promotion": "automatic"
+  },
+  "expect": {
+   "eq": {
+    "status": "promote",
+    "selected": "mini-solution:b"
+   }
+  }
+ },
+ {
+  "id": "PRM-013",
+  "kind": "decide",
+  "area": "the best of several winners is chosen",
+  "description": "the best of several winners is chosen",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "c",
+     "passed": 10,
+     "cases": 10,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "promotion": "automatic"
+  },
+  "expect": {
+   "eq": {
+    "status": "promote",
+    "winner": "c",
+    "selected": "c"
+   }
+  }
+ },
+ {
+  "id": "PRM-014",
+  "kind": "decide",
+  "area": "a selected arm with no recorded row promotes nothing",
+  "description": "a selected arm with no recorded row promotes nothing",
+  "args": {
+   "rows": [
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "promotion": "automatic"
+  },
+  "expect": {
+   "eq": {
+    "status": "none"
+   }
+  }
+ },
+ {
+  "id": "PRM-015",
+  "kind": "apply",
+  "area": "an automatic promotion rewrites selected, the metric command and the evidence",
+  "description": "an automatic promotion rewrites selected, the metric command and the evidence",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "promotion": "automatic"
+  },
+  "expect": {
+   "eq": {
+    "applied": true,
+    "selected": "b",
+    "command": "esoi run mini --impl b",
+    "evidence": true
+   }
+  }
+ },
+ {
+  "id": "PRM-016",
+  "kind": "apply",
+  "area": "a proposal leaves the records untouched",
+  "description": "a proposal leaves the records untouched",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 5,
+     "cases": 10,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "applied": false,
+    "selected": "a",
+    "command": "esoi run mini --impl a"
+   }
+  }
+ }
+]

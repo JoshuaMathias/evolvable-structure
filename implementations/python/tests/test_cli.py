@@ -112,3 +112,52 @@ def test_select_and_consumer_report_their_own_mistakes(repo, capsys):
     assert run(repo, "consumer", "check", "--registry", "none.csv") == 2 and "no library named" in capsys.readouterr().err
     assert run(repo, "consumer", "check", "--registry", "none.csv", "--library", "demo") == 1
     assert "registry file not found" in capsys.readouterr().out
+
+
+FRIENDLY = ('"""Another alternative of the example solution."""\nfrom esoi import implementation\n\n\n'
+            '@implementation("greet-a-person", "friendly")\ndef friendly(name):\n    """A friendlier greeting."""\n    return f"Hi {name}!"\n')
+
+
+def test_records_sync_writes_what_the_code_declares_and_new_solution_creates_one(repo, capsys):
+    (repo / "demo" / "friendly.py").write_text(FRIENDLY)
+    assert run(repo, "check") == 1 and "S30 greet-a-person:friendly" in capsys.readouterr().out
+    assert run(repo, "records", "sync", "--dry-run") == 0 and "(dry run)" in capsys.readouterr().out
+    assert "friendly" not in (repo / "esoi" / "implementations.csv").read_text()
+    assert run(repo, "records", "sync") == 0
+    assert "greet-a-person:friendly" in (repo / "esoi" / "implementations.csv").read_text()
+    assert run(repo, "records", "sync") == 0 and "already match" in capsys.readouterr().out.splitlines()[-1]
+    assert run(repo, "new", "solution", "voice-greeting") == 0
+    assert (repo / "demo" / "voice_greeting.py").is_file() and (repo / "evaluation" / "components" / "voice_greeting" / "cases.json").is_file()
+    assert run(repo, "new", "solution", "voice-greeting") == 2 and "already exists" in capsys.readouterr().err
+
+
+def test_select_explains_the_cascade_and_writes_a_snapshot(repo, capsys, monkeypatch):
+    monkeypatch.setenv("ESOI_SELECT_GREET_A_PERSON", "greet")
+    assert run(repo, "select", "greet-a-person") == 0
+    out = capsys.readouterr().out
+    assert "greet-a-person: greet (chosen by the environment layer" in out and "  project: greet" in out
+    monkeypatch.delenv("ESOI_SELECT_GREET_A_PERSON")
+    assert run(repo, "select", "greet-a-person", "--name", "ghost") == 2 and "unknown implementation 'ghost'" in capsys.readouterr().err
+    assert run(repo, "select", "--snapshot", str(repo / "esoi_selection.json")) == 0
+    assert '"default": "greet"' in (repo / "esoi_selection.json").read_text()
+
+
+def test_promote_proposes_or_applies_by_the_solutions_policy(repo, capsys):
+    from esoi import tables
+    results = repo / "evaluation" / "components" / "results.csv"
+    rows, cols = tables.read_csv(results), tables.read_header(results)
+    for row in rows:   # the baseline now passes every case and the live arm one: a clear loss
+        row.update(passed="2", dev="2/2") if row["impl"] == "shout" else row.update(passed="1", dev="1/2")
+    tables.write_csv(results, cols, rows)
+    assert run(repo, "select", "--promote") == 1
+    out = capsys.readouterr().out
+    assert "greet-a-person: shout beats the selected live" in out and "proposal only" in out
+    assert "live.py" in (repo / "esoi" / "solutions.csv").read_text()
+    solutions, header = tables.read_csv(repo / "esoi" / "solutions.csv"), tables.read_header(repo / "esoi" / "solutions.csv")
+    next(r for r in solutions if r["solution_id"] == "greet-a-person")["promotion"] = "automatic"
+    tables.write_csv(repo / "esoi" / "solutions.csv", header + ["promotion"], solutions)
+    assert run(repo, "select", "--promote", "--dry-run") == 1 and "dry run" in capsys.readouterr().out
+    assert run(repo, "select", "--promote") == 0 and "promoted" in capsys.readouterr().out
+    row = next(r for r in tables.read_csv(repo / "esoi" / "solutions.csv") if r["solution_id"] == "greet-a-person")
+    assert row["selected"].endswith("impls/shout.py") and "promoted" in row["selected_by"]
+    assert "--impl shout" in (repo / "esoi" / "metrics.csv").read_text()

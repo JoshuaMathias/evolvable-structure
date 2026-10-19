@@ -5,10 +5,13 @@
     esoi rules [--markdown]                list the rules and what each one means
     esoi template sync|check               keep the parsed intent template in step with its source
     esoi skill sync|check|install          the public copy of the author's skill: generate, verify, install
-    esoi records                           check only the intent records
+    esoi records [check|sync]              check only the intent records, or write the rows the code declares and they lack
+    esoi new solution ID [--intent ID]     a solution in one command: records, code with declarations, evaluation folder
     esoi run COMPONENT --impl NAME [--record]   run and record one implementation over a component's cases
     esoi leaderboard [--strict]            rank the implementations of every evaluated solution
-    esoi select SOLUTION [--name NAME]     show which implementation a selection table resolves
+    esoi select SOLUTION [--name NAME]     show which implementation runs now, and which layer of the cascade chose it
+    esoi select --promote [SOLUTION]       switch `selected` to the rival that clearly wins on the solution's own metric
+    esoi select --snapshot FILE            write the defaults and modules for a package shipped without the records
     esoi tracker build|check               build or verify the review tracker tabs
     esoi consumer check --registry CSV     check a consuming repository's integration registry
     esoi intent migrate [--apply]          move a legacy overall layout to the intent layout (dry run without --apply)
@@ -54,14 +57,24 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--dest", default=None, help="install: a skills folder of another agent")
     p.add_argument("--from", dest="from_dir", default=None, help="install: a skill folder to install instead of the bundled one")
     p.add_argument("--force", action="store_true", help="install: replace a different skill already there")
-    sub.add_parser("records", help="check only the intent records")
+    p = sub.add_parser("records", help="check only the intent records, or sync the rows the code declares")
+    p.add_argument("action", nargs="?", default="check", choices=["check", "sync"])
+    p.add_argument("--intent", default=None, help="sync: the intent whose folder receives new rows (default: the top intent)")
+    p.add_argument("--dry-run", action="store_true", help="sync: list the rows without writing them")
+    p = sub.add_parser("new", help="create something new from one command")
+    p.add_argument("what", choices=["solution"])
+    p.add_argument("id")
+    p.add_argument("--intent", default=None, help="the intent whose folder receives the records (default: the top intent)")
     p = sub.add_parser("run", help="run one implementation over a component's cases", add_help=False)
     p.add_argument("rest", nargs=argparse.REMAINDER)
     p = sub.add_parser("leaderboard", help="rank implementations")
     p.add_argument("--strict", action="store_true", help="exit 1 when a rival beats a selected implementation")
-    p = sub.add_parser("select", help="show what a selection table resolves")
-    p.add_argument("solution")
-    p.add_argument("--name", default=None)
+    p = sub.add_parser("select", help="show which implementation runs, or promote a winner")
+    p.add_argument("solution", nargs="?", default=None)
+    p.add_argument("--name", default=None, help="per-call choice to explain (the `using=` layer)")
+    p.add_argument("--promote", action="store_true", help="switch `selected` to the rival that wins on the solution's metric")
+    p.add_argument("--dry-run", action="store_true", help="promote: print what would change without writing it")
+    p.add_argument("--snapshot", default=None, metavar="FILE", help="write the defaults and modules as JSON for a package without the records")
     p = sub.add_parser("tracker", help="the review tracker")
     p.add_argument("action", choices=["build", "check"])
     p = sub.add_parser("consumer", help="check a consuming repository")
@@ -143,6 +156,46 @@ def projects_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def select_command(config, args: argparse.Namespace) -> int:
+    """``esoi select``: explain the cascade for a solution, promote a winner, or write a snapshot."""
+    import json
+    from . import runtime
+    from .select import Selector
+    if args.promote:
+        from . import promote
+        return promote.run_cli(config, args.solution or "", args.dry_run)
+    if args.snapshot:
+        Path(args.snapshot).write_text(json.dumps(runtime.snapshot(config), indent=1, sort_keys=True) + "\n", encoding="utf-8")
+        print(f"wrote {args.snapshot}")
+        return 0
+    if not args.solution:
+        print("esoi: name a solution, or use --promote or --snapshot", file=sys.stderr)
+        return 2
+    try:
+        if config.selection_table:
+            selector = Selector.from_config(config)
+            if args.solution in selector.table:
+                name = selector.chosen_name(args.solution, args.name)
+                print(f"{args.solution}: {name} (choices: {', '.join(selector.names(args.solution))})")
+                return 0
+        import os
+        environ = dict(os.environ, **{runtime.ROOT_ENV: str(config.root)})
+        try:
+            picked = runtime.choose(args.solution, args.name, environ)
+        except runtime.SelectionError:
+            if config.selection_table:
+                Selector.from_config(config).chosen_name(args.solution, args.name)   # says "no selection table entry ..."
+            raise
+        print(f"{args.solution}: {picked.name} (chosen by the {picked.layer} layer; choices: "
+              f"{', '.join(runtime.names(args.solution, environ))})")
+        for layer, value in runtime.explain(args.solution, args.name, environ):
+            print(f"  {layer}: {value}")
+        return 0
+    except (ValueError, OSError, ImportError, AttributeError) as exc:   # unknown solution or name, table cannot load
+        print(f"esoi: {exc}", file=sys.stderr)
+        return 2
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     argv = sys.argv[1:] if argv is None else list(argv)
     if "run" in argv:   # everything after `run` belongs to the harness, flags included
@@ -203,6 +256,29 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.cmd == "intent":
         from . import migrate
         return migrate.run_cli(config, args.apply)
+    if args.cmd == "records" and args.action == "sync":
+        from . import declarations, registry
+        try:
+            done = declarations.sync(config, registry.load(config), declarations.scan(config), args.intent, not args.dry_run)
+        except ValueError as exc:
+            print(f"esoi: {exc}", file=sys.stderr)
+            return 2
+        for line in done:
+            print(line)
+        print("esoi records sync: " + (f"{len(done)} change(s)" + (" (dry run)" if args.dry_run else ", now fill the text only a person can write; `esoi check` names it") if done else "records already match the declarations"))
+        return 0
+    if args.cmd == "new":
+        from . import newsolution
+        try:
+            written = newsolution.create(config, args.id, args.intent)
+        except ValueError as exc:
+            print(f"esoi: {exc}", file=sys.stderr)
+            return 2
+        for rel in written:
+            print(f"wrote {rel}")
+        print("next: write the text only you can (esoi check names it), then `esoi check --write-docs`, commit, and "
+              "`esoi run <component> --impl simple --record`")
+        return 0
     if args.cmd == "records":
         from . import registry, template
         from .records import check_records, check_headers, overall_ids, tables_of
@@ -230,18 +306,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         from . import harness, leaderboard, registry
         return leaderboard.board(config, registry.load(config), args.strict, stale=harness.stale_reason)
     if args.cmd == "select":
-        from .select import Selector, load_table
-        if not config.selection:
-            print("esoi: no selection table configured (set `selection` in the config)", file=sys.stderr)
-            return 2
-        try:
-            selector = Selector(load_table(config.selection, config.root))
-            name = selector.chosen_name(args.solution, args.name)
-            print(f"{args.solution}: {name} (choices: {', '.join(selector.names(args.solution))})")
-        except (ValueError, OSError, ImportError, AttributeError) as exc:   # unknown solution or name, table cannot load
-            print(f"esoi: {exc}", file=sys.stderr)
-            return 2
-        return 0
+        return select_command(config, args)
     if args.cmd == "tracker":
         from . import registry, tracker
         loaded = registry.load(config)
