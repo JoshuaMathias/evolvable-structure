@@ -58,7 +58,7 @@ class Config:
     live_calls: List[str] = field(default_factory=list)
     paid_arms: List[str] = field(default_factory=list)
     prices: Dict[str, Dict[str, float]] = field(default_factory=dict)
-    selection: str = ""
+    selection: Any = ""   # a selection table "path.py:ATTR", or a [selection] table of deployment choices (see selection_table)
     overall: str = ""
     python_path: List[str] = field(default_factory=list)
     cache: bool = True
@@ -86,6 +86,19 @@ class Config:
         names = self.layer_names
         if len(set(names)) != len(names):
             raise ConfigError("layers lists a layer twice")
+
+    @property
+    def selection_table(self) -> str:
+        """The legacy selection table named by ``selection = "path.py:ATTR"``, or by ``table = "..."`` inside a
+        ``[selection]`` table; empty when the repository has none."""
+        return self.selection if isinstance(self.selection, str) else str(self.selection.get("table", ""))
+
+    @property
+    def selection_choices(self) -> Dict[str, str]:
+        """The deployment layer of the selection cascade: ``[selection]`` entries ``solution_id = "implementation"``."""
+        if isinstance(self.selection, str):
+            return {}
+        return {str(k): str(v) for k, v in self.selection.items() if k != "table"}
 
     @property
     def structure(self) -> Path:

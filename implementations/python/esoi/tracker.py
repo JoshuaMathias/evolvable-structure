@@ -117,10 +117,10 @@ def is_selected_path(path: str, chosen: str, selected: str) -> bool:
 
 def selection_table(config: Config) -> Optional[Table]:
     """The configured selection table, or None when there is none or it cannot load (rule S14 reports that)."""
-    if not config.selection:
+    if not config.selection_table:
         return None
     try:
-        return load_table(config.selection, config.root)
+        return load_table(config.selection_table, config.root)
     except Exception:
         return None
 

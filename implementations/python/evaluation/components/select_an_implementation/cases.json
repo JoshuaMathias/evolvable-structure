@@ -517,5 +517,375 @@
    }
   },
   "description": "a registered name appears in the choices"
+ },
+ {
+  "id": "SEL-017",
+  "kind": "resolve",
+  "area": "a table entry with no default takes the records' selected",
+  "description": "a table entry with no default takes the records' selected",
+  "args": {
+   "table": {
+    "pick": {
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict"
+     }
+    }
+   },
+   "solution": "pick",
+   "defaults": {
+    "pick": "ordered"
+   }
+  },
+  "expect": {
+   "eq": {
+    "resolved": "OrderedDict",
+    "chosen": "ordered"
+   }
+  }
+ },
+ {
+  "id": "SEL-018",
+  "kind": "resolve",
+  "area": "a table entry that still holds its own default keeps it",
+  "description": "a table entry that still holds its own default keeps it",
+  "args": {
+   "table": {
+    "pick": {
+     "default": "counter",
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict"
+     }
+    }
+   },
+   "solution": "pick",
+   "defaults": {
+    "pick": "ordered"
+   }
+  },
+  "expect": {
+   "eq": {
+    "chosen": "counter"
+   }
+  }
+ },
+ {
+  "id": "SEL-019",
+  "kind": "resolve",
+  "area": "no default anywhere fails and says so",
+  "description": "no default anywhere fails and says so",
+  "args": {
+   "table": {
+    "pick": {
+     "implementations": {
+      "counter": "collections:Counter",
+      "ordered": "collections:OrderedDict"
+     }
+    }
+   },
+   "solution": "pick"
+  },
+  "expect": {
+   "eq": {
+    "error": "ValueError"
+   },
+   "contains": [
+    "has no default"
+   ]
+  }
+ },
+ {
+  "id": "SEL-020",
+  "kind": "declared",
+  "area": "declared: the project default is the records' selected",
+  "description": "declared: the project default is the records' selected",
+  "args": {
+   "solution": "pick",
+   "registered": {
+    "counter": "collections:Counter",
+    "ordered": "collections:OrderedDict"
+   },
+   "records_default": "ordered"
+  },
+  "expect": {
+   "eq": {
+    "chosen": "ordered",
+    "layer": "project",
+    "resolved": "OrderedDict"
+   }
+  }
+ },
+ {
+  "id": "SEL-021",
+  "kind": "declared",
+  "area": "declared: the deployment choice beats the project default",
+  "description": "declared: the deployment choice beats the project default",
+  "args": {
+   "solution": "pick",
+   "registered": {
+    "counter": "collections:Counter",
+    "ordered": "collections:OrderedDict"
+   },
+   "records_default": "ordered",
+   "deployment": "counter"
+  },
+  "expect": {
+   "eq": {
+    "chosen": "counter",
+    "layer": "deployment"
+   }
+  }
+ },
+ {
+  "id": "SEL-022",
+  "kind": "declared",
+  "area": "declared: the environment beats the deployment choice",
+  "description": "declared: the environment beats the deployment choice",
+  "args": {
+   "solution": "pick",
+   "registered": {
+    "counter": "collections:Counter",
+    "ordered": "collections:OrderedDict"
+   },
+   "records_default": "ordered",
+   "deployment": "counter",
+   "env": "ordered"
+  },
+  "expect": {
+   "eq": {
+    "chosen": "ordered",
+    "layer": "environment"
+   }
+  }
+ },
+ {
+  "id": "SEL-023",
+  "kind": "declared",
+  "area": "declared: a context override beats the environment",
+  "description": "declared: a context override beats the environment",
+  "args": {
+   "solution": "pick",
+   "registered": {
+    "counter": "collections:Counter",
+    "ordered": "collections:OrderedDict"
+   },
+   "records_default": "ordered",
+   "env": "ordered",
+   "context": "counter"
+  },
+  "expect": {
+   "eq": {
+    "chosen": "counter",
+    "layer": "context"
+   }
+  }
+ },
+ {
+  "id": "SEL-024",
+  "kind": "declared",
+  "area": "declared: a per call name beats the context",
+  "description": "declared: a per call name beats the context",
+  "args": {
+   "solution": "pick",
+   "registered": {
+    "counter": "collections:Counter",
+    "ordered": "collections:OrderedDict"
+   },
+   "records_default": "ordered",
+   "context": "counter",
+   "using": "ordered"
+  },
+  "expect": {
+   "eq": {
+    "chosen": "ordered",
+    "layer": "call"
+   }
+  }
+ },
+ {
+  "id": "SEL-025",
+  "kind": "declared",
+  "area": "declared: every layer that names one is listed, innermost first",
+  "description": "declared: every layer that names one is listed, innermost first",
+  "args": {
+   "solution": "pick",
+   "registered": {
+    "counter": "collections:Counter",
+    "ordered": "collections:OrderedDict"
+   },
+   "records_default": "ordered",
+   "deployment": "counter",
+   "env": "ordered",
+   "context": "counter",
+   "using": "ordered"
+  },
+  "expect": {
+   "eq": {
+    "layers": [
+     "call",
+     "context",
+     "environment",
+     "deployment",
+     "project"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SEL-026",
+  "kind": "declared",
+  "area": "declared: an unknown name from the environment fails and names the layer",
+  "description": "declared: an unknown name from the environment fails and names the layer",
+  "args": {
+   "solution": "pick",
+   "registered": {
+    "counter": "collections:Counter",
+    "ordered": "collections:OrderedDict"
+   },
+   "records_default": "ordered",
+   "env": "ordred"
+  },
+  "expect": {
+   "eq": {
+    "error": "SelectionError"
+   },
+   "contains": [
+    "unknown implementation 'ordred'",
+    "named by the environment layer",
+    "choices: counter, ordered"
+   ]
+  }
+ },
+ {
+  "id": "SEL-027",
+  "kind": "declared",
+  "area": "declared: no layer naming one fails and says so",
+  "description": "declared: no layer naming one fails and says so",
+  "args": {
+   "solution": "pick",
+   "registered": {
+    "counter": "collections:Counter",
+    "ordered": "collections:OrderedDict"
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "SelectionError"
+   },
+   "contains": [
+    "no implementation is selected",
+    "choices: counter, ordered"
+   ]
+  }
+ },
+ {
+  "id": "SEL-028",
+  "kind": "declared",
+  "area": "declared: the decorator form registers an implementation",
+  "description": "declared: the decorator form registers an implementation",
+  "args": {
+   "solution": "pick",
+   "decorated": {
+    "deque": "collections:deque"
+   },
+   "records_default": "deque"
+  },
+  "expect": {
+   "eq": {
+    "chosen": "deque",
+    "resolved": "deque",
+    "names": [
+     "deque"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SEL-029",
+  "kind": "declared",
+  "area": "declared: an implementation in a module not imported yet loads lazily from its record's path",
+  "description": "declared: an implementation in a module not imported yet loads lazily from its record's path",
+  "args": {
+   "solution": "pick",
+   "lazy_module": {
+    "name": "fromrecord",
+    "source": "from esoi import implementation\n\n\n@implementation(\"SID\", \"fromrecord\")\nclass Lazy:\n    pass\n"
+   },
+   "records_default": "fromrecord"
+  },
+  "expect": {
+   "eq": {
+    "chosen": "fromrecord",
+    "resolved": "Lazy",
+    "names": [
+     "fromrecord"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SEL-030",
+  "kind": "declared",
+  "area": "declared: a broken target that is not chosen costs nothing",
+  "description": "declared: a broken target that is not chosen costs nothing",
+  "args": {
+   "solution": "pick",
+   "registered": {
+    "counter": "collections:Counter",
+    "ordered": "collections:OrderedDict",
+    "broken": "no.such.module:Thing"
+   },
+   "records_default": "counter"
+  },
+  "expect": {
+   "eq": {
+    "chosen": "counter",
+    "resolved": "Counter"
+   }
+  }
+ },
+ {
+  "id": "SEL-031",
+  "kind": "declared",
+  "area": "declared: a broken target that is chosen fails",
+  "description": "declared: a broken target that is chosen fails",
+  "args": {
+   "solution": "pick",
+   "registered": {
+    "counter": "collections:Counter",
+    "ordered": "collections:OrderedDict",
+    "broken": "no.such.module:Thing"
+   },
+   "records_default": "counter",
+   "using": "broken"
+  },
+  "expect": {
+   "eq": {
+    "error": "ModuleNotFoundError"
+   }
+  }
+ },
+ {
+  "id": "SEL-032",
+  "kind": "declared",
+  "area": "declared: the interface reports what it would run",
+  "description": "declared: the interface reports what it would run",
+  "args": {
+   "solution": "pick",
+   "registered": {
+    "counter": "collections:Counter",
+    "ordered": "collections:OrderedDict"
+   },
+   "interface": true,
+   "records_default": "ordered",
+   "using": " COUNTER "
+  },
+  "expect": {
+   "eq": {
+    "interface_chosen": "counter",
+    "chosen": "counter"
+   }
+  }
  }
 ]

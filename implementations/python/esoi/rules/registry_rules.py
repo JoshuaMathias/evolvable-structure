@@ -21,12 +21,13 @@ SUMMARIES = {
           "exist; selected is a listed implementation or a selection-table name; no metric means a gap and an action.",
     "S11": "Every solution is eval or invariant (an invariant states invariant_reason), is linked from some "
            "component, and every linked id exists.",
-    "S14": "Every solution with a port has a selection-table entry and no entry lacks a row; a default is one of "
-           "its implementations and each implementation's module is listed in the row's implementations cell or "
+    "S14": "Every solution with a port has a selection-table entry and no entry lacks a row; a default, when the entry "
+           "holds one, is one of its implementations and each implementation's module is listed in the row's implementations cell or "
            "in the `path` of one of its implementations.csv records (several implementations may share a module).",
     "S18": "Solution and component ids are unique and no id repeats inside one cell.",
     "S19": "Every component names at least one solution.",
-    "S23": "For a solution with a selection-table entry, selected equals that entry's default.",
+    "S23": "For a solution whose selection-table entry still holds a `default`, selected equals it (an entry with no "
+           "`default` takes the records' `selected`, so there is nothing to compare).",
 }
 
 
@@ -69,12 +70,15 @@ def run(ctx: Context) -> List[str]:
     config, table = ctx.config, ctx.table or {}
     bad += missing_columns(ctx, bool(table) or bool(ports_in_package(ctx)))
     if ctx.table_error:
-        bad.append(f"S14 {config.selection}: cannot load ({ctx.table_error})")
+        bad.append(f"S14 {config.selection_table}: cannot load ({ctx.table_error})")
     covered = set()
     for r in ctx.solutions:
         sid = r["solution_id"]
         covered.update(ids(r.get("port", "")))
-        impls = ids(r["implementations"])
+        records = [x for x in ctx.registry.implementations if x.get("solution_id") == sid]
+        suffixes = {x.get("implementation_id", "").partition(":")[2] for x in records} - {""}
+        impls = ids(r["implementations"]) + sorted(suffixes) + [x.get("implementation_id", "") for x in records] \
+            + [x["path"].strip() for x in records if x.get("path", "").strip()]
         if sid in table:
             names = table[sid].get("implementations", {})
             if r["selected"] and r["selected"] not in names:
@@ -89,8 +93,11 @@ def run(ctx: Context) -> List[str]:
         arms = ctx.harness_arms(mc)
         if arms:
             comp, impl = arms[0]
-            if not (config.evaluation / comp / "score.py").exists() or not (config.evaluation / comp / "impls" / f"{impl}.py").exists():
-                bad.append(f"S7 {sid}: harness command names {comp}/{impl}, which has no score.py or impls file")
+            declared = impl in suffixes   # an implementation declared in code needs no wrapper file
+            if not (config.evaluation / comp / "score.py").exists() or not (
+                    declared or (config.evaluation / comp / "impls" / f"{impl}.py").exists()):
+                bad.append(f"S7 {sid}: harness command names {comp}/{impl}, which has no score.py or impls file "
+                           "(and no implementation of that name declared in code)")
         if mc and not mc.startswith("none"):
             words = mc.split()
             target = words[1] if mc.startswith("python") and len(words) > 1 else words[0]
@@ -121,21 +128,23 @@ def run(ctx: Context) -> List[str]:
         if sid not in linked and not ctx.waived("S11", f"solution:{sid}"):
             bad.append(f"S11 {sid}: no component lists it in `solutions` (link it in components.csv or add a waiver)")
 
-    if config.selection:
+    if config.selection_table:
         port_rows = {r["solution_id"]: r for r in ctx.solutions if r.get("port", "").strip()}
         for sid in sorted(set(port_rows) - set(table)):
             bad.append(f"S14 {sid}: solutions.csv row has port {port_rows[sid]['port']} but no entry in "
-                       f"{config.selection.partition(':')[0]} (add one so resolve({sid!r}) works)")
+                       f"{config.selection_table.partition(':')[0]} (add one so resolve({sid!r}) works)")
         for sid in sorted(set(table) - set(port_rows)):
             bad.append(f"S14 {sid}: selection table entry has no solutions.csv row with a port")
         for sid, entry in table.items():
             implementations = entry.get("implementations", {})
-            if entry.get("default") not in implementations:
+            has_default = bool(entry.get("default"))   # an entry without one takes the records' `selected`: nothing to compare
+            if has_default and entry["default"] not in implementations:
                 bad.append(f"S14 {sid}: default {entry.get('default')!r} is not among its implementations")
-            if sid in port_rows and port_rows[sid]["selected"] != entry.get("default"):
+            if has_default and sid in port_rows and port_rows[sid]["selected"] != entry.get("default"):
                 bad.append(f"S23 {sid}: selected {port_rows[sid]['selected']!r} differs from the selection table default "
                            f"{entry.get('default')!r}; the registry, the table and the live default must name one "
-                           "implementation (change both together)")
+                           "implementation (change both together, or delete the table's `default` so the records' "
+                           "`selected` is the only copy)")
             listed = listed_modules(ctx, sid, port_rows[sid]) if sid in port_rows else set()
             for name, ref in implementations.items():
                 target = ref["target"] if isinstance(ref, dict) else ref
