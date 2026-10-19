@@ -2,7 +2,7 @@
 
 Follow these steps in order to turn an intent into evolvable structure, whether it's a project, a product, a course, a
 team process or a piece of code. Each step says what to write and which record type it fills; the record types and
-their questions are in `SKILL.md` ("Intent template definitions"), and the number after a step is the principle it
+their questions are in `SKILL.md` ("The five specification templates within an intent", and the "Intent specification" for the container), and the number after a step is the principle it
 carries out. The steps are the same for a small task and a large project; size each one to the work. A small change may
 need a sentence per step, and a step with nothing new to add is skipped with a stated reason, never silently.
 
@@ -15,11 +15,14 @@ doesn't settle them alone. An AI can carry out every other step and report it.
 
 ## Part 1: Understand the intent
 
-1. **State the purpose (human).** In a sentence or two, write what the work is for, whose intent it serves, and the
+1. **State the purpose (human).** Name the intent (a specific phrase that distinguishes its topic) and write its vision
+   statement in present tense ("The world is ..."): the intent is the container for everything below. In a sentence or two, write what the work is for, whose intent it serves, and the
    farthest point in the future it is meant to serve. Name the next milestone and its date: this is the timeframe
    that decides how much structure pays for itself (2, 1). Name the single top solution everything else will sit
-   under (2).
-2. **Learn the five record types.** Read what each type is, what it is not and what it connects to, so problems aren't
+   under (2). Before creating a new intent, check whether this project is already in the local ESOI index (8).
+2. **Learn the five record types.** An intent brings insights on risks, uncertainties and opportunities: risks are
+   addressed by the disadvantages of implementations and metrics, uncertainties by metrics, opportunities by solutions.
+   Read what each type is, what it is not and what it connects to, so problems aren't
    written as tasks and solutions aren't written as code (13).
 3. **Brainstorm everything in one place.** Before writing any separate record, list the problems, ideals, possible
    solutions and possible implementations together, plus a "probably won't be done" list that keeps scoped-out ideas
@@ -44,9 +47,12 @@ doesn't settle them alone. An AI can carry out every other step and report it.
 
 ## Part 3: Define the solutions and how they are judged
 
-11. **Write the solutions, top first.** Fill in the top solution, then split off a sub-solution only where a part has
-    a different definition of best that could change the outcome, and the split pays for itself before the milestone
-    named in step 1 (2). Each Solution record names its problems and ideals, its scoped purpose (including what it
+11. **Write the solutions, top first.** Fill in the top solution, then give a part its own solution only where it has
+    a different definition of best that could change the outcome. Make an implementation of a solution a sub-intent (a
+    container of its own) only if it brings an opportunity that does not emerge from the parent intent or the solution
+    it implements, and it pays for itself before the milestone named in step 1 (2). Risks and uncertainties alone do not
+    justify one: they go in the implementation's disadvantages or the solution's metric. Where a solution elsewhere
+    already serves a need, record that the implementation builds on it. Each Solution record names its problems and ideals, its scoped purpose (including what it
     deliberately avoids), goals, knowledge and measures of success. Before writing a new one, check whether an existing
     solution elsewhere already serves it (8, 9).
 12. **Define the interfaces, and what stays stable.** For each solution, write its interface (parameters, inputs,
@@ -94,7 +100,7 @@ doesn't settle them alone. An AI can carry out every other step and report it.
     - a new or changed problem, or a new person served: step 4 or 5
     - a new direction, priority or milestone: step 8 (and step 1 if the purpose changed)
     - a metric that rewards the wrong thing, or disagrees with people: step 13 or 14, then measure again
-    - a part that keeps growing, or two uses that want different bests: step 11 (split)
+    - a part that keeps growing, an implementation that shows a new opportunity, or two uses that want different bests: step 11 (a separate solution or a sub-intent)
     - a new idea for how to do it: step 16
     - the structure itself making the work harder: run these steps on the structure, which is itself a solution
 
@@ -125,8 +131,8 @@ The order started from the "Steps to project completion" checklist on Joshua's 2
 (`sources/trello_project_documentation.md`). Kept: purpose first, brainstorming before separate cards, the audience,
 problems, gathering knowledge and then reviewing problems again, ideals, checking coverage, difficulties, solution
 definitions, implementations with alternatives, carrying them out, trying better alternatives, checking every goal,
-and keep improving. Added for ESOI, because the board left them out: a named timeframe and a single top solution; the
-split test; interfaces and the choice of what stays stable; metrics and their cases written before implementations,
+and keep improving. Added for ESOI, because the board left them out: a named timeframe, an intent with a vision statement and a single top solution; the
+separate-solution and sub-intent tests; interfaces and the choice of what stays stable; metrics and their cases written before implementations,
 with a real-world measure at the top and their limits stated; checking the metric itself and its cost before trusting
 it; a review from other perspectives; a baseline whenever there is no second idea; selection by metric recorded in
 one place; retiring what isn't useful; the human steps marked; a map of where to loop back to; and this section,

@@ -11,7 +11,7 @@ source's weight is its measured reliability, so a new source joins with no weigh
 A capability a second domain needs moves into the framework. Joshua, 2026-10-17: "every domain in
 shared-domains (other than perspctives I guesss) should be a solution", and "esoi should determine what
 goes in shared-domains vs conceptai". So each non-perspective domain has a solution record in
-`shared-domains/structure/` linked to an area of `conceptai/structure/overall/`; perspective domains are
+`shared-domains/structure/` linked to the conceptai structure (its top intent, in `conceptai/structure/overall/` while that layout is legacy); perspective domains are
 data that the build-perspectives area produces. Placement follows where "best" is defined: a port, its
 selection entry and generic implementations go in conceptai; a domain's definition, data, prompts and
 cases stay in shared-domains, and a domain-specific implementation registers into conceptai's selector.

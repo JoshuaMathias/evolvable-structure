@@ -91,7 +91,7 @@ Joshua: "Not a single problem is written as a problem", and "keep in mind my fee
 types of things". The registry had generated one "problem" per solution, worded as the job ("Decide per
 message whether to answer..."), and similar restatements stood in for ideals and metrics. Each of Problem,
 Solution, Implementation, Ideal and Metric is a first-class record that specifies every field of its
-`Specify:` list in `SKILL.md`'s "Intent template definitions", is not what that template's "What it's not" says,
+`Specify:` list in `SKILL.md`'s "The five specification templates within an intent", is not what that template's "What it's not" says,
 and links as its "Connects to" says (so one problem can motivate several solutions and be opposed by several
 ideals). Never derive one type from another's row, and do not write a standard of your own: read the template
 from `SKILL.md` each time, since Joshua refines it, and fill any field it newly lists.
@@ -104,7 +104,7 @@ explicitly deny the possibility of humans reviewing implementations." A paraphra
 only if", "relatively", "pragmatically" or a parenthetical turns a sufficiency into a prohibition or a rule into an
 absolute. Quote SKILL.md, or keep every qualifier, and check a restatement against the original sentence.
 
-**Define the overall solution first; per-repo tooling comes from the shared utilities.** Lesson from
+**Define the top intent first; per-repo tooling comes from the shared utilities.** Lesson from
 conceptai, 2026-10-17. Asked to apply ESOI to conceptai, AI started copying QAR's registry and checker
 into the repo. Joshua: "Apply esoi to the overall structure which the practical structures in repo will
 implement, but keep in mind the new evolvable-structure repository will provide guidance or utilities for
@@ -117,6 +117,10 @@ the top level, ideals come from the owner's stated requirements, the core capabi
 and the evaluation depend on, and how the code is built is one level down. Comparison arms (baselines) go
 in a metric's record, not in implementations; status, gaps and numbers go on Quest or dated result files,
 not in the records.
+
+**Hierarchy is intents, not solutions (Joshua, 2026-10-18).** Joshua: "In ESOI have hierarchy be defined in terms of intents and sub-intents instead of solutions and sub-solutions." An intent is a clear, encapsulating container (in a repository, a folder with its own record). A sub-intent arises as an implementation of a solution in the parent intent, and is specified "if and only if that intent brings insights on opportunities that don't emerge directly from the parent intent or solution that the sub-intent is implementing". Risks and uncertainties alone do not justify one: risks are disadvantages of the implementation, and the metric of the solution handles uncertainty. Implementations are ideas that can start as sub-intents or evolve into them. The two-level "overall network plus detailed records" layout is legacy (it maps to the top intent plus sub-intents and `uses_solution_ids`). The 2026-10-17 answers below that say "sub-solution" are from before this change.
+
+**A project's top intent is why that project exists, never "the structure" (Joshua, 2026-10-18).** Joshua: "The top intent is very importantly custom to the project, why the project exists." The folder that holds the specifications is not the intent. The evolvable structure a project applies is a solution inside the project's own top intent; its implementation may use the generic ESOI solutions (a "uses" link across projects), and anything project-specific about the structure lives inside that project's top intent. Only in the ESOI repository itself is the top intent ESOI, because that is why that project exists; do not generalize from it.
 
 **Joshua's answers on the structure network, 2026-10-17.** On whether types link both ways: "Your question is
 misleading, as what you list in parenthesis I *did* specify in "Connects to." I included the directions I felt important
@@ -131,6 +135,7 @@ repository, though not in its structure network file.
 
 ## Upkeep of this skill
 
+- **Project routing belongs in the local ESOI index, not in this skill's `INDEX.md`** (Joshua, 2026-10-18). `INDEX.md` routes by kind of task to instructions and examples, with no assumption about which projects the reader works on. Which projects ESOI is applied to, how they relate and where to look in each live in `$ESOI_HOME` or `~/.esoi/` (`projects.csv` and `INDEX.md`; see the ESOI repository's "The local ESOI index"). Example files from the author's own work stay, named as examples of a technique.
 - Never edit `SKILL.md`. A new statement from Joshua goes, dated and in his words, into the matching
   `principles/` subfile, then into the tables above and the matching `INDEX.md` row in the same edit.
 - Name a framework only in an example, a `coding/` file or a source pointer, unless the principle is

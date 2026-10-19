@@ -31,7 +31,7 @@ alongside the patterns.
   parameter whose value comes from measurement breaks the evaluation.
 - **The right level matters.** A category defined per case was too specific and broke the
   measurement, so such categories now span cases. Too high is as wrong as too low. Placing something in a hierarchy needs
-  a written reason.
+  a written reason (for a sub-intent, the opportunity that justifies it).
 - **A general structure still gives a specific answer.** Generic output is rejected. The
   structure is general so the result can be exact for this person and this input.
 - **Generality is a claim until a real case shows it.** His dissertation proposal says the method

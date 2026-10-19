@@ -17,6 +17,8 @@ never install or require them on your own.
   (`Selector(load_table(...)).resolve("greet")`, with per-call overrides), so the selection recorded in the structure is what
   actually runs and changing it needs no code change. `esoi consumer check` verifies a repository that builds on a library
   this way.
+- `esoi projects` keeps a local ESOI index (`projects.csv` and `INDEX.md` under `$ESOI_HOME` or `~/.esoi/`) of the projects ESOI is
+  applied to, how they relate and where to look in each; `esoi projects where` names the project the working directory is in.
 - `esoi hygiene` scans for secrets and private data before a public push. `esoi init` writes a small example that passes.
 
 Requirements: Python 3.11 or later, no dependencies in the core, Apache-2.0 licence. Install from the repository (it is not
