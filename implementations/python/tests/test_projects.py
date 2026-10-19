@@ -188,3 +188,15 @@ def test_used_by_follows_from_the_uses_of_other_rows(home, tmp_path):
     projects.write_projects(home, rows)
     projects.index(home)
     assert (home / "INDEX.md").read_text().count("`library` used-by `app`") == 1
+
+
+def test_a_project_on_a_previous_default_folder_is_found_and_both_folders_are_not_guessed(tmp_path):
+    for name, previous in (("a", "docs/structure"), ("b", "structure")):
+        folder = tmp_path / name / previous
+        folder.mkdir(parents=True)
+        (folder / "intent.csv").write_text("intent_id,name,vision_statement,implements,opportunity\nx,X,Y,,\n")
+        assert projects.structure_of(tmp_path / name) == (previous + "/", tmp_path / name / previous)
+        assert projects.describe(tmp_path / name) == ("X", "Y")
+    (tmp_path / "b" / "esoi").mkdir()
+    (tmp_path / "b" / "esoi" / "intent.csv").write_text("intent_id,name,vision_statement,implements,opportunity\n")
+    assert projects.structure_of(tmp_path / "b") == ("", None)

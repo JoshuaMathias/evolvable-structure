@@ -94,3 +94,13 @@ def test_solution_and_result_tables(tmp_path):
     (tmp_path / "cases.json").write_text("[1]")
     report = consumer.check_consumer(tmp_path / "r.csv", tmp_path, options, solutions=tmp_path / "s.csv", results=tmp_path / "res.csv")
     assert any(p.startswith("C10") and "stale" in p for p in report.problems)
+
+
+def test_the_library_solutions_come_from_the_default_folder_else_a_previous_one(tmp_path):
+    assert consumer.library_solutions_csv(tmp_path) == tmp_path / "esoi" / "solutions.csv"
+    (tmp_path / "docs" / "structure").mkdir(parents=True)
+    (tmp_path / "docs" / "structure" / "solutions.csv").write_text("solution_id\n")
+    assert consumer.library_solutions_csv(tmp_path) == tmp_path / "docs" / "structure" / "solutions.csv"
+    (tmp_path / "esoi").mkdir()
+    (tmp_path / "esoi" / "solutions.csv").write_text("solution_id\n")
+    assert consumer.library_solutions_csv(tmp_path) == tmp_path / "esoi" / "solutions.csv"

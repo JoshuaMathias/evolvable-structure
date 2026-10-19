@@ -42,6 +42,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from . import config as config_module
 from .config import Config
 from .select import load_table
 from .tables import read_csv
@@ -95,10 +96,18 @@ def library_dir(options: Options) -> Path:
     return Path(importlib.import_module(options.library).__file__).resolve().parent
 
 
+def library_solutions_csv(source_root: Path) -> Path:
+    """The library's ``solutions.csv`` in a source checkout: the default folder, else a previous default."""
+    for folder in (config_module.DEFAULT_STRUCTURE_DIR, *config_module.PREVIOUS_STRUCTURE_DIRS):
+        if (source_root / folder / "solutions.csv").exists():
+            return source_root / folder / "solutions.csv"
+    return source_root / config_module.DEFAULT_STRUCTURE_DIR / "solutions.csv"
+
+
 def known_solution_ids(options: Options) -> Tuple[set, bool]:
     """Solution ids the library defines, and whether the full ``solutions.csv`` was found. A source checkout has
     the registry; a wheel install does not, and then the ids come from the selection table."""
-    csv_path = Path(options.solutions_csv) if options.solutions_csv else library_dir(options).parent / "docs" / "structure" / "solutions.csv"
+    csv_path = Path(options.solutions_csv) if options.solutions_csv else library_solutions_csv(library_dir(options).parent)
     if csv_path.exists():
         return {row["solution_id"] for row in read_csv(csv_path)}, True
     if options.selection:

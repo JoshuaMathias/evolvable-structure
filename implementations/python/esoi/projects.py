@@ -37,7 +37,6 @@ START = "<!-- esoi-projects:start -->"
 END = "<!-- esoi-projects:end -->"
 URL = re.compile(r"^[a-z][a-z0-9+.-]*://", re.I)
 START_HERE_CANDIDATES = ["CLAUDE.md", "esoi/network.md", "structure/network.md", "docs/structure/network.md", "README.md"]
-STRUCTURE_CANDIDATES = ["esoi.toml", "esoi", "structure", "docs/structure"]
 Row = Dict[str, str]
 
 
@@ -123,9 +122,12 @@ def structure_of(root: Path) -> Tuple[str, Optional[Path]]:
     loaded = project_config(root)
     if loaded is not None:
         return (loaded.source.name if loaded.source else config_module.CONFIG_NAME, loaded.structure)
-    for candidate in STRUCTURE_CANDIDATES[1:]:
-        if (root / candidate).is_dir():
-            return (candidate + "/", root / candidate)
+    try:
+        folder, _ = config_module.resolve_structure_dir(root)
+    except config_module.ConfigError:
+        return ("", None)
+    if config_module.holds_specifications(root / folder):
+        return (folder + "/", root / folder)
     return ("", None)
 
 

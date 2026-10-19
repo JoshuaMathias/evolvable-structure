@@ -25,7 +25,7 @@ REGISTRY = ("integration_id,module,symbol,lib_solution_id,lib_port,lib_symbol,ki
             "tests/test_sink.py,done,,,escalate\n")
 SOLUTIONS = ("solution_id,selected,metric_files,gap,metric_kind,invariant_reason,component,component_impl\n"
              "escalate,consumer_sink:Sink,case_files/cases.json,,,,,\n")
-LIBRARY_DIR = Path(tempfile.mkdtemp(prefix="esoi_fixlib_"))
+LIBRARY_DIR = repo_fixture.make_temp("esoi_fixlib_")
 for rel, text in LIBRARY_FILES.items():
     repo_fixture.write(LIBRARY_DIR, rel, text)
 sys.path.insert(0, str(LIBRARY_DIR))
@@ -49,9 +49,9 @@ def baseline_consumer(dest: Path) -> Path:
 
 def fresh_consumer(edits: list) -> Path:
     if not TEMPLATE:
-        base = Path(tempfile.mkdtemp(prefix="esoi_consumer_")) / "r"
+        base = repo_fixture.make_temp("esoi_consumer_") / "r"
         TEMPLATE.append(baseline_consumer(base))
-    root = Path(tempfile.mkdtemp(prefix="esoi_consumer_case_")) / "r"
+    root = repo_fixture.make_temp("esoi_consumer_case_") / "r"
     shutil.copytree(TEMPLATE[0], root)
     repo_fixture.apply_edits(root, edits)
     return root

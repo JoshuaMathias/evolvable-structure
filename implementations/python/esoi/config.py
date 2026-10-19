@@ -12,10 +12,11 @@ are kept as plain dicts for the module that reads them.
 from __future__ import annotations
 
 import os
+import sys
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 CONFIG_NAME = "esoi.toml"
 TEMPLATE_ENV = "ESOI_TEMPLATE_SOURCE"
@@ -24,7 +25,13 @@ DEFAULT_OTHER_LAYERS = ["docs", "evaluation", "examples", "scripts", "tests", "v
 # top intent (its intent.csv and its specifications): the top intent itself is the project's own purpose, why the project
 # exists, whatever the folder is called.
 DEFAULT_STRUCTURE_DIR = "esoi"
+# Folders earlier versions used by default, in the order they are looked for when `structure_dir` is not configured.
+PREVIOUS_STRUCTURE_DIRS = ("structure", "docs/structure")
+SPECIFICATION_FILES = ("intent.csv", "solutions.csv", "problems.csv")
 DEFAULT_METRIC_COMMAND = r"(?:esoi run|run\.py) (\w+) --impl (\w+)"
+
+
+NOTED: Set[Path] = set()   # roots whose fallback note was printed, so a run says it once
 
 
 class ConfigError(ValueError):
@@ -58,6 +65,7 @@ class Config:
     live_calls: List[str] = field(default_factory=list)
     paid_arms: List[str] = field(default_factory=list)
     prices: Dict[str, Dict[str, float]] = field(default_factory=dict)
+    structure_note: str = field(default="", init=False, repr=False)   # set when the folder fell back to a previous default
     selection: Any = ""   # a selection table "path.py:ATTR", or a [selection] table of deployment choices (see selection_table)
     overall: str = ""
     python_path: List[str] = field(default_factory=list)
@@ -160,7 +168,32 @@ class Config:
         return path if path.is_absolute() else (self.root / path)
 
 
-KNOWN = {f for f in Config.__dataclass_fields__} - {"root", "source"}
+KNOWN = {f for f in Config.__dataclass_fields__} - {"root", "source", "structure_note"}
+
+
+def holds_specifications(folder: Path) -> bool:
+    """Whether a folder holds ESOI records (a prose-only folder that happens to share a name does not count)."""
+    return any((folder / name).is_file() for name in SPECIFICATION_FILES)
+
+
+def resolve_structure_dir(root: Path) -> Tuple[str, str]:
+    """(folder, note) for a project whose configuration does not set ``structure_dir``. The default ``esoi`` wins when
+    it exists; when it does not and exactly one previous default holds records, that one is used with a note suggesting
+    the rename. Two candidates that both hold records are never guessed between: the error names them."""
+    root = Path(root)
+    previous = [name for name in PREVIOUS_STRUCTURE_DIRS if holds_specifications(root / name)]
+    if (root / DEFAULT_STRUCTURE_DIR).is_dir():
+        if previous and holds_specifications(root / DEFAULT_STRUCTURE_DIR):
+            raise ConfigError(f"both {DEFAULT_STRUCTURE_DIR}/ and {previous[0]}/ hold specifications; set `structure_dir` in the "
+                              f"configuration to say which one this project uses")
+        return DEFAULT_STRUCTURE_DIR, ""
+    if len(previous) > 1:
+        raise ConfigError(f"both {previous[0]}/ and {previous[1]}/ hold specifications; set `structure_dir` in the "
+                          f"configuration to say which one this project uses")
+    if previous:
+        return previous[0], (f"note: using {previous[0]}/ (the previous default folder); rename it to the new default with "
+                             f"`git mv {previous[0]} {DEFAULT_STRUCTURE_DIR}`, or set `structure_dir = \"{previous[0]}\"` to keep it")
+    return DEFAULT_STRUCTURE_DIR, ""
 
 
 def from_mapping(data: Dict[str, Any], root: Path, source: Optional[Path] = None) -> Config:
@@ -168,7 +201,13 @@ def from_mapping(data: Dict[str, Any], root: Path, source: Optional[Path] = None
     unknown = sorted(set(data) - KNOWN)
     if unknown:
         raise ConfigError(f"unknown config key(s): {', '.join(unknown)}")
-    return Config(root=root, source=source, **data)
+    note = ""
+    if "structure_dir" not in data:
+        data = dict(data)
+        data["structure_dir"], note = resolve_structure_dir(root)
+    config = Config(root=root, source=source, **data)
+    config.structure_note = note
+    return config
 
 
 def find(start: Path) -> Optional[Path]:
@@ -203,4 +242,8 @@ def load(path: Optional[Path] = None, start: Optional[Path] = None) -> Config:
         raise ConfigError(f"{path} is not valid TOML ({exc})") from exc
     if Path(path).name == "pyproject.toml":
         data = data.get("tool", {}).get("esoi", {})
-    return from_mapping(data, Path(path).resolve().parent, Path(path).resolve())
+    config = from_mapping(data, Path(path).resolve().parent, Path(path).resolve())
+    if config.structure_note and config.root not in NOTED:
+        NOTED.add(config.root)
+        print(config.structure_note, file=sys.stderr)
+    return config

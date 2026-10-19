@@ -71,3 +71,41 @@ def test_selection_is_a_legacy_table_string_or_a_table_of_deployment_choices(tmp
     both = config.from_mapping({"selection": {"table": "pkg/table.py:SELECTION", "greet-a-person": "loud"}}, tmp_path)
     assert both.selection_table == "pkg/table.py:SELECTION" and both.selection_choices == {"greet-a-person": "loud"}
     assert config.from_mapping({}, tmp_path).selection_table == ""
+
+
+def make_records(folder):
+    folder.mkdir(parents=True)
+    (folder / "intent.csv").write_text("intent_id,name,vision_statement,implements,opportunity\n")
+
+
+@pytest.mark.parametrize("previous", ["docs/structure", "structure"])
+def test_an_unset_folder_falls_back_to_the_previous_default_with_one_note(tmp_path, previous, capsys):
+    make_records(tmp_path / previous)
+    (tmp_path / "esoi.toml").write_text('package = "x"\n')
+    for _ in range(2):
+        cfg = config.load(tmp_path)
+    assert cfg.structure_dir == previous and cfg.intent_mode
+    err = capsys.readouterr().err
+    assert err.count("git mv " + previous + " esoi") == 1
+
+
+def test_a_configured_folder_or_the_new_default_prints_no_note(tmp_path, capsys):
+    make_records(tmp_path / "docs/structure")
+    cfg = config.from_mapping({"structure_dir": "docs/structure"}, tmp_path)
+    assert cfg.structure_dir == "docs/structure" and cfg.structure_note == ""
+    make_records(tmp_path / "esoi")
+    with pytest.raises(config.ConfigError, match="esoi/ and docs/structure/"):
+        config.from_mapping({}, tmp_path)
+    assert config.from_mapping({"structure_dir": "esoi"}, tmp_path).structure_note == ""
+
+
+def test_the_new_default_is_used_alone_and_two_previous_defaults_are_an_error(tmp_path):
+    make_records(tmp_path / "esoi")
+    assert config.from_mapping({}, tmp_path).structure_note == ""
+    other = tmp_path / "other"
+    make_records(other / "structure")
+    make_records(other / "docs/structure")
+    with pytest.raises(config.ConfigError, match="structure/ and docs/structure/"):
+        config.from_mapping({}, other)
+    (tmp_path / "prose" / "docs" / "structure").mkdir(parents=True)   # a folder with no records is not a candidate
+    assert config.from_mapping({}, tmp_path / "prose").structure_dir == "esoi"

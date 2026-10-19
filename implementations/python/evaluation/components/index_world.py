@@ -1,13 +1,12 @@
 """Build the on-disk world of one case: the project folders. Shared by every arm so they all face the same machine."""
-import tempfile
-from pathlib import Path
+import repo_fixture
 
 from esoi import tables
 
 
 def make_world(projects):
     """Create each project's folder under a fresh root; returns the root. Nothing here is real."""
-    root = Path(tempfile.mkdtemp(prefix="esoi_world_"))
+    root = repo_fixture.make_temp("esoi_world_")
     for project in projects:
         if not project.get("dir"):
             continue

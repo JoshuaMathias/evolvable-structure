@@ -192,16 +192,21 @@ def remove_created() -> None:
 atexit.register(remove_created)
 
 
+def make_temp(prefix: str) -> Path:
+    """A temporary folder that is removed when the process exits; every fixture makes its folders here."""
+    folder = Path(tempfile.mkdtemp(prefix=prefix))
+    CREATED.append(folder)
+    return folder
+
+
 def fresh_repo(edits: List[dict], kind: str = "repo") -> Path:
     """A private copy of the clean fixture with ``edits`` applied. The copy is removed when the process exits, so a long
     run does not fill the temporary folder."""
     if kind not in TEMPLATES:
-        template = Path(tempfile.mkdtemp(prefix="esoi_fixture_"))
-        CREATED.append(template)
+        template = make_temp("esoi_fixture_")
         baseline_repo(template / "r")
         TEMPLATES[kind] = template / "r"
-    folder = Path(tempfile.mkdtemp(prefix="esoi_case_"))
-    CREATED.append(folder)
+    folder = make_temp("esoi_case_")
     root = folder / "r"
     shutil.copytree(TEMPLATES[kind], root)
     apply_edits(root, edits)
