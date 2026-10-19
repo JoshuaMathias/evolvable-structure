@@ -12,7 +12,8 @@ from typing import Dict, List
 
 from .. import template as template_module
 from .. import tracker
-from ..records import check_records, overall_ids
+from .. import intents
+from ..records import check_headers, check_records, overall_ids, tables_of
 from .base import Context, RuleGroup
 
 TRACKER_DUPLICATE_HINT = {
@@ -21,13 +22,16 @@ TRACKER_DUPLICATE_HINT = {
     "solutions": "a solution_id repeats in solutions.csv", "problems": "a problem_id repeats in problems.csv",
     "ideals": "an ideal_id repeats in ideals.csv or collides with a principle", "metrics": "a metric_id repeats in metrics.csv"}
 
+KEYS = {"problem": "problem_id", "ideal": "ideal_id", "solution": "solution_id", "implementation": "implementation_id",
+        "metric": "metric_id"}
+
 SUMMARIES = {
     "S8": "COMPONENTS.md matches components.csv (esoi check --write-docs regenerates it).",
     "S17": "The tracker tabs match what the registry and the results log now produce (only tracking_* columns are "
            "hand-edited). Checked when the tracker folder exists.",
     "S26": "The intent records fill every field of the evolvable-structure template and link as it says "
            "(a problem is not a task, every problem has a solution and an ideal, links agree both ways), and "
-           "parent links to the repository's overall solution network resolve.",
+           "parent links resolve (in the legacy layout, to the overall network; in the intent layout, anywhere in the tree).",
     "S27": "The committed template copy equals the source it was parsed from (skipped when the source is not reachable).",
 }
 
@@ -67,9 +71,20 @@ def run(ctx: Context) -> List[str]:
         for tab in tracker.stale(config, ctx.registry, template):
             bad.append(f"S17 {config.structure_dir}/tracker/{tab}.csv: out of date (run `esoi tracker build`)")
 
-    pending = {r["solution_id"] for r in ctx.solutions if ctx.waived("S26", r["solution_id"])}
+    pending = {r["solution_id"] for r in ctx.every_solution() if ctx.waived("S26", r["solution_id"])}
     overall = None
-    if config.overall:
+    if config.intent_mode:
+        if config.overall:
+            bad.append(f"S26 {config.overall}: `overall` is the legacy layout and is ignored beside {config.structure_dir}/intent.csv; "
+                       "remove it from the configuration")
+        tree = tables_of(ctx.registry)
+        for _, folder in intents.folders(config):
+            bad += [f"S26 {line}" for line in check_headers(folder, ctx.template, label=str(folder.relative_to(config.root)))]
+        every = {entity: {r.get(key, "") for r in tree[entity]} - {""} for entity, key in KEYS.items()}
+        bad += [f"S26 {line}" for line in check_records(
+            config.structure, ctx.template, pending, overall=every, tables=tree, retired={"overall_solution_ids"}, scope="the intent tree",
+            require_parent=bool(config.option("S26", "require_parent", False)))]
+    elif config.overall:
         folder = config.root / config.overall
         if folder.is_dir():
             overall = overall_ids(folder)
@@ -77,9 +92,10 @@ def run(ctx: Context) -> List[str]:
                     check_records(folder, ctx.template, interface_required=False, require_command=False)]
         else:
             bad.append(f"S26 {config.overall}: overall network folder not found")
-    bad += [f"S26 {line}" for line in check_records(
-        config.structure, ctx.template, pending, overall=overall,
-        require_parent=bool(config.option("S26", "require_parent", False)))]
+    if not config.intent_mode:
+        bad += [f"S26 {line}" for line in check_records(
+            config.structure, ctx.template, pending, overall=overall,
+            require_parent=bool(config.option("S26", "require_parent", False)))]
     if template_module.stale_against_source(config):
         bad.append(f"S27 {config.structure_dir}/esoi_template.csv: stale against its source "
                    "(run `esoi template sync`, then fill the columns it adds)")

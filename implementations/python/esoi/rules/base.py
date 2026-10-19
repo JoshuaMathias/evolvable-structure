@@ -70,6 +70,10 @@ class Context:
     def components(self) -> List[Dict[str, str]]:
         return self.registry.components
 
+    def every_solution(self) -> List[Dict[str, str]]:
+        """Measured and specification solutions together, in record order."""
+        return self.registry.every_solution()
+
     def cache(self) -> Cache:
         if self.modules is None:
             self.modules = Cache(self.root, self.config.cache, self.fingerprint())

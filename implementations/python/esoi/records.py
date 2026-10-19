@@ -26,6 +26,12 @@ detailed records link up to it with optional columns on any record: ``parent_pro
 checks that each id names a record of the overall network. The overall network is itself checked with R1 to R4
 (its solutions need no interface fields and its metrics no command).
 
+Intent layout. When the structure folder holds an ``intent.csv`` it is the top intent and the records of every
+intent folder below it are checked as one set (``tables`` of ``check_records``): ids are unique across the tree and
+a link may name a record in any intent. ``overall_solution_ids`` belongs to the legacy layout only and is reported
+there as retired. A solution whose ``metric_kind`` is ``specification`` (see ``esoi.registry``) needs no interface
+fields and its metrics no command. The rules about the intents themselves are S28 and S29 (``esoi.rules.intents``).
+
 Standard library only.
 """
 from __future__ import annotations
@@ -34,11 +40,12 @@ import re
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
-from .tables import ids, read_csv
+from .tables import ids, read_csv, read_header
 
 FILES = {"problem": ("problems.csv", "problem_id"), "ideal": ("ideals.csv", "ideal_id"),
          "solution": ("solutions.csv", "solution_id"), "implementation": ("implementations.csv", "implementation_id"),
          "metric": ("metrics.csv", "metric_id")}
+SPECIFICATION = "specification"
 TEMPLATE_DATA = Path(__file__).resolve().parent / "data" / "esoi_template.csv"
 # The template says a problem is not a task or a recommendation: these openings read as one.
 IMPERATIVE = {"add", "allow", "avoid", "build", "call", "change", "check", "choose", "create", "decide", "define",
@@ -51,9 +58,18 @@ Template = Dict[str, List[Dict[str, str]]]
 # optional parent columns on any record, and the kind of overall-network record each one names
 PARENT_COLUMNS = {"parent_problem_ids": "problem", "parent_ideal_ids": "ideal",
                   "overall_solution_ids": "solution", "parent_metric_ids": "metric"}
+# optional columns of an implementation in the intent layout: the sub-intent it is specified as, and the solutions
+# (in any intent) it builds on through their interfaces
+INTENT_LINK_COLUMNS = ["sub_intent", "uses_solution_ids"]
 # optional columns that tie a metric to the solution that says when it is run (see docs/explanation/when-metrics-are-run.md)
 POLICY_COLUMNS = ["governs_metric_ids", "run_policy_ids"]
 Overall = Dict[str, Set[str]]
+
+
+def tables_of(registry) -> Dict[str, List[Dict[str, str]]]:
+    """The five record tables of a loaded registry (every intent's rows, specification solutions included), by entity."""
+    return {"problem": registry.problems, "ideal": registry.ideals, "solution": registry.every_solution(),
+            "implementation": registry.implementations, "metric": registry.metrics}
 
 
 def overall_ids(folder: Path) -> Overall:
@@ -100,20 +116,48 @@ def match_implementations(solution_id: str, entries: List[str], records: Dict[st
     return claimed, sorted(set(records) - set(claimed.values()))
 
 
+def check_headers(folder: Path, template: Template, interface_required: bool = True, label: str = "") -> List[str]:
+    """R1 problems in the header of each record file of one intent folder: a missing key or template column. A file
+    with no rows (or none at all) is not reported here; the tree as a whole must have records of each type."""
+    bad: List[str] = []
+    for entity, (name, key) in FILES.items():
+        path = Path(folder) / name
+        if not path.is_file():
+            continue
+        rows = read_csv(path)
+        header = read_header(path)
+        # a solution of kind specification needs no interface fields, and a header may omit them only for those
+        need = [key, *fields(template, entity, interface_required)]
+        if entity == "solution" and rows and all(r.get("metric_kind", "").strip() == SPECIFICATION for r in rows):
+            need = [key, *fields(template, entity, False)]
+        missing = [k for k in need if k not in header]
+        if missing:
+            bad.append(f"R1 {label or folder}/{name}: missing template column(s) {', '.join(missing)}"
+                       " (run `esoi template sync`, then fill them)")
+    return bad
+
+
 def check_records(struct: Path, template: Template, waived: Optional[Set[str]] = None,
                   interface_required: bool = True, related_problem_ids: Optional[Set[str]] = None,
                   overall: Optional[Overall] = None, require_command: bool = True,
-                  require_parent: bool = False) -> List[str]:
+                  require_parent: bool = False, tables: Optional[Dict[str, List[Dict[str, str]]]] = None,
+                  retired: Optional[Set[str]] = None, scope: str = "the overall network") -> List[str]:
     """Problems found in the intent records of ``struct``. ``waived`` holds solution ids whose records are still
     to be written (each is justified in the registry's waivers); their own template fields, links, implementations
     and metrics are not checked, and nothing else is relaxed. A problem may carry a ``related_problem_ids`` column
     naming problems of another registry it is the same difficulty as; when ``related_problem_ids`` (the other
     registry's ids) is given, each such id must be among them. ``overall`` holds the overall network's ids
     (``overall_ids``): every parent column must name one of them, and with ``require_parent`` every solution must
-    name at least one. ``require_command`` is off for an overall network, whose metrics need no command."""
+    name at least one. ``require_command`` is off for an overall network, whose metrics need no command. ``tables``
+    holds the rows of every record file already read (the intent layout merges the intents' files, and then the
+    header of each file is checked by ``check_headers`` instead); ``retired`` names parent columns that are reported
+    wherever they appear (``overall_solution_ids`` in the intent layout); ``scope`` names, in a parent-link message, where
+    the link should have resolved."""
     waived = waived or set()
     bad: List[str] = []
-    tables = {entity: read_csv(Path(struct) / name) for entity, (name, _) in FILES.items()}
+    merged = tables is not None
+    retired = retired or set()
+    tables = tables if merged else {entity: read_csv(Path(struct) / name) for entity, (name, _) in FILES.items()}
     keys = {entity: key for entity, (_, key) in FILES.items()}
     index: Dict[str, Dict[str, Dict[str, str]]] = {}
     for entity, rows in tables.items():
@@ -127,6 +171,8 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
         if not rows and not (overall is not None and entity in ("problem", "ideal")):
             bad.append(f"R1 {FILES[entity][0]}: no records")
 
+    specified = {rid for rid, row in index["solution"].items() if row.get("metric_kind", "").strip() == SPECIFICATION}
+
     def skipped(entity: str, row: Dict[str, str]) -> bool:
         if entity == "solution":
             return row.get("solution_id") in waived
@@ -136,9 +182,16 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
             return bool(ids(row.get("solution_ids", ""))) and all(s in waived for s in ids(row.get("solution_ids", "")))
         return False
 
+    def specification_only(entity: str, row: Dict[str, str]) -> bool:
+        if entity == "solution":
+            return row.get("solution_id") in specified
+        if entity == "metric":
+            return bool(ids(row.get("solution_ids", ""))) and all(s in specified for s in ids(row.get("solution_ids", "")))
+        return False
+
     for entity, rows in tables.items():
         need = fields(template, entity, interface_required)
-        if rows:
+        if rows and not merged:
             missing = [k for k in [keys[entity], *need] if k not in rows[0]]
             if missing:
                 bad.append(f"R1 {FILES[entity][0]}: missing template column(s) {', '.join(missing)}"
@@ -146,7 +199,8 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
         for row in rows:
             if skipped(entity, row):
                 continue
-            empty = [k for k in need if k in row and not row[k].strip()]
+            wanted = fields(template, entity, False) if specification_only(entity, row) else need
+            empty = [k for k in wanted if k in row and not row[k].strip()]
             if empty:
                 bad.append(f"R2 {row.get(keys[entity], '')}: template field(s) not filled: {', '.join(empty)}")
 
@@ -226,7 +280,8 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
         unknown(mid, "solution_ids", ids(row.get("solution_ids", "")), solutions)
         if not ids(row.get("solution_ids", "")):
             bad.append(f"R3 {mid}: measures no solution")
-        if require_command and not skipped("metric", row) and not row.get("command", "").strip():
+        if require_command and not skipped("metric", row) and not specification_only("metric", row) \
+                and not row.get("command", "").strip():
             bad.append(f"R2 {mid}: command is empty")
 
     for entity, rows in tables.items():
@@ -236,10 +291,13 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
             for column, kind in PARENT_COLUMNS.items():
                 for target in ids(row.get(column, "")):
                     named = True
-                    if overall is None:
+                    if column in retired:
+                        bad.append(f"R5 {rid}: {column} is retired in the intent layout; a solution is recorded in the intent "
+                                   "it serves, and an implementation lists the solutions it builds on in uses_solution_ids")
+                    elif overall is None:
                         bad.append(f"R5 {rid}: {column} names {target!r} but no overall network is configured")
                     elif target not in overall.get(kind, set()):
-                        bad.append(f"R5 {rid}: {column} names {target!r}, which is not a {kind} of the overall network")
+                        bad.append(f"R5 {rid}: {column} names {target!r}, which is not a {kind} of {scope}")
             if require_parent and entity == "solution" and not named and row.get(keys[entity]) not in waived:
                 bad.append(f"R5 {rid}: names no parent problem, ideal, metric or area of the overall solution")
 

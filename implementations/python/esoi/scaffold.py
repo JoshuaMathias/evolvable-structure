@@ -1,9 +1,13 @@
-"""``esoi init``: write a small repository that already passes ``esoi check``, as a starting point to edit.
+"""``esoi init``: write a small repository as a starting point, passing every rule except the two cells only you can write.
 
-The example is one solution, ``greet-a-person``, with two implementations (the package function and a shouting
-baseline), one ideal, one problem, a metric (``esoi run greet_a_person --impl live``), the component rows that
-own every file, a recorded run, and an overall solution network the detailed records link up to. Rename the
-parts, replace the example text with your own intent, and keep running ``esoi check``.
+The example is a top intent plus one solution, ``greet-a-person``, with two implementations (the package function and a
+shouting baseline), one ideal, one problem, a metric (``esoi run greet_a_person --impl live``), the component rows that
+own every file and a recorded run. The top intent is why your project exists, in your own words, so ``intent.csv`` is
+written with its name and vision statement empty and ``esoi check`` reports both until you fill them; it is never filled
+with text about ESOI. The evolvable structure the project applies is a solution inside that top intent
+(``project-structure``), whose implementation uses esoi (``@esoi/structure-check`` names a solution of another project).
+There is no sub-intent: one needs an opportunity that a person names. Rename the parts, replace the example text with
+your own, and keep running ``esoi check``.
 
 The records carry every field of the shipped intent template. A field the template has that this module has no
 sample text for is written empty, so ``esoi check`` names it instead of passing a placeholder.
@@ -16,7 +20,7 @@ from typing import Dict, List
 
 from . import check as check_module
 from . import leaderboard
-from .config import Config, from_mapping
+from .config import DEFAULT_STRUCTURE_DIR, Config, from_mapping
 from .records import FILES, TEMPLATE_DATA, fields, load_template
 from .tables import render_csv
 
@@ -64,34 +68,40 @@ IMPLEMENTATIONS = {
     "shout": ("Shouting baseline", "Upper-cases the whole greeting, a floor someone might plausibly ship.",
               "Trivial to write.", "Breaks the standard form."),
 }
+# The top intent is why THIS project exists, in its own words, so the scaffold leaves it empty: `esoi check` reports the
+# name and the vision statement until the project fills them. The sample below is a stand-in project (greetings) only to
+# show the shape; replace it with your own.
+SAMPLE["intent"] = {"name": "", "vision_statement": ""}
+# The starter solution for the project's own structure: how its intent is recorded, measured and selected. Its
+# implementation uses the generic esoi solutions; whatever is specific to this project belongs here in its top intent.
 OVERALL = {
     "problem": {
-        "problem": "What this repository is for has no single written statement, so its parts drift from any shared intent.",
-        "who_has_it": "People and AI agents who change the repository.",
+        "problem": "What this project is for has no single written statement, so its parts drift from any shared intent.",
+        "who_has_it": "People and AI agents who change the project.",
         "why_it_matters": "Without a stated purpose nobody can say whether a change helps.",
         "why_hard": "Intent is held in people's heads and changes over time.",
         "existing_attempts": "A README and chat history."},
     "ideal": {
         "name": "Explicit purpose",
-        "principle": "Every part of the repository traces up to a stated problem and ideal.",
-        "state_description": "Opening any record, you can follow it up to the overall purpose.",
-        "hints_of_measurement": "Every detailed solution names the part of the overall solution it serves."},
+        "principle": "Every part of the project traces up to a stated problem and ideal.",
+        "state_description": "Opening any record, you can follow it up to the project's purpose.",
+        "hints_of_measurement": "Every solution is built on, or builds, the project's structure."},
     "solution": {
-        "name": "Overall solution",
-        "scoped_purpose": "Frames the repository's purpose; the detailed records implement it.",
-        "goals": "Each area of the overall solution has detailed solutions beneath it.",
-        "knowledge": "The repository's own history and goals.",
-        "measures_of_success": "Every detailed solution links up to it."},
+        "name": "Project structure",
+        "scoped_purpose": "How this project records its intent, measures alternatives and selects the best by metric; "
+                          "its implementation uses the esoi solutions and holds whatever is specific to this project.",
+        "goals": "Each building block of the structure has a metric and a recorded run.",
+        "knowledge": "The project's own history and goals, and the esoi documentation.",
+        "measures_of_success": "Every solution of the project links up to it."},
     "metric": {
-        "name": "Link completeness",
-        "scoped_purpose": "Measures whether detailed records link up to the overall network.",
-        "record": "The share of detailed solutions that name a parent."},
+        "name": "Coverage by measured solutions",
+        "scoped_purpose": "Measures whether the structure's building blocks each have a recorded run.",
+        "record": "The share of solutions the structure's implementation builds on that have a recorded run."},
 }
 
 CONFIG = '''# esoi configuration for this repository. Every key is optional; see the esoi documentation.
 package = "{package}"
 layers = ["core"]
-overall = "docs/structure/overall"
 code_paths = ["{package}"]
 '''
 GREET = '''"""The example solution: greet a person by name."""
@@ -155,8 +165,7 @@ def files_for(package: str, template) -> Dict[str, str]:
     greet_paths = [f"{package}/greet.py", f"evaluation/components/{COMPONENT}/impls/live.py",
                    f"evaluation/components/{COMPONENT}/impls/shout.py"]
     command = f"esoi run {COMPONENT} --impl live"
-    parents = ["parent_problem_ids", "parent_ideal_ids", "overall_solution_ids"]
-    links = dict(parent_problem_ids="overall-problem", parent_ideal_ids="overall-ideal", overall_solution_ids="overall-solution")
+    structure = DEFAULT_STRUCTURE_DIR
 
     def sol_cols(extra: List[str]) -> List[str]:
         return ["solution_id"] + fields(template, "solution", True) + extra
@@ -164,31 +173,45 @@ def files_for(package: str, template) -> Dict[str, str]:
     solution = record("solution", template, SAMPLE["solution"], solution_id=SOLUTION, problem_ids="greeting-by-hand",
                       ideal_ids="consistent-greeting", metric_ids="greeting-pass-rate", port="",
                       implementations=";".join(greet_paths), selected=greet_paths[0], selected_by="measured on the example cases",
-                      metric_kind="eval", invariant_reason="", gap="", action="", **links)
+                      metric_kind="eval", invariant_reason="", gap="", action="")
+    top = record("solution", template, OVERALL["solution"], solution_id="project-structure", problem_ids="purpose-unrecorded",
+                 ideal_ids="explicit-purpose", metric_ids="structure-coverage", implementations="esoi-records",
+                 selected="esoi-records", selected_by="the only way to carry it out so far", metric_kind="specification")
     impl_rows = []
     for path in greet_paths:
         stem = path.rsplit("/", 1)[-1][:-3]
         name, description, advantages, disadvantages = IMPLEMENTATIONS[stem]
         impl_rows.append(record("implementation", template, dict(name=name, description=description, advantages=advantages,
                                 disadvantages=disadvantages), implementation_id=f"{SOLUTION}:{stem}", solution_id=SOLUTION, path=path))
+    impl_rows.append(record("implementation", template, dict(name="Records and checks with esoi", description="The project's intent records, checked and selected by metric with esoi, plus the solutions of this project.",
+                                                             advantages="Reuses the generic esoi solutions instead of building them again.",
+                                                             disadvantages="Depends on esoi; no rival has been compared yet."),
+                            implementation_id="project-structure:esoi-records", solution_id="project-structure",
+                            uses_solution_ids=SOLUTION + ";@esoi/structure-check"))
     out: Dict[str, str] = {}
-    structure = "docs/structure"
+    out[f"{structure}/intent.csv"] = render_csv(
+        ["intent_id"] + fields(template, "intent", True) + ["implements", "opportunity"],
+        [record("intent", template, SAMPLE["intent"], intent_id=package.replace("_", "-"))])
     out[f"{structure}/problems.csv"] = render_csv(
-        ["problem_id"] + fields(template, "problem", True) + ["solution_ids", "ideal_ids"] + parents[:2],
+        ["problem_id"] + fields(template, "problem", True) + ["solution_ids", "ideal_ids", "parent_problem_ids", "parent_ideal_ids"],
         [record("problem", template, SAMPLE["problem"], problem_id="greeting-by-hand", solution_ids=SOLUTION,
-                ideal_ids="consistent-greeting", parent_problem_ids="overall-problem", parent_ideal_ids="overall-ideal")])
+                ideal_ids="consistent-greeting"),
+         record("problem", template, OVERALL["problem"], problem_id="purpose-unrecorded", solution_ids="project-structure",
+                ideal_ids="explicit-purpose")])
     out[f"{structure}/ideals.csv"] = render_csv(
-        ["ideal_id"] + fields(template, "ideal", True) + ["problem_ids"] + parents[1:2],
-        [record("ideal", template, SAMPLE["ideal"], ideal_id="consistent-greeting", problem_ids="greeting-by-hand",
-                parent_ideal_ids="overall-ideal")])
+        ["ideal_id"] + fields(template, "ideal", True) + ["problem_ids", "parent_ideal_ids"],
+        [record("ideal", template, SAMPLE["ideal"], ideal_id="consistent-greeting", problem_ids="greeting-by-hand"),
+         record("ideal", template, OVERALL["ideal"], ideal_id="explicit-purpose", problem_ids="purpose-unrecorded")])
     out[f"{structure}/solutions.csv"] = render_csv(
         sol_cols(["problem_ids", "ideal_ids", "metric_ids", "port", "implementations", "selected", "selected_by", "metric_kind",
-                  "invariant_reason", "gap", "action"] + parents), [solution])
+                  "invariant_reason", "gap", "action", "parent_problem_ids", "parent_ideal_ids"]), [solution, top])
     out[f"{structure}/implementations.csv"] = render_csv(
-        ["implementation_id", "solution_id", "path"] + fields(template, "implementation", True), impl_rows)
+        ["implementation_id", "solution_id", "path"] + fields(template, "implementation", True)
+        + ["sub_intent", "uses_solution_ids"], impl_rows)
     out[f"{structure}/metrics.csv"] = render_csv(
-        ["metric_id"] + fields(template, "metric", True) + ["solution_ids", "command"],
-        [record("metric", template, SAMPLE["metric"], metric_id="greeting-pass-rate", solution_ids=SOLUTION, command=command)])
+        ["metric_id"] + fields(template, "metric", True) + ["solution_ids", "command", "parent_metric_ids"],
+        [record("metric", template, SAMPLE["metric"], metric_id="greeting-pass-rate", solution_ids=SOLUTION, command=command),
+         record("metric", template, OVERALL["metric"], metric_id="structure-coverage", solution_ids="project-structure")])
     components = [
         ("package", "core", f"{package}/**", "The package's code.", SOLUTION),
         ("evaluation", "evaluation", "evaluation/**", "Cases, scorers and implementations the harness runs.", SOLUTION),
@@ -199,26 +222,6 @@ def files_for(package: str, template) -> Dict[str, str]:
         ["component_id", "layer", "path", "role", "solutions"],
         [dict(zip(["component_id", "layer", "path", "role", "solutions"], c)) for c in components])
     out[f"{structure}/waivers.csv"] = render_csv(["rule", "path", "reason"], [])
-    overall = f"{structure}/overall"
-    out[f"{overall}/problems.csv"] = render_csv(
-        ["problem_id"] + fields(template, "problem", True) + ["solution_ids", "ideal_ids"],
-        [record("problem", template, OVERALL["problem"], problem_id="overall-problem", solution_ids="overall-solution",
-                ideal_ids="overall-ideal")])
-    out[f"{overall}/ideals.csv"] = render_csv(
-        ["ideal_id"] + fields(template, "ideal", True) + ["problem_ids"],
-        [record("ideal", template, OVERALL["ideal"], ideal_id="overall-ideal", problem_ids="overall-problem")])
-    out[f"{overall}/solutions.csv"] = render_csv(
-        sol_cols(["problem_ids", "ideal_ids", "metric_ids", "implementations"]),
-        [record("solution", template, OVERALL["solution"], solution_id="overall-solution", problem_ids="overall-problem",
-                ideal_ids="overall-ideal", metric_ids="overall-link-completeness", implementations="the-package")])
-    out[f"{overall}/implementations.csv"] = render_csv(
-        ["implementation_id", "solution_id"] + fields(template, "implementation", True),
-        [record("implementation", template, dict(name="The package", description="The repository's code and records.",
-                                                 advantages="It is the thing itself.", disadvantages="It has no rival yet."),
-                implementation_id="overall-solution:the-package", solution_id="overall-solution")])
-    out[f"{overall}/metrics.csv"] = render_csv(
-        ["metric_id"] + fields(template, "metric", True) + ["solution_ids"],
-        [record("metric", template, OVERALL["metric"], metric_id="overall-link-completeness", solution_ids="overall-solution")])
     out[f"{structure}/esoi_template.csv"] = TEMPLATE_DATA.read_text(encoding="utf-8")
     out["esoi.toml"] = CONFIG.format(package=package)
     out[".gitignore"] = "__pycache__/\n.esoi_cache/\n"
@@ -262,7 +265,7 @@ def init(root: Path, package: str = "", force: bool = False, say=print) -> List[
     if not results.exists() or force:
         results.write_text(result_rows(root), encoding="utf-8")
         written.append("evaluation/components/results.csv")
-    config = from_mapping({"package": package, "layers": ["core"], "overall": "docs/structure/overall"}, root)
+    config = from_mapping({"package": package, "layers": ["core"], "structure_dir": DEFAULT_STRUCTURE_DIR}, root)
     check_module.write_docs(config, say=lambda text: None)
     for rel in skipped:
         say(f"kept existing {rel}")

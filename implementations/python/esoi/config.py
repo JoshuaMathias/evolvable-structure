@@ -20,6 +20,10 @@ from typing import Any, Dict, List, Optional
 CONFIG_NAME = "esoi.toml"
 TEMPLATE_ENV = "ESOI_TEMPLATE_SOURCE"
 DEFAULT_OTHER_LAYERS = ["docs", "evaluation", "examples", "scripts", "tests", "vendor", "prompts"]
+# The folder that holds a project's top intent. One place, so renaming the default is one edit. The folder only HOLDS the
+# top intent (its intent.csv and its specifications): the top intent itself is the project's own purpose, why the project
+# exists, whatever the folder is called.
+DEFAULT_STRUCTURE_DIR = "docs/structure"
 DEFAULT_METRIC_COMMAND = r"(?:esoi run|run\.py) (\w+) --impl (\w+)"
 
 
@@ -43,7 +47,7 @@ class Config:
     root_python_files: bool = False
     root_python_allow: List[str] = field(default_factory=list)
     docstring_exempt: List[str] = field(default_factory=lambda: ["/vendor/"])
-    structure_dir: str = "docs/structure"
+    structure_dir: str = DEFAULT_STRUCTURE_DIR
     evaluation_dir: str = "evaluation/components"
     results: str = ""
     shared_eval_dirs: List[str] = field(default_factory=lambda: ["__pycache__"])
@@ -85,6 +89,11 @@ class Config:
     @property
     def structure(self) -> Path:
         return self.root / self.structure_dir
+
+    @property
+    def intent_mode(self) -> bool:
+        """Whether the configured folder holds a top intent (an ``intent.csv``) rather than the legacy layout."""
+        return (self.structure / "intent.csv").is_file()
 
     @property
     def evaluation(self) -> Path:

@@ -146,7 +146,7 @@
   "id": "REC-006",
   "area": "repo",
   "kind": "repo",
-  "description": "a parent link that names nothing in the overall network",
+  "description": "a parent link that names nothing in the intent tree",
   "args": {
    "edits": [
     {
@@ -154,7 +154,7 @@
      "path": "docs/structure/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
-     "col": "overall_solution_ids",
+     "col": "parent_ideal_ids",
      "value": "ghost"
     },
     {
@@ -164,14 +164,14 @@
   },
   "expect": {
    "rule": "S26",
-   "contains": "not a solution of the overall network"
+   "contains": "not a ideal of the intent tree"
   }
  },
  {
   "id": "REC-007",
   "area": "repo",
   "kind": "repo",
-  "description": "a parent problem that is not in the overall network",
+  "description": "a parent problem that is not in the intent tree",
   "args": {
    "edits": [
     {
@@ -189,21 +189,21 @@
   },
   "expect": {
    "rule": "S26",
-   "contains": "not a problem of the overall network"
+   "contains": "not a problem of the intent tree"
   }
  },
  {
   "id": "REC-008",
   "area": "repo",
   "kind": "repo",
-  "description": "the overall network itself has an empty template field",
+  "description": "the top solution's own problem has an empty template field",
   "args": {
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/overall/problems.csv",
+     "path": "docs/structure/problems.csv",
      "key_col": "problem_id",
-     "key": "overall-problem",
+     "key": "purpose-unrecorded",
      "col": "who_has_it",
      "value": ""
     },
@@ -214,7 +214,7 @@
   },
   "expect": {
    "rule": "S26",
-   "contains": "overall network"
+   "contains": "who_has_it"
   }
  },
  {
@@ -239,6 +239,112 @@
   },
   "expect": {
    "clean": true
+  }
+ },
+ {
+  "id": "REC-010",
+  "area": "intents",
+  "kind": "repo",
+  "description": "a sub-intent that names the implementation it arises from and states its opportunity",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "docs/structure/voices/intent.csv",
+     "content": "intent_id,name,vision_statement,implements,opportunity\nvoices,Greeting voices,Every greeting is spoken warmly.,greet-a-person:live,Speaking greetings aloud is a creative space the written greeting does not cover.\n"
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/implementations.csv",
+     "key_col": "implementation_id",
+     "key": "greet-a-person:live",
+     "col": "sub_intent",
+     "value": "voices"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "REC-011",
+  "area": "intents",
+  "kind": "repo",
+  "description": "a sub-intent with no stated opportunity",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "docs/structure/voices/intent.csv",
+     "content": "intent_id,name,vision_statement,implements,opportunity\nvoices,Greeting voices,Every greeting is spoken warmly.,greet-a-person:live,\n"
+    },
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/implementations.csv",
+     "key_col": "implementation_id",
+     "key": "greet-a-person:live",
+     "col": "sub_intent",
+     "value": "voices"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S28",
+   "contains": "opportunity"
+  }
+ },
+ {
+  "id": "REC-012",
+  "area": "intents",
+  "kind": "repo",
+  "description": "a sub-intent whose parent implementation does not name it back",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "docs/structure/voices/intent.csv",
+     "content": "intent_id,name,vision_statement,implements,opportunity\nvoices,Greeting voices,Every greeting is spoken warmly.,greet-a-person:live,A creative space.\n"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S28",
+   "contains": "sub_intent"
+  }
+ },
+ {
+  "id": "REC-013",
+  "area": "intents",
+  "kind": "repo",
+  "description": "an implementation that builds on a solution that is nowhere in the tree",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "docs/structure/implementations.csv",
+     "key_col": "implementation_id",
+     "key": "greet-a-person:live",
+     "col": "uses_solution_ids",
+     "value": "ghost"
+    },
+    {
+     "op": "regen"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S29",
+   "contains": "ghost"
   }
  }
 ]

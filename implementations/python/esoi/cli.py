@@ -11,6 +11,8 @@
     esoi select SOLUTION [--name NAME]     show which implementation a selection table resolves
     esoi tracker build|check               build or verify the review tracker tabs
     esoi consumer check --registry CSV     check a consuming repository's integration registry
+    esoi intent migrate [--apply]          move a legacy overall layout to the intent layout (dry run without --apply)
+    esoi projects init|add|list|check|index|where   the local ESOI index (a folder named by ESOI_HOME, else ~/.esoi)
     esoi hygiene [--staged] [--history]    scan for secrets, machine paths and real addresses
     esoi sheet-sync sync|push|pull|check   two-way sync of the tracker with a Google Sheet (esoi[sheets])
 
@@ -71,6 +73,21 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--solutions", default=None)
     p.add_argument("--results", default=None)
     p.add_argument("--fail-on-lag", action="store_true")
+    p = sub.add_parser("intent", help="the intent layout")
+    p.add_argument("action", choices=["migrate"])
+    p.add_argument("--apply", action="store_true", help="migrate: write the files (without it, only report the plan)")
+    p = sub.add_parser("projects", help="the local ESOI index: the projects ESOI is applied to on this machine")
+    p.add_argument("action", choices=["init", "add", "list", "check", "index", "where"])
+    p.add_argument("target", nargs="?", default=None, help="add: a local path or URL; where: a path (default: the current folder)")
+    p.add_argument("--id", default="", help="add: the project id (default: from the name)")
+    p.add_argument("--name", default="")
+    p.add_argument("--vision", default="", help="add: the vision statement (default: from the project's top intent)")
+    p.add_argument("--kind", default="", choices=["", "repository", "folder", "file", "board"])
+    p.add_argument("--specifications", default="", help="add: where its ESOI specifications are, relative to the location")
+    p.add_argument("--start-here", default="", help="add: the file to read first when applying ESOI there")
+    p.add_argument("--relations", default="", help="add: ';'-separated kind:project_id (uses, used-by, sub-intent-of, example-of, related)")
+    p.add_argument("--notes", default="")
+    p.add_argument("--replace", action="store_true", help="add: update a project that is already listed")
     p = sub.add_parser("hygiene", help="scan for secrets and private data")
     p.add_argument("--root", default=".")
     p.add_argument("--staged", action="store_true")
@@ -79,6 +96,51 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("mode", choices=["sync", "push", "pull", "check"])
     p.add_argument("--dry-run", action="store_true")
     return parser
+
+
+def projects_command(args: argparse.Namespace) -> int:
+    """``esoi projects``: the one place the index folder is resolved from ``ESOI_HOME``."""
+    import os
+    from . import projects
+    home = projects.resolve_home(os.environ, Path.home())
+    if args.action == "init":
+        made = projects.init(home)
+        print(f"{home}: " + (", ".join(made) + " created" if made else "already set up"))
+        return 0
+    if args.action == "add":
+        if not args.target:
+            print("esoi: projects add needs a path or URL", file=sys.stderr)
+            return 2
+        try:
+            row = projects.add(home, args.target, args.id, args.name, args.vision, args.kind, args.specifications,
+                               args.start_here, args.relations, args.notes, args.replace)
+        except ValueError as exc:
+            print(f"esoi: {exc}", file=sys.stderr)
+            return 2
+        print(f"added {row['project_id']} ({row['kind']}, {row['location']})")
+        if not row["vision_statement"]:
+            print("note: no vision statement found; add one with --vision --replace")
+        return 0
+    if args.action == "list":
+        for line in projects.render_list(projects.read_projects(home)):
+            print(line)
+        return 0
+    if args.action == "check":
+        bad = projects.check(home)
+        for line in bad:
+            print(line)
+        print("esoi projects: " + (f"{len(bad)} problem(s)" if bad else "ok"))
+        return 1 if bad else 0
+    if args.action == "index":
+        print(f"wrote {projects.index(home)}")
+        return 0
+    found = projects.where(home, Path(args.target or "."))
+    if found is None:
+        print("no listed project contains that path")
+        return 1
+    for line in projects.render_where(found):
+        print(line)
+    return 0
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -93,9 +155,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.cmd == "init":
         from .scaffold import init
         init(Path(args.dir), args.package, args.force)
-        print("next: git init && git add . && git commit, then `esoi run greet_a_person --impl live --record` "
-              "and `esoi check --strict`")
+        print("next: write the top intent (the name and vision statement in intent.csv say why your project exists), "
+              "git init && git add . && git commit, then `esoi run greet_a_person --impl live --record` and `esoi check --strict`")
         return 0
+    if args.cmd == "projects":
+        return projects_command(args)
     if args.cmd == "skill" and args.action == "install":
         from . import skill
         return skill.install(args.project, args.dest, args.from_dir, args.force)
@@ -136,9 +200,24 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.action == "sync":
             return skill.sync(config, args.source)
         return skill.check(config, args.source, args.denylist)
+    if args.cmd == "intent":
+        from . import migrate
+        return migrate.run_cli(config, args.apply)
     if args.cmd == "records":
-        from . import template
-        from .records import check_records, overall_ids
+        from . import registry, template
+        from .records import check_records, check_headers, overall_ids, tables_of
+        if config.intent_mode:
+            from . import intents
+            loaded, tpl = registry.load(config), template.load_for(config)
+            tree = tables_of(loaded)
+            every = {e: {r.get(k, "") for r in tree[e]} - {""} for e, k in
+                     {"problem": "problem_id", "ideal": "ideal_id", "solution": "solution_id",
+                      "implementation": "implementation_id", "metric": "metric_id"}.items()}
+            problems = [line for _, folder in intents.folders(config) for line in check_headers(folder, tpl)]
+            problems += check_records(config.structure, tpl, overall=every, tables=tree, retired={"overall_solution_ids"}, scope="the intent tree")
+            for line in problems:
+                print(line)
+            return 1 if problems else 0
         overall = overall_ids(config.root / config.overall) if config.overall and (config.root / config.overall).is_dir() else None
         problems = check_records(config.structure, template.load_for(config), overall=overall)
         for line in problems:

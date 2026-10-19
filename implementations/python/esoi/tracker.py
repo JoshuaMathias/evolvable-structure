@@ -17,7 +17,8 @@ from typing import Dict, List, Optional
 
 from . import leaderboard
 from .config import Config
-from .records import PARENT_COLUMNS, POLICY_COLUMNS, fields, implementation_id, match_implementations
+from .intents import header_union
+from .records import INTENT_LINK_COLUMNS, PARENT_COLUMNS, POLICY_COLUMNS, fields, implementation_id, match_implementations
 from .registry import Registry, first_arm
 from .select import Table, load_table
 from .tables import SEP, ids, read_csv, read_header, render_csv
@@ -38,9 +39,9 @@ def extras(config: Config) -> Dict[str, List[str]]:
     out: Dict[str, List[str]] = {}
     for tab in TABS:
         names = list(config.tracker_extra.get(tab, []))
-        source = config.structure / f"{tab}.csv"
-        header = read_header(source) if source.exists() else []
-        out[tab] = names + [c for c in (*PARENT_COLUMNS, *POLICY_COLUMNS) if c in header and c not in names]
+        header = header_union(config, f"{tab}.csv")
+        wanted = (["intent_id"] if config.intent_mode else []) + [*PARENT_COLUMNS, *POLICY_COLUMNS, *INTENT_LINK_COLUMNS]
+        out[tab] = names + [c for c in wanted if (c in header or c == "intent_id") and c not in names]
     return out
 
 
@@ -131,10 +132,11 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
     cols = columns(template, extra)
     table = selection_table(config)
     results = {(c, i): row for c, rows in leaderboard.latest_results(config.results_path).items() for i, row in rows.items()}
+    every = registry.every_solution()
     verdicts = leaderboard.solution_verdicts(config, registry.solutions)
     impl_records = {r["implementation_id"]: r for r in registry.implementations}
     metric_by_id = {m["metric_id"]: m for m in registry.metrics}
-    sol_by_id = {s["solution_id"]: s for s in registry.solutions}
+    sol_by_id = {s["solution_id"]: s for s in every}
     by_solution: Dict[str, List[str]] = {}
     for comp in registry.components:
         for sid in ids(comp["solutions"]):
@@ -151,7 +153,7 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
         problems.append({**{k: p.get(k, "") for k in cols["problems"]},
                          "component_ids": SEP.join(sorted({c for s in linked for c in by_solution.get(s["solution_id"], [])})),
                          "auto_status": "open: gap on " + ", ".join(open_ones) if open_ones else "served"})
-    for s in registry.solutions:
+    for s in every:
         sid = s["solution_id"]
         command = command_of(s)
         has_metric = command not in ("", "none")
@@ -185,7 +187,8 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
             "implementation_ids": SEP.join(impl_ids), "selected_implementation_id": selected_id,
             "verdict": verdict.get("verdict", ""), "verdict_detail": verdict.get("detail", ""),
             "component_ids": SEP.join(by_solution.get(sid, [])),
-            "auto_status": "invariant" if s.get("metric_kind") == "invariant"
+            "auto_status": "specification" if s.get("metric_kind") == "specification"
+            else "invariant" if s.get("metric_kind") == "invariant"
             else (STATUS_BY_VERDICT.get(verdict.get("verdict", ""), "decided-by-hand") if sel_res else "decided-by-hand")})
         for mid in ids(s.get("metric_ids", "")):
             if mid in metric_by_id:
@@ -208,10 +211,11 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
                            if u[0].get("gap", "")]),
             "action": across([(f"{u[0]['solution_id']}: " if many else "") + u[0].get("action", "") for u in users
                               if u[0].get("action", "")]),
-            "auto_status": "measured" if any(u[1] for u in users)
+            "auto_status": "specification" if all(u[0].get("metric_kind") == "specification" for u in users)
+            else "measured" if any(u[1] for u in users)
             else ("needs_run" if any(u[2] for u in users) else "needs_metric")})
     solutions_of_ideal: Dict[str, List[str]] = {}
-    for s in registry.solutions:
+    for s in every:
         for iid in ids(s.get("ideal_ids", "")):
             solutions_of_ideal.setdefault(iid, []).append(s["solution_id"])
     for i in registry.ideals:

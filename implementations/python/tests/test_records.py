@@ -13,11 +13,14 @@ def edit(cfg, name, key_col, key, col, value):
     tables.write_csv(path, cols, rows)
 
 
+def tree_ids(cfg):
+    """The ids of every record in the (single-folder) intent, as the parent links of a tree resolve against."""
+    return records.overall_ids(cfg.structure)
+
+
 def test_the_scaffold_is_clean(cfg):
-    overall = records.overall_ids(cfg.root / cfg.overall)
-    assert check(cfg, overall=overall) == []
-    assert check(cfg, overall=overall) == [] and records.check_records(
-        cfg.root / cfg.overall, template.load_for(cfg), interface_required=False, require_command=False) == []
+    assert check(cfg) == []
+    assert check(cfg, overall=tree_ids(cfg)) == []
 
 
 def test_an_empty_required_field_is_reported(cfg):
@@ -59,31 +62,35 @@ def test_waiving_a_solution_skips_its_template_fields(cfg):
     assert not any(p.startswith("R2 greet-a-person") for p in check(cfg, waived={"greet-a-person"}))
 
 
-def test_parent_links_resolve_in_the_overall_network(cfg):
-    overall = records.overall_ids(cfg.root / cfg.overall)
-    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "overall_solution_ids", "ghost")
+def test_parent_links_resolve_in_the_tree(cfg):
+    overall = tree_ids(cfg)
+    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "parent_ideal_ids", "ghost")
     edit(cfg, "problems.csv", "problem_id", "greeting-by-hand", "parent_problem_ids", "nope")
     problems = check(cfg, overall=overall)
     assert any(p.startswith("R5 greet-a-person") and "'ghost'" in p for p in problems)
+    assert not any("ghost" in p for p in check(cfg, overall=overall, retired=set()) if "overall_solution_ids" in p)
     assert any(p.startswith("R5 greeting-by-hand") and "'nope'" in p for p in problems)
 
 
 def test_a_parent_link_with_no_overall_network_is_reported(cfg):
+    edit(cfg, "problems.csv", "problem_id", "greeting-by-hand", "parent_problem_ids", "purpose-unrecorded")
     assert any(p.startswith("R5") and "no overall network is configured" in p for p in check(cfg))
 
 
 def test_require_parent_demands_a_parent_on_every_solution(cfg):
-    overall = records.overall_ids(cfg.root / cfg.overall)
-    for col in ("parent_problem_ids", "parent_ideal_ids", "overall_solution_ids"):
+    overall = tree_ids(cfg)
+    for col in ("parent_problem_ids", "parent_ideal_ids"):
         edit(cfg, "solutions.csv", "solution_id", "greet-a-person", col, "")
     assert not any(p.startswith("R5") for p in check(cfg, overall=overall))
     assert any(p.startswith("R5 greet-a-person") for p in check(cfg, overall=overall, require_parent=True))
 
 
 def test_a_detailed_solution_may_take_its_problem_and_ideal_from_the_parents(cfg):
-    overall = records.overall_ids(cfg.root / cfg.overall)
+    overall = tree_ids(cfg)
     edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "problem_ids", "")
     edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "ideal_ids", "")
+    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "parent_problem_ids", "purpose-unrecorded")
+    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "parent_ideal_ids", "explicit-purpose")
     problems = check(cfg, overall=overall)
     assert not any("addresses no problem" in p or "has no ideal" in p for p in problems)
 
@@ -99,14 +106,14 @@ def test_a_policy_solution_and_the_metrics_it_governs_must_agree(cfg):
     metric_id = mrows[0]["metric_id"]
     mrows[0]["run_policy_ids"] = "greet-a-person"
     tables.write_csv(cfg.structure / "metrics.csv", mcols + ["run_policy_ids"], mrows)
-    problems = check(cfg, overall=records.overall_ids(cfg.root / cfg.overall))
+    problems = check(cfg, overall=tree_ids(cfg))
     assert any("lists run policy greet-a-person but greet-a-person does not list it in governs_metric_ids" in p for p in problems)
     srows[0]["governs_metric_ids"] = metric_id
     tables.write_csv(cfg.structure / "solutions.csv", scols + ["governs_metric_ids"], srows)
-    assert check(cfg, overall=records.overall_ids(cfg.root / cfg.overall)) == []
+    assert check(cfg, overall=tree_ids(cfg)) == []
     srows[0]["governs_metric_ids"] = "ghost"
     tables.write_csv(cfg.structure / "solutions.csv", scols + ["governs_metric_ids"], srows)
-    assert any("governs_metric_ids names 'ghost'" in p for p in check(cfg, overall=records.overall_ids(cfg.root / cfg.overall)))
+    assert any("governs_metric_ids names 'ghost'" in p for p in check(cfg, overall=tree_ids(cfg)))
 
 
 def test_implementation_records_are_matched_by_path_or_name_not_only_by_a_fixed_id(cfg):
@@ -120,8 +127,25 @@ def test_implementation_records_are_matched_by_path_or_name_not_only_by_a_fixed_
     cells, scols = tables.read_csv(solutions), tables.read_header(solutions)
     cells[0]["implementations"] += ";demo/providers.py::one;demo/providers.py::two"
     tables.write_csv(solutions, scols, cells)
-    overall = records.overall_ids(cfg.root / cfg.overall)
+    overall = tree_ids(cfg)
     assert check(cfg, overall=overall) == []   # one by path, one by `solution:name`
     cells[0]["implementations"] += ";demo/providers.py::three"
     tables.write_csv(solutions, scols, cells)
     assert any("providers.py::three has no record" in p for p in check(cfg, overall=overall))
+
+
+def test_the_retired_overall_column_is_reported_in_the_intent_layout(cfg):
+    path = cfg.structure / "solutions.csv"
+    rows, cols = tables.read_csv(path), tables.read_header(path)
+    rows[0]["overall_solution_ids"] = "project-structure"
+    tables.write_csv(path, cols + ["overall_solution_ids"], rows)
+    problems = check(cfg, overall=tree_ids(cfg), retired={"overall_solution_ids"})
+    assert any(p.startswith("R5 greet-a-person") and "retired" in p for p in problems)
+
+
+def test_a_specification_solution_needs_no_interface_fields_or_metric_command(cfg):
+    spec = next(r for r in tables.read_csv(cfg.structure / "solutions.csv") if r["metric_kind"] == "specification")
+    assert spec["parameters"] == "" and spec["solution_id"] == "project-structure"
+    assert check(cfg) == []
+    edit(cfg, "solutions.csv", "solution_id", "project-structure", "metric_kind", "eval")
+    assert any(p.startswith("R2 project-structure") for p in check(cfg))

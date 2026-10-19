@@ -3,14 +3,14 @@
   "id": "TRK-001",
   "kind": "tracker",
   "area": "freshness",
-  "description": "a tracker built from the registry is current",
+  "description": "a tracker built from the registry is current (the example's two solutions)",
   "args": {
    "edits": []
   },
   "expect": {
    "eq": {
     "stale": [],
-    "rows": 1
+    "rows": 2
    }
   }
  },
@@ -240,7 +240,7 @@
   },
   "expect": {
    "eq": {
-    "rows": 1
+    "rows": 2
    }
   }
  }

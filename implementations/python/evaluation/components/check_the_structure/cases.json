@@ -1356,7 +1356,7 @@
   "id": "CTS-056",
   "area": "repo",
   "kind": "repo",
-  "description": "a parent link that names nothing in the overall network",
+  "description": "a parent link that names nothing in the intent tree",
   "args": {
    "edits": [
     {
@@ -1364,7 +1364,7 @@
      "path": "docs/structure/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
-     "col": "overall_solution_ids",
+     "col": "parent_ideal_ids",
      "value": "ghost"
     },
     {
@@ -1374,14 +1374,14 @@
   },
   "expect": {
    "rule": "S26",
-   "contains": "not a solution of the overall network"
+   "contains": "not a ideal of the intent tree"
   }
  },
  {
   "id": "CTS-057",
   "area": "repo",
   "kind": "repo",
-  "description": "a parent problem that is not in the overall network",
+  "description": "a parent problem that is not in the intent tree",
   "args": {
    "edits": [
     {
@@ -1399,21 +1399,21 @@
   },
   "expect": {
    "rule": "S26",
-   "contains": "not a problem of the overall network"
+   "contains": "not a problem of the intent tree"
   }
  },
  {
   "id": "CTS-058",
   "area": "repo",
   "kind": "repo",
-  "description": "the overall network itself has an empty template field",
+  "description": "the top solution's own problem has an empty template field",
   "args": {
    "edits": [
     {
      "op": "csv_cell",
-     "path": "docs/structure/overall/problems.csv",
+     "path": "docs/structure/problems.csv",
      "key_col": "problem_id",
-     "key": "overall-problem",
+     "key": "purpose-unrecorded",
      "col": "who_has_it",
      "value": ""
     },
@@ -1424,7 +1424,7 @@
   },
   "expect": {
    "rule": "S26",
-   "contains": "overall network"
+   "contains": "who_has_it"
   }
  },
  {

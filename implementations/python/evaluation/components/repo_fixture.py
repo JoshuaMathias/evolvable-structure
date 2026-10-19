@@ -68,6 +68,8 @@ def baseline_repo(dest: Path) -> Path:
     root = Path(dest)
     root.mkdir(parents=True, exist_ok=True)
     scaffold.init(root, "demo", say=lambda text: None)
+    set_cell(root, "docs/structure/intent.csv", "intent_id", "demo", "name", "Consistent greetings")
+    set_cell(root, "docs/structure/intent.csv", "intent_id", "demo", "vision_statement", "Every person is greeted by their own name.")
     toml = (root / "esoi.toml").read_text().replace('layers = ["core"]', 'layers = ["core", "adapters"]')
     write(root, "esoi.toml", toml + TOML_EXTRA)
     write(root, "demo/ports.py", PORTS)

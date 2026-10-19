@@ -62,6 +62,16 @@ def check(config: Config, strict: bool = False, files: Optional[List[str]] = Non
     return bad
 
 
+LEGACY_NOTE = ("note: this repository uses the legacy two-level layout (`overall` and detailed records); the intent layout "
+               "makes intents folders and sub-intents subfolders. See docs/guides/migrate-to-intents.md in the esoi "
+               "repository, or run `esoi intent migrate`")
+
+
+def notes(config: Config) -> List[str]:
+    """Lines that are information, not violations: they never change the exit code."""
+    return [LEGACY_NOTE] if config.overall and not config.intent_mode else []
+
+
 def write_docs(config: Config, say: Callable[[str], None] = print) -> None:
     """Regenerate the generated files, then the plugins' own."""
     registry = load_registry(config)
@@ -81,6 +91,8 @@ def run_cli(config: Config, strict: bool, write: bool, say: Callable[[str], None
         write_docs(config, say)
     bad = check(config, strict)
     for line in bad:
+        say(line)
+    for line in notes(config):
         say(line)
     say(f"structure check: {'FAIL, ' + str(len(bad)) + ' problem(s)' if bad else 'ok'}")
     return 1 if bad else 0
