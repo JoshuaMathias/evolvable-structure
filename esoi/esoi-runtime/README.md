@@ -4,7 +4,7 @@ These are ESOI records (evolvable structure that optimizes intent): why this sub
 
 The esoi package is a dependency of other people's production code, which declares its alternatives gracefully and selects the best implementation while it runs.
 
-This sub-intent arises as the implementation `implementation-selection:selection-table` of its parent intent `esoi`. Opportunity: Unconfirmed: for Joshua to confirm. The Python package can become a runtime dependency inside other people's production code, not only a tool run on a repository: selection at run time, graceful declarations of alternatives (decorators, for example) and embedding without forking. That is a creative space beyond selecting an implementation by a table in one repository.
+This sub-intent arises as the implementation `implementation-selection:declarations` of its parent intent `esoi`. Opportunity: The Python package can become a runtime dependency inside other people's production code, not only a tool run on a repository: selection at run time, graceful declarations of alternatives (decorators, for example) and embedding without forking. That is a creative space beyond selecting an implementation by a table in one repository.
 
 ## Solutions
 

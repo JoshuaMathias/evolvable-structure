@@ -33,7 +33,7 @@ def test_no_em_dashes_anywhere():
 def test_no_underscore_prefixed_names_in_the_python_implementation():
     pattern = re.compile(r"\b(?:def|class)\s+_[A-Za-z]\w*|(?<![\w.])_[a-z]\w*\s*=(?!=)|\bself\._[a-z]\w*|\b\w+\._[a-z]\w*\(")
     bad = []
-    for path in PACKAGE.rglob("*.py"):
+    for path in (p for p in tracked() if p.suffix == ".py" and PACKAGE in p.parents):   # not an ignored .venv or build folder
         for number, line in enumerate(path.read_text().splitlines(), 1):
             if pattern.search(line) and not line.lstrip().startswith("#"):
                 bad.append(f"{path.relative_to(REPO)}:{number}: {line.strip()[:70]}")

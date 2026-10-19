@@ -73,7 +73,7 @@ def declared_case(args):
                 picked = runtime.choose(sid, args.get("using"))
                 found = runtime.resolve(sid, args.get("using"))
                 out = {"resolved": found.__name__, "chosen": picked.name, "layer": picked.layer,
-                       "names": runtime.names(sid), "layers": [layer for layer, _ in runtime.explain(sid, args.get("using"))]}
+                       "names": runtime.names(sid), "layers": [found[0] for found in runtime.explain(sid, args.get("using"))]}
                 if interface is not None:
                     out["interface_chosen"] = interface.chosen(args.get("using")).name
                 return out

@@ -92,3 +92,52 @@ def test_a_snapshot_stands_in_for_the_records_in_a_shipped_package(tmp_path, mon
         runtime.PROJECTS.clear()
         sys.modules.pop("shipped.mod", None)
         sys.modules.pop("shipped", None)
+
+
+def make_package(root, name, body):
+    folder = root / name
+    folder.mkdir()
+    (folder / "__init__.py").write_text("")
+    (folder / "mod.py").write_text(body)
+    return folder
+
+
+def test_two_packages_may_share_a_solution_id_and_each_reaches_its_own(tmp_path, monkeypatch):
+    head = "from esoi import implementation, register\n\n\n"
+    make_package(tmp_path, "pkg_one", head + '@implementation("t-shared", "same")\ndef same():\n    return "one"\n')
+    make_package(tmp_path, "pkg_two", head + 'class Other:\n    pass\n\n\nregister("t-shared", "same", Other)\n')
+    (tmp_path / "pkg_one" / runtime.SNAPSHOT_NAME).write_text('{"t-shared": {"default": "same", "modules": {"same": "pkg_one.mod"}}}')
+    (tmp_path / "pkg_two" / runtime.SNAPSHOT_NAME).write_text('{"t-shared": {"default": "same", "modules": {"same": "pkg_two.mod"}}}')
+    monkeypatch.delenv(runtime.ROOT_ENV, raising=False)
+    monkeypatch.syspath_prepend(str(tmp_path))
+    runtime.PROJECTS.clear()
+    try:
+        # nothing is imported yet: the scope alone finds the package, its snapshot and the module to import
+        assert runtime.resolve("t-shared", scope="pkg_one")() == "one"
+        assert runtime.resolve("t-shared", scope="pkg_two").__name__ == "Other"
+        with pytest.raises(SelectionError, match="declared by several packages"):
+            runtime.resolve("t-shared")
+        monkeypatch.setenv(runtime.env_name("t-shared", "pkg_two"), "missing")
+        with pytest.raises(SelectionError, match="named by the environment layer: ESOI_SELECT_PKG_TWO_T_SHARED"):
+            runtime.resolve("t-shared", scope="pkg_two")
+        assert runtime.resolve("t-shared", scope="pkg_one")() == "one"
+    finally:
+        runtime.forget("t-shared")
+        runtime.PROJECTS.clear()
+        for name in ("pkg_one.mod", "pkg_one", "pkg_two.mod", "pkg_two"):
+            sys.modules.pop(name, None)
+
+
+def test_an_older_variable_listed_in_the_configuration_still_selects(repo, monkeypatch):
+    toml = repo / "esoi.toml"
+    toml.write_text(toml.read_text() + '\nselection_env = { greet-a-person = "OLD_GREET" }\n')
+    monkeypatch.setenv(runtime.ROOT_ENV, str(repo))
+    runtime.PROJECTS.clear()
+    try:
+        monkeypatch.setenv("OLD_GREET", "Ghost")
+        with pytest.raises(SelectionError, match="unknown implementation 'ghost'.*environment layer: OLD_GREET"):
+            runtime.choose("greet-a-person")
+        monkeypatch.setenv(runtime.env_name("greet-a-person"), "greet")
+        assert runtime.choose("greet-a-person").source == runtime.env_name("greet-a-person")
+    finally:
+        runtime.PROJECTS.clear()

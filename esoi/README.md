@@ -62,7 +62,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 | `intent-registry` | Intent registry | csv-records-in-the-repository | Record completeness |
 | `template-sync` | Template sync | template-parser | Template agreement |
 | `ownership-map` | Ownership map | component-rows | Trace completeness |
-| `implementation-selection` | Implementation selection | selection-table | Resolution correctness |
+| `implementation-selection` | Implementation selection | declarations | Resolution correctness |
 | `measurement-harness` | Measurement harness | component-harness | Provenance completeness |
 | `leaderboard` | Leaderboard | margin-leaderboard | Ranking correctness |
 | `discriminating-cases` | Discriminating cases | broken-baselines | Case discrimination |
@@ -97,7 +97,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 | `template-sync:template-parser` | Template parser | implementations/python/esoi/template.py |  |
 | `template-sync:hand-kept-field-list` | Hand-kept field list |  |  |
 | `ownership-map:component-rows` | Component rows | implementations/python/esoi/rules/layout.py |  |
-| `implementation-selection:selection-table` | Selection table |  | [esoi-runtime](esoi-runtime/README.md) |
+| `implementation-selection:declarations` | Declarations in code |  | [esoi-runtime](esoi-runtime/README.md) |
 | `implementation-selection:entry-point-plugins` | Entry-point plugins |  |  |
 | `measurement-harness:component-harness` | Component harness | implementations/python/esoi/harness.py |  |
 | `measurement-harness:external-eval-platform` | External eval platform |  |  |

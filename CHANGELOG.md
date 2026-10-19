@@ -5,6 +5,12 @@
 Graceful declarations (declare once where the code is; derive or check the rest). See `docs/explanation/graceful-selection.md`
 and the migration steps in `docs/guides/migrate-to-intents.md`:
 
+- **Scopes, older variables and installed packages.** Two packages in one process may declare the same solution id: a
+  declaration belongs to its package, and `resolve(id, scope="pkg")` reaches that package's alone (scoped variable
+  `ESOI_SELECT_<SCOPE>_<ID>` first). A scope also tells the lookup where to start before anything is imported, and the
+  folders around a package installed into `site-packages` are not searched for records (it reads its snapshot). `selection_env`
+  in `esoi.toml` keeps an older environment variable working, named in the error. An unknown solution lists the solutions that
+  have implementations; `explain` returns where each name came from.
 - **Gentle default folder.** When `structure_dir` is not set and `esoi/` does not exist, a previous default (`docs/structure`,
   `structure`) that holds records is used, with one note suggesting `git mv docs/structure esoi`. Two folders holding records
   are never guessed between: the error names both. The same resolution serves `esoi projects` and the consumer check.

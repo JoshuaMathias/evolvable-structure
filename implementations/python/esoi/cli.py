@@ -188,8 +188,8 @@ def select_command(config, args: argparse.Namespace) -> int:
             raise
         print(f"{args.solution}: {picked.name} (chosen by the {picked.layer} layer; choices: "
               f"{', '.join(runtime.names(args.solution, environ))})")
-        for layer, value in runtime.explain(args.solution, args.name, environ):
-            print(f"  {layer}: {value}")
+        for layer, value, source in runtime.explain(args.solution, args.name, environ):
+            print(f"  {layer}: {value} ({source})")
         return 0
     except (ValueError, OSError, ImportError, AttributeError) as exc:   # unknown solution or name, table cannot load
         print(f"esoi: {exc}", file=sys.stderr)

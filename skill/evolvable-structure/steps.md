@@ -47,11 +47,13 @@ doesn't settle them alone. An AI can carry out every other step and report it.
 
 ## Part 3: Define the solutions and how they are judged
 
-11. **Write the solutions, top first.** Fill in the top solution, then give a part its own solution only where it has
-    a different definition of best that could change the outcome. Make an implementation of a solution a sub-intent (a
-    container of its own) only if it brings an opportunity that does not emerge from the parent intent or the solution
-    it implements, and it pays for itself before the milestone named in step 1 (2). Risks and uncertainties alone do not
-    justify one: they go in the implementation's disadvantages or the solution's metric. Where a solution elsewhere
+11. **Write the solutions, top first.** Fill in the top solution, then give a part its own solution if and only if it
+    has a different definition of best that could impact the success of the intent. SKILL.md recommends specifying an implementation as a
+    sub-intent (a container of its own) "if and only if that intent brings insights on opportunities that don't emerge
+    directly from the parent intent or solution that the sub-intent is implementing" (2). Also consider practicality:
+    whether the resources to create and maintain it outweigh the benefit of defining it, within the timeframe up to the
+    next highest priority milestone (step 1). Risks and uncertainties alone do not justify one: "Risks are addressed by
+    considering disadvantages of Implementations and Metrics, uncertainties are addressed by Metrics". Where a solution elsewhere
     already serves a need, record that the implementation builds on it. Each Solution record names its problems and ideals, its scoped purpose (including what it
     deliberately avoids), goals, knowledge and measures of success. Before writing a new one, check whether an existing
     solution elsewhere already serves it (8, 9).

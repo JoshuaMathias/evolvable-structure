@@ -60,6 +60,21 @@ The project default is read from the records, so the choice is made once, where 
 second time in code. An unknown name raises `SelectionError` listing the choices and the layer that supplied the bad name, so a
 typo fails loudly. `esoi select greet-a-person` prints what would run and which layer chose it.
 
+**Two packages, one id.** Two projects in one process may each have a solution with the same id (every project can have a
+`call-a-model`). A declaration belongs to the top-level package of the module that declares it, its scope, and a call that
+names the scope reaches that package's declarations alone: `esoi.resolve("call-a-model", scope="mylib")`. A package puts that
+call in its own small wrapper, so its callers never see the scope. An implementation that serves another package's solution
+names that package: `@implementation("call-a-model", "mine", scope="mylib")`, or `register(..., scope="mylib")`. Without `scope` the id must be declared by one package, or
+the call fails and says which. A scope also tells the lookup where to start before anything is imported (the package's own
+folder), and a scoped solution reads `ESOI_SELECT_<SCOPE>_<SOLUTION_ID>` before the plain variable, so two packages that share
+an id can be switched apart. The folders around a package installed into `site-packages` are never searched for records,
+because they belong to whatever installed it; such a package ships the snapshot below.
+
+**An older variable.** A project that already reads its own environment variable for a choice lists it in `esoi.toml` under
+`selection_env` (`store-the-graph = "GRAPH_STORE"`, or a list of names). It is read after the `ESOI_SELECT_` variables, in the
+same environment layer, and an unknown value names the variable in the error. Use it only where deployed configuration still
+sets the old name; remove the entry when it no longer does.
+
 A package installed without its records reads `esoi_selection.json` beside its top package instead; `esoi select --snapshot
 esoi_selection.json` writes it from the records, with the module of each implementation, so the lazy import still works.
 

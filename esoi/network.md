@@ -13,7 +13,7 @@ prose view.
 ```text
 esoi/                            top intent esoi: Evolvable structure that optimizes intent (ESOI)
   intent.csv  problems.csv  ideals.csv  solutions.csv  implementations.csv  metrics.csv
-  esoi-runtime/                  sub-intent esoi-runtime, implements implementation-selection:selection-table
+  esoi-runtime/                  sub-intent esoi-runtime, implements implementation-selection:declarations
 ```
 
 Hierarchy is only between intents, and a sub-intent is not a direct child of its parent intent: it arises as an
@@ -48,14 +48,14 @@ intents as folders is the selected implementation of the `intent-registry` solut
 
 ### Sub-intent `esoi-runtime` (folder `esoi-runtime/`)
 
-- **Arises as:** the `selection-table` implementation of `implementation-selection`.
-- **Opportunity that justifies it (unconfirmed: for Joshua to confirm):** the Python package can become a runtime
+- **Arises as:** the `declarations` implementation of `implementation-selection`.
+- **Opportunity that justifies it:** the Python package can become a runtime
   dependency inside other people's production code, not only a tool run on a repository: selection at run time, graceful
   declarations of alternatives (decorators, for example) and embedding without forking. That is a creative space beyond
   selecting an implementation by a table in one repository, and it does not emerge from the parent intent (applying ESOI to a
   project) or from the solution it implements (switching which implementation serves a solution).
 - **Holds:** one solution, `runtime-selection` (the selector in `esoi/select.py`, with its cases), which
-  `implementation-selection:selection-table` builds on. Nothing is claimed for decorators or embedding beyond that yet.
+  `implementation-selection:declarations` builds on. It also carries the scope of a declaration (two projects may share a solution id) and the older environment variables a project may keep reading.
 
 ### Retired in 2026-10
 
@@ -310,10 +310,10 @@ The records below were first written as prose; they are kept as a reading view o
 - **Knowledge:** Ports and adapters; plugin registries; lazy loading of optional dependencies.
 - **Measures of Success:** Every switch works from configuration alone and no typo falls back silently.
 - **Parameters:** Solution id, implementation name, configuration overrides.
-- **Inputs:** The selection table.
+- **Inputs:** The implementations declared in code and the records.
 - **Outputs:** The chosen implementation's class and its configuration type.
 - **Effects (other than outputs):** Imports the chosen implementation lazily.
-- **Other information on when and how to use the solution:** Every solution with a port has a table entry whose default equals the measured winner or a declared tie.
+- **Other information on when and how to use the solution:** Every swappable solution has declared implementations and a selected cell whose value equals the measured winner or a declared tie.
 - **Addresses:** PR4, PR2
 - **Pursues:** ID4, ID2
 
@@ -473,11 +473,11 @@ The records below were first written as prose; they are kept as a reading view o
 - **Disadvantages:** Globs need upkeep as files move.
 - **Implements:** SO3
 
-### IM7 Data table and resolver (Implementation selection, selected)
-- **Name:** Selection table
-- **Description:** A pure-data table lists each solution's implementations and default; a resolver turns a name, an override or the default into the class, loading it lazily.
-- **Advantages:** No logic at call sites, optional dependencies load only when chosen, typos fail with the choices.
-- **Disadvantages:** One more indirection to follow when reading code.
+### IM7 Declarations in code (Implementation selection, selected)
+- **Name:** Declarations in code
+- **Description:** Each implementation is declared where its code is, and the records list the same implementations with the path of their module, so there is no second list to keep. A call runs the implementation one cascade chooses, importing it lazily. A hand-written selection table still works underneath.
+- **Advantages:** No logic at call sites and no hand-kept table, optional dependencies load only when chosen, typos fail with the choices, and a switch is data in the layer that should decide it.
+- **Disadvantages:** Declaring needs the esoi package at run time, and the module of an implementation must be named in its record so it can be imported when chosen.
 - **Implements:** SO4
 
 ### IM8 Package entry points (Implementation selection, alternative)
@@ -536,10 +536,10 @@ The records below were first written as prose; they are kept as a reading view o
 - **Disadvantages:** The consumer must keep its registry in the library's shape.
 - **Implements:** SO10
 
-### IM16 STANDARD.md (The standard, selected)
+### IM16 The standard documents (The standard, selected)
 - **Name:** Standard document
-- **Description:** `esoi/STANDARD.md` gives the shape of a solution end to end and the adoption steps.
-- **Advantages:** One short document to read first.
+- **Description:** `docs/explanation/intent-types.md` gives the shape of a solution and the other four record types, and `docs/guides/apply-with-tools.md` the steps to adopt them; `esoi rules` lists what is checked.
+- **Advantages:** Two short documents to read first.
 - **Disadvantages:** Prose can drift from the rules unless updated with them.
 - **Implements:** SO11
 
