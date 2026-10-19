@@ -109,7 +109,7 @@ def run(ctx: Context) -> List[str]:
         bad.append(f"S7 {p}: port is listed in the `port` cell of no solutions.csv row (add it to the row of the "
                    "solution it serves; a port needs no row of its own)")
 
-    sol_ids = {r["solution_id"] for r in ctx.solutions}
+    sol_ids = {r["solution_id"] for r in ctx.every_solution()}   # a component may serve a specification solution too
     for r in ctx.solutions:
         sid, kind = r["solution_id"], r.get("metric_kind", "").strip()
         if kind not in SOLUTION_KINDS:

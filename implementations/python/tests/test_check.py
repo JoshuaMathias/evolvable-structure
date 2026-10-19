@@ -298,3 +298,11 @@ def test_a_waiver_for_a_strict_only_problem_is_not_unused_outside_strict_mode(cf
         dict(rule="S20", path="greet-a-person:shout", reason="Fixed baseline.")])
     assert check.check(cfg) == []
     assert check.check(cfg, strict=True) == []
+
+
+def test_a_component_may_serve_a_specification_solution(cfg):
+    rows = tables.read_csv(cfg.structure / "components.csv")
+    rows[0]["solutions"] += ";project-structure"
+    tables.write_csv(cfg.structure / "components.csv", ["component_id", "layer", "path", "role", "solutions"], rows)
+    check.write_docs(cfg, say=lambda text: None)
+    assert not any(line.startswith("S11") for line in check.check(cfg))
