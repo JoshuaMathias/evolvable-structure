@@ -54,7 +54,7 @@ solution, implementation and metric in code. **GEPA** ([paper](https://arxiv.org
 reflecting on trajectories and keeping a Pareto frontier. **TextGrad** ([paper](https://arxiv.org/abs/2406.07496))
 propagates natural-language feedback to improve components, and **EvoPrompt**
 ([paper](https://arxiv.org/abs/2309.08532)) evolves prompt populations scored on a development set. All of these search
-the implementation space of one given interface. They do not record the problem or the ideal, do not say when to split an
+the implementation space of one given interface. They do not record the problem or the ideal, do not say when to create a separate solution or a sub-intent for an
 interface, and do not make the metric itself a replaceable solution. ESOI could borrow Pareto selection when two ideals
 (cost and accuracy) pull apart, instead of forcing one number.
 
@@ -96,7 +96,7 @@ sells routers trained on a customer's own evals (its savings figures are marketi
 configuration steady long enough for a statistically meaningful comparison.
 
 This is automatic selection by metric, but per request. ESOI selects one implementation per solution from a recorded
-comparison, and routing shows when "best" varies by input, which is the split test in [when-to-split.md](when-to-split.md).
+comparison, and routing shows when "best" varies by input, which is the test for a separate solution in [when-to-create-a-sub-intent.md](when-to-create-a-sub-intent.md).
 ESOI could borrow the router as a fourth kind of selection and the toggle rule to leave a configuration alone while it is
 measured.
 
@@ -125,7 +125,7 @@ metric cannot measure.
 | DSPy, GEPA | Solution, Implementation, Metric | Interface, metric-chosen implementation | No problems or ideals, fixed metric | Pareto selection |
 | Inspect, Promptfoo, evals guides | Metric | Cases, scorers, graders | No selection or ownership | Graduation to regression, saturation |
 | AlphaEvolve, DGM, ADAS, AFlow | Implementation, Metric | Evaluator-selected variants, archive | Intent unrecorded, evaluator trusted | Keep losers as an archive |
-| RouteLLM, toggles | Principle 4, when to split | Automatic choice by metric | Per request, not per solution | Router arm, frozen config while measured |
+| RouteLLM, toggles | Principle 4, separate solutions | Automatic choice by metric | Per request, not per solution | Router arm, frozen config while measured |
 | NIST AI RMF, scalable oversight | Principles 4, 6, 7 | Humans at the measurement level | Risk focus, not progress | Record the unmeasurable |
 
 ## What ESOI adds

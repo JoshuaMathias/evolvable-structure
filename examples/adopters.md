@@ -8,7 +8,7 @@ this repository depends on them.
 An open-source library that runs AI tasks and chat for a product. It was the first repository to apply ESOI end to end, and
 the tools in `implementations/python/` were extracted from what it had built: a registry of components and solutions, an
 evaluation component per solution with recorded runs, a leaderboard that selects implementations, and a check that runs in
-its tests. Its detailed records link up to an overall network it wrote separately. It keeps a small rule of its own (for
+its tests. It uses the older two-level layout (an overall network plus detailed records), which still loads and can be migrated to intents. It keeps a small rule of its own (for
 environment variables) as a plugin, which is the intended use of the plugin interface.
 It also wrote the first cases for measuring whether an AI agent acts by the principles, with a model judge scored against
 labelled replies; the generic version of both is in [esoi-for-ai.md](../docs/explanation/esoi-for-ai.md).
@@ -21,5 +21,5 @@ the library fails a normal test run.
 
 ## Adding yours
 
-Open an issue with a paragraph or two: what you applied it to, what the overall network said, and what changed once a metric
+Open an issue with a paragraph or two: what you applied it to, what the intent's vision statement and problems said, and what changed once a metric
 chose between alternatives. Failures are as useful as successes.

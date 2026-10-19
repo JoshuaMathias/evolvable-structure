@@ -23,6 +23,20 @@ ideal; every ideal opposes at least one problem; every solution has one or more 
 metric. The mapping is not one-to-one in either direction: one problem can need several solutions, and one solution can
 address several problems.
 
+## Intents and the web of dependencies
+
+The records above all live inside one intent, a folder. Two more links cross the boundaries between intents:
+
+| Where | Link | Meaning |
+|---|---|---|
+| Sub-intent's `intent.csv` | `implements` | The implementation, in the parent intent, that it arises from |
+| Implementation | `sub_intent` | The sub-intent that implementation is specified as (it must name the implementation back) |
+| Implementation | `uses_solution_ids` | The solutions, in any intent, whose interfaces it builds on |
+
+Ids are unique across the whole tree, so a link can name a record anywhere. Hierarchy is only between intents; the
+dependencies between solutions form a web, which solution abstractions, alternative implementations and metrics keep
+safe. See [intents-and-sub-intents.md](intents-and-sub-intents.md).
+
 ## Placement
 
 A second map answers a different question: which files serve which solution. It is a table of components, each with a

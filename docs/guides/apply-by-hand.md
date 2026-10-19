@@ -8,20 +8,23 @@ This guide is a short first pass through [the steps](../../skill/evolvable-struc
 20 to 23. It leaves out step 15 (review from other perspectives), so do that before relying on the result. When you
 have more than an hour, follow the steps themselves.
 
-## 1. Write the overall network (about twenty minutes)
+## 1. Write the intent (about twenty minutes)
 
-Copy [overall-solution-network.md](../templates/overall-solution-network.md). Write one to three problems and ideals, one
-overall solution with a few areas, the alternatives to it as a whole, and one or two top metrics. Use short ids such as
-`prob-slow-reports` and `ideal-fast-answers`.
+Copy [intent.md](../templates/intent.md) and give the intent a name and a vision statement in present tense ("The
+world is ..."). Then write one to three problems and ideals, one top solution that everything falls under, the
+alternative ways of carrying it out as implementations, and one or two metrics. Use short ids such as `prob-slow-reports`
+and `ideal-fast-answers`. Keep them together in one folder: the folder is the intent.
 
 ## 2. Write the first detailed solution (about twenty minutes)
 
-Start coarse, and split a solution only when [both tests](../explanation/when-to-split.md) hold.
+Start coarse. Give a part its own solution only when it has a different definition of best that could impact the success of
+the intent, and a sub-intent only for an opportunity (see [when-to-create-a-sub-intent.md](../explanation/when-to-create-a-sub-intent.md)).
 
 Pick one part of the work. Copy [solution.md](../templates/solution.md) and answer every question. Copy
 [problem.md](../templates/problem.md), [ideal.md](../templates/ideal.md), [implementation.md](../templates/implementation.md)
 and [metric.md](../templates/metric.md) as needed, once per record. Link them: the solution names its problems, ideals,
-metric and implementations, and each of those names the solution back. Name the parent in the overall network.
+metric and implementations, and each of those names the solution back. If the part builds on a solution somewhere else,
+write that solution's id on the implementation.
 
 ## 3. Make the metric real (about twenty minutes)
 
@@ -38,7 +41,7 @@ keeping it anyway until a named decision. Put that in `selected` and `selected_b
 ## 5. Make it a habit
 
 - Add a row to the results table each time an implementation or the cases change.
-- Review the overall network when direction changes, and the results when something is rerun.
+- Review the intent's vision statement, problems and ideals when direction changes, and the results when something is rerun.
 - Use [review-sheet.md](../templates/review-sheet.md) to lay the records out as a spreadsheet for someone else to review.
 - Copy [repository-standard.md](../templates/repository-standard.md) once the shape has settled, and keep it short.
 

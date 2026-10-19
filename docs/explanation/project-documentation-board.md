@@ -20,9 +20,9 @@ card in a Documentation list, so the structure documents itself.
 | Solution Definitions | What a part must do, its goals, knowledge and measures of success; a software version adds parameters, inputs, outputs and effects | [Solution](../templates/solution.md), with the same fields and interface |
 | Possible Implementations | "Every implementation has only one definition, while a definition could have many implementations which are mutually exclusive alternatives" | [Implementation](../templates/implementation.md): description, advantages, disadvantages |
 | Metric Definitions and Metric Implementations | "A metric can itself be a definition with a specific goal that could be implemented in different ways" | [Metric](../templates/metric.md), and the note that metrics can also be solutions |
-| Foundation (principles, dependencies, target audience) | What applies to the whole project, with solutions adding their own | The overall solution network, and settings inherited inward |
+| Foundation (principles, dependencies, target audience) | What applies to the whole project, with solutions adding their own | The top intent (its name, vision statement and top solution), and settings inherited inward |
 | Knowledge | Sources and tools, each linked to the parts of the project it affects | The Solution's Knowledge field |
-| Difficulties | What may make the project hard, including missing knowledge or needed approval | Difficulties noted on solutions and in the overall network |
+| Difficulties | What may make the project hard, including missing knowledge or needed approval | Difficulties noted on solutions and in the intent's problems |
 
 ## What carried over
 
@@ -33,8 +33,8 @@ card in a Documentation list, so the structure documents itself.
   specified metrics for the Definition." This became principle 4.
 - **Measures of success compare alternatives.** A definition's measure is "a way to know whether one implementation is
   better than another in achieving the Definition's goals."
-- **Recursion.** Sub-components of an implementation are themselves definitions with alternatives, which is how
-  [sub-solutions](when-to-split.md) nest.
+- **Recursion.** Sub-components of an implementation are themselves definitions with alternatives. ESOI today carries this as
+  [sub-intents](when-to-create-a-sub-intent.md): an implementation of a solution can be specified as an intent of its own.
 - **An order to follow.** The board's "Steps to project completion" checklist is the starting point for
   [the ESOI steps](../../skill/evolvable-structure/steps.md), which say what was kept and what changed.
 - **The loop does not end.** The board's last step reads "You're done! Or, keep improving, adjusting any problems, goals,

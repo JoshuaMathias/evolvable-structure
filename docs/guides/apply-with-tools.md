@@ -22,17 +22,18 @@ esoi check --strict
 esoi leaderboard
 ```
 
-Rename the example's parts, replace its text with your own intent, and keep running `esoi check`. The example includes an
-overall network and detailed records that link up to it.
+Rename the example's parts, replace its text with your own intent, and keep running `esoi check`. The example is a top intent (a folder with an `intent.csv`) and its records.
 
 ## An existing repository
 
 1. Write `esoi.toml` at the root (see the [configuration reference](../../implementations/python/docs/configuration.md)):
    at least the package name and its layers.
 2. Write `components.csv` first: every file in exactly one component. `esoi check` names the files that are not.
-3. Write the overall network, then the detailed solutions, with a gap noted where no metric exists yet. Problems and
-   solutions need not pair up: a problem can need several solutions, and a solution can address several problems. Split a
-   solution only as [when-to-split.md](../explanation/when-to-split.md) describes.
+3. Write the top intent (`intent.csv`: name and vision statement), then its solutions, with a gap noted where no metric
+   exists yet. Problems and solutions need not pair up: a problem can need several solutions, and a solution can address
+   several problems. Create a sub-intent only as
+   [when-to-create-a-sub-intent.md](../explanation/when-to-create-a-sub-intent.md) describes. A repository that still
+   uses the two-level overall layout is loaded as before; see [migrate-to-intents.md](migrate-to-intents.md).
 4. Turn gaps into evaluation components one at a time (`evaluation/components/<name>/` with cases, a scorer and
    implementations), and record a run for each with `esoi run <component> --impl <name> --record`.
 5. Keep the rules that fit. Switch off those that do not (`disable = [...]`), and record a justified exception as a waiver
@@ -92,4 +93,5 @@ tells you whether they are stale; a new field appears as a missing column in you
 | `esoi consumer check` | Checks a repository that builds on a library |
 | `esoi hygiene [--history]` | Scans for secrets and private data before a public push (a folder that is not a git checkout is walked; `[hygiene.patterns]` adds your own secret shapes) |
 | `esoi select <solution>` | Shows what a selection table resolves |
+| `esoi projects init\|add\|list\|check\|index\|where` | Keeps a local index of the projects ESOI is applied to ([local-index.md](../explanation/local-index.md)) |
 | `esoi init` | Writes the passing example |

@@ -1,7 +1,7 @@
 # Evolvable Structure that Optimizes Intent (ESOI)
 
 ESOI is Joshua Mathias's way to make sure what you intend actually happens, and keeps getting better. You put your
-intent into words as a few short kinds of record (the problem, the ideal you want, the solution, the ways of doing it,
+intent into words (a name and a vision) and a few short kinds of record (the problem, the ideal you want, the solution, the ways of doing it,
 and how to measure them), try more than one way, and let a measurement pick the best. The structure stays steady while
 the ways of doing things improve, and it changes with you when your intent does.
 
@@ -46,7 +46,7 @@ its core; Google Sheets sync is an optional extra (`esoi[sheets]`).
 | [`skill/`](skill/) | The author's `evolvable-structure` skill as a self-contained folder and Claude Code plugin, generated from his own skill |
 | [`implementations/python/`](implementations/python/) | The `esoi` package and command: checks, measuring, a leaderboard, a review tracker. One example implementation |
 | [`examples/`](examples/) | Repositories that adopted ESOI, as short testimonials |
-| [`structure/`](structure/) | ESOI applied to this repository: its overall network and its detailed records |
+| [`structure/`](structure/) | ESOI applied to this repository: its top intent and its records |
 
 ## Contributing and licence
 

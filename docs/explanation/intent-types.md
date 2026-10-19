@@ -1,8 +1,18 @@
-# The five intent types
+# Intents and the five specification types
 
-ESOI writes intent as five kinds of record: **problems**, **ideals**, **solutions**, **implementations** and
-**metrics**. Each is defined, with the questions a record must answer, in the author's own words. Those words are not
-repeated here: open the template for the type you need.
+An **intent** is the container: a meaningful set of specifications with a name and a vision statement (what it is
+manifesting, in present tense). See [intents-and-sub-intents.md](intents-and-sub-intents.md) and the
+[intent template](../templates/intent.md). Inside it, ESOI writes the intent as five kinds of record: **problems**,
+**ideals**, **solutions**, **implementations** and **metrics**. Each is defined, with the questions a record must answer,
+in the author's own words. Those words are not repeated here: open the template for the type you need.
+
+An intent brings insights on risks, uncertainties and opportunities. The author's definition maps them to the types:
+
+> Risks are addressed by considering disadvantages of Implementations and Metrics, uncertainties are addressed by
+> Metrics, and opportunities are addressed by Solutions.
+
+That mapping is also why a part becomes a sub-intent only for an opportunity (see
+[when-to-create-a-sub-intent.md](when-to-create-a-sub-intent.md)).
 
 | Type | Template | Answers |
 |---|---|---|
@@ -19,7 +29,8 @@ connects to. The definitions of intent, evolvable, structure and the rest are in
 
 ## Habits that make records useful
 
-- **Split a solution only when best differs and it matters.** See [when-to-split.md](when-to-split.md).
+- **Give a part its own solution only when best differs and it matters, and its own sub-intent only for an opportunity.** See
+  [when-to-create-a-sub-intent.md](when-to-create-a-sub-intent.md).
 - **Give every record a short, stable id.** Other records link to it, so renaming it is a change to many files.
 - **Fill every field.** A field you cannot answer is a gap worth knowing about. Put it in the `gap` of the solution
   rather than leaving it blank.

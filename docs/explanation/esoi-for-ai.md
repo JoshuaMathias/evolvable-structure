@@ -1,9 +1,9 @@
 # ESOI applied to AI behaviour
 
 The author's skill says it is not only for code: its description names "general improvements to how AI behaves, builds,
-and implements business offerings to reflect Joshua's principles". Applying ESOI to an AI agent's behaviour is therefore a
-sub-solution of ESOI itself, with the same five record types. This page says how each part maps; the records are
-`esoi-for-ai` and `esoi-behaviour-judge` in [structure/overall/](../../structure/overall/).
+and implements business offerings to reflect Joshua's principles". Applying ESOI to an AI agent's behaviour is therefore an
+intent of its own within ESOI (a sub-intent, arising as an implementation of ESOI's solution for guiding agents), with the same five record types. This page says how each part maps; the records are
+`esoi-for-ai` and `esoi-behaviour-judge` in [structure/](../../structure/).
 
 ## The problem is behaviour that nobody can see drifting
 
@@ -39,9 +39,9 @@ Three kinds of case matter, and a set that has only the first would reward addin
   disadvantages of the particular structure don't outweigh the advantages", and a typo is not a framework.
 - **Nuance:** the right reply keeps a qualifier. Principle 4 reads "Humans need only review metrics, not implementations
   (but they can still add value to implementations)", and a reply that drops the parenthesis, or that demands a review of
-  every implementation, fails. The same holds for a split, which needs a different definition of best that "could impact
-  the success of the intent" and has to pay for itself within the timeframe the larger solution prioritizes (see
-  [when-to-split.md](when-to-split.md)), and for a problem, which is "a challenge, difficulty, or description of how an
+  every implementation, fails. The same holds for a separate solution, which needs a different definition of best that "could impact
+  the success of the intent", and for a sub-intent, which needs an opportunity and has to pay for itself within the
+  timeframe the larger solution prioritizes (see [when-to-create-a-sub-intent.md](when-to-create-a-sub-intent.md)), and for a problem, which is "a challenge, difficulty, or description of how an
   ideal is not reached", not a task.
 
 The arms that call a model are the skill as standing instructions, the skill on request, and no skill at all as the floor.
@@ -52,7 +52,7 @@ the author's approval (see [when-metrics-are-run.md](when-metrics-are-run.md)). 
 
 Patterns cannot tell a reply that acts well in other words from one that only uses the right words, so a model can grade
 instead, against the case's expected behaviour and failure mode, with the patterns as a prefilter. That judge is its own
-solution. Applying the tests in [when-to-split.md](when-to-split.md): its best is agreement with a human verdict, where
+solution. Applying the tests in [when-to-create-a-sub-intent.md](when-to-create-a-sub-intent.md): its best is agreement with a human verdict, where
 the behaviour's best is acting by the principles, so the two would choose different implementations; the difference
 affects the intent, because a judge that likes the wrong things makes the behaviour metric steer the wrong way; and the
 split pays for itself within the timeframe, because the judge is needed before any live behaviour number can be trusted.

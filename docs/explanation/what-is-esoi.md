@@ -26,8 +26,8 @@ rule, and it will change if a principle ever needs splitting or merging.
 
 This is the short version. The full order, step by step, is in [the steps](../../skill/evolvable-structure/steps.md).
 
-1. **Say why.** Write the problem someone has and the ideal state that opposes it. See
-   [intent-types.md](intent-types.md).
+1. **Say why.** Name the intent and its vision statement, then write the problem someone has and the ideal state that
+   opposes it. See [intent-types.md](intent-types.md).
 2. **Say what.** Write a solution: what it is for, what it must do, how you will know it works, and its interface.
    The solution does not say how.
 3. **Build alternatives.** Each way of doing it is an implementation. Having a second one is what makes a choice
@@ -38,7 +38,9 @@ This is the short version. The full order, step by step, is in [the steps](../..
 5. **Choose and review.** The best implementation by the authoritative metric is used automatically. To steer, people
    need only review the problems, ideals, metrics and results, not the implementations. They can still read, review
    and improve an implementation, and that still adds value; what changes is that choosing no longer depends on it.
-6. **Evolve.** When the intent changes, or a better implementation appears, or the metric turns out to be wrong, change
+6. **Grow by intents.** A part that brings its own opportunity becomes a sub-intent: a container of its own, arising
+   as an implementation of a solution. See [intents-and-sub-intents.md](intents-and-sub-intents.md).
+7. **Evolve.** When the intent changes, or a better implementation appears, or the metric turns out to be wrong, change
    the record and run the loop again. The structure is itself a solution with its own records.
 
 ## Where it applies
@@ -50,6 +52,6 @@ and how well an agent acts by them can be measured. See [esoi-for-ai.md](esoi-fo
 
 ## What a small start looks like
 
-One problem, one ideal, one solution with two implementations, one metric with a handful of cases. The
+One intent (a name and a vision statement), one problem, one ideal, one solution with two implementations, one metric with a handful of cases. The
 [guide for applying it by hand](../guides/apply-by-hand.md) takes about an hour, and everything after that is
 adding to it when the work asks for it.

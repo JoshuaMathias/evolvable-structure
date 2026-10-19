@@ -17,10 +17,12 @@ a team process, a personal schedule.
 
 ## Understand it
 
-- [The five intent types](explanation/intent-types.md): problems, ideals, solutions, implementations and metrics.
+- [Intents and the five specification types](explanation/intent-types.md): an intent as the container; problems, ideals,
+  solutions, implementations and metrics.
 - [How the records connect](explanation/how-they-connect.md)
-- [The overall network and the detailed records](explanation/overall-and-detailed.md)
-- [When to split a solution into sub-solutions](explanation/when-to-split.md)
+- [Intents and sub-intents](explanation/intents-and-sub-intents.md): the hierarchy, and the legacy two-level layout.
+- [When to create a sub-intent](explanation/when-to-create-a-sub-intent.md)
+- [The local ESOI index](explanation/local-index.md): where ESOI is applied on a machine.
 - [Choosing by metric](explanation/choosing-by-metric.md)
 - [When metrics are run](explanation/when-metrics-are-run.md): when to run each metric and who approves the spend.
 
@@ -34,7 +36,7 @@ a team process, a personal schedule.
 - [All templates](templates/README.md): what each one is for.
 - [Problem](templates/problem.md), [Ideal](templates/ideal.md), [Solution](templates/solution.md),
   [Implementation](templates/implementation.md) and [Metric](templates/metric.md)
-- [Overall solution network](templates/overall-solution-network.md)
+- [Intent](templates/intent.md)
 - [Repository standard](templates/repository-standard.md)
 - [Review sheet layout](templates/review-sheet.md)
 - [Metric run policy](templates/metric-run-policy.md)
@@ -43,6 +45,7 @@ a team process, a personal schedule.
 
 - [Apply ESOI by hand](guides/apply-by-hand.md)
 - [Apply ESOI with the Python tools](guides/apply-with-tools.md)
+- [Migrate to intents](guides/migrate-to-intents.md): from the two-level overall layout.
 - [Install the skill](guides/install-the-skill.md): give an AI agent the principles.
 
 ## Background
