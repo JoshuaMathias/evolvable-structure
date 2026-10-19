@@ -25,6 +25,11 @@ counts and a spend tolerance when no model was called; a pass-rate margin and a 
 was, because sampled, model-judged runs move between re-runs. A component folder may carry ``noise.json`` such as
 ``{"pass_margin": 0.15, "spend_tolerance": 0.2}`` (its own measured re-run swing).
 
+An arm that meters a deterministic stand-in for a model (``SIMULATED = True``, recorded as model ``simulated``) has
+a known cost of 0.0, is not a sampled run, and is compared on model calls: a calls figure is set against another
+calls figure only, never against dollars or tokens, so a known $0 baseline is not called cheaper than an arm whose
+cost is merely unknown.
+
 Functions that look at implementation files take ``eval_dir`` (the folder of component folders); without it they
 rank rows only.
 """
@@ -197,14 +202,21 @@ def is_ablation(row: Row, eval_dir: Optional[Path] = None) -> bool:
     return arm_kind(row, eval_dir) in NOT_RIVALS
 
 
+SIMULATED = "simulated"
 COST_TIE_TOLERANCE = 0.10        # spend within 10% is a tie for deterministic runs: noise must not flip a selection
 SAMPLED_PASS_MARGIN = 0.10       # sampled, model-judged runs: pass rates within 10 percentage points are a tie
 SAMPLED_SPEND_TOLERANCE = 0.15   # and spend within 15% is a tie
 
 
+def is_simulated(row: Row) -> bool:
+    """A run of an arm that declared itself a deterministic stand-in for a model (model ``simulated``)."""
+    return (row.get("model") or "").strip() == SIMULATED
+
+
 def is_sampled(row: Row) -> bool:
-    """A run that called a model: its pass rate and tokens move between re-runs of the same code."""
-    return int(float(row.get("model_calls") or 0)) > 0
+    """A run that called a model: its pass rate and tokens move between re-runs of the same code. A simulated run
+    counts the calls a model would make but is deterministic."""
+    return int(float(row.get("model_calls") or 0)) > 0 and not is_simulated(row)
 
 
 def noise(row: Row, other: Row, eval_dir: Optional[Path] = None) -> Tuple[float, float]:
@@ -223,15 +235,23 @@ def noise(row: Row, other: Row, eval_dir: Optional[Path] = None) -> Tuple[float,
 
 
 def spend(row: Row) -> Tuple[str, float]:
-    """What a run consumed: tokens when the run reports them (dollars swing with caching), else the dollars."""
+    """What a run consumed: tokens when the run reports them (dollars swing with caching), else a recorded dollar cost
+    above zero, else the model calls it made (a simulated arm, or a run whose price was never known), else zero."""
     tokens = float(row.get("tokens_in") or 0) + float(row.get("tokens_out") or 0)
-    return ("tokens", tokens) if tokens > 0 else ("usd", dollars(row))
+    if tokens > 0:
+        return "tokens", tokens
+    if cost_known(row) and float(row["cost_usd"]) > 0:
+        return "usd", float(row["cost_usd"])
+    calls = float(row.get("model_calls") or 0)
+    return ("calls", calls) if calls > 0 else ("usd", dollars(row))
 
 
 def clearly_cheaper(row: Row, other: Row, eval_dir: Optional[Path] = None) -> bool:
     """True when ``row`` spent more than the spend tolerance less than ``other``, in the same unit."""
     (unit, mine), (other_unit, theirs) = spend(row), spend(other)
     if unit != other_unit:
+        if "calls" in (unit, other_unit):
+            return False   # calls are compared with calls only: an unknown or simulated cost is not more than a known $0
         unit, (mine, theirs) = "usd", (dollars(row), dollars(other))
     return mine < theirs * (1 - noise(row, other, eval_dir)[1])
 

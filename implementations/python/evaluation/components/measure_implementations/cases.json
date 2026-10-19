@@ -421,5 +421,67 @@
     "stale_outside_strict": false
    }
   }
+ },
+ {
+  "id": "MSR-025",
+  "kind": "cost",
+  "area": "cost",
+  "description": "a simulated run costs zero though it called a model",
+  "args": {
+   "model": "simulated",
+   "model_calls": 3
+  },
+  "expect": {
+   "eq": {
+    "cost_usd": "0.0"
+   }
+  }
+ },
+ {
+  "id": "MSR-026",
+  "kind": "simulated",
+  "area": "simulated",
+  "description": "an arm declaring SIMULATED = True records model simulated and cost 0.0, and is not paid",
+  "args": {
+   "declares": true
+  },
+  "expect": {
+   "eq": {
+    "model": "simulated",
+    "cost_usd": "0.0",
+    "model_calls": 3,
+    "paid": false
+   }
+  }
+ },
+ {
+  "id": "MSR-027",
+  "kind": "simulated",
+  "area": "simulated",
+  "description": "an offline stand-in that does not declare itself stays unknown cost and is treated as paid (never inferred free)",
+  "args": {},
+  "expect": {
+   "eq": {
+    "model": "unknown",
+    "cost_usd": "",
+    "model_calls": 3,
+    "paid": true
+   }
+  }
+ },
+ {
+  "id": "MSR-028",
+  "kind": "simulated",
+  "area": "simulated",
+  "description": "an arm declaring both PAID and SIMULATED is paid",
+  "args": {
+   "declares": true,
+   "also_paid": true
+  },
+  "expect": {
+   "eq": {
+    "paid": true
+   }
+  }
  }
 ]

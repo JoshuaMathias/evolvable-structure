@@ -14,6 +14,13 @@ the repository. ``esoi run <component> --impl <name>`` drives it:
     code has uncommitted changes) and ``cases_sha`` (a hash of the case files), the provenance the leaderboard
     and the check (rules S16, S20) rely on, and ``sample`` (``sample:N`` for ``--sample N``, ``only:ids`` for
     ``--only``, blank for the full set), so the leaderboard compares arms only on the same cases.
+  * an implementation needs no ``impls/<name>.py`` wrapper when the code declares it (``@implementation`` in
+    ``esoi.runtime``): the harness imports the module the records name, and calls the implementation with each case's
+    ``args`` as keyword arguments (a ``score.py`` may define ``adapt(implementation, meter) -> fn`` to say otherwise).
+    Wrapper files stay for baselines and reference arms, and for implementations that need the meter.
+  * an arm that meters a deterministic stand-in for a model (it counts the calls the real model would make, with no
+    tokens) declares ``SIMULATED = True``: its runs record model ``simulated`` and cost 0.0, it is never treated as paid,
+    and the leaderboard compares it on calls.
   * ``esoi run --stale`` re-runs a stale arm on the sample its latest row used (``--full`` runs the whole set), and a
     rival on the selected arm's sample, so a re-record stays comparable.
 """
@@ -104,18 +111,54 @@ def discover_components(config: Config) -> List[str]:
     return sorted(p.name for p in config.evaluation.iterdir() if (p / "score.py").is_file())
 
 
-def load_impl(spec: str, component: str) -> Callable:
-    """``--impl name`` -> ``<component>/impls/name.py``'s ``build``; ``module:function`` is also accepted."""
+SIMULATED_MODEL = "simulated"   # the model recorded for an arm that declares SIMULATED = True
+
+
+def declared_build(config: Config, component: str, name: str) -> Optional[Callable]:
+    """``build(meter)`` for an implementation the code declares (``esoi.runtime``) for the solution this component
+    measures, or None when there is none of that name. Nothing is imported unless a solution measured by the component
+    lists the name."""
+    from . import runtime
+    from .registry import harness_arms, load
+    found = {}
+    for row in load(config).solutions:
+        if any(comp == component for comp, _ in harness_arms(config, row.get("metric_command", ""))):
+            try:
+                found.update(runtime.load_declared(config, row["solution_id"]))
+            except runtime.SelectionError:
+                continue
+    target = found.get(name.strip().lower())
+    if target is None:
+        return None
+    score = importlib.import_module(f"{component}.score")
+
+    def build(meter: CallMeter) -> Callable:
+        if hasattr(score, "adapt"):
+            return score.adapt(target, meter)
+        return lambda kind, args: target(**args)
+    return build
+
+
+def load_impl(spec: str, component: str, config: Optional[Config] = None) -> Callable:
+    """``--impl name`` -> ``<component>/impls/name.py``'s ``build``, else the implementation of that name the code
+    declares (needs ``config``); ``module:function`` is also accepted."""
     if ":" in spec:
         module, _, attr = spec.partition(":")
         return getattr(importlib.import_module(module), attr)
     try:
         return importlib.import_module(f"{component}.impls.{spec}").build
     except ModuleNotFoundError as exc:
-        if exc.name != f"{component}.impls.{spec}":
+        if exc.name not in (f"{component}.impls.{spec}", f"{component}.impls"):
             raise   # the implementation exists but one of its own imports is missing: that is the finding
-        known = sorted(m.name for m in pkgutil.iter_modules(importlib.import_module(f"{component}.impls").__path__))
-        raise RunError(f"{component} has no implementation {spec!r}; known: {', '.join(known) or 'none'}") from exc
+        declared = declared_build(config, component, spec) if config is not None else None
+        if declared is not None:
+            return declared
+        try:
+            known = sorted(m.name for m in pkgutil.iter_modules(importlib.import_module(f"{component}.impls").__path__))
+        except ModuleNotFoundError:
+            known = []
+        raise RunError(f"{component} has no implementation {spec!r}; known: {', '.join(known) or 'none'} (an implementation "
+                       "declared with @implementation is found through the records: `esoi records sync` writes them)") from exc
 
 
 def stratified_sample(cases: List[dict], n: int, seed: int = 0) -> List[dict]:
@@ -305,6 +348,8 @@ def run_cost(config: Config, summary: Dict[str, Any], model: Optional[str]) -> A
     the configured price of the model, else 0.0 for a run that called no model, else ``""`` (unknown, never a
     zero that reads as free). Prices are USD per million tokens, ``prices = { "model" = { input = 3.0, output = 15.0 } }``."""
     reported = float(summary.get("cli_reported_cost_usd", summary.get("cost_usd", 0.0)) or 0.0)
+    if model == SIMULATED_MODEL:
+        return 0.0   # a deterministic stand-in: its calls are counted, but nothing is spent
     if reported > 0:
         return reported
     if not summary.get("model_calls"):
@@ -382,7 +427,7 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     say(f"{component}: {len(cases)} case(s), impl {args.impl}, model-call budget {budget}: "
         f"{', '.join(str(c['id']) for c in cases[:12])}{' ...' if len(cases) > 12 else ''}")
     meter = CallMeter(args.max_calls)
-    fn = load_impl(args.impl, component)(meter)
+    fn = load_impl(args.impl, component, config)(meter)
     rows: List[Dict[str, Any]] = []
     started = time.time()
     for case in cases:
@@ -403,7 +448,8 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
                    heldout=f"{sum(bool(r['ok']) for r in held)}/{len(held)}",
                    model_calls=meter.calls, tokens_in=meter.tokens_in, tokens_out=meter.tokens_out,
                    cli_reported_cost_usd=round(meter.cost_usd, 4), seconds=round(time.time() - started, 1),
-                   model=meter.model, sample=sample)
+                   model=SIMULATED_MODEL if declares_simulated(impl_path(config, component, args.impl)) else meter.model,
+                   sample=sample)
     cost = run_cost(config, summary, summary["model"])
     say(f"\n{component} / {args.impl}: {passed}/{len(rows)} passed (dev {summary['dev']}, held-out "
         f"{summary['heldout']}), {meter.calls} model calls, {meter.tokens_in} in / {meter.tokens_out} out tokens, "
@@ -422,23 +468,41 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     return summary, rows
 
 
-def declares_paid(path: Path) -> bool:
-    """Whether an implementation module sets ``PAID = True`` at module level (it calls a model that costs money)."""
+def declares_constant(path: Path, name: str) -> bool:
+    """Whether a module sets ``<name> = True`` at module level (the markers ``PAID`` and ``SIMULATED``)."""
     try:
         tree = ast.parse(path.read_text(encoding="utf-8"))
     except (OSError, SyntaxError, UnicodeDecodeError):
         return False
-    return any(isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "PAID" for t in n.targets)
+    return any(isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in n.targets)
                and isinstance(n.value, ast.Constant) and n.value.value is True for n in tree.body)
+
+
+def declares_paid(path: Path) -> bool:
+    """Whether an implementation module sets ``PAID = True`` at module level (it calls a model that costs money)."""
+    return declares_constant(path, "PAID")
+
+
+def declares_simulated(path: Path) -> bool:
+    """Whether an implementation module sets ``SIMULATED = True``: it meters a deterministic stand-in for a model."""
+    return declares_constant(path, "SIMULATED")
+
+
+def impl_path(config: Config, component: str, impl: str) -> Path:
+    return config.evaluation / component / "impls" / f"{impl}.py"
 
 
 def paid_reason(config: Config, component: str, impl: str, row: Optional[Dict[str, str]]) -> str:
     """Why running an arm may spend money, or an empty string for an offline arm: it is listed in ``paid_arms``, its
-    module declares ``PAID = True``, or its last recorded run called a model."""
+    module declares ``PAID = True``, or its last recorded run called a model. An arm that declares ``SIMULATED = True``
+    (or whose last row records model ``simulated``) meters a stand-in and spends nothing, whatever its model calls: its
+    cost is known (0.0), never inferred from a missing price."""
     if f"{component}/{impl}" in config.paid_arms:
         return "listed in paid_arms"
-    if declares_paid(config.evaluation / component / "impls" / f"{impl}.py"):
+    if declares_paid(impl_path(config, component, impl)):
         return "declares PAID = True"
+    if declares_simulated(impl_path(config, component, impl)) or (row or {}).get("model") == SIMULATED_MODEL:
+        return ""
     if row and int(float(row.get("model_calls") or 0)) > 0:
         return "its last recorded run called a model"
     return ""

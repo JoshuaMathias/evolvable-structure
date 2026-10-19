@@ -1260,5 +1260,243 @@
     ]
    }
   }
+ },
+ {
+  "id": "RNK-037",
+  "kind": "verdict",
+  "area": "an offline stand-in with metered calls and an unknown cost is not called dearer than a known $0 baseline",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 10,
+     "cases": 10,
+     "cost_usd": "",
+     "cases_sha": "x",
+     "model_calls": 12,
+     "tokens_in": 0,
+     "tokens_out": 0,
+     "model": "unknown",
+     "date": "2026-10-18"
+    },
+    {
+     "impl": "b",
+     "passed": 10,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "model_calls": 0,
+     "tokens_in": 0,
+     "tokens_out": 0,
+     "model": "none",
+     "date": "2026-10-18"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "TIE"
+   }
+  }
+ },
+ {
+  "id": "RNK-038",
+  "kind": "verdict",
+  "area": "a simulated arm (cost 0.0) ties a baseline that passes as many cases",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 10,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "model_calls": 12,
+     "tokens_in": 0,
+     "tokens_out": 0,
+     "model": "simulated",
+     "date": "2026-10-18"
+    },
+    {
+     "impl": "b",
+     "passed": 10,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "model_calls": 0,
+     "tokens_in": 0,
+     "tokens_out": 0,
+     "model": "none",
+     "date": "2026-10-18"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "TIE"
+   }
+  }
+ },
+ {
+  "id": "RNK-039",
+  "kind": "verdict",
+  "area": "two simulated arms are compared on model calls: fewer calls at the same pass rate wins",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 10,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "model_calls": 12,
+     "tokens_in": 0,
+     "tokens_out": 0,
+     "model": "simulated",
+     "date": "2026-10-18"
+    },
+    {
+     "impl": "b",
+     "passed": 10,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "model_calls": 6,
+     "tokens_in": 0,
+     "tokens_out": 0,
+     "model": "simulated",
+     "date": "2026-10-18"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "LOSS"
+   }
+  }
+ },
+ {
+  "id": "RNK-040",
+  "kind": "verdict",
+  "area": "a simulated arm that passes more wins against a baseline",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 10,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "model_calls": 12,
+     "tokens_in": 0,
+     "tokens_out": 0,
+     "model": "simulated",
+     "date": "2026-10-18"
+    },
+    {
+     "impl": "b",
+     "passed": 7,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "model_calls": 0,
+     "tokens_in": 0,
+     "tokens_out": 0,
+     "model": "none",
+     "date": "2026-10-18"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "WIN"
+   }
+  }
+ },
+ {
+  "id": "RNK-041",
+  "kind": "verdict",
+  "area": "a model run that reports tokens is still dearer than a free baseline",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 10,
+     "cases": 10,
+     "cost_usd": "",
+     "cases_sha": "x",
+     "model_calls": 3,
+     "tokens_in": 1000,
+     "tokens_out": 100,
+     "model": "model-x",
+     "date": "2026-10-18"
+    },
+    {
+     "impl": "b",
+     "passed": 10,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "model_calls": 0,
+     "tokens_in": 0,
+     "tokens_out": 0,
+     "model": "none",
+     "date": "2026-10-18"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "LOSS"
+   }
+  }
+ },
+ {
+  "id": "RNK-042",
+  "kind": "board",
+  "area": "the board reports the false loss no longer",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 10,
+     "cases": 10,
+     "cost_usd": "",
+     "cases_sha": "x",
+     "model_calls": 12,
+     "tokens_in": 0,
+     "tokens_out": 0,
+     "model": "unknown",
+     "date": "2026-10-18"
+    },
+    {
+     "impl": "b",
+     "passed": 10,
+     "cases": 10,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "model_calls": 0,
+     "tokens_in": 0,
+     "tokens_out": 0,
+     "model": "none",
+     "date": "2026-10-18"
+    }
+   ],
+   "selected": "a",
+   "strict": true
+  },
+  "expect": {
+   "eq": {
+    "beats": []
+   },
+   "contains": [
+    "mini (selected: a) TIE"
+   ]
+  }
  }
 ]

@@ -104,7 +104,23 @@ def external(args):
                 "stale_outside_strict": bool(harness.stale_reason(config, name, row, strict=False))}
 
 
-KINDS = {"record": record, "run": run, "validity": validity, "cost": cost, "paid": paid, "external": external}
+def simulated(args):
+    """An arm that meters a deterministic stand-in for a model (one call per case, no tokens, no price): what a real run
+    records for it and whether the harness would treat it as paid. ``declares`` marks the module ``SIMULATED = True``;
+    ``also_paid`` adds ``PAID = True``."""
+    with harness_fixture.mini_component() as (config, name):
+        impl = config.evaluation / name / "impls" / "spender.py"
+        marks = ("SIMULATED = True\n" if args.get("declares") else "") + ("PAID = True\n" if args.get("also_paid") else "")
+        impl.write_text(marks + impl.read_text())
+        score = importlib.import_module(f"{name}.score")
+        with contextlib.redirect_stdout(io.StringIO()):
+            harness.run_component(name, score.score_case, ["--impl", "spender", "--record"], config)
+        row = list(csv.DictReader(config.results_path.open()))[-1]
+        return {"model": row["model"], "cost_usd": row["cost_usd"], "model_calls": int(row["model_calls"]),
+                "paid": bool(harness.paid_reason(config, name, "spender", row))}
+
+
+KINDS = {"record": record, "run": run, "validity": validity, "cost": cost, "paid": paid, "external": external, "simulated": simulated}
 
 
 def build(meter):

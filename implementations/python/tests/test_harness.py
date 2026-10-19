@@ -1,6 +1,7 @@
 """The measurement harness: the call meter, sampling, recording and running."""
 import csv
 import importlib
+import sys
 
 import pytest
 
@@ -295,3 +296,53 @@ def test_rerun_stale_keeps_the_sample_and_runs_a_rival_on_the_selected_arms_samp
     harness.rerun_stale(cfg, lines.append, full=True)   # --full asks for the whole set
     latest = {r["impl"]: r for r in csv.DictReader(cfg.results_path.open())}
     assert latest["live"]["sample"] == "" and latest["shout"]["sample"] == "" and latest["live"]["cases"] == "2"
+
+
+def forget_modules(*prefixes):
+    """Drop the modules a test imported from its throwaway repository, so the next test imports its own."""
+    for name in [m for m in sys.modules if any(m == p or m.startswith(p + ".") for p in prefixes)]:
+        del sys.modules[name]
+
+
+def test_rerun_stale_runs_an_arm_that_declares_itself_simulated_and_skips_one_that_does_not(repo):
+    cfg = paid_repo(repo)
+    live = cfg.evaluation / "greet_a_person" / "impls" / "live.py"
+    live.write_text(live.read_text().replace("    def run(kind, args):\n", "    def run(kind, args):\n        meter.record()   # a stand-in that counts the calls a model would make\n"))
+    git(repo, "commit", "-q", "-am", "the live arm becomes a stand-in")
+    forget_modules("greet_a_person")   # other tests imported the unedited arm
+    harness.prepare_path(cfg)
+    score = importlib.import_module("greet_a_person.score").score_case
+    harness.run_component("greet_a_person", score, ["--impl", "live", "--record"], cfg, lambda text: None)
+    row = list(csv.DictReader(cfg.results_path.open()))[-1]
+    assert row["model"] == "unknown" and row["cost_usd"] == "" and int(row["model_calls"]) > 0   # the false-loss precondition
+    cases = cfg.evaluation / "greet_a_person" / "cases.json"
+    cases.write_text(cases.read_text() + " ")
+    git(repo, "commit", "-q", "-am", "cases changed again")
+    lines = []
+    harness.rerun_stale(cfg, lines.append)
+    assert any("greet_a_person/live: stale" in line and "SKIPPED" in line and "called a model" in line for line in lines)
+    live.write_text('"""CURRENT: a stand-in."""\nSIMULATED = True\n' + live.read_text().split('"""\n', 1)[1])
+    git(repo, "commit", "-q", "-am", "the stand-in declares itself simulated")
+    forget_modules("greet_a_person")
+    lines.clear()
+    harness.rerun_stale(cfg, lines.append)
+    assert any("greet_a_person/live: run and recorded" in line for line in lines) and not any("live: stale" in line and "SKIPPED" in line for line in lines)
+    row = [r for r in csv.DictReader(cfg.results_path.open()) if r["impl"] == "live"][-1]
+    assert (row["model"], row["cost_usd"]) == ("simulated", "0.0")
+    forget_modules("greet_a_person", "demo")
+
+
+def test_the_harness_runs_an_implementation_the_code_declares_without_a_wrapper_file(repo):
+    from esoi import config as config_module, runtime
+    cfg = config_module.load(repo)
+    harness.prepare_path(cfg)
+    try:
+        summary, _ = harness.run_component("greet_a_person", importlib.import_module("greet_a_person.score").score_case,
+                                           ["--impl", "greet"], cfg, lambda text: None)
+        assert summary["passed"] == summary["cases"] == 2
+        with pytest.raises(harness.RunError, match="no implementation 'ghost'; known: live, shout"):
+            harness.load_impl("ghost", "greet_a_person", cfg)
+    finally:
+        runtime.forget("greet-a-person")
+        runtime.PROJECTS.clear()
+        forget_modules("greet_a_person", "demo")
