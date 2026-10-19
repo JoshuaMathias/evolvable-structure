@@ -104,3 +104,13 @@ def test_the_library_solutions_come_from_the_default_folder_else_a_previous_one(
     (tmp_path / "esoi").mkdir()
     (tmp_path / "esoi" / "solutions.csv").write_text("solution_id\n")
     assert consumer.library_solutions_csv(tmp_path) == tmp_path / "esoi" / "solutions.csv"
+
+
+def test_selection_may_name_a_snapshot_beside_the_library(tmp_path, monkeypatch):
+    options = library(tmp_path)
+    monkeypatch.setattr(consumer, "library_dir", lambda opts: tmp_path / "lib" / "libx")
+    (tmp_path / "lib" / "libx" / "esoi_selection.json").write_text('{"call-a-model": {"default": "plain", "modules": {}}}')
+    options.selection = "libx/esoi_selection.json"
+    assert consumer.known_solution_ids(options) == ({"call-a-model"}, False)
+    options.selection = "esoi_selection.json"
+    assert consumer.known_solution_ids(options) == ({"call-a-model"}, False)

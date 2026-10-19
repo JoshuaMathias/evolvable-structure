@@ -110,9 +110,22 @@ def known_solution_ids(options: Options) -> Tuple[set, bool]:
     csv_path = Path(options.solutions_csv) if options.solutions_csv else library_solutions_csv(library_dir(options).parent)
     if csv_path.exists():
         return {row["solution_id"] for row in read_csv(csv_path)}, True
+    if options.selection.endswith(".json"):
+        return set(snapshot_ids(options)), False
     if options.selection:
         return set(load_table(options.selection)), False
     return set(), False
+
+
+def snapshot_ids(options: Options) -> List[str]:
+    """Solution ids in the library's ``esoi_selection.json`` snapshot (``esoi select --snapshot``): the path in
+    ``selection`` is absolute, or relative to the folder holding the library package or to the package itself."""
+    import json
+    named = Path(options.selection)
+    for candidate in (named, library_dir(options).parent / named, library_dir(options) / named.name):
+        if candidate.is_file():
+            return list(json.loads(candidate.read_text(encoding="utf-8")))
+    raise FileNotFoundError(f"selection snapshot {options.selection} not found beside the library")
 
 
 def resolve_symbol(dotted: str) -> Any:

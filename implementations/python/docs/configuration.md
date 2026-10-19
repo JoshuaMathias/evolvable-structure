@@ -53,7 +53,7 @@ library = "otherlib"
 column_prefix = "lib"
 port_modules = ["otherlib.ports"]
 pin_name = "otherlib"
-selection = "otherlib.selection:SELECTION"
+selection = "otherlib.selection:SELECTION"   # or "otherlib/esoi_selection.json", the snapshot a package ships without its records
 
 [sheets]                               # for `esoi sheet-sync`: ids and key files come from the environment
 sheet_id_env = "ESOI_SHEET_ID"
