@@ -8,6 +8,7 @@ fixture and returns the exit code and the problem lines.
 """
 from __future__ import annotations
 
+import atexit
 import csv
 import io
 import shutil
@@ -176,13 +177,28 @@ def git_record(root: Path) -> None:
     path.write_text(csv_text(cols, rows))
 
 
+CREATED: List[Path] = []   # every temporary folder this process made, removed when it exits
+
+
+def remove_created() -> None:
+    for folder in CREATED:
+        shutil.rmtree(folder, ignore_errors=True)
+
+
+atexit.register(remove_created)
+
+
 def fresh_repo(edits: List[dict], kind: str = "repo") -> Path:
-    """A private copy of the clean fixture with ``edits`` applied."""
+    """A private copy of the clean fixture with ``edits`` applied. The copy is removed when the process exits, so a long
+    run does not fill the temporary folder."""
     if kind not in TEMPLATES:
         template = Path(tempfile.mkdtemp(prefix="esoi_fixture_"))
+        CREATED.append(template)
         baseline_repo(template / "r")
         TEMPLATES[kind] = template / "r"
-    root = Path(tempfile.mkdtemp(prefix="esoi_case_")) / "r"
+    folder = Path(tempfile.mkdtemp(prefix="esoi_case_"))
+    CREATED.append(folder)
+    root = folder / "r"
     shutil.copytree(TEMPLATES[kind], root)
     apply_edits(root, edits)
     return root
