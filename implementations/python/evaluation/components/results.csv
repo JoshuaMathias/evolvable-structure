@@ -204,3 +204,6 @@ date,component,impl,cases,passed,dev,heldout,model_calls,tokens_in,tokens_out,co
 2026-10-19,select_an_implementation,live_selector,32,32,32/32,0/0,0,0,0,0.0,0.1,846304b,ab60db9c,none,,
 2026-10-20,spec_index,weighted_tfidf,15,15,15/15,0/0,0,0,0,0.0,0.0,c4625c6,5bd9336d,none,,
 2026-10-20,spec_index,term_overlap,15,14,14/15,0/0,0,0,0,0.0,0.0,c4625c6,5bd9336d,none,,
+2026-10-20,check_the_structure,live_checker,81,81,81/81,0/0,0,0,0,0.0,3.6,46ce697,7d362fa7,none,,
+2026-10-20,spec_index,weighted_tfidf,35,29,29/35,0/0,0,0,0,0.0,0.0,46ce697,e7c655d0,none,,
+2026-10-20,spec_index,term_overlap,35,27,27/35,0/0,0,0,0,0.0,0.0,46ce697,e7c655d0,none,,
