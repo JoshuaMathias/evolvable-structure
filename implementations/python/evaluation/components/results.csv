@@ -202,3 +202,5 @@ date,component,impl,cases,passed,dev,heldout,model_calls,tokens_in,tokens_out,co
 2026-10-19,readable_records,live_readme,10,10,10/10,0/0,0,0,0,0.0,0.4,846304b,b246f9c4,none,,
 2026-10-19,promote_the_winner,live_promote,16,16,16/16,0/0,0,0,0,0.0,0.1,846304b,779e3514,none,,
 2026-10-19,select_an_implementation,live_selector,32,32,32/32,0/0,0,0,0,0.0,0.1,846304b,ab60db9c,none,,
+2026-10-20,spec_index,weighted_tfidf,15,15,15/15,0/0,0,0,0,0.0,0.0,c4625c6,5bd9336d,none,,
+2026-10-20,spec_index,term_overlap,15,14,14/15,0/0,0,0,0,0.0,0.0,c4625c6,5bd9336d,none,,
