@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Specification index.** `esoi spec index|find|show` and `esoi.spec_index`: a deterministic, non-AI JSON map of the records (stable
+  ids, tier-0 and tier-1 descriptions, two-way links, weighted terms, document frequencies, digests) for finding the few
+  specifications a new use case needs. Solution `spec-index`, metric `metric-spec-index-recall`. No vectors or models here: a
+  system on top adds them. See `docs/explanation/finding-specifications.md`.
+
 Graceful declarations (declare once where the code is; derive or check the rest). See `docs/explanation/graceful-selection.md`
 and the migration steps in `docs/guides/migrate-to-intents.md`:
 

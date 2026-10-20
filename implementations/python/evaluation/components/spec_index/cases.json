@@ -1,0 +1,252 @@
+[
+ {
+  "id": "SPX-001",
+  "kind": "find",
+  "area": "top 5 holds prob-winner-not-adopted",
+  "description": "a plain-words request finds prob-winner-not-adopted in the top 5",
+  "args": {
+   "query": "a rival implementation beats the selected one and nobody switches the default",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-winner-not-adopted"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-002",
+  "kind": "find",
+  "area": "top 5 holds prob-selection-default-kept-twice",
+  "description": "a plain-words request finds prob-selection-default-kept-twice in the top 5",
+  "args": {
+   "query": "we keep the same default in the selection table and in the records",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-selection-default-kept-twice"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-003",
+  "kind": "find",
+  "area": "top 5 holds prob-measurements-untrusted",
+  "description": "a plain-words request finds prob-measurements-untrusted in the top 5",
+  "args": {
+   "query": "a number was recorded on uncommitted code and compared with another run",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-measurements-untrusted"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-004",
+  "kind": "find",
+  "area": "top 5 holds prob-switching-means-editing-code",
+  "description": "a plain-words request finds prob-switching-means-editing-code in the top 5",
+  "args": {
+   "query": "switching the model provider means editing call sites with an if chain",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-switching-means-editing-code"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-005",
+  "kind": "find",
+  "area": "top 5 holds prob-purposeless-oversized-code",
+  "description": "a plain-words request finds prob-purposeless-oversized-code in the top 5",
+  "args": {
+   "query": "a giant file nobody dares delete",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-purposeless-oversized-code"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-006",
+  "kind": "find",
+  "area": "top 5 holds prob-skill-cannot-be-reached-safely",
+  "description": "a plain-words request finds prob-skill-cannot-be-reached-safely in the top 5",
+  "args": {
+   "query": "a leaked secret in a public skill copy before we publish",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-skill-cannot-be-reached-safely"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-007",
+  "kind": "find",
+  "area": "top 5 holds prob-behaviour-verdicts-uncalibrated",
+  "description": "a plain-words request finds prob-behaviour-verdicts-uncalibrated in the top 5",
+  "args": {
+   "query": "the judge model favours its own phrasing and passes replies that use the right words",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-behaviour-verdicts-uncalibrated"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-008",
+  "kind": "find",
+  "area": "top 5 holds prob-applied-structure-is-rediscovered",
+  "description": "a plain-words request finds prob-applied-structure-is-rediscovered in the top 5",
+  "args": {
+   "query": "which projects on this machine already apply ESOI and where are their specifications",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-applied-structure-is-rediscovered"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-009",
+  "kind": "find",
+  "area": "top 5 holds prob-rules-unjustified",
+  "description": "a plain-words request finds prob-rules-unjustified in the top 5",
+  "args": {
+   "query": "a rule has no record of the mistake that justified it",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-rules-unjustified"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-010",
+  "kind": "find",
+  "area": "top 5 holds prob-metrics-run-at-the-wrong-time",
+  "description": "a plain-words request finds prob-metrics-run-at-the-wrong-time in the top 5",
+  "args": {
+   "query": "how often to run paid metrics and who approves the cost",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-metrics-run-at-the-wrong-time"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-011",
+  "kind": "find",
+  "area": "top 5 holds prob-records-unreadable-at-a-glance",
+  "description": "a plain-words request finds prob-records-unreadable-at-a-glance in the top 5",
+  "args": {
+   "query": "a person cannot read an intent folder at a glance without opening five csv files",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-records-unreadable-at-a-glance"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-012",
+  "kind": "find",
+  "area": "top 5 holds prob-intent-specs-not-found-for-new-input",
+  "description": "a plain-words request finds prob-intent-specs-not-found-for-new-input in the top 5",
+  "args": {
+   "query": "a new input arrives and we cannot tell which specifications apply",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-intent-specs-not-found-for-new-input"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-013",
+  "kind": "find",
+  "area": "a hit's linked records can be added",
+  "description": "expand adds the solution a problem links to",
+  "args": {
+   "query": "a rival implementation beats the selected one and nobody switches the default",
+   "k": 1,
+   "expand": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-winner-not-adopted",
+     "promote-the-winner"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-014",
+  "kind": "find",
+  "area": "a request that shares no word with any record returns nothing",
+  "description": "no match means no candidates, never a guess",
+  "args": {
+   "query": "zebra quokka marmalade",
+   "k": 5
+  },
+  "expect": {
+   "eq": {
+    "ids": []
+   }
+  }
+ },
+ {
+  "id": "SPX-015",
+  "kind": "scan",
+  "area": "the tier-0 scan of every record is a small share of the full records",
+  "description": "scanning costs at most a fifth of reading",
+  "args": {},
+  "expect": {
+   "at_most": {
+    "ratio": 0.2
+   }
+  }
+ }
+]

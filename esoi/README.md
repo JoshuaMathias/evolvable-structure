@@ -31,6 +31,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 - `prob-selection-default-kept-twice`: The default implementation of a solution is written in the selection table and again in the records, and only a check holds the two equal. Choosing a winner means editing both, and a mismatch fails the build.
 - `prob-swappable-needs-ceremony`: Making a part swappable takes a port class, a table entry with an import path for every alternative, a wrapper file to measure each one, and edits wherever the choice is made, so most parts are never made swappable.
 - `prob-rules-unjustified`: A rule is kept in code with no record of the mistake that justified it or of what it has caught since, so nobody can tell whether it still earns its place or why its limit has its value.
+- `prob-intent-specs-not-found-for-new-input`: A new use case or input arrives, and nobody (human or AI) can tell which of a project's problems, ideals, solutions, implementations and metrics apply without reading all of them. The specifications exist, but finding the relevant few is left to whoever happens to remember them.
 
 ## Ideals
 
@@ -55,6 +56,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 - `ideal-declared-once`, Declared once: Each fact is stated once, where it belongs, and everything else is derived from it or measured; a second copy held in step by a check is upkeep, not structure.
 - `ideal-readable-intent`, Readable intent: Anyone opening an intent's folder learns what it is for, and what it contains, from a page the records themselves produce.
 - `ideal-rules-earn-their-place`, Rules earn their place: Every rule can say which mistake it prevents, and is removed when it stops catching any.
+- `ideal-right-spec-at-the-right-time`, Right specification at the right time: For any new use case or input, the relevant specifications are found by looking at a small, cheap description first and reading in full only what was chosen.
 
 ## Solutions
 
@@ -87,6 +89,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 | `specify-from-code` | Specify from the code | declarations-and-sync | Declaration sync |
 | `readable-records` | Readable records | generated-readme | README fidelity |
 | `promote-the-winner` | Promote the winner | margin-promotion | Promotion correctness |
+| `spec-index` | Specification index | weighted-tfidf | Specification recall at k |
 
 ## Implementations
 
@@ -149,6 +152,8 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 | `readable-records:hand-written-readme` | README written by hand |  |  |
 | `promote-the-winner:margin-promotion` | Promotion on the leaderboard's verdict | implementations/python/esoi/promote.py |  |
 | `promote-the-winner:person-edits-the-records` | A person edits the records |  |  |
+| `spec-index:weighted-tfidf` | Field-weighted TF-IDF over the index | implementations/python/esoi/spec_index.py |  |
+| `spec-index:term-overlap` | Plain term overlap | implementations/python/esoi/spec_index.py |  |
 
 ## Metrics
 
@@ -178,3 +183,4 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 - `metric-declaration-sync`, Declaration sync: `esoi run specify_from_code --impl live_declarations`
 - `metric-readme-fidelity`, README fidelity: `esoi run readable_records --impl live_readme`
 - `metric-promotion-correctness`, Promotion correctness: `esoi run promote_the_winner --impl live_promote`
+- `metric-spec-index-recall`, Specification recall at k: `esoi run spec_index --impl weighted_tfidf; esoi run spec_index --impl term_overlap`

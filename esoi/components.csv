@@ -52,3 +52,5 @@ promotion,tools,implementations/python/esoi/promote.py,"Switching the selected i
 eval-specify-from-code,evaluation,implementations/python/evaluation/components/specify_from_code/**,"Cases for reading declarations, syncing the records and creating a solution.",specify-from-code
 eval-readable-records,evaluation,implementations/python/evaluation/components/readable_records/**,Cases for the generated README of an intent folder.,readable-records
 eval-promote-the-winner,evaluation,implementations/python/evaluation/components/promote_the_winner/**,Cases for promoting the winner of a solution's metric.,promote-the-winner
+spec_index,core,implementations/python/esoi/spec_index.py,The spec index solution's interface and implementations.,spec-index
+eval-spec_index,evaluation,implementations/python/evaluation/components/spec_index/**,Cases and scorer for spec-index.,spec-index

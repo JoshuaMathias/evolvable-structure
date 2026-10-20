@@ -58,6 +58,8 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `eval-specify-from-code` | evaluation | Cases for reading declarations, syncing the records and creating a solution. | specify-from-code |
 | `eval-readable-records` | evaluation | Cases for the generated README of an intent folder. | readable-records |
 | `eval-promote-the-winner` | evaluation | Cases for promoting the winner of a solution's metric. | promote-the-winner |
+| `spec_index` | core | The spec index solution's interface and implementations. | spec-index |
+| `eval-spec_index` | evaluation | Cases and scorer for spec-index. | spec-index |
 | `selection` | core | Resolving an implementation of a solution from a selection table. | runtime-selection |
 | `eval-select-an-implementation` | evaluation | Cases for resolving a selection. | runtime-selection |
 | `runtime` | core | Declarations in code and the cascade that picks the implementation a call runs. | runtime-selection |
