@@ -44,6 +44,10 @@ the comparison is made rather than reading differences into it.
 
 ## Stand-ins
 
+A metric must be meaningfully real (see [a metric must be meaningfully real](metrics-must-be-real.md), rule S31): a stand-in
+arm is for unit-testing plumbing and for the harness's own tests, and `esoi check` reports a metric whose arm declares
+`SIMULATED = True`.
+
 An arm that meters a deterministic stand-in for a model declares `SIMULATED = True`: it spends nothing, so it records cost 0.0
 and model `simulated`, and it is compared on model calls. A missing price alone never makes an arm free or paid.
 

@@ -1,8 +1,9 @@
-"""Rules about measurement: S10, S12, S16, S20, S21, S22, S24 and S25.
+"""Rules about measurement: S10, S12, S16, S20, S21, S22, S24, S25 and S31.
 
 S10 selection follows the measurements, S12 measured code is live, S16 provenance, S20 a complete solution with a
 current recorded run, S21 every evaluation folder is a metric, S22 numbers live only in the results log, S24
-recorded claims are true, S25 an invariant solution's cases are proved to discriminate.
+recorded claims are true, S25 an invariant solution's cases are proved to discriminate, S31 a metric measures the real
+thing rather than a scripted or simulated stand-in for it.
 """
 from __future__ import annotations
 
@@ -12,7 +13,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from .. import leaderboard
-from ..harness import stale_reason
+from ..harness import declares_simulated, stale_reason
 from ..records import FILES
 from ..tables import ids
 from .base import Context, RuleGroup, parse_file
@@ -43,7 +44,13 @@ SUMMARIES = {
     "S24": "Every arm a metric command names has a results row, and a gap or action that says an implementation is "
            "not recorded names none that already has a row.",
     "S25": "An invariant solution's evaluation folder has a broken/ baseline module besides __init__.py.",
+    "S31": "A metric is meaningfully real: no implementation in a metric's evaluation folder declares SIMULATED = True, and "
+           "no metric record describes its judge or model as scripted, simulated, mocked or a stand-in (or a waiver "
+           "names why that metric cannot be real).",
 }
+# A metric record that admits its judge or model is not the real one (S31).
+UNREAL_METRIC = re.compile(r"\b(?:scripted|simulated|mocked|stubbed|fake|canned)\s+(?:judge|model|grader|stand-in|replies|reply|answers?)\b"
+                           r"|\bstand-in\b", re.I)
 
 
 def impl_kind(ctx: Context, path: Path) -> str:
@@ -160,6 +167,22 @@ def run(ctx: Context) -> List[str]:
         if not baselines and not ctx.waived("S25", sid):
             bad.append(f"S25 {sid}: {config.evaluation_dir}/{arms[0][0]}/broken/ has no baseline module (add the naive "
                        "implementation a first draft would write; a test proves the cases fail it)")
+
+    for r in ctx.solutions:
+        sid = r["solution_id"]
+        for comp in sorted({c for c, _ in ctx.harness_arms(r.get("metric_command", ""))}):
+            for impl_path in sorted((evaluation / comp / "impls").glob("*.py")):
+                if impl_path.name != "__init__.py" and declares_simulated(impl_path) and not ctx.waived("S31", f"{sid}:{impl_path.stem}"):
+                    bad.append(f"S31 {sid}: {config.evaluation_dir}/{comp}/impls/{impl_path.name} declares SIMULATED = True, "
+                               "so the metric measures a scripted stand-in, not the real thing; measure real behaviour on "
+                               "real inputs (a real model call, real data), keep the scripted version as a unit test, or "
+                               "waive naming why this metric cannot be real")
+    for m in ctx.registry.metrics:
+        for col in ("scoped_purpose", "record"):
+            hit = UNREAL_METRIC.search(m.get(col, ""))
+            if hit and not ctx.waived("S31", m.get("metric_id", "")):
+                bad.append(f"S31 metrics.csv {m.get('metric_id', '')}: `{col}` says {hit.group(0)!r}; a metric must measure "
+                           "the real thing (real model, real inputs and outputs), so change the metric or waive naming why")
 
     metric_text = " ".join(r.get("metric_command", "") + " " + r.get("metric", "") for r in ctx.solutions)
     if evaluation.is_dir():

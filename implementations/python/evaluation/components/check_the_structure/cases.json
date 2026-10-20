@@ -1965,5 +1965,46 @@
   "expect": {
    "clean": true
   }
+ },
+ {
+  "id": "CTS-079",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a metric arm that declares SIMULATED = True measures a scripted stand-in, not the real thing",
+  "args": {
+   "edits": [
+    {
+     "op": "write",
+     "path": "evaluation/components/greet_a_person/impls/stand_in.py",
+     "content": "\"\"\"ALTERNATIVE: a scripted judge.\"\"\"\nSIMULATED = True\n"
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S31",
+   "contains": "SIMULATED = True"
+  }
+ },
+ {
+  "id": "CTS-080",
+  "area": "repo",
+  "kind": "repo",
+  "description": "a metric record that says its judge is scripted is not meaningfully real",
+  "args": {
+   "edits": [
+    {
+     "op": "csv_cell",
+     "path": "esoi/metrics.csv",
+     "key_col": "metric_id",
+     "key": "greeting-pass-rate",
+     "col": "record",
+     "value": "Cases passed, judged by a scripted judge."
+    }
+   ]
+  },
+  "expect": {
+   "rule": "S31",
+   "contains": "must measure the real thing"
+  }
  }
 ]

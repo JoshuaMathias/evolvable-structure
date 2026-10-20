@@ -306,3 +306,14 @@ def test_a_component_may_serve_a_specification_solution(cfg):
     tables.write_csv(cfg.structure / "components.csv", ["component_id", "layer", "path", "role", "solutions"], rows)
     check.write_docs(cfg, say=lambda text: None)
     assert not any(line.startswith("S11") for line in check.check(cfg))
+
+
+def test_s31_a_metric_must_be_meaningfully_real(cfg):
+    """A scripted stand-in (SIMULATED = True) or a record that admits a scripted judge does not measure the real thing."""
+    stand_in = cfg.evaluation / "greet_a_person" / "impls" / "stand_in.py"
+    stand_in.write_text('"""ALTERNATIVE: a scripted judge."""\nSIMULATED = True\n')
+    assert any(line.startswith("S31") and "stand_in.py" in line for line in check.check(cfg))
+    stand_in.unlink()
+    assert not any(line.startswith("S31") for line in check.check(cfg))
+    edit(cfg, "metrics.csv", "metric_id", "greeting-pass-rate", "record", "Cases passed, judged by a scripted judge.")
+    assert any(line.startswith("S31") and "greeting-pass-rate" in line for line in check.check(cfg))

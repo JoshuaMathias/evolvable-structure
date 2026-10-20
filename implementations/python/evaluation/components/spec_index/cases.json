@@ -248,5 +248,343 @@
     "ratio": 0.2
    }
   }
+ },
+ {
+  "id": "SPX-016",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 3",
+  "args": {
+   "query": "our team keeps arguing about which implementation to ship; the metric shows the other implementation wins on the same cases but the default is unchanged",
+   "k": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-winner-not-adopted"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-017",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 3",
+  "args": {
+   "query": "someone edited the recorded results by hand to make the metric look better",
+   "k": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-measurements-untrusted"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-018",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 3",
+  "args": {
+   "query": "the evaluation imports a copy of the function instead of the one in the package so tests pass while production breaks",
+   "k": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-evaluation-detached-from-shipped-code"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-019",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 3",
+  "args": {
+   "query": "contributors say the checks and records take longer than writing the feature",
+   "k": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-structure-costs-more-than-it-returns"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-020",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 3",
+  "args": {
+   "query": "we copy the template into three tools and each drifts from the original wording",
+   "k": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-template-copies-drift"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-021",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 3",
+  "args": {
+   "query": "newcomers do not know in which order to do the steps",
+   "k": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-no-order-to-follow"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-022",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 3",
+  "args": {
+   "query": "our assistant says it follows the principles but answers inconsistently",
+   "k": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-ai-behaviour-drifts-from-principles"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-023",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 3",
+  "args": {
+   "query": "a mock model that returns fixed text made the real approach look slower",
+   "k": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-simulated-arm-false-loss"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-024",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 3",
+  "args": {
+   "query": "files in the repository that nobody can tie to a purpose keep growing",
+   "k": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-purposeless-oversized-code"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-025",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 3",
+  "args": {
+   "query": "the selection table says one default and the records say another",
+   "k": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-selection-default-kept-twice"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-026",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 3",
+  "args": {
+   "query": "rank the implementations by their margin on the metric",
+   "k": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "leaderboard"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-027",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 3",
+  "args": {
+   "query": "the cases are so easy that the weak baseline passes them too",
+   "k": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "discriminating-cases"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-028",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 3",
+  "args": {
+   "query": "generate a readme for each intent folder",
+   "k": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "readable-records"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-029",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 3",
+  "args": {
+   "query": "install the skill without private files",
+   "k": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "skill-distribution"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-030",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 3",
+  "args": {
+   "query": "when should paid metric runs be scheduled",
+   "k": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "when-metrics-are-run"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-031",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 3",
+  "args": {
+   "query": "every rule should state the mistake that justified it",
+   "k": 3
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-rules-unjustified"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-032",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 4",
+  "args": {
+   "query": "a rival wins on the metric so promote it, and keep the default in one place",
+   "k": 4
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-winner-not-adopted",
+     "prob-selection-default-kept-twice"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-033",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a longer, noisier request in a person's words reaches the record it concerns in the first 5",
+  "args": {
+   "query": "the tests pass but the number was recorded on a dirty working tree and the model judge is miscalibrated",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-measurements-untrusted",
+     "prob-behaviour-verdicts-uncalibrated"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SPX-034",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a request that concerns nothing returns nothing",
+  "args": {
+   "query": "buy oat milk and bread on the way home",
+   "k": 3
+  },
+  "expect": {
+   "eq": {
+    "ids": []
+   }
+  }
+ },
+ {
+  "id": "SPX-035",
+  "area": "labelled request",
+  "kind": "find",
+  "description": "a request that concerns nothing returns nothing",
+  "args": {
+   "query": "the marmalade recipe uses oranges and sugar",
+   "k": 3
+  },
+  "expect": {
+   "eq": {
+    "ids": []
+   }
+  }
  }
 ]

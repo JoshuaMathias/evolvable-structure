@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Rule S31: a metric must be meaningfully real.** `esoi check` reports an implementation in a metric's evaluation folder that
+  declares `SIMULATED = True`, and a metric record that calls its judge or model scripted, simulated, mocked, stubbed, fake, canned
+  or a stand-in; a waiver names why a metric cannot be real. Documented in `docs/explanation/metrics-must-be-real.md`. The
+  `spec_index` cases were strengthened with longer, noisier requests, two-record requests and requests that concern nothing, so
+  the two implementations no longer pass nearly the same cases.
 - **Specification index.** `esoi spec index|find|show` and `esoi.spec_index`: a deterministic, non-AI JSON map of the records (stable
   ids, tier-0 and tier-1 descriptions, two-way links, weighted terms, document frequencies, digests) for finding the few
   specifications a new use case needs. Solution `spec-index`, metric `metric-spec-index-recall`. No vectors or models here: a

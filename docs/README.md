@@ -25,6 +25,7 @@ a team process, a personal schedule.
 - [The local ESOI index](explanation/local-index.md): where ESOI is applied on a machine.
 - [Finding the specifications a new use case needs](explanation/finding-specifications.md): the specification index, tiers, and what a system on top adds.
 - [Choosing by metric](explanation/choosing-by-metric.md)
+- [A metric must be meaningfully real](explanation/metrics-must-be-real.md): no scripted stand-ins; creative and limited measures are fine, fake ones are not (rule S31).
 - [Declare, call, measure, promote](explanation/graceful-selection.md): the graceful way to declare alternatives in code and let the metric pick.
 - [When metrics are run](explanation/when-metrics-are-run.md): when to run each metric and who approves the spend.
 
