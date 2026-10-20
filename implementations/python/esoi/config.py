@@ -65,6 +65,7 @@ class Config:
     live_calls: List[str] = field(default_factory=list)
     paid_arms: List[str] = field(default_factory=list)
     prices: Dict[str, Dict[str, float]] = field(default_factory=dict)
+    balance: Dict[str, Dict[str, Any]] = field(default_factory=dict)   # per component: weights and budgets of the balanced score (esoi.balance)
     structure_note: str = field(default="", init=False, repr=False)   # set when the folder fell back to a previous default
     selection: Any = ""   # a selection table "path.py:ATTR", or a [selection] table of deployment choices (see selection_table)
     selection_env: Dict[str, Any] = field(default_factory=dict)   # older environment variables per solution id: "VAR" or ["VAR", ...]

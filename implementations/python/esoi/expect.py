@@ -5,6 +5,8 @@ branch and a new case is data only.
 ``expect`` keys (all optional):
   eq            {key: value}   output[key] must equal value exactly
   has           {key: [item]}  output[key] (a list) must contain every item
+  any_of        {key: [[item]]} output[key] (a list) must hold at least one item of every group (several records are
+                               equally right for one need, e.g. a problem and its ideal)
   contains      [str]          output["text"] must contain every string
   not_contains  [str]          output["text"] must contain none of them
   max_len       int            len(output["text"]) must not exceed it
@@ -30,6 +32,11 @@ def check(out: Any, expect: Dict[str, Any]) -> List[str]:
         for item in wanted:
             if item not in have:
                 problems.append(f"{key} lacks {item!r}")
+    for key, groups in (expect.get("any_of") or {}).items():
+        have = out.get(key) or []
+        for group in groups:
+            if not any(item in have for item in group):
+                problems.append(f"{key} holds none of {group!r}")
     for sub in expect.get("contains") or []:
         if sub not in text:
             problems.append(f"text lacks {sub!r}")

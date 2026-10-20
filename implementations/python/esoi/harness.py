@@ -40,11 +40,12 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from . import balance
 from .config import Config
 from .leaderboard import cases_digest
 
 RESULT_COLUMNS = ["date", "component", "impl", "cases", "passed", "dev", "heldout", "model_calls",
-                  "tokens_in", "tokens_out", "cost_usd", "seconds", "git_sha", "cases_sha", "sample", "model", "details"]
+                  "tokens_in", "tokens_out", "cost_usd", "seconds", "balanced", "git_sha", "cases_sha", "sample", "model", "details"]
 
 
 class BudgetExceeded(RuntimeError):
@@ -451,9 +452,13 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
                    model=SIMULATED_MODEL if declares_simulated(impl_path(config, component, args.impl)) else meter.model,
                    sample=sample)
     cost = run_cost(config, summary, summary["model"])
+    summary.update(balance.balanced(passed, len(rows), cost, summary["seconds"], config.balance.get(component)))
     say(f"\n{component} / {args.impl}: {passed}/{len(rows)} passed (dev {summary['dev']}, held-out "
         f"{summary['heldout']}), {meter.calls} model calls, {meter.tokens_in} in / {meter.tokens_out} out tokens, "
         f"cost {'$' + str(cost) if cost != '' else 'unknown (no price for the model in `prices`)'}, {summary['seconds']}s")
+    if "balanced" in summary:
+        say(f"balanced score {summary['balanced']} = accuracy {summary['accuracy']}, ${summary['cost_per_case']}/case, "
+            f"{summary['seconds_per_case']}s/case (weights and budgets: [balance.{component}] in the configuration)")
     score = importlib.import_module(f"{component}.score")
     if hasattr(score, "aggregate"):
         say(f"{component}: {score.aggregate(rows)}")

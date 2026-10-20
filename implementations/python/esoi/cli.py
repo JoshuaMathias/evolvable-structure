@@ -15,7 +15,7 @@
     esoi tracker build|check               build or verify the review tracker tabs
     esoi consumer check --registry CSV     check a consuming repository's integration registry
     esoi intent migrate [--apply]          move a legacy overall layout to the intent layout (dry run without --apply)
-    esoi spec index [--out FILE]|find TEXT [-k N] [--expand N]|show ID [--tier 0|1|2]   the specification index: find the few records a new use case needs
+    esoi spec index [--out FILE]|find TEXT [-k N] [--expand N]|show ID [--tier 0|1|2]|related ID [--depth N]|intent [ID] [--cache FILE]   the specification index: find the few records a new use case needs
     esoi projects init|add|list|check|index|where   the local ESOI index (a folder named by ESOI_HOME, else ~/.esoi)
     esoi hygiene [--staged] [--history]    scan for secrets, machine paths and real addresses
     esoi sheet-sync sync|push|pull|check   two-way sync of the tracker with a Google Sheet (esoi[sheets])
@@ -88,12 +88,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--results", default=None)
     p.add_argument("--fail-on-lag", action="store_true")
     p = sub.add_parser("spec", help="the specification index: a deterministic, non-AI map of the records")
-    p.add_argument("action", choices=["index", "find", "show"])
+    p.add_argument("action", choices=["index", "find", "show", "related", "intent"])
     p.add_argument("target", nargs="?", default="", help="find: the words of the use case or input; show: a record id")
     p.add_argument("-k", type=int, default=8, help="find: how many records to return")
     p.add_argument("--expand", type=int, default=0, help="find: linked records to add per hit")
     p.add_argument("--tier", type=int, default=1, choices=[0, 1, 2], help="show: 0 one line, 1 plus summary and links, 2 the full record")
     p.add_argument("--out", default=None, help="index: write the JSON here instead of printing it")
+    p.add_argument("--depth", type=int, default=1, help="related: how many link steps to follow")
+    p.add_argument("--cache", default=None, help="read the index from this file when the records have not changed, else rebuild it there")
     p = sub.add_parser("intent", help="the intent layout")
     p.add_argument("action", choices=["migrate"])
     p.add_argument("--apply", action="store_true", help="migrate: write the files (without it, only report the plan)")
@@ -123,7 +125,11 @@ def spec_command(config, args: argparse.Namespace) -> int:
     """``esoi spec``: build, search and read the specification index (no model is called)."""
     import json
     from . import spec_index
-    index = spec_index.build(config)
+    index = spec_index.cached(config, Path(args.cache)) if args.cache else spec_index.build(config)
+    if args.action == "intent":
+        for entry in spec_index.of_intent(index, args.target):
+            print(spec_index.line(entry))
+        return 0
     if args.action == "index":
         text = json.dumps(index, indent=1, sort_keys=True) + "\n"
         if args.out:
@@ -137,6 +143,15 @@ def spec_command(config, args: argparse.Namespace) -> int:
         return 2
     if args.action == "find":
         print(spec_index.render_scan(index, spec_index.find_specs(index, args.target, args.k, args.expand)))
+        return 0
+    if args.action == "related":
+        try:
+            hits = spec_index.related(index, args.target, args.depth, max(args.k, 1))
+        except KeyError:
+            print(f"esoi: no record {args.target!r}", file=sys.stderr)
+            return 1
+        by_id = {e["id"]: e for e in index["entries"]}
+        print("\n".join(f"{spec_index.line(by_id[h['id']])}  (step {h['depth']} via {h['via']})" for h in hits))
         return 0
     try:
         print(spec_index.show(config, index, args.target, args.tier))

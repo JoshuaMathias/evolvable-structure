@@ -9,6 +9,7 @@ records-core,core,implementations/python/esoi/__init__.py;implementations/python
 template-reader,core,implementations/python/esoi/template.py;implementations/python/esoi/data/*,Reading the intent template from its source and keeping the parsed copy.,template-sync
 expectations,core,implementations/python/esoi/expect.py,The declarative check that case-driven evaluations share.,measurement-harness
 leaderboard,core,implementations/python/esoi/leaderboard.py,Ranking implementations from the results log and calling a verdict.,leaderboard
+balanced-score,core,implementations/python/esoi/balance.py,"Folding accuracy, cost and time of a metric run into one score with written weights and budgets.",measurement-harness;leaderboard
 template-documents,tools,implementations/python/esoi/templates.py,Generating the non-code templates and excerpts from the template source.,template-sync
 rule-interface,tools,implementations/python/esoi/rules/__init__.py;implementations/python/esoi/rules/base.py;implementations/python/esoi/rules/modulefacts.py,"The rule interface: what a rule group is, what a rule sees, and the cache of module facts the rules share.",structure-check
 rules-ownership,tools,implementations/python/esoi/rules/layout.py,The placement and layering rules.,ownership-map;structure-rules

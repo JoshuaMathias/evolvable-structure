@@ -15,6 +15,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `template-reader` | core | Reading the intent template from its source and keeping the parsed copy. | template-sync |
 | `expectations` | core | The declarative check that case-driven evaluations share. | measurement-harness |
 | `leaderboard` | core | Ranking implementations from the results log and calling a verdict. | leaderboard |
+| `balanced-score` | core | Folding accuracy, cost and time of a metric run into one score with written weights and budgets. | measurement-harness, leaderboard |
 | `template-documents` | tools | Generating the non-code templates and excerpts from the template source. | template-sync |
 | `rule-interface` | tools | The rule interface: what a rule group is, what a rule sees, and the cache of module facts the rules share. | structure-check |
 | `rules-ownership` | tools | The placement and layering rules. | ownership-map, structure-rules |

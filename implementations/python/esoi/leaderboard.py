@@ -122,7 +122,14 @@ def selected_impls(config: Config, solutions: List[Row]) -> Dict[str, str]:
 
 
 def pass_rate(row: Row) -> float:
-    """Passed over cases; a blank or malformed count reads as zero, so one bad line cannot stop the whole board."""
+    """The score a row is ranked by. A row recorded with a balanced score (its component sets ``[balance.<component>]``,
+    see ``esoi.balance``) ranks by that, so accuracy bought with a large price in money or time does not win by itself.
+    Otherwise passed over cases; a blank or malformed count reads as zero, so one bad line cannot stop the whole board."""
+    try:
+        if str(row.get("balanced") or "").strip():
+            return float(row["balanced"])
+    except ValueError:
+        pass
     def count(name: str) -> int:
         try:
             return int(float(row.get(name) or 0))

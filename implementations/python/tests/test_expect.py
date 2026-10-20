@@ -38,3 +38,9 @@ def test_score_kind_case_reports_exceptions_as_failures_except_a_budget():
 def test_aggregate_by_kind():
     rows = [{"got": "a", "ok": True}, {"got": "a", "ok": False}, {"got": "b", "ok": True}]
     assert expect.aggregate_by_kind(rows) == "a 1/2, b 1/1"
+
+
+def test_any_of_needs_one_item_from_every_group():
+    out = {"ids": ["prob-x", "metric-y"]}
+    assert expect.check(out, {"any_of": {"ids": [["prob-x", "sol-x"], ["metric-y"]]}}) == []
+    assert expect.check(out, {"any_of": {"ids": [["sol-x", "ideal-x"]]}}) == ["ids holds none of ['sol-x', 'ideal-x']"]

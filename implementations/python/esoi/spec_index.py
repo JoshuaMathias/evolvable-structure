@@ -20,6 +20,7 @@ import json
 import math
 import re
 from collections import Counter
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from . import intents, registry as registry_module
@@ -47,6 +48,9 @@ TOKEN = re.compile(r"[a-z0-9]+")
 MAX_TERMS = 60
 SUMMARY_CHARS = 280
 LINK_COLUMN = re.compile(r"_ids?$")
+# When reading outward from a record, what matters most first: a problem leads to the solutions that address it and the
+# ideals it opposes, a solution to its metrics and implementations. Lower rank is shown first within one step.
+KIND_RANK = {"problem": 0, "solution": 1, "ideal": 2, "metric": 3, "implementation": 4, "intent": 5}
 
 
 def tokens(text: str) -> List[str]:
@@ -195,6 +199,63 @@ def term_overlap(index: Dict[str, Any], text: str, k: int = 8, expand: int = 0) 
     weighting buys."""
     flat = {**index, "entries": [{**e, "terms": {t: 1.0 for t in e["terms"]}} for e in index["entries"]]}
     return with_links(index, ranked(flat, text, lambda t: 1.0), k, expand)
+
+
+def related(index: Dict[str, Any], entry_id: str, depth: int = 1, limit: int = 30) -> List[Dict[str, Any]]:
+    """The records connected to ``entry_id``, nearest first (breadth first over the links, both directions), each as
+    ``{id, kind, depth, via}``. Within one step the order is ``KIND_RANK``. ``depth`` 1 is the direct links, 2 their links.
+    Raises KeyError for an id the index does not hold. No model, no record read."""
+    by_id = {e["id"]: e for e in index["entries"]}
+    if entry_id not in by_id:
+        raise KeyError(entry_id)
+    seen, out, frontier = {entry_id}, [], [entry_id]
+    for step in range(1, max(depth, 0) + 1):
+        found = []
+        for source in frontier:
+            for ref in by_id[source]["refs"]:
+                if ref in by_id and ref not in seen:
+                    seen.add(ref)
+                    found.append({"id": ref, "kind": by_id[ref]["kind"], "depth": step, "via": source})
+        found.sort(key=lambda h: (KIND_RANK.get(h["kind"], 9), h["id"]))
+        out += found
+        frontier = [h["id"] for h in found]
+    return out[:limit]
+
+
+def of_intent(index: Dict[str, Any], intent_id: str = "") -> List[Dict[str, Any]]:
+    """Every record of one intent (the intent's own id; empty means all), problems first, as index entries. It is the list
+    to scan when a request is known to belong to an intent but not to a record."""
+    return sorted((e for e in index["entries"] if not intent_id or e["intent"] == intent_id or e["id"] == intent_id),
+                  key=lambda e: (KIND_RANK.get(e["kind"], 9), e["id"]))
+
+
+def stamp_of(config: Config) -> str:
+    """Cheap fingerprint of the record files (names, sizes, modification times): it changes when a record is edited, without
+    reading or parsing them."""
+    parts = []
+    for path in sorted(config.structure.rglob("*.csv")):
+        if config.tracker_folder in path.relative_to(config.structure).parts:
+            continue
+        info = path.stat()
+        parts.append(f"{path.relative_to(config.root)}:{info.st_size}:{info.st_mtime_ns}")
+    return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()[:16]
+
+
+def cached(config: Config, path: Path) -> Dict[str, Any]:
+    """The index, from the JSON file at ``path`` when the record files have not changed since it was written, else rebuilt
+    and written. A reader that calls this on every task pays the build once per edit, not once per call."""
+    path = Path(path)
+    stamp = stamp_of(config)
+    try:
+        held = json.loads(path.read_text(encoding="utf-8"))
+        if held.get("stamp") == stamp and held.get("index", {}).get("version") == VERSION:
+            return held["index"]
+    except (OSError, ValueError, AttributeError):
+        pass
+    index = build(config)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"stamp": stamp, "index": index}, sort_keys=True), encoding="utf-8")
+    return index
 
 
 def get(index: Dict[str, Any], entry_id: str) -> Optional[Dict[str, Any]]:
