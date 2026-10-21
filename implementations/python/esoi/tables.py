@@ -45,11 +45,14 @@ def write_csv(path: Path, columns: List[str], rows: List[Dict[str, str]]) -> Non
     Path(path).write_text(render_csv(columns, rows), encoding="utf-8")
 
 
-def is_command(text: str) -> bool:
-    """Whether a metric's command cell holds a command to run. Empty, or starting with ``none`` (the way a record says
-    a metric has no command), is not one."""
-    words = (text or "").strip().lower()
-    return bool(words) and not words.startswith("none")
+#: The command a metric records a run through: ``esoi run <component> --impl <name>`` (a configuration may change it).
+DEFAULT_METRIC_COMMAND = r"(?:esoi run|run\.py) (\w+) --impl (\w+)"
+
+
+def is_command(text: str, pattern: str = DEFAULT_METRIC_COMMAND) -> bool:
+    """Whether a metric's command cell holds a command that records a run. Anything else (empty, ``none``, a test
+    command that records nothing) leaves the solution a specification: a run is what measures it."""
+    return bool(re.search(pattern, text or ""))
 
 
 def ids(cell: str) -> List[str]:

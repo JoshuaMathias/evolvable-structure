@@ -75,7 +75,7 @@ def fill_columns(name: str, rows: List[Dict[str, str]], missing: List[Tuple[str,
 def load(config: Config) -> Registry:
     """The records of every intent folder as one registry (the one structure folder in the legacy layout).
 
-    A solution none of whose metrics has a command is a specification: it is defined and has alternatives, but no
+    A solution none of whose metrics has a command that records a run is a specification: it is defined and has alternatives, but no
     run measures it yet (its selected implementation builds on other solutions through ``uses_solution_ids`` or is a
     document). That is derived from the missing command, never declared. It is kept in ``specifications`` and out of
     ``solutions``, so the rules that demand a metric command, a component and a recorded run apply to the solutions
@@ -83,11 +83,11 @@ def load(config: Config) -> Registry:
     metrics = read_rows(config, "metrics.csv")
     missing: List[Tuple[str, str]] = []
     every = join_metrics(fill_columns("solutions.csv", read_rows(config, "solutions.csv"), missing), metrics)
-    measured = [r for r in every if any(is_command(c) for c in ids(r.get("metric_command", "")))]
+    measured = [r for r in every if is_command(r.get("metric_command", ""), config.metric_command)]
     return Registry(
         components=fill_columns("components.csv", read_rows(config, "components.csv"), missing),
         solutions=measured,
-        specifications=[r for r in every if not any(is_command(c) for c in ids(r.get("metric_command", "")))],
+        specifications=[r for r in every if not is_command(r.get("metric_command", ""), config.metric_command)],
         solution_order=[r.get("solution_id", "") for r in every],
         metrics=metrics,
         problems=read_rows(config, "problems.csv"),

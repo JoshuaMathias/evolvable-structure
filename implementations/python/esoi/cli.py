@@ -341,14 +341,14 @@ def main(argv: Optional[List[str]] = None) -> int:
             every = {e: {r.get(k, "") for r in tree[e]} - {""} for e, k in
                      {"problem": "problem_id", "ideal": "ideal_id", "solution": "solution_id",
                       "implementation": "implementation_id", "metric": "metric_id"}.items()}
-            problems = [line for _, folder in intents.folders(config) for line in check_headers(folder, tpl, approved=config.approved_fields)]
+            problems = [line for _, folder in intents.folders(config) for line in check_headers(folder, tpl, approved=config.approved_fields, metric_command=config.metric_command)]
             problems += check_records(config.structure, tpl, overall=every, tables=tree, retired={"overall_solution_ids"}, scope="the intent tree",
-                                     approved=config.approved_fields)
+                                     approved=config.approved_fields, metric_command=config.metric_command)
             for line in problems:
                 print(line)
             return 1 if problems else 0
         overall = overall_ids(config.root / config.overall) if config.overall and (config.root / config.overall).is_dir() else None
-        problems = check_records(config.structure, template.load_for(config), overall=overall, approved=config.approved_fields)
+        problems = check_records(config.structure, template.load_for(config), overall=overall, approved=config.approved_fields, metric_command=config.metric_command)
         for line in problems:
             print(line)
         return 1 if problems else 0

@@ -22,7 +22,7 @@ A solution with a single implementation has nothing to be compared with, so its 
 deliberately naive baseline in its component's `broken/` folder, and the cases must fail it. That proves the cases can tell
 good from naive.
 
-A solution none of whose metrics has a recorded command is a specification: defined, with alternatives, but not measured
+A solution none of whose metrics has a command that records a run (`esoi run <component> --impl <name>`) is a specification: defined, with alternatives, but not measured
 yet. That is derived from the missing run and never declared. Its next step is a milestone, a value of its metric.
 
 ## Verdicts

@@ -148,14 +148,14 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
     metric_users: Dict[str, List[tuple]] = {}
     for p in registry.problems:
         linked = [sol_by_id[s] for s in ids(p.get("solution_ids", "")) if s in sol_by_id]
-        open_ones = [s["solution_id"] for s in linked if not is_command(command_of(s))]
+        open_ones = [s["solution_id"] for s in linked if not is_command(command_of(s), config.metric_command)]
         problems.append({**{k: p.get(k, "") for k in cols["problems"]},
                          "component_ids": SEP.join(sorted({c for s in linked for c in by_solution.get(s["solution_id"], [])})),
                          "auto_status": "open: unmeasured " + ", ".join(open_ones) if open_ones else "served"})
     for s in every:
         sid = s["solution_id"]
         command = command_of(s)
-        has_metric = is_command(command)
+        has_metric = is_command(command, config.metric_command)
         comp, chosen_impl = first_arm(config, command)
         impl_ids, selected_id = [], ""
         chosen = selected_path(config, s, table)

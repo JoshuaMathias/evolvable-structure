@@ -18,6 +18,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from .tables import DEFAULT_METRIC_COMMAND
+
 CONFIG_NAME = "esoi.toml"
 TEMPLATE_ENV = "ESOI_TEMPLATE_SOURCE"
 DEFAULT_OTHER_LAYERS = ["docs", "evaluation", "examples", "scripts", "tests", "vendor", "prompts"]
@@ -28,7 +30,6 @@ DEFAULT_STRUCTURE_DIR = "esoi"
 # Folders earlier versions used by default, in the order they are looked for when `structure_dir` is not configured.
 PREVIOUS_STRUCTURE_DIRS = ("structure", "docs/structure")
 SPECIFICATION_FILES = ("intent.csv", "solutions.csv", "problems.csv")
-DEFAULT_METRIC_COMMAND = r"(?:esoi run|run\.py) (\w+) --impl (\w+)"
 
 
 NOTED: Set[Path] = set()   # roots whose fallback note was printed, so a run says it once

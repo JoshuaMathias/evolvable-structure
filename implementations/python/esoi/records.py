@@ -29,7 +29,7 @@ checks that each id names a record of the overall network. The overall network i
 Intent layout. When the structure folder holds an ``intent.csv`` it is the top intent and the records of every
 intent folder below it are checked as one set (``tables`` of ``check_records``): ids are unique across the tree and
 a link may name a record in any intent. ``overall_solution_ids`` belongs to the legacy layout only and is reported
-there as retired. A solution none of whose metrics has a command is a specification (derived, never declared; see
+there as retired. A solution none of whose metrics has a command that records a run is a specification (derived, never declared; see
 ``esoi.registry``): it needs no interface fields and its metrics no command. The rules about the intents themselves are S28 and S29 (``esoi.rules.intents``).
 
 Standard library only.
@@ -40,7 +40,7 @@ import re
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
-from .tables import ids, is_command, read_csv, read_header
+from .tables import DEFAULT_METRIC_COMMAND, ids, is_command, read_csv, read_header
 
 FILES = {"problem": ("problems.csv", "problem_id"), "ideal": ("ideals.csv", "ideal_id"),
          "solution": ("solutions.csv", "solution_id"), "implementation": ("implementations.csv", "implementation_id"),
@@ -116,9 +116,10 @@ def unapproved_column_problems(name: str, header: Iterable[str], template: Templ
             and not column.startswith("tracking_")]
 
 
-def solutions_with_a_command(metric_rows: Iterable[Dict[str, str]]) -> Set[str]:
-    """Ids of the solutions that have a metric with a command; every other solution is a specification."""
-    return {sid for m in metric_rows if is_command(m.get("command", "")) for sid in ids(m.get("solution_ids", ""))}
+def solutions_with_a_command(metric_rows: Iterable[Dict[str, str]], pattern: str = DEFAULT_METRIC_COMMAND) -> Set[str]:
+    """Ids of the solutions that have a metric with a command that records a run; every other solution is a
+    specification."""
+    return {sid for m in metric_rows if is_command(m.get("command", ""), pattern) for sid in ids(m.get("solution_ids", ""))}
 
 
 PARENT_COLUMNS = {"parent_problem_ids": "problem", "parent_ideal_ids": "ideal",
@@ -182,7 +183,7 @@ def match_implementations(solution_id: str, entries: List[str], records: Dict[st
 
 
 def check_headers(folder: Path, template: Template, interface_required: bool = True, label: str = "",
-                  approved: Optional[Dict[str, Set[str]]] = None) -> List[str]:
+                  approved: Optional[Dict[str, Set[str]]] = None, metric_command: str = DEFAULT_METRIC_COMMAND) -> List[str]:
     """R1 problems in the header of each record file of one intent folder: a missing key or template column. A file
     with no rows (or none at all) is not reported here; the tree as a whole must have records of each type."""
     bad: List[str] = []
@@ -195,7 +196,7 @@ def check_headers(folder: Path, template: Template, interface_required: bool = T
         # a solution of kind specification needs no interface fields, and a header may omit them only for those
         need = [key, *fields(template, entity, interface_required)]
         if entity == "solution" and rows:
-            commanded = solutions_with_a_command(read_csv(Path(folder) / "metrics.csv"))
+            commanded = solutions_with_a_command(read_csv(Path(folder) / "metrics.csv"), metric_command)
             if not any(r.get(key, "") in commanded for r in rows):
                 need = [key, *fields(template, entity, False)]
         missing = [k for k in need if k not in header]
@@ -215,7 +216,7 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
                   overall: Optional[Overall] = None, require_command: bool = True,
                   require_parent: bool = False, tables: Optional[Dict[str, List[Dict[str, str]]]] = None,
                   retired: Optional[Set[str]] = None, scope: str = "the overall network",
-                  approved: Optional[Dict[str, Set[str]]] = None) -> List[str]:
+                  approved: Optional[Dict[str, Set[str]]] = None, metric_command: str = DEFAULT_METRIC_COMMAND) -> List[str]:
     """Problems found in the intent records of ``struct``. ``waived`` holds solution ids whose records are still
     to be written (each is justified in the registry's waivers); their own template fields, links, implementations
     and metrics are not checked, and nothing else is relaxed. A problem may carry a ``related_problem_ids`` column
@@ -245,7 +246,7 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
         if not rows and not (overall is not None and entity in ("problem", "ideal")):
             bad.append(f"R1 {FILES[entity][0]}: no records")
 
-    commanded = solutions_with_a_command(index["metric"].values())
+    commanded = solutions_with_a_command(index["metric"].values(), metric_command)
     specified = {rid for rid in index["solution"] if rid not in commanded}
 
     def skipped(entity: str, row: Dict[str, str]) -> bool:

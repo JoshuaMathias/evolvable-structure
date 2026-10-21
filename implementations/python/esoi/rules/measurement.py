@@ -33,7 +33,7 @@ SUMMARIES = {
            "selected or measured implementation must be live, or waived.",
     "S16": "The latest results row of every implementation carries a cases_sha, or a waiver says why not.",
     "S20": "Every solution has a problem, an ideal, a metric, implementations, a selected implementation and a "
-           "recorded run on the current cases with a git_sha; tests alone are not a metric. With --strict the run must "
+           "recorded run on the current cases with a git_sha (a solution whose metrics record no run is a specification and is not checked here). With --strict the run must "
            "also be on committed code that has not changed since, and so must every rival it was compared with "
            "(waive one rival as `<solution>:<implementation>`).",
     "S21": "Every evaluation folder is named by some solution's metric command, or is listed as shared.",
@@ -212,10 +212,7 @@ def run(ctx: Context) -> List[str]:
             bad.append(f"S20 {sid}: lists no implementation")
         arms = ctx.harness_arms(r.get("metric_command", ""))
         if not arms:
-            if not ctx.waived("S20", sid):
-                bad.append(f"S20 {sid}: metric_command is not an `esoi run <component> --impl <name>` command "
-                           "(a metric is a recorded run, not tests alone)")
-            continue
+            continue   # no command that records a run: a specification, not a finding
         comp, sel = arms[0]
         row = results.get(comp, {}).get(sel)
         if row is None:

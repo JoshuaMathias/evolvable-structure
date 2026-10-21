@@ -12,7 +12,7 @@
 - **Every metric outputs a number, so there is no metric kind.** The solution columns `metric_kind` and `invariant_reason` are
   removed: a rule that holds or does not is measured as the pass rate on its cases, ranked like any other, and a solution
   with a single implementation keeps a deliberately naive baseline in `broken/` that its cases must fail (S25). A solution none
-  of whose metrics has a command is a specification, derived from the missing run and never declared. When a solution has
+  of whose metrics has a command that records a run (`esoi run <component> --impl <name>`) is a specification, derived and never declared. When a solution has
   several metrics, the new link column `authoritative_metric_id` names the one that decides which implementation is best (R6).
   `gap` and `action` are removed too: a next step is a milestone (a value of a metric), and what a metric cannot see goes in
   the metric's `scoped_purpose`. A repository with the old columns gets an R1 finding that says where each one's content goes.

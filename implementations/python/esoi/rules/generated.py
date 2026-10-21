@@ -89,24 +89,24 @@ def run(ctx: Context) -> List[str]:
         tree = tables_of(ctx.registry)
         for _, folder in intents.folders(config):
             bad += [f"S26 {line}" for line in check_headers(folder, ctx.template, label=str(folder.relative_to(config.root)),
-                                                                approved=config.approved_fields)]
+                                                                approved=config.approved_fields, metric_command=config.metric_command)]
         every = {entity: {r.get(key, "") for r in tree[entity]} - {""} for entity, key in KEYS.items()}
         bad += [f"S26 {line}" for line in check_records(
             config.structure, ctx.template, pending, overall=every, tables=tree, retired={"overall_solution_ids"}, scope="the intent tree",
-            require_parent=bool(config.option("S26", "require_parent", False)), approved=config.approved_fields)]
+            require_parent=bool(config.option("S26", "require_parent", False)), approved=config.approved_fields, metric_command=config.metric_command)]
     elif config.overall:
         folder = config.root / config.overall
         if folder.is_dir():
             overall = overall_ids(folder)
             bad += [f"S26 overall network {line}" for line in
                     check_records(folder, ctx.template, interface_required=False, require_command=False,
-                                  approved=config.approved_fields)]
+                                  approved=config.approved_fields, metric_command=config.metric_command)]
         else:
             bad.append(f"S26 {config.overall}: overall network folder not found")
     if not config.intent_mode:
         bad += [f"S26 {line}" for line in check_records(
             config.structure, ctx.template, pending, overall=overall,
-            require_parent=bool(config.option("S26", "require_parent", False)), approved=config.approved_fields)]
+            require_parent=bool(config.option("S26", "require_parent", False)), approved=config.approved_fields, metric_command=config.metric_command)]
     if template_module.stale_against_source(config):
         bad.append(f"S27 {config.structure_dir}/esoi_template.csv: stale against its source "
                    "(run `esoi template sync`, then fill the columns it adds)")

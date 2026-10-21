@@ -965,31 +965,6 @@
   }
  },
  {
-  "id": "CTS-044",
-  "area": "repo",
-  "kind": "repo",
-  "description": "a metric that is not a recorded harness run",
-  "args": {
-   "edits": [
-    {
-     "op": "csv_cell",
-     "path": "esoi/metrics.csv",
-     "key_col": "metric_id",
-     "key": "greeting-pass-rate",
-     "col": "command",
-     "value": "pytest tests"
-    },
-    {
-     "op": "regen"
-    }
-   ]
-  },
-  "expect": {
-   "rule": "S20",
-   "contains": "not an `esoi run"
-  }
- },
- {
   "id": "CTS-045",
   "area": "repo",
   "kind": "repo",
