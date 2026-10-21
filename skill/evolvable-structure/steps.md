@@ -69,7 +69,9 @@ doesn't settle them alone. An AI can carry out every other step and report it.
     outputs, effects) so implementations can change behind it without breaking what depends on it (3). Decide which
     parts are meant to stay stable and which are meant to change, from the purpose and what is likely to change next:
     this is the structure's niche of changeability (5).
-13. **Write the metrics (human confirms).** For each solution, one authoritative Metric measuring the distance to its
+13. **Write the metrics (human confirms).** Every metric outputs a number, so there are no kinds of metric: a rule
+    that holds or does not is a pass rate, combinable with cost and time. A solution with more than one metric names
+    one as authoritative. For each solution, one authoritative Metric measuring the distance to its
     ideals: what is recorded and on which cases. Write the cases now (inputs and what a good result looks like),
     including cases where the right result is to do less. The main solution's metric measures the outcome in the real
     world, not only task completion (10). Write down what the metric cannot see (7). A person confirms each metric and

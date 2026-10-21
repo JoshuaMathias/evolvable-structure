@@ -46,6 +46,11 @@ FILES = {"problem": ("problems.csv", "problem_id"), "ideal": ("ideals.csv", "ide
          "solution": ("solutions.csv", "solution_id"), "implementation": ("implementations.csv", "implementation_id"),
          "metric": ("metrics.csv", "metric_id")}
 SPECIFICATION = "specification"
+
+#: Template fields a record may leave empty. An empty cell is an honest statement that nothing is set yet: a
+#: solution with no milestone has none that its owner has chosen, and an intent need not state opportunities.
+#: Every other template field of a record is required.
+MAY_BE_EMPTY: Dict[str, Set[str]] = {"solution": {"milestones"}, "intent": {"opportunities"}}
 TEMPLATE_DATA = Path(__file__).resolve().parent / "data" / "esoi_template.csv"
 # The template says a problem is not a task or a recommendation: these openings read as one.
 IMPERATIVE = {"add", "allow", "avoid", "build", "call", "change", "check", "choose", "create", "decide", "define",
@@ -212,7 +217,7 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
             if skipped(entity, row):
                 continue
             wanted = fields(template, entity, False) if specification_only(entity, row) else need
-            empty = [k for k in wanted if k in row and not row[k].strip()]
+            empty = [k for k in wanted if k in row and not row[k].strip() and k not in MAY_BE_EMPTY.get(entity, ())]
             if empty:
                 bad.append(f"R2 {row.get(keys[entity], '')}: template field(s) not filled: {', '.join(empty)}")
 

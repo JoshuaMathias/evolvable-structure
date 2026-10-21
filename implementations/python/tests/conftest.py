@@ -22,8 +22,7 @@ def fill_top_intent(root):
             change(row)
         tables.write_csv(folder / name, cols, rows)
 
-    edit("intent.csv", lambda r: r.update(name="Consistent greetings", vision_statement="Every person is greeted by their own name.",
-                                       opportunities="Greetings could be spoken, translated and personalised without changing how names are kept."))
+    edit("intent.csv", lambda r: r.update(name="Consistent greetings", vision_statement="Every person is greeted by their own name."))
     edit("solutions.csv", lambda r: r["solution_id"] == "project-purpose" and r.update(
         name="Greetings sent", scoped_purpose="Everything that greets a person for this project.",
         milestones="1. Share of greetings in the standard form: 100%.", knowledge="The house style for greetings.",

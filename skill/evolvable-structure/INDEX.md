@@ -1,6 +1,13 @@
 # evolvable-structure: index
 
-`SKILL.md` is Joshua's own words and the authority; read it first. Every other file is AI-maintained
+`SKILL.md` is Joshua's own words and the authority; read it first.
+
+**Never add a specification field without the owner's approval.** Every human-readable field of an intent, problem,
+ideal, solution, implementation or metric comes from the template in `SKILL.md`. An AI may add only technical columns
+that hold no prose: ids, links to other records (`*_id`, `*_ids`), file paths and machine-run commands. A new
+descriptive field, a renamed one, or a column that classifies records is proposed to the person who owns the
+specification, with its name and question, and added only once they approve it: in the project's own configuration
+for that project, or in `SKILL.md` for the template itself. Every other file is AI-maintained
 detail that serves it. Open a file only when its row matches your task, and stop once you have what
 you need: most tasks need `SKILL.md` plus one or two rows. "Pattern N" means row N of the patterns
 table in `principles.md`, which also gives that pattern's "reached when" test.

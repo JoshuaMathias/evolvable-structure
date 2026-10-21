@@ -93,6 +93,14 @@ def test_a_sub_intent_arises_from_an_implementation_of_its_parent(cfg):
     assert "intent_id" in tables.read_header(cfg.tracker_dir / "solutions.csv")
 
 
+def test_a_top_intent_may_leave_opportunities_empty(cfg):
+    path = cfg.structure / "intent.csv"
+    rows, cols = tables.read_csv(path), tables.read_header(path)
+    rows[0]["opportunities"] = ""
+    tables.write_csv(path, cols, rows)
+    assert not any("opportunities" in line for line in lines(cfg, "S28"))
+
+
 def test_a_sub_intent_needs_an_opportunity(cfg):
     add_sub_intent(cfg, opportunities="")
     assert any("opportunities" in line for line in lines(cfg, "S28"))

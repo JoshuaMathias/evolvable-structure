@@ -10,7 +10,7 @@ from collections import defaultdict
 from typing import Dict, List
 
 from .. import intents
-from ..records import FILES
+from ..records import FILES, MAY_BE_EMPTY
 from ..tables import ids
 from .base import Context, RuleGroup
 
@@ -45,7 +45,7 @@ def run(ctx: Context) -> List[str]:
         if intent.intent_id in by_id:
             bad.append(f"S28 {where}: intent_id {intent.intent_id} is already used by another intent")
         by_id[intent.intent_id] = intent
-        empty = [k for k in template if not intent.row.get(k, "").strip()]
+        empty = [k for k in template if not intent.row.get(k, "").strip() and k not in MAY_BE_EMPTY["intent"]]
         if empty:
             bad.append(f"S28 {intent.intent_id}: template field(s) not filled: {', '.join(empty)}"
                        + (" (the top intent is why this project exists, in its own words; the structure it applies is a "
