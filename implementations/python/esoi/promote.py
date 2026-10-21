@@ -4,7 +4,8 @@
 selected implementation (the same cases, the same sample, beyond the noise: ``leaderboard.challengers``), it either
 
 * switches the solution's ``selected`` in the records to the winner, points the metric's command at it, and writes the
-  evidence into ``selected_by`` (the date of each results row, the commit, the cases hash, the pass counts), when the
+  evidence into ``selected_by`` where the project has that approved column, else prints it (the date of each results row,
+  the commit, the cases hash, the pass counts), when the
   solution's ``promotion`` cell says ``automatic``; or
 * prints the exact proposal (the same edits) for a person to apply, when the cell is empty or says anything else.
 
@@ -125,7 +126,7 @@ def propose(config: Config, registry: Registry, today: Optional[str] = None,
         target = next((m for m in linked if switch_command(config, m.get("command", ""), current, winner)), None)
         proposal.selected, proposal.selected_by = selected, evidence(own, rival, current, winner, today)
         proposal.edits = [f"solutions.csv {sid}: selected {solution.get('selected', '')!r} -> {selected!r}",
-                          f"solutions.csv {sid}: selected_by -> {proposal.selected_by!r}"]
+                          f"evidence: {proposal.selected_by}"]
         if target is not None:
             proposal.metric_id = target["metric_id"]
             proposal.command = switch_command(config, target["command"], current, winner)
@@ -149,8 +150,11 @@ def edit_row(folder: Path, name: str, key: str, ident: str, changes: Dict[str, s
 def apply(config: Config, registry: Registry, proposal: Proposal) -> None:
     """Write a proposal's edits to the records of the intent folders that hold the rows."""
     solution = next(r for r in registry.solutions if r["solution_id"] == proposal.solution_id)
-    edit_row(intent_folder(config, solution.get("intent_id") or None), "solutions.csv", "solution_id", proposal.solution_id,
-             {"selected": proposal.selected, "selected_by": proposal.selected_by})
+    folder = intent_folder(config, solution.get("intent_id") or None)
+    changes = {"selected": proposal.selected}
+    if "selected_by" in read_header(folder / "solutions.csv"):   # the evidence is stored only where the project approved that column
+        changes["selected_by"] = proposal.selected_by
+    edit_row(folder, "solutions.csv", "solution_id", proposal.solution_id, changes)
     if proposal.metric_id:
         metric = next(m for m in registry.metrics if m.get("metric_id") == proposal.metric_id)
         edit_row(intent_folder(config, metric.get("intent_id") or None), "metrics.csv", "metric_id", proposal.metric_id,

@@ -89,9 +89,22 @@ A module may hold several implementations: list them as `path::name` in the solu
 record in `implementations.csv` the same `filepath`; rule S14 accepts a selection-table module that either lists, and the record
 ids need not follow any pattern (the default is `solution:file-stem`, `solution:name` also matches).
 
-`solutions.csv` may carry two optional columns beyond the template: `promotion` (`automatic` lets `esoi select --promote`
-switch the selected implementation when a rival clearly wins on the solution's own metric; empty means a person applies the
-printed proposal) and, as for any record, nothing else is required. The code under `code_paths` is read (not imported) for
+A records file carries only the template's fields, technical columns and fields its owner approved. Technical means an id
+or link (any column ending `_id` or `_ids`), a file path (`filepath`), a command a machine runs (`command`),
+`interface_name`, `implementations`, `selected`, `sub_intent`, `implements`, or one of the review tracker's own `tracking_*`
+columns; the list is `TECHNICAL_COLUMNS` in `esoi/records.py`. Any other column is a human-readable or classifying field, and a
+tool or an AI never adds one on its own: rule S26 (R7) reports it with the instruction to propose it to the person who owns
+the specification. They add it to the template in `SKILL.md`, or approve it for this project only by listing it in `esoi.toml`:
+
+```toml
+[records.approved_fields]
+solutions = ["promotion"]          # each key is a records file; each entry a column its owner approved
+```
+
+For example `promotion` (`automatic` lets `esoi select --promote` switch the selected implementation when a rival clearly
+wins on the solution's own metric; empty means a person applies the printed proposal) is such a column, and so is
+`selected_by` (where `select --promote` stores its evidence when the column is approved; otherwise it prints the evidence).
+The code under `code_paths` is read (not imported) for
 `@solution`, `@implementation` and `register` declarations (rule S30; `esoi records sync` writes the missing rows).
 
 ## Results log

@@ -84,6 +84,38 @@ def renamed_column_problems(name: str, header: Iterable[str], label: str) -> Lis
     return out
 
 
+#: The one place that names the columns a records file may carry besides the template's fields. A human-readable
+#: field is part of the specification only when its owner approved it, which means it is in the template (SKILL.md) or
+#: in the project's own `[records] approved_fields`. Everything here is technical: an id, a link to a record, a file
+#: path, a command a machine runs, or the name of the interface a solution defines. Any column ending `_id` or `_ids`
+#: is a link or an id, and any starting `tracking_` is the review tracker's own; neither needs listing.
+TECHNICAL_COLUMNS = {
+    "solutions.csv": {"interface_name", "implementations", "selected"},
+    "implementations.csv": {"filepath", "sub_intent", "selected"},   # selected: the legacy overall network flags its chosen way
+    "metrics.csv": {"command"},
+    "intent.csv": {"implements"},
+}
+
+
+def unapproved_column_problems(name: str, header: Iterable[str], template: Template, label: str,
+                               approved: Optional[Dict[str, Set[str]]] = None) -> List[str]:
+    """R7 lines for each column of record file ``name`` that is neither a field of the template, nor technical
+    (``TECHNICAL_COLUMNS``, ``*_id``, ``*_ids``, ``tracking_*``), nor approved by the project's owner."""
+    entity = next((e for e, (file_name, _) in FILES.items() if file_name == name), "intent" if name == "intent.csv" else "")
+    if not entity:
+        return []
+    allowed = {r["field_key"] for r in template.get(entity, []) if r["group"] != "meta"}
+    allowed |= TECHNICAL_COLUMNS.get(name, set()) | (approved or {}).get(name, set())
+    removed = set(REMOVED_COLUMNS.get(name, {})) | set(RENAMED_COLUMNS.get(name, {})) | ({"opportunity"} if entity == "intent" else set())
+    return [f"R7 {label}: column `{column}` is not in the template, is not a technical column (an id, a link, a file path "
+            "or a command) and is not approved. Propose the field to the person who owns the specification; add it to "
+            f"`approved_fields` under `[records]` in esoi.toml (`{name.removesuffix('.csv')} = [\"{column}\"]`), or to the "
+            "template in SKILL.md, only once they approve."
+            for column in header
+            if column not in allowed and column not in removed and not column.endswith(("_id", "_ids"))
+            and not column.startswith("tracking_")]
+
+
 def solutions_with_a_command(metric_rows: Iterable[Dict[str, str]]) -> Set[str]:
     """Ids of the solutions that have a metric with a command; every other solution is a specification."""
     return {sid for m in metric_rows if is_command(m.get("command", "")) for sid in ids(m.get("solution_ids", ""))}
@@ -149,7 +181,8 @@ def match_implementations(solution_id: str, entries: List[str], records: Dict[st
     return claimed, sorted(set(records) - set(claimed.values()))
 
 
-def check_headers(folder: Path, template: Template, interface_required: bool = True, label: str = "") -> List[str]:
+def check_headers(folder: Path, template: Template, interface_required: bool = True, label: str = "",
+                  approved: Optional[Dict[str, Set[str]]] = None) -> List[str]:
     """R1 problems in the header of each record file of one intent folder: a missing key or template column. A file
     with no rows (or none at all) is not reported here; the tree as a whole must have records of each type."""
     bad: List[str] = []
@@ -170,6 +203,10 @@ def check_headers(folder: Path, template: Template, interface_required: bool = T
             bad.append(f"R1 {label or folder}/{name}: missing template column(s) {', '.join(missing)}"
                        " (run `esoi template sync`, then fill them)")
         bad += renamed_column_problems(name, header, f"{label or folder}/{name}")
+        bad += unapproved_column_problems(name, header, template, f"{label or folder}/{name}", approved)
+    intent_path = Path(folder) / "intent.csv"
+    if intent_path.is_file():
+        bad += unapproved_column_problems("intent.csv", read_header(intent_path), template, f"{label or folder}/intent.csv", approved)
     return bad
 
 
@@ -177,7 +214,8 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
                   interface_required: bool = True, related_problem_ids: Optional[Set[str]] = None,
                   overall: Optional[Overall] = None, require_command: bool = True,
                   require_parent: bool = False, tables: Optional[Dict[str, List[Dict[str, str]]]] = None,
-                  retired: Optional[Set[str]] = None, scope: str = "the overall network") -> List[str]:
+                  retired: Optional[Set[str]] = None, scope: str = "the overall network",
+                  approved: Optional[Dict[str, Set[str]]] = None) -> List[str]:
     """Problems found in the intent records of ``struct``. ``waived`` holds solution ids whose records are still
     to be written (each is justified in the registry's waivers); their own template fields, links, implementations
     and metrics are not checked, and nothing else is relaxed. A problem may carry a ``related_problem_ids`` column
@@ -234,6 +272,7 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
                 bad.append(f"R1 {FILES[entity][0]}: missing template column(s) {', '.join(missing)}"
                            " (run `esoi template sync`, then fill them)")
             bad += renamed_column_problems(FILES[entity][0], rows[0], FILES[entity][0])
+            bad += unapproved_column_problems(FILES[entity][0], rows[0], template, FILES[entity][0], approved)
         for row in rows:
             if skipped(entity, row):
                 continue

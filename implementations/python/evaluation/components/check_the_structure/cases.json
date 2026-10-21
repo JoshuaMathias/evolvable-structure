@@ -398,7 +398,7 @@
      "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
-     "col": "selected_by",
+     "col": "knowledge",
      "value": "a different reason"
     }
    ]

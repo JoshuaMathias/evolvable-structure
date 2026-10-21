@@ -189,6 +189,44 @@ def test_a_solution_with_two_metrics_names_the_authoritative_one(cfg):
     assert any(p.startswith("R6 greet-a-person") and "is not one of the solution's metrics" in p for p in check(cfg))
 
 
+def add_column(cfg, name, column, value="text"):
+    path = cfg.structure / name
+    rows, cols = tables.read_csv(path), tables.read_header(path)
+    for row in rows:
+        row[column] = value
+    tables.write_csv(path, cols + [column], rows)
+
+
+def test_a_human_readable_column_outside_the_template_needs_the_owners_approval(cfg):
+    add_column(cfg, "solutions.csv", "selected_by", "measured on the example cases")
+    found = [p for p in check(cfg) if p.startswith("R7")]
+    assert len(found) == 1 and "`selected_by`" in found[0]
+    assert "person who owns the specification" in found[0] and "approved_fields" in found[0] and "SKILL.md" in found[0]
+    assert "Joshua" not in found[0]
+    # the owner approves it in the project's own configuration
+    assert not [p for p in check(cfg, approved={"solutions.csv": {"selected_by"}}) if p.startswith("R7")]
+    # approval of one file's column does not approve the same name in another file
+    add_column(cfg, "problems.csv", "selected_by", "x")
+    assert any(p.startswith("R7 problems.csv") for p in check(cfg, approved={"solutions.csv": {"selected_by"}}))
+
+
+def test_ids_links_paths_commands_and_tracking_columns_are_technical(cfg):
+    add_column(cfg, "solutions.csv", "custom_id", "x")
+    add_column(cfg, "solutions.csv", "custom_ids", "x")
+    add_column(cfg, "solutions.csv", "tracking_note", "x")
+    assert not [p for p in check(cfg) if p.startswith("R7")]   # patterns and the library's own list: filepath, command, ...
+    from esoi import records
+    assert {"filepath", "command", "interface_name", "implementations", "selected", "sub_intent", "implements"} <= \
+        set().union(*records.TECHNICAL_COLUMNS.values())
+
+
+def test_the_owner_lists_approved_fields_in_esoi_toml(tmp_path):
+    from esoi import config
+    cfg = config.from_mapping({"records": {"approved_fields": {"solutions": ["area"], "metrics.csv": ["measured_through"]}}}, tmp_path)
+    assert cfg.approved_fields == {"solutions.csv": {"area"}, "metrics.csv": {"measured_through"}}
+    assert config.from_mapping({}, tmp_path).approved_fields == {}
+
+
 def rename_header(cfg, name, old, new):
     path = cfg.structure / name
     rows, cols = tables.read_csv(path), tables.read_header(path)

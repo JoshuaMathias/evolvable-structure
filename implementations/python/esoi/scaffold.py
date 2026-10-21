@@ -184,11 +184,10 @@ def files_for(package: str, template) -> Dict[str, str]:
 
     solution = record("solution", template, SAMPLE["solution"], solution_id=SOLUTION, problem_ids="greeting-by-hand",
                       ideal_ids="consistent-greeting", metric_ids="greeting-pass-rate", interface_name="",
-                      implementations=";".join(greet_paths), selected=greet_paths[0], selected_by="measured on the example cases")
+                      implementations=";".join(greet_paths), selected=greet_paths[0])
     structure_solution = record("solution", template, STRUCTURE["solution"], solution_id="project-structure",
                                 problem_ids="purpose-unrecorded", ideal_ids="explicit-purpose", metric_ids="structure-coverage",
-                                implementations="esoi-records", selected="esoi-records",
-                                selected_by="the only way to carry it out so far")
+                                implementations="esoi-records", selected="esoi-records")
     # The single solution at the top: why the project exists is the project's own, so every cell is left for it to write
     # and `esoi check` reports each one. Its implementation builds on the project's other solutions.
     purpose_solution = record("solution", template, {}, solution_id=PURPOSE, implementations="the-project",
@@ -221,7 +220,7 @@ def files_for(package: str, template) -> Dict[str, str]:
         [record("ideal", template, SAMPLE["ideal"], ideal_id="consistent-greeting", problem_ids="greeting-by-hand"),
          record("ideal", template, STRUCTURE["ideal"], ideal_id="explicit-purpose", problem_ids="purpose-unrecorded")])
     out[f"{structure}/solutions.csv"] = render_csv(
-        sol_cols(["problem_ids", "ideal_ids", "metric_ids", "interface_name", "implementations", "selected", "selected_by",
+        sol_cols(["problem_ids", "ideal_ids", "metric_ids", "interface_name", "implementations", "selected",
                   "authoritative_metric_id", "parent_problem_ids", "parent_ideal_ids"]),
         [solution, structure_solution, purpose_solution])
     out[f"{structure}/implementations.csv"] = render_csv(

@@ -120,6 +120,19 @@ def test_selection_rules_s7_s14_and_s23(cfg):
     assert any(line.startswith("S23") for line in check.check(cfg))
 
 
+def test_s26_fails_on_a_column_the_owner_has_not_approved_and_passes_once_they_list_it(cfg):
+    path = cfg.structure / "solutions.csv"
+    rows, cols = tables.read_csv(path), tables.read_header(path)
+    for row in rows:
+        row["area"] = "x"
+    tables.write_csv(path, cols + ["area"], rows)
+    check.write_docs(cfg, say=lambda text: None)
+    found = [line for line in check.check(cfg) if line.startswith("S26 R7")]
+    assert found and "`area`" in found[0] and "approved_fields" in found[0]
+    cfg.records = {"approved_fields": {"solutions": ["area"]}}
+    assert not [line for line in check.check(cfg) if line.startswith("S26 R7")]
+
+
 def test_numbers_in_prose_and_unrecorded_arms(cfg):
     edit(cfg, "metrics.csv", "metric_id", "greeting-pass-rate", "scoped_purpose", "It passes 12/16 of the cases.")
     check.write_docs(cfg, say=lambda text: None)

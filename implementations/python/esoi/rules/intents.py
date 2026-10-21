@@ -1,7 +1,7 @@
 """Rules about intents as containers: S28 and S29. They apply only where the structure folder holds an ``intent.csv``.
 
 S28 the intent folders and the link from a sub-intent to the implementation it arises from, S29 ids across the tree
-and the solutions an implementation builds on. The record rules (R1 to R6, inside S26) check each record type.
+and the solutions an implementation builds on. The record rules (R1 to R7, inside S26) check each record type.
 """
 from __future__ import annotations
 

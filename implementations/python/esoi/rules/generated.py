@@ -32,7 +32,9 @@ SUMMARIES = {
            "hand-edited). Checked when the tracker folder exists.",
     "S26": "The intent records fill every field of the evolvable-structure template and link as it says "
            "(a problem is not a task, every problem has a solution and an ideal, links agree both ways), and "
-           "parent links resolve (in the legacy layout, to the overall network; in the intent layout, anywhere in the tree).",
+           "parent links resolve (in the legacy layout, to the overall network; in the intent layout, anywhere in the tree). "
+           "A records file carries no other column than the template's fields, technical columns (ids, links, file paths, "
+           "commands) and the fields the specification's owner approved under `[records] approved_fields` in esoi.toml (R7).",
     "S27": "The committed template copy equals the source it was parsed from (skipped when the source is not reachable).",
 }
 
@@ -86,23 +88,25 @@ def run(ctx: Context) -> List[str]:
                        "remove it from the configuration")
         tree = tables_of(ctx.registry)
         for _, folder in intents.folders(config):
-            bad += [f"S26 {line}" for line in check_headers(folder, ctx.template, label=str(folder.relative_to(config.root)))]
+            bad += [f"S26 {line}" for line in check_headers(folder, ctx.template, label=str(folder.relative_to(config.root)),
+                                                                approved=config.approved_fields)]
         every = {entity: {r.get(key, "") for r in tree[entity]} - {""} for entity, key in KEYS.items()}
         bad += [f"S26 {line}" for line in check_records(
             config.structure, ctx.template, pending, overall=every, tables=tree, retired={"overall_solution_ids"}, scope="the intent tree",
-            require_parent=bool(config.option("S26", "require_parent", False)))]
+            require_parent=bool(config.option("S26", "require_parent", False)), approved=config.approved_fields)]
     elif config.overall:
         folder = config.root / config.overall
         if folder.is_dir():
             overall = overall_ids(folder)
             bad += [f"S26 overall network {line}" for line in
-                    check_records(folder, ctx.template, interface_required=False, require_command=False)]
+                    check_records(folder, ctx.template, interface_required=False, require_command=False,
+                                  approved=config.approved_fields)]
         else:
             bad.append(f"S26 {config.overall}: overall network folder not found")
     if not config.intent_mode:
         bad += [f"S26 {line}" for line in check_records(
             config.structure, ctx.template, pending, overall=overall,
-            require_parent=bool(config.option("S26", "require_parent", False)))]
+            require_parent=bool(config.option("S26", "require_parent", False)), approved=config.approved_fields)]
     if template_module.stale_against_source(config):
         bad.append(f"S27 {config.structure_dir}/esoi_template.csv: stale against its source "
                    "(run `esoi template sync`, then fill the columns it adds)")

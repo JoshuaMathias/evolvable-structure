@@ -1,7 +1,7 @@
 """One configuration per adopting repository: ``esoi.toml`` (top-level keys) or ``[tool.esoi]`` in ``pyproject.toml``.
 
 Every key has a default, so a repository states only what differs. Paths are relative to the folder that holds
-the config file (the repository root). Sub-tables (``[rules.S13]``, ``[hermetic]``, ``[consumer]``, ``[sheets]``, ``[skill]``)
+the config file (the repository root). Sub-tables (``[rules.S13]``, ``[hermetic]``, ``[consumer]``, ``[sheets]``, ``[skill]``, ``[records]``)
 are kept as plain dicts for the module that reads them.
 
     package = "mylib"                 # the importable package the module rules look at ("" turns them off)
@@ -85,6 +85,7 @@ class Config:
     sheets: Dict[str, Any] = field(default_factory=dict)
     hygiene: Dict[str, Any] = field(default_factory=dict)
     skill: Dict[str, Any] = field(default_factory=dict)
+    records: Dict[str, Any] = field(default_factory=dict)   # [records] approved_fields: columns the specification's owner approved
     source: Optional[Path] = None
 
     def __post_init__(self) -> None:
@@ -96,6 +97,16 @@ class Config:
         names = self.layer_names
         if len(set(names)) != len(names):
             raise ConfigError("layers lists a layer twice")
+
+    @property
+    def approved_fields(self) -> Dict[str, Set[str]]:
+        """Columns of each records file that the owner of the specification approved beyond the template, from
+        ``[records.approved_fields]`` (``solutions = ["column", ...]``; a key may also be written ``solutions.csv``)."""
+        table = self.records.get("approved_fields", {}) if isinstance(self.records, dict) else {}
+        out: Dict[str, Set[str]] = {}
+        for name, columns in table.items():
+            out[name if name.endswith(".csv") else f"{name}.csv"] = {str(c) for c in columns}
+        return out
 
     @property
     def selection_table(self) -> str:

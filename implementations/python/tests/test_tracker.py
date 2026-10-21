@@ -14,7 +14,7 @@ def test_the_scaffold_tracker_is_current_and_has_five_tabs(cfg):
 def test_a_registry_edit_makes_the_matching_tab_stale(cfg):
     path = cfg.structure / "solutions.csv"
     rows, cols = tables.read_csv(path), tables.read_header(path)
-    rows[0]["selected_by"] = "another reason"
+    rows[0]["knowledge"] = "another reason"
     tables.write_csv(path, cols, rows)
     assert "solutions" in tracker.stale(cfg, registry.load(cfg))
 

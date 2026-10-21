@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **A tool or an AI does not add specification fields on its own.** Rule S26 (R7) now fails when a records file has a column
+  that is not a field of the template, not technical (an id or link ending `_id` or `_ids`, `filepath`, `command`,
+  `interface_name`, `implementations`, `selected`, `sub_intent`, `implements`, `tracking_*`; the one list is
+  `records.TECHNICAL_COLUMNS`) and not approved by the specification's owner in `esoi.toml` under `[records.approved_fields]`. The message
+  says to propose the field to the person who owns the specification. The scaffold, `esoi records sync` and `esoi add` no
+  longer write `selected_by`; `esoi select --promote` stores its evidence there only where the project approved the column,
+  and prints it otherwise.
 - **Every metric outputs a number, so there is no metric kind.** The solution columns `metric_kind` and `invariant_reason` are
   removed: a rule that holds or does not is measured as the pass rate on its cases, ranked like any other, and a solution
   with a single implementation keeps a deliberately naive baseline in `broken/` that its cases must fail (S25). A solution none

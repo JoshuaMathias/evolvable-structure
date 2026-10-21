@@ -27,7 +27,7 @@ from .template import load_for
 TRACKING = ["tracking_status", "tracking_owner", "tracking_updated", "tracking_notes"]
 TABS = ["problems", "solutions", "implementations", "ideals", "metrics"]
 # What a solution's verdict means for its status (the leaderboard decides; see leaderboard.verdict).
-STATUS_BY_VERDICT = {"WIN": "decided-by-metric", "TIE": "tie-kept-by-selected_by", "LOSS": "beaten-by-rival",
+STATUS_BY_VERDICT = {"WIN": "decided-by-metric", "TIE": "tie-kept", "LOSS": "beaten-by-rival",
                      "UNMEASURED": "no-rival-measured"}
 ALTERNATIVE_MARKERS = ("ALTERNATIVE", "BASELINE", "ABLATION", "FLOOR", "VALIDITY")
 Row = Dict[str, str]
@@ -59,7 +59,7 @@ def columns_without_extras(own) -> Dict[str, List[str]]:
         "problems": ["problem_id"] + own("problem") + ["solution_ids", "ideal_ids", "component_ids", "auto_status"],
         "solutions": ["solution_id"] + own("solution") + [
             "problem_ids", "ideal_ids", "metric_ids", "implementation_ids", "interface_name", "selected_implementation_id",
-            "selected_by", "authoritative_metric_id", "verdict", "verdict_detail", "component_ids", "auto_status"],
+            "authoritative_metric_id", "verdict", "verdict_detail", "component_ids", "auto_status"],
         "implementations": ["implementation_id", "solution_id", "filepath"] + own("implementation") + [
             "kind", "selected", "latest_result", "latest_cost_usd", "cases_sha", "auto_status"],
         "ideals": ["ideal_id", "scope"] + own("ideal") + ["problem_ids", "solution_ids", "metric_ids", "auto_status"],
@@ -182,7 +182,7 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
         sol_rows.append({
             **{k: s.get(k, "") for k in extra["solutions"]},
             **{k: s.get(k, "") for k in ["solution_id"] + fields(template, "solution", True)
-               + ["problem_ids", "ideal_ids", "metric_ids", "interface_name", "selected_by",
+               + ["problem_ids", "ideal_ids", "metric_ids", "interface_name",
                                                                   "authoritative_metric_id"]},
             "implementation_ids": SEP.join(impl_ids), "selected_implementation_id": selected_id,
             "verdict": verdict.get("verdict", ""), "verdict_detail": verdict.get("detail", ""),

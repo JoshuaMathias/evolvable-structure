@@ -157,7 +157,9 @@ def test_promote_proposes_or_applies_by_the_solutions_policy(repo, capsys):
     next(r for r in solutions if r["solution_id"] == "greet-a-person")["promotion"] = "automatic"
     tables.write_csv(repo / "esoi" / "solutions.csv", header + ["promotion"], solutions)
     assert run(repo, "select", "--promote", "--dry-run") == 1 and "dry run" in capsys.readouterr().out
-    assert run(repo, "select", "--promote") == 0 and "promoted" in capsys.readouterr().out
+    assert run(repo, "select", "--promote") == 0
+    out = capsys.readouterr().out
+    assert "promoted" in out and "evidence:" in out   # the evidence is printed: the scaffold has no selected_by column
     row = next(r for r in tables.read_csv(repo / "esoi" / "solutions.csv") if r["solution_id"] == "greet-a-person")
-    assert row["selected"].endswith("impls/shout.py") and "promoted" in row["selected_by"]
+    assert row["selected"].endswith("impls/shout.py") and "selected_by" not in row
     assert "--impl shout" in (repo / "esoi" / "metrics.csv").read_text()
