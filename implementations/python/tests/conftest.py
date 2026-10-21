@@ -25,7 +25,7 @@ def fill_top_intent(root):
     edit("intent.csv", lambda r: r.update(name="Consistent greetings", vision_statement="Every person is greeted by their own name."))
     edit("solutions.csv", lambda r: r["solution_id"] == "project-purpose" and r.update(
         name="Greetings sent", scoped_purpose="Everything that greets a person for this project.",
-        goals="Every greeting is consistent.", knowledge="The house style for greetings.",
+        milestones="1. Share of greetings in the standard form: 100%.", knowledge="The house style for greetings.",
         measures_of_success="The greeting cases pass.", problem_ids="greeting-by-hand", ideal_ids="consistent-greeting",
         metric_ids="greeting-pass-rate"))
     edit("implementations.csv", lambda r: r["implementation_id"] == "project-purpose:the-project" and r.update(

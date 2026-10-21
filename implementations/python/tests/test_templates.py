@@ -81,7 +81,7 @@ def test_the_excerpts_quote_only_the_public_parts(tmp_path):
 def test_record_headers_start_with_the_key_and_end_with_the_parent_links():
     rows, _ = templates.parse(SAMPLE)
     headers = templates.record_headers(rows)
-    assert headers["solutions.csv"].startswith("solution_id,name,goals,parameters")
+    assert headers["solutions.csv"].startswith("solution_id,name,milestones,parameters")
     assert headers["solutions.csv"].strip().endswith("parent_metric_ids")
     assert headers["components.csv"].startswith("component_id,layer")
 

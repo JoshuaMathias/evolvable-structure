@@ -46,7 +46,8 @@ SAMPLE: Dict[str, Dict[str, str]] = {
     "solution": {
         "name": "Greeting function",
         "scoped_purpose": "Greet one person by name in plain text. It does not translate or personalise beyond the name.",
-        "goals": "Each sample name appears in a greeting of the standard form.",
+        "milestones": "1. Share of sample names that appear in a greeting of the standard form: 100%. Target completion time: not set. "
+                      "End condition: a later milestone replaces it as the priority.",
         "knowledge": "The house style for greetings.",
         "measures_of_success": "Every example case passes.",
         "parameters": "None.",
@@ -95,7 +96,8 @@ STRUCTURE = {
         "name": "Project structure",
         "scoped_purpose": "How this project records its intent, measures alternatives and selects the best by metric; "
                           "its implementation uses the esoi solutions and holds whatever is specific to this project.",
-        "goals": "Each building block of the structure has a metric and a recorded run.",
+        "milestones": "1. Share of building blocks with a metric: 100%. 2. Share of building blocks with a recorded run: 100%. "
+                      "Target completion times: not set. End condition: the structure is replaced by a different one.",
         "knowledge": "The project's own history and goals, and the esoi documentation.",
         "measures_of_success": "Every solution of the project is recorded with a problem, an ideal and a metric, and the check passes."},
     "metric": {

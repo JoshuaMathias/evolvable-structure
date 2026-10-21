@@ -30,7 +30,7 @@ One spreadsheet tab per intent type, so a person can review problems, ideals, so
 | `solution_id` | key |
 | `name` | generated |
 | `scoped_purpose` | generated |
-| `goals` | generated |
+| `milestones` | generated |
 | `knowledge` | generated |
 | `measures_of_success` | generated |
 | `parameters` | generated |

@@ -2,7 +2,7 @@
 
 # Metric (template)
 
-> A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).
+> A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Consequently, every solution has only one authoritative metric, which can be a combination of multiple metrics or factors with weights that reflect the solution's ideals and purpose. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).
 
 Copy this file once per record. Answer every question; leave none empty. Give the record a short stable id (a few lowercase words joined by hyphens) so other records can link to it.
 

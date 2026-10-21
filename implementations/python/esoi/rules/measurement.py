@@ -39,7 +39,7 @@ SUMMARIES = {
            "also be on committed code that has not changed since, and so must every rival it was compared with "
            "(waive one rival as `<solution>:<implementation>`).",
     "S21": "Every evaluation folder is named by some solution's metric command, or is listed as shared.",
-    "S22": "No score, percentage, dollar amount or case count in a gap, an action, a waiver reason or a record field; "
+    "S22": "No score, percentage, dollar amount or case count in a gap, an action, a waiver reason or a record field (a solution's milestones may state target values); "
            "numbers live in the results log.",
     "S24": "Every arm a metric command names has a results row, and a gap or action that says an implementation is "
            "not recorded names none that already has a row.",
@@ -77,15 +77,21 @@ def impl_kind(ctx: Context, path: Path) -> str:
     return "unclear"
 
 
+# A milestone is a value of a metric, so its target value is the one number a record field may carry.
+NUMBERS_ALLOWED = {("solutions.csv", "milestones")}
+
+
 def record_prose(ctx: Context) -> List[tuple]:
-    """(file, id, column, text) for every free-text field of the intent records, per the template."""
+    """(file, id, column, text) for every free-text field of the intent records, per the template, except the
+    fields that state target values (``NUMBERS_ALLOWED``)."""
     sources = {"problems.csv": ctx.registry.problems, "ideals.csv": ctx.registry.ideals,
                "solutions.csv": ctx.registry.solutions, "implementations.csv": ctx.registry.implementations,
                "metrics.csv": ctx.registry.metrics}
     out = []
     for entity, (name, key) in FILES.items():
         columns = [t["field_key"] for t in ctx.template.get(entity, []) if t["group"] != "meta"]
-        out += [(name, row.get(key, ""), col, row[col]) for row in sources[name] for col in columns if col in row]
+        out += [(name, row.get(key, ""), col, row[col]) for row in sources[name] for col in columns
+                if col in row and (name, col) not in NUMBERS_ALLOWED]
     return out
 
 

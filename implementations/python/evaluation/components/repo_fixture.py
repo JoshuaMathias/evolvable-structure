@@ -74,7 +74,7 @@ def baseline_repo(dest: Path) -> Path:
     set_cell(root, "esoi/intent.csv", "intent_id", "demo", "vision_statement", "Every person is greeted by their own name.")
     # the scaffold also leaves its top solution to the project: write the stand-in project's own
     for column, value in dict(name="Greetings sent", scoped_purpose="Everything that greets a person for this project.",
-                              goals="Every greeting is consistent.", knowledge="The house style for greetings.",
+                              milestones="1. Share of greetings in the standard form: 100%.", knowledge="The house style for greetings.",
                               measures_of_success="The greeting cases pass.", problem_ids="greeting-by-hand",
                               ideal_ids="consistent-greeting", metric_ids="greeting-pass-rate").items():
         set_cell(root, "esoi/solutions.csv", "solution_id", "project-purpose", column, value)

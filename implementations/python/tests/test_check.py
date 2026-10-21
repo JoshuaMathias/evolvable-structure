@@ -124,6 +124,9 @@ def test_numbers_in_prose_and_unrecorded_claims(cfg):
     edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "gap", "It passes 12/16 of the cases.")
     check.write_docs(cfg, say=lambda text: None)
     assert any(line.startswith("S22") and "12/16" in line for line in check.check(cfg))
+    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "milestones", "1. Share of greetings in the standard form: 100%.")
+    check.write_docs(cfg, say=lambda text: None)
+    assert not any(line.startswith("S22") and "milestones" in line for line in check.check(cfg))   # a target value is allowed
     edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "gap", "The shout implementation is not recorded.")
     edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "action", "Keep watching.")
     check.write_docs(cfg, say=lambda text: None)

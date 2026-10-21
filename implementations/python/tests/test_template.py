@@ -16,7 +16,9 @@ Intent template definitions (each intent can have multiple items):
 - **Solution**: A definition of how a problem is addressed.
     Specify:
         - Name: What is it called?
-        - Goals: What are the goals?
+        - Milestones: What are the priorities in order?
+            Each milestone is a value of one or more metrics.
+            End condition: Condition for the milestone to stop being a priority.
     If technology, specify interface details where applicable:
         - Parameters
         - Inputs
@@ -36,10 +38,19 @@ def keys(rows, entity, group="specify"):
 def test_parse_reads_fields_groups_and_meta():
     rows, notes = template.parse(SAMPLE)
     assert keys(rows, "problem") == ["problem", "who_has_it", "why_it_matters"]
-    assert keys(rows, "solution") == ["name", "goals"] and keys(rows, "solution", "interface") == ["parameters", "inputs"]
+    assert keys(rows, "solution") == ["name", "milestones"] and keys(rows, "solution", "interface") == ["parameters", "inputs"]
     meta = {r["field_key"]: r["question"] for r in rows if r["entity"] == "problem" and r["group"] == "meta"}
     assert meta["what_it_is_not"] == "A task." and "Ideals" in meta["connects_to"]
     assert any("empty bullet" in n for n in notes) and any("implementation: section missing" in n for n in notes)
+
+
+def test_lines_indented_under_a_field_are_guidance_for_that_field_not_new_fields():
+    rows, _ = template.parse(SAMPLE)
+    assert keys(rows, "solution") == ["name", "milestones"]
+    question = next(r["question"] for r in rows if r["entity"] == "solution" and r["field_key"] == "milestones")
+    assert question.startswith("What are the priorities in order?")
+    assert "Each milestone is a value of one or more metrics." in question and "End condition: Condition" in question
+    assert len(rows) == len({(r["entity"], r["field_key"]) for r in rows})
 
 
 def test_a_missing_block_parses_to_nothing():

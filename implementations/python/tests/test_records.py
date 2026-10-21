@@ -57,7 +57,7 @@ def test_every_implementation_needs_a_record_and_the_reverse(cfg):
 
 
 def test_waiving_a_solution_skips_its_template_fields(cfg):
-    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "goals", "")
+    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "milestones", "")
     assert any(p.startswith("R2") for p in check(cfg))
     assert not any(p.startswith("R2 greet-a-person") for p in check(cfg, waived={"greet-a-person"}))
 

@@ -32,7 +32,7 @@ Write each item as a heading with the id and a short title, then one bullet per 
 ### S1 Short title
 - **What's a name that describes the type of solution it is?** <!-- Name -->
 - **What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding?** <!-- Scoped purpose -->
-- **What are the solution's measureable goals?** <!-- Goals -->
+- **What are the solution's priorities in order? Each milestone is a value of one or more metrics, which doesn't have to be the authoritative metric directly but it should relate to it. End condition (optional): Condition for the milestone to no longer be a priority (date or other circumstance), at which point it's archived. Target completion time (optional): Planned completion date and time (which other dependent milestones may rely on). May be a date or a specific minute of a date where precision is neded.** <!-- Milestones -->
 - **What knowledge informs the solution's definition or implementations?** <!-- Knowledge -->
 - **What would indicate the solution is successful?** <!-- Measures of success -->
 - **Parameters** <!-- Parameters -->
@@ -46,7 +46,7 @@ Write each item as a heading with the id and a short title, then one bullet per 
 
 ### A1 Short title
 - **What's a name that distinguishes this implementation from other alternatives?** <!-- Name -->
-- **How does the implementation achieve the goals of its solution's definition?** <!-- Description -->
+- **How does the implementation achieve the purpose of its solution's definition?** <!-- Description -->
 - **Advantages** <!-- Advantages -->
 - **Disadvantages** <!-- Disadvantages -->
 - **Implements:** <!-- solution id -->

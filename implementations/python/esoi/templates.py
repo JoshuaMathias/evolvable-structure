@@ -148,8 +148,10 @@ def overall_template(entities: Dict[str, Dict[str, object]]) -> str:
 SOLUTION_HINTS = {
     "name": "Name the policy after what it governs, for example \"when this repository's metrics are run\".",
     "scoped_purpose": "Which Metric records it governs, and which runs it deliberately leaves out (paid runs, say).",
-    "goals": "How current results must be and what a run may cost, as measurable targets. Keep numbers out of prose: put "
-             "budgets in the table below.",
+    "milestones": "The policy's priorities in order, each a value of a metric, such as the share of metrics with a result at "
+                  "the current commit. Give a milestone's target completion time separately from its end condition (when it stops "
+                  "being a priority and is archived): a missed target completion time does not archive it. A budget shared by many intents is "
+                  "specified once in its own intent, not here; keep numbers out of prose and put them in the table below.",
     "knowledge": "What informed it: how noisy the metrics are, what a run costs, how fast the measured code changes, how "
                  "often the models or prices behind a metric change.",
     "measures_of_success": "How you would know the policy works: decisions backed by current results, spend inside the "

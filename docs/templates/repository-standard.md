@@ -82,7 +82,7 @@ Connects to: Ideals that oppose at least one aspect of the problem, Solutions th
 |---|---|---|
 | `name` | yes | What's a name that describes the type of solution it is? |
 | `scoped_purpose` | yes | What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding? |
-| `goals` | yes | What are the solution's measureable goals? |
+| `milestones` | yes | What are the solution's priorities in order? Each milestone is a value of one or more metrics, which doesn't have to be the authoritative metric directly but it should relate to it. End condition (optional): Condition for the milestone to no longer be a priority (date or other circumstance), at which point it's archived. Target completion time (optional): Planned completion date and time (which other dependent milestones may rely on). May be a date or a specific minute of a date where precision is neded. |
 | `knowledge` | yes | What knowledge informs the solution's definition or implementations? |
 | `measures_of_success` | yes | What would indicate the solution is successful? |
 | `parameters` | no | Parameters |
@@ -100,7 +100,7 @@ Connects to: Implementations that build what the solution defines, Metrics that 
 | Column | Required | Question |
 |---|---|---|
 | `name` | yes | What's a name that distinguishes this implementation from other alternatives? |
-| `description` | yes | How does the implementation achieve the goals of its solution's definition? |
+| `description` | yes | How does the implementation achieve the purpose of its solution's definition? |
 | `advantages` | yes | Advantages |
 | `disadvantages` | yes | Disadvantages |
 
@@ -119,7 +119,7 @@ What it is not: A practical metric or solution, or technology.
 
 Connects to: Problems the ideal opposes.
 
-**Metric**: A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).
+**Metric**: A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Consequently, every solution has only one authoritative metric, which can be a combination of multiple metrics or factors with weights that reflect the solution's ideals and purpose. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).
 
 | Column | Required | Question |
 |---|---|---|

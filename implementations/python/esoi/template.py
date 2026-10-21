@@ -107,6 +107,7 @@ def parse(skill_text: str) -> Tuple[List[Dict[str, str]], List[str]]:
     items: List[dict] = []
     current: Optional[dict] = None
     section = ""
+    field_indent = -1
     for raw in block:
         if not raw.strip():
             continue
@@ -135,8 +136,12 @@ def parse(skill_text: str) -> Tuple[List[Dict[str, str]], List[str]]:
         if line in ("-", ""):
             current["empty"] += 1
             continue
-        if section in ("specify", "interface", "not", "connects"):
+        indent = len(raw) - len(raw.lstrip())
+        if section in ("specify", "interface") and current[section] and indent > field_indent >= 0:
+            current[section][-1] += " " + stripped        # deeper than its field line: guidance for that field
+        elif section in ("specify", "interface", "not", "connects"):
             current[section].append(stripped)
+            field_indent = indent
         elif section == "definition":
             current["definition"] += " " + stripped
     seen = {i["entity"] for i in items}

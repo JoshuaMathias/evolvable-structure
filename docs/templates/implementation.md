@@ -18,7 +18,7 @@ _What's a name that distinguishes this implementation from other alternatives?_
 
 ## Description
 
-_How does the implementation achieve the goals of its solution's definition?_
+_How does the implementation achieve the purpose of its solution's definition?_
 
 <!-- your answer -->
 

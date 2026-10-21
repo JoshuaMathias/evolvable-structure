@@ -30,11 +30,11 @@ For this policy: Which Metric records it governs, and which runs it deliberately
 
 <!-- your answer -->
 
-### Goals
+### Milestones
 
-_What are the solution's measureable goals?_
+_What are the solution's priorities in order? Each milestone is a value of one or more metrics, which doesn't have to be the authoritative metric directly but it should relate to it. End condition (optional): Condition for the milestone to no longer be a priority (date or other circumstance), at which point it's archived. Target completion time (optional): Planned completion date and time (which other dependent milestones may rely on). May be a date or a specific minute of a date where precision is neded._
 
-For this policy: How current results must be and what a run may cost, as measurable targets. Keep numbers out of prose: put budgets in the table below.
+For this policy: The policy's priorities in order, each a value of a metric, such as the share of metrics with a result at the current commit. Give a milestone's target completion time separately from its end condition (when it stops being a priority and is archived): a missed target completion time does not archive it. A budget shared by many intents is specified once in its own intent, not here; keep numbers out of prose and put them in the table below.
 
 <!-- your answer -->
 

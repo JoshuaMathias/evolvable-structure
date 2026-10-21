@@ -302,7 +302,7 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
                 bad.append(f"R5 {rid}: names no parent problem, ideal, metric or area of the overall solution")
 
     solution_texts = {re.sub(r"\W+", " ", row.get(k, "").lower()).strip()
-                      for row in solutions.values() for k in ("name", "scoped_purpose", "goals") if row.get(k)}
+                      for row in solutions.values() for k in ("name", "scoped_purpose", "milestones") if row.get(k)}
     for pid, row in problems.items():
         text = row.get("problem", "").strip()
         if not text:
