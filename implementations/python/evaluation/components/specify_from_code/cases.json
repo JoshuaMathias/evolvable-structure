@@ -163,7 +163,6 @@
      "parameters": "text: str, loud: bool=True",
      "outputs": "str",
      "selected": "caps",
-     "metric_kind": "specification",
      "implementations": "caps"
     }
    }

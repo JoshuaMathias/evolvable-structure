@@ -86,8 +86,8 @@ def test_solution_and_result_tables(tmp_path):
     cols = ["integration_id", "module", "symbol", "lib_solution_id", "lib_port", "lib_symbol", "kind", "selected_by", "metric",
             "tests", "status", "gap", "action", "solution_id"]
     (tmp_path / "r.csv").write_text(",".join(cols) + "\n" + ",".join(row.get(c, "") if c != "solution_id" else "s" for c in cols) + "\n")
-    (tmp_path / "s.csv").write_text("solution_id,selected,metric_files,gap,metric_kind,invariant_reason,component,component_impl\n"
-                                    "s,x,cases.json,,,,,\n")
+    (tmp_path / "s.csv").write_text("solution_id,selected,metric_files,component,component_impl\n"
+                                    "s,x,cases.json,,\n")
     (tmp_path / "res.csv").write_text(f"solution_id,cases,passed,git_sha,cases_sha\ns,1,1,abc,{digest}\n")
     report = consumer.check_consumer(tmp_path / "r.csv", tmp_path, options, solutions=tmp_path / "s.csv", results=tmp_path / "res.csv")
     assert report.problems == []

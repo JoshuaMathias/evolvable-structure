@@ -227,7 +227,7 @@ def sync(config: Config, registry: Registry, declared: Declared, intent_id: Opti
         row = blank(sol_cols, solution_id=sid, name=title(decl.name or sid), scoped_purpose=decl.purpose,
                     parameters=decl.parameters, outputs=decl.outputs, interface_name=decl.port, implementations=";".join(names),
                     selected=names[0] if len(names) == 1 else "", selected_by="the only implementation declared so far"
-                    if len(names) == 1 else "", metric_kind="specification")
+                    if len(names) == 1 else "")
         sol_rows.append(row)
         sol_by_id[sid] = row
         done.append(f"solutions.csv: add {sid} (from {decl.file}:{decl.line})")

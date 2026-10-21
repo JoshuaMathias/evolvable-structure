@@ -23,10 +23,10 @@ def world(root, args):
     selected = args["selected"]
     command = f"esoi run mini --impl {args.get('arm', selected.split('/')[-1].removesuffix('.py').split(':')[-1])}"
     (root / "specs").mkdir()
-    tables.write_csv(root / "specs" / "solutions.csv", ["solution_id", "selected", "selected_by", "metric_ids", "metric_kind",
-                                                       "implementations", "gap", "action", "promotion"],
+    tables.write_csv(root / "specs" / "solutions.csv", ["solution_id", "selected", "selected_by", "metric_ids",
+                                                       "implementations", "promotion"],
                      [{"solution_id": SOLUTION, "selected": selected, "selected_by": "the only one so far", "metric_ids": "m",
-                       "metric_kind": "eval", "implementations": "a;b", "promotion": args.get("promotion", "")}])
+                       "implementations": "a;b", "promotion": args.get("promotion", "")}])
     tables.write_csv(root / "specs" / "metrics.csv", ["metric_id", "command"], [{"metric_id": "m", "command": command}])
     tables.write_csv(root / "specs" / "implementations.csv", ["implementation_id", "solution_id", "filepath"],
                      args.get("records", []))

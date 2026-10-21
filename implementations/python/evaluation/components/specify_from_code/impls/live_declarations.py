@@ -41,7 +41,7 @@ def sync(args):
     sid = args.get("solution") or (sorted(declarations.scan(cfg).solutions) or [""])[0]
     row = next((r for r in tables.read_csv(cfg.structure / "solutions.csv") if r["solution_id"] == sid), {})
     out = {"before_count": len(before), "after_count": len(s30(root)), "changes": len(changes), "second": len(sync_once(root)),
-           "row": {k: row.get(k, "") for k in ("name", "parameters", "outputs", "selected", "metric_kind", "implementations")}}
+           "row": {k: row.get(k, "") for k in ("name", "parameters", "outputs", "selected", "implementations")}}
     keep = args.get("keep")
     if keep:
         out["kept"] = next(r for r in tables.read_csv(root / keep["path"]) if r[keep["key_col"]] == keep["key"])[keep["col"]] == keep["value"]

@@ -23,8 +23,8 @@ SINK = '"""A fixture consumer sink."""\n\n\nclass Sink:\n    """Takes an escalat
 REGISTRY = ("integration_id,module,symbol,lib_solution_id,lib_port,lib_symbol,kind,selected_by,metric,tests,status,gap,action,"
             "solution_id\nsink,consumer_sink,Sink,notify-a-person,Sink,,implementation,hand-wired,a live proof,"
             "tests/test_sink.py,done,,,escalate\n")
-SOLUTIONS = ("solution_id,selected,metric_files,gap,metric_kind,invariant_reason,component,component_impl\n"
-             "escalate,consumer_sink:Sink,case_files/cases.json,,,,,\n")
+SOLUTIONS = ("solution_id,selected,metric_files,component,component_impl\n"
+             "escalate,consumer_sink:Sink,case_files/cases.json,,\n")
 LIBRARY_DIR = repo_fixture.make_temp("esoi_fixlib_")
 for rel, text in LIBRARY_FILES.items():
     repo_fixture.write(LIBRARY_DIR, rel, text)

@@ -24,12 +24,10 @@ NUMBER_IN_PROSE = re.compile(
     r"(?<![\w-])\d+\s*/\s*\d+(?![\w-])|\$\s?\d|\d+(?:\.\d+)?\s*%|\b\d+\s+of\s+\d+\b"
     r"|\b\d[\d,]*\s+(?:[a-z-]+\s+){0,2}?(?:cases?|scenarios?|queries|questions|tasks|fixtures?|logs|calls|"
     r"documents|sequences|names)\b")
-# A sentence in a gap or action that claims a run is missing, or tells someone to make it (S24).
-STALE_CLAIM = re.compile(r"\b(?:not|never) (?:yet )?recorded\b|\bunrecorded\b|\bno recorded\b|^\s*Record\b")
 
 SUMMARIES = {
-    "S10": "An eval solution's selected implementation has a recorded row and no rival beats it, or a waiver names "
-           "the pending decision; an invariant solution is never ranked.",
+    "S10": "A measured solution's selected implementation has a recorded row and no rival beats it on the metric, or a "
+           "waiver names the pending decision.",
     "S12": "Every evaluation implementation drives live package code or declares itself an alternative "
            "(ALTERNATIVE = True, or a docstring opening ALTERNATIVE, BASELINE, ABLATION, FLOOR or VALIDITY); a "
            "selected or measured implementation must be live, or waived.",
@@ -39,11 +37,11 @@ SUMMARIES = {
            "also be on committed code that has not changed since, and so must every rival it was compared with "
            "(waive one rival as `<solution>:<implementation>`).",
     "S21": "Every evaluation folder is named by some solution's metric command, or is listed as shared.",
-    "S22": "No score, percentage, dollar amount or case count in a gap, an action, a waiver reason or a record field (a solution's milestones may state target values); "
+    "S22": "No score, percentage, dollar amount or case count in a waiver reason or a record field (a solution's milestones may state target values); "
            "numbers live in the results log.",
-    "S24": "Every arm a metric command names has a results row, and a gap or action that says an implementation is "
-           "not recorded names none that already has a row.",
-    "S25": "An invariant solution's evaluation folder has a broken/ baseline module besides __init__.py.",
+    "S24": "Every arm a metric command names has a results row.",
+    "S25": "A solution whose evaluation folder has a single implementation, so nothing to compare it with, has a broken/ "
+           "baseline module besides __init__.py: the naive implementation a first draft would write, which the cases must fail.",
     "S31": "A metric is meaningfully real: no implementation in a metric's evaluation folder declares SIMULATED = True, and "
            "no metric record describes its judge or model as scripted, simulated, mocked or a stand-in (or a waiver "
            "names why that metric cannot be real).",
@@ -138,8 +136,7 @@ def run(ctx: Context) -> List[str]:
             if not ctx.waived("S10", f"{r['solution_id']}:unmeasured"):
                 bad.append(f"S10 {r['solution_id']}: selected {sel} has no row in the results log (run with --record)")
             continue
-        invariant = r.get("metric_kind", "").strip() == "invariant"
-        better = [] if invariant else [x["impl"] for x in leaderboard.challengers(rows, sel, evaluation, ctx.history.get(comp))]
+        better = [x["impl"] for x in leaderboard.challengers(rows, sel, evaluation, ctx.history.get(comp))]
         if better and not ctx.waived("S10", f"{r['solution_id']}:{','.join(sorted(better))}"):
             bad.append(f"S10 {r['solution_id']}: {', '.join(better)} beat the selected {sel} in the results log; "
                        "adopt the winner or add a waiver naming the pending decision")
@@ -149,24 +146,15 @@ def run(ctx: Context) -> List[str]:
         for comp, impl in ctx.harness_arms(r.get("metric_command", ""))[1:]:   # the first arm is S10's
             if impl not in results.get(comp, {}) and not ctx.waived("S24", f"{sid}:{impl}"):
                 bad.append(f"S24 {sid}: the metric_command names {comp}/{impl}, which has no row in the results log "
-                           "(record it, or name the recorded arm and say in the gap that the other is unrecorded)")
-        recorded = set()
-        for i in ids(r["implementations"]):
-            im = re.match(re.escape(config.evaluation_dir) + r"/(\w+)/impls/(\w+)\.py$", i.split("::")[0])
-            if im and im.group(2) in results.get(im.group(1), {}):
-                recorded.add(im.group(2))
-        for sentence in re.split(r"(?<=[.;])\s+", r["gap"] + " " + r["action"]):
-            if not STALE_CLAIM.search(sentence):
-                continue
-            for stem in sorted(recorded):
-                if re.search(rf"\b{re.escape(stem)}\b", sentence) and not ctx.waived("S24", f"{sid}:{stem}"):
-                    bad.append(f"S24 {sid}: the gap or action says {stem} is not recorded, but the results log has a row "
-                               f"for it ({sentence.strip()[:70]!r}); update the text")
+                           "(record it, or waive it naming why)")
 
     for r in ctx.solutions:
         sid = r["solution_id"]
         arms = ctx.harness_arms(r.get("metric_command", ""))
-        if r.get("metric_kind", "").strip() != "invariant" or not arms:
+        if not arms:
+            continue
+        own = [f for f in (evaluation / arms[0][0] / "impls").glob("*.py") if f.name != "__init__.py"]
+        if len(own) != 1:
             continue
         broken = evaluation / arms[0][0] / "broken"
         baselines = [f for f in broken.glob("*.py") if f.name != "__init__.py"] if broken.is_dir() else []
@@ -201,8 +189,7 @@ def run(ctx: Context) -> List[str]:
                 bad.append(f"S21 {config.evaluation_dir}/{name}: no solutions.csv metric_command or declared arm names this "
                            "folder; make it a solution's metric or delete it")
 
-    prose = [("solutions.csv", r["solution_id"], col, r[col]) for r in ctx.solutions for col in ("gap", "action") if col in r]
-    prose += [("waivers.csv", f"{w['rule']} {w['path']}", "reason", w["reason"]) for w in ctx.registry.waivers]
+    prose = [("waivers.csv", f"{w['rule']} {w['path']}", "reason", w["reason"]) for w in ctx.registry.waivers]
     prose += record_prose(ctx)
     seen = set()
     for where, ident, col, text in prose:

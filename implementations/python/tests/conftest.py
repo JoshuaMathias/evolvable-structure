@@ -27,12 +27,18 @@ def fill_top_intent(root):
         name="Greetings sent", scoped_purpose="Everything that greets a person for this project.",
         milestones="1. Share of greetings in the standard form: 100%.", knowledge="The house style for greetings.",
         measures_of_success="The greeting cases pass.", problem_ids="greeting-by-hand", ideal_ids="consistent-greeting",
-        metric_ids="greeting-pass-rate"))
+        metric_ids="purpose-met"))
     edit("implementations.csv", lambda r: r["implementation_id"] == "project-purpose:the-project" and r.update(
         name="The project", description="The greeting function and the structure that records and checks it.",
         advantages="One place to start.", disadvantages="Nothing rival has been compared."))
     edit("problems.csv", lambda r: r["problem_id"] == "greeting-by-hand" and r.update(solution_ids=r["solution_ids"] + ";project-purpose"))
-    edit("metrics.csv", lambda r: r["metric_id"] == "greeting-pass-rate" and r.update(solution_ids=r["solution_ids"] + ";project-purpose"))
+    path = folder / "metrics.csv"
+    rows, cols = tables.read_csv(path), tables.read_header(path)
+    if not any(r["metric_id"] == "purpose-met" for r in rows):
+        rows.append({**{col: "" for col in cols}, "metric_id": "purpose-met", "name": "Purpose met",
+                     "scoped_purpose": "Whether the greetings the project sends are the ones it meant to send.",
+                     "record": "Reviewed by hand; no run measures it yet.", "solution_ids": "project-purpose"})
+    tables.write_csv(path, cols, rows)
     from esoi import check   # the tracker tabs and the READMEs follow the records
     check.write_docs(config.load(root), say=lambda text: None)
 

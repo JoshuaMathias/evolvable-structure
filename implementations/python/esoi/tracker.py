@@ -21,7 +21,7 @@ from .intents import header_union
 from .records import INTENT_LINK_COLUMNS, PARENT_COLUMNS, POLICY_COLUMNS, fields, implementation_id, match_implementations
 from .registry import Registry, first_arm
 from .select import Table, load_table
-from .tables import SEP, ids, read_csv, read_header, render_csv
+from .tables import SEP, ids, is_command, read_csv, read_header, render_csv
 from .template import load_for
 
 TRACKING = ["tracking_status", "tracking_owner", "tracking_updated", "tracking_notes"]
@@ -59,12 +59,11 @@ def columns_without_extras(own) -> Dict[str, List[str]]:
         "problems": ["problem_id"] + own("problem") + ["solution_ids", "ideal_ids", "component_ids", "auto_status"],
         "solutions": ["solution_id"] + own("solution") + [
             "problem_ids", "ideal_ids", "metric_ids", "implementation_ids", "interface_name", "selected_implementation_id",
-            "selected_by", "metric_kind", "verdict", "verdict_detail", "component_ids", "auto_status"],
+            "selected_by", "authoritative_metric_id", "verdict", "verdict_detail", "component_ids", "auto_status"],
         "implementations": ["implementation_id", "solution_id", "filepath"] + own("implementation") + [
             "kind", "selected", "latest_result", "latest_cost_usd", "cases_sha", "auto_status"],
         "ideals": ["ideal_id", "scope"] + own("ideal") + ["problem_ids", "solution_ids", "metric_ids", "auto_status"],
-        "metrics": ["metric_id"] + own("metric") + ["solution_ids", "command", "kind", "latest_result", "gap",
-                                                    "action", "auto_status"]}
+        "metrics": ["metric_id"] + own("metric") + ["solution_ids", "command", "latest_result", "auto_status"]}
 
 
 def stem(path: str) -> str:
@@ -149,14 +148,14 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
     metric_users: Dict[str, List[tuple]] = {}
     for p in registry.problems:
         linked = [sol_by_id[s] for s in ids(p.get("solution_ids", "")) if s in sol_by_id]
-        open_ones = [s["solution_id"] for s in linked if s.get("gap")]
+        open_ones = [s["solution_id"] for s in linked if not is_command(command_of(s))]
         problems.append({**{k: p.get(k, "") for k in cols["problems"]},
                          "component_ids": SEP.join(sorted({c for s in linked for c in by_solution.get(s["solution_id"], [])})),
-                         "auto_status": "open: gap on " + ", ".join(open_ones) if open_ones else "served"})
+                         "auto_status": "open: unmeasured " + ", ".join(open_ones) if open_ones else "served"})
     for s in every:
         sid = s["solution_id"]
         command = command_of(s)
-        has_metric = command not in ("", "none")
+        has_metric = is_command(command)
         comp, chosen_impl = first_arm(config, command)
         impl_ids, selected_id = [], ""
         chosen = selected_path(config, s, table)
@@ -183,12 +182,12 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
         sol_rows.append({
             **{k: s.get(k, "") for k in extra["solutions"]},
             **{k: s.get(k, "") for k in ["solution_id"] + fields(template, "solution", True)
-               + ["problem_ids", "ideal_ids", "metric_ids", "interface_name", "selected_by", "metric_kind"]},
+               + ["problem_ids", "ideal_ids", "metric_ids", "interface_name", "selected_by",
+                                                                  "authoritative_metric_id"]},
             "implementation_ids": SEP.join(impl_ids), "selected_implementation_id": selected_id,
             "verdict": verdict.get("verdict", ""), "verdict_detail": verdict.get("detail", ""),
             "component_ids": SEP.join(by_solution.get(sid, [])),
-            "auto_status": "specification" if s.get("metric_kind") == "specification"
-            else "invariant" if s.get("metric_kind") == "invariant"
+            "auto_status": "specification" if not has_metric
             else (STATUS_BY_VERDICT.get(verdict.get("verdict", ""), "decided-by-hand") if sel_res else "decided-by-hand")})
         for mid in ids(s.get("metric_ids", "")):
             if mid in metric_by_id:
@@ -200,18 +199,12 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
         def across(texts: List[str]) -> str:
             return " ".join(t for t in texts if t) if many else (texts[0] if texts else "")
 
-        kinds = list(dict.fromkeys(u[0].get("metric_kind") or ("eval" if u[2] else "none") for u in users))
         metrics.append({
             **{k: m.get(k, "") for k in extra["metrics"]},
             **{k: m.get(k, "") for k in ["metric_id"] + fields(template, "metric", True) + ["solution_ids", "command"]},
-            "kind": SEP.join(kinds),
             "latest_result": across([(f"{u[0]['solution_id']}: " if many else "") + f"{u[1].get('passed', '')}/{u[1].get('cases', '')}"
                                      for u in users if u[1]]),
-            "gap": across([(f"{u[0]['solution_id']}: " if many else "") + u[0].get("gap", "") for u in users
-                           if u[0].get("gap", "")]),
-            "action": across([(f"{u[0]['solution_id']}: " if many else "") + u[0].get("action", "") for u in users
-                              if u[0].get("action", "")]),
-            "auto_status": "specification" if all(u[0].get("metric_kind") == "specification" for u in users)
+            "auto_status": "specification" if not any(u[2] for u in users)
             else "measured" if any(u[1] for u in users)
             else ("needs_run" if any(u[2] for u in users) else "needs_metric")})
     solutions_of_ideal: Dict[str, List[str]] = {}

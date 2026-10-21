@@ -78,13 +78,18 @@ def baseline_repo(dest: Path) -> Path:
     for column, value in dict(name="Greetings sent", scoped_purpose="Everything that greets a person for this project.",
                               milestones="1. Share of greetings in the standard form: 100%.", knowledge="The house style for greetings.",
                               measures_of_success="The greeting cases pass.", problem_ids="greeting-by-hand",
-                              ideal_ids="consistent-greeting", metric_ids="greeting-pass-rate").items():
+                              ideal_ids="consistent-greeting", metric_ids="purpose-met").items():
         set_cell(root, "esoi/solutions.csv", "solution_id", "project-purpose", column, value)
     for column, value in dict(name="The project", description="The greeting function and the structure that records it.",
                               advantages="One place to start.", disadvantages="Nothing rival has been compared.").items():
         set_cell(root, "esoi/implementations.csv", "implementation_id", "project-purpose:the-project", column, value)
     set_cell(root, "esoi/problems.csv", "problem_id", "greeting-by-hand", "solution_ids", "greet-a-person;project-purpose")
-    set_cell(root, "esoi/metrics.csv", "metric_id", "greeting-pass-rate", "solution_ids", "greet-a-person;project-purpose")
+    path = root / "esoi/metrics.csv"
+    rows, cols = read_rows(path), read_header(path)
+    rows.append({**{col: "" for col in cols}, "metric_id": "purpose-met", "name": "Purpose met",
+                 "scoped_purpose": "Whether the greetings the project sends are the ones it meant to send.",
+                 "record": "Reviewed by hand; no run measures it yet.", "solution_ids": "project-purpose"})
+    path.write_text(csv_text(cols, rows))
     toml = (root / "esoi.toml").read_text().replace('layers = ["core"]', 'layers = ["core", "adapters"]')
     write(root, "esoi.toml", toml + TOML_EXTRA)
     write(root, "demo/ports.py", PORTS)

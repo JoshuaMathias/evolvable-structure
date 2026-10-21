@@ -89,8 +89,6 @@ def propose(config: Config, registry: Registry, today: Optional[str] = None,
         table = {}
     for solution in registry.solutions:
         sid = solution["solution_id"]
-        if (solution.get("metric_kind") or "").strip() != "eval":
-            continue
         component, current = first_arm(config, solution.get("metric_command", ""))
         if not component:
             continue

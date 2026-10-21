@@ -71,7 +71,7 @@ def create(config: Config, solution_id: str, intent_id: Optional[str] = None) ->
         "ideals": declarations.blank(tables["ideals"][0], ideal_id=f"ideal-{sid}", problem_ids=f"prob-{sid}"),
         "solutions": declarations.blank(tables["solutions"][0], solution_id=sid, name=declarations.title(sid),
                                         problem_ids=f"prob-{sid}", ideal_ids=f"ideal-{sid}", metric_ids=f"metric-{sid}",
-                                        implementations=IMPLEMENTATION, selected=IMPLEMENTATION, metric_kind="eval",
+                                        implementations=IMPLEMENTATION, selected=IMPLEMENTATION,
                                         selected_by="the only implementation so far"),
         "implementations": declarations.blank(tables["implementations"][0], implementation_id=f"{sid}:{IMPLEMENTATION}",
                                               solution_id=sid, filepath=module, name=declarations.title(IMPLEMENTATION)),

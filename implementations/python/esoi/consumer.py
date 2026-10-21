@@ -330,33 +330,23 @@ def check_solutions(report: ConsumerReport, rows: List[Dict[str, str]], solution
         if not res.get("git_sha", "").strip() or not res.get("cases_sha", "").strip():
             report.problems.append(f"C10 {sid}: the latest result lacks a git sha or a cases hash")
         if res.get("passed", "") != res.get("cases", "x"):
-            if sol.get("gap", "").strip():
-                report.notes.append(f"{sid}: latest result {res.get('passed')}/{res.get('cases')}, the solution's gap names why")
-            else:
-                report.problems.append(f"C10 {sid}: latest result {res.get('passed')}/{res.get('cases')} is not all passing and the solution states no gap")
+            report.notes.append(f"{sid}: latest result {res.get('passed')}/{res.get('cases')} is not all passing")
         files = [f for f in sol.get("metric_files", "").split(";") if f.strip()]
         if files and all((root / f).exists() for f in files) and cases_hash(files, root) != res.get("cases_sha", ""):
             report.problems.append(f"C10 {sid}: stale result, the metric files changed since it was recorded")
     for sid in sorted(used):
         sol = sols[sid]
-        kind = sol.get("metric_kind", "").strip()
-        if not kind:
-            continue
-        if kind == "invariant":
-            if not sol.get("invariant_reason", "").strip():
-                report.problems.append(f"C11 {sid}: an invariant solution states why best cannot vary (invariant_reason)")
-        elif kind == "eval":
-            comp, impl = sol.get("component", "").strip(), sol.get("component_impl", "").strip()
-            row = next((r for r in reversed(result_rows) if r.get("kind") == "component"
-                        and r.get("solution_id") == sid and r.get("component") == comp and r.get("impl") == impl), None)
-            if not comp or not impl:
-                report.problems.append(f"C11 {sid}: an eval solution names its component and component_impl")
-            elif row is None:
-                report.problems.append(f"C11 {sid}: no recorded component run for {comp}/{impl}")
-            elif not row.get("git_sha", "").strip() or not row.get("cases_sha", "").strip():
-                report.problems.append(f"C11 {sid}: the component run {comp}/{impl} lacks a git sha or a cases hash")
-        else:
-            report.problems.append(f"C11 {sid}: metric_kind {kind!r} is not eval or invariant")
+        comp, impl = sol.get("component", "").strip(), sol.get("component_impl", "").strip()
+        if not comp and not impl:
+            continue   # no component run is declared for this solution
+        row = next((r for r in reversed(result_rows) if r.get("kind") == "component"
+                    and r.get("solution_id") == sid and r.get("component") == comp and r.get("impl") == impl), None)
+        if not comp or not impl:
+            report.problems.append(f"C11 {sid}: a solution that names a component run names both component and component_impl")
+        elif row is None:
+            report.problems.append(f"C11 {sid}: no recorded component run for {comp}/{impl}")
+        elif not row.get("git_sha", "").strip() or not row.get("cases_sha", "").strip():
+            report.problems.append(f"C11 {sid}: the component run {comp}/{impl} lacks a git sha or a cases hash")
     report.notes.append(f"{len(used)} solutions carry integration points; {len(sols) - len(used)} defined without one")
 
 

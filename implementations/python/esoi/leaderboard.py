@@ -7,9 +7,9 @@ stated margin, or a pass rate inside it at clearly lower spend. ``--strict`` exi
 can surface "a better implementation exists" without a human reading the implementations. The leaderboard only
 ranks; switching the live implementation stays a deliberate decision.
 
-A solution whose ``metric_kind`` is ``invariant`` (a rule that holds or does not, with an ``invariant_reason``
-saying why "best" cannot vary) is listed apart, under "Invariant solutions", with its recorded run and never ranked.
-So is a component that carries an ``invariant.txt`` (complementary arms of one evaluated solution).
+Every metric outputs a number, so every evaluated solution is ranked the same way. A component that carries an
+``invariant.txt`` (complementary arms of one evaluated solution, not alternatives) is the exception: it is listed
+apart, with its recorded run, and never ranked.
 
 Only rows scored on the same cases are compared: the same ``cases_sha`` (the case file), the same ``sample`` (``""``
 for the full set, ``sample:N`` for the ``--sample N`` selection, ``only:ids`` for ``--only``) and the same case count
@@ -67,23 +67,9 @@ def cases_digest(component: str, eval_dir: Path) -> str:
     return hashlib.sha256(b"".join(f.read_bytes().replace(b"\r\n", b"\n") for f in files)).hexdigest()[:8]
 
 
-def invariant_components(config: Config, solutions: List[Row]) -> Dict[str, str]:
-    """{component: invariant_reason} for every component named by the metric_command of an ``invariant`` solution."""
-    out = {}
-    for row in solutions:
-        if (row.get("metric_kind") or "").strip() != "invariant":
-            continue
-        for comp, _ in harness_arms(config, row.get("metric_command", "")):
-            out[comp] = row.get("invariant_reason", "").strip()
-    return out
-
-
-def invariant_reason(component: str, solution_invariants: Optional[Dict[str, str]] = None,
-                     eval_dir: Optional[Path] = None) -> str:
-    """Why the component is not ranked: the ``invariant_reason`` of its invariant solution, or the reason in
-    ``<component>/invariant.txt`` when its implementations are complementary (not alternatives)."""
-    if solution_invariants and component in solution_invariants:
-        return solution_invariants[component]
+def invariant_reason(component: str, eval_dir: Optional[Path] = None) -> str:
+    """Why the component is not ranked: the reason in ``<component>/invariant.txt`` when its implementations are
+    complementary (not alternatives)."""
     if eval_dir is not None:
         note = Path(eval_dir) / component / "invariant.txt"
         if note.is_file():
@@ -384,15 +370,13 @@ def verdict(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
 
 def solution_verdicts(config: Config, solutions: List[Row], results: Optional[Dict[str, Rows]] = None,
                       history: Optional[Dict[str, Dict[str, List[Row]]]] = None) -> Dict[str, Dict[str, str]]:
-    """{solution_id: {"verdict", "detail", "component", "selected_by"}} for every ``eval`` solution, judged on the
+    """{solution_id: {"verdict", "detail", "component", "selected_by"}} for every solution, judged on the
     first harness arm of its ``metric_command`` (the primary metric; later arms are listed on the board)."""
     if results is None:
         history = all_results(config.results_path)
         results = {comp: {impl: rows[-1] for impl, rows in impls.items()} for comp, impls in history.items()}
     out = {}
     for row in solutions:
-        if (row.get("metric_kind") or "").strip() != "eval":
-            continue
         comp, impl = first_arm(config, row.get("metric_command", ""))
         if not comp:
             out[row["solution_id"]] = dict(verdict="UNMEASURED", detail="no harness metric", component="",
@@ -434,9 +418,8 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
     history = all_results(config.results_path)
     results = {comp: {impl: rows[-1] for impl, rows in impls.items()} for comp, impls in history.items()}
     selected = selected_impls(config, registry.solutions)
-    invariants = invariant_components(config, registry.solutions)
     flagged = 0
-    apart = {c: rows for c, rows in results.items() if invariant_reason(c, invariants, config.evaluation)}
+    apart = {c: rows for c, rows in results.items() if invariant_reason(c, config.evaluation)}
     for component, rows in sorted(results.items()):
         if component in apart:
             continue
@@ -467,9 +450,9 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
         reason = f"  kept because: {v['selected_by']}" if v["verdict"] == "TIE" else ""
         say(f"  {v['verdict']:<10} {sid}: {v['detail']}{reason}")
     if apart:
-        say("\nInvariant solutions (a rule that holds or does not; listed with their recorded run, never ranked)")
+        say("\nComplementary arms (not alternatives; listed with their recorded run, never ranked)")
         for component, rows in sorted(apart.items()):
-            say(f"{component}: {invariant_reason(component, invariants, config.evaluation)}")
+            say(f"{component}: {invariant_reason(component, config.evaluation)}")
             for line in format_rows(rows, selected.get(component), config.evaluation):
                 say(line)
     return 1 if flagged and strict else 0

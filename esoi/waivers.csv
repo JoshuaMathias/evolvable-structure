@@ -1,5 +1,3 @@
 rule,path,reason
-S20,docs-and-templates,No recorded run measures how a newcomer fares with the documentation; it is judged by reading until one exists.
-S20,follow-the-steps,"No trial of someone following the steps is recorded yet, so it is judged by reading until one exists; the action on the solution says how a trial is run."
 S10,behave-by-esoi:unmeasured,"The selected implementation calls a model, and a paid run waits for Joshua's approval of the spend (esoi/metric-run-policy.md). Remove this waiver once the staged runs are recorded."
 S10,judge-esoi-behaviour:unmeasured,"The selected implementation calls a model, and a paid run waits for Joshua's approval of the spend (esoi/metric-run-policy.md). Remove this waiver once the staged runs are recorded."

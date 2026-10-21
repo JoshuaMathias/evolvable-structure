@@ -13,14 +13,13 @@ from ..registry import RULE_COLUMNS
 from ..tables import ids
 from .base import Context, RuleGroup
 
-SOLUTION_KINDS = {"eval", "invariant"}
 PORT_CLASS = re.compile(r"^class (\w+)\((?:[\w, ]*)Protocol", re.M)
 
 SUMMARIES = {
     "S7": "Every Protocol class is in the interface_name cell of some solution; implementation filepaths and metric scripts "
-          "exist; selected is a listed implementation or a selection-table name; no metric means a gap and an action.",
-    "S11": "Every solution is eval or invariant (an invariant states invariant_reason), is linked from some "
-           "component, and every linked id exists.",
+          "exist; selected is a listed implementation or a selection-table name.",
+    "S11": "Every measured solution is linked from some component, and every linked id exists (a solution with no "
+           "metric command is a specification, derived, and needs no component).",
     "S14": "Every solution with an interface_name has a selection-table entry and no entry lacks a row; a default, when the entry "
            "holds one, is one of its implementations and each implementation's module is listed in the row's implementations cell or "
            "in the `filepath` of one of its implementations.csv records (several implementations may share a module).",
@@ -103,21 +102,11 @@ def run(ctx: Context) -> List[str]:
             target = words[1] if mc.startswith("python") and len(words) > 1 else words[0]
             if target.endswith(".py") and not (config.root / target).exists():
                 bad.append(f"S7 {sid}: metric script {target} does not exist")
-        elif not (r["gap"].strip() and r["action"].strip()):
-            bad.append(f"S7 {sid}: no metric, so gap and action are required")
     for p in sorted(ports_in_package(ctx) - covered):
         bad.append(f"S7 {p}: port is listed in the `interface_name` cell of no solutions.csv row (add it to the row of the "
                    "solution it serves; a port needs no row of its own)")
 
     sol_ids = {r["solution_id"] for r in ctx.every_solution()}   # a component may serve a specification solution too
-    for r in ctx.solutions:
-        sid, kind = r["solution_id"], r.get("metric_kind", "").strip()
-        if kind not in SOLUTION_KINDS:
-            bad.append(f"S11 {sid}: solution metric_kind {kind!r} not in {sorted(SOLUTION_KINDS)}")
-        elif kind == "invariant" and not r.get("invariant_reason", "").strip():
-            bad.append(f"S11 {sid}: an invariant solution states in invariant_reason why 'best' cannot vary")
-        elif kind == "eval" and r.get("invariant_reason", "").strip():
-            bad.append(f"S11 {sid}: invariant_reason is set but metric_kind is eval")
     for r in ctx.components:
         for sid in ids(r["solutions"]):
             if sid not in sol_ids:

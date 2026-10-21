@@ -41,7 +41,7 @@ def write_results(path: Path, rows: list, component: str = "mini") -> None:
 
 
 def registry_selecting(selected: str, component: str = "mini") -> Registry:
-    return Registry(solutions=[{"solution_id": "mini-solution", "selected": selected, "metric_kind": "eval",
+    return Registry(solutions=[{"solution_id": "mini-solution", "selected": selected,
                                 "metric_command": f"esoi run {component} --impl {selected}", "selected_by": "the fixture"}])
 
 

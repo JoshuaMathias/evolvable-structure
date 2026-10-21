@@ -11,12 +11,19 @@ the result is recorded with the commit, a hash of the case files and the sample 
 with the same case hash and the same sample are compared: a score on different cases is not evidence, and 458 of 1,137
 cases is not comparable with 12 of a 40-case sample.
 
-## Say whether best can vary
+## Every metric outputs a number
 
-- An **eval** solution has implementations that differ on the metric: a cheaper way, a more accurate way. They are ranked.
-- An **invariant** solution is a rule that holds or does not, such as "a write stays inside its folder". It is not
-  ranked. It keeps its cases and a recorded run, and a deliberately naive baseline that its cases must fail, which proves
-  the cases can tell good from naive.
+Every metric outputs a number, so they are all the same kind. A rule that holds or does not, such as "a write stays inside
+its folder", is measured as the pass rate on its cases. Implementations are ranked by the metric. When a solution has more
+than one metric, its `authoritative_metric_id` names the one that decides which implementation is best; the others can be
+combined with it, for example with cost or time.
+
+A solution with a single implementation has nothing to be compared with, so its cases must be able to fail: it keeps a
+deliberately naive baseline in its component's `broken/` folder, and the cases must fail it. That proves the cases can tell
+good from naive.
+
+A solution none of whose metrics has a recorded command is a specification: defined, with alternatives, but not measured
+yet. That is derived from the missing run and never declared. Its next step is a milestone, a value of its metric.
 
 ## Verdicts
 

@@ -32,8 +32,9 @@ connects to. The definitions of intent, evolvable, structure and the rest are in
 - **Give a part its own solution only when best differs and it matters, and its own sub-intent only for an opportunity.** See
   [when-to-create-a-sub-intent.md](when-to-create-a-sub-intent.md).
 - **Give every record a short, stable id.** Other records link to it, so renaming it is a change to many files.
-- **Fill every field.** A field you cannot answer is a gap worth knowing about. Put it in the `gap` of the solution
-  rather than leaving it blank.
+- **Fill every field.** A field you cannot answer is a gap worth knowing about. A solution's `milestones` may stay empty
+  (no milestone is chosen yet); for any other field, say what you know and name what the metric cannot see in the
+  metric's `scoped_purpose`, or a weakness in an implementation's `disadvantages`.
 - **Keep numbers out of prose.** Scores belong to the results log, where they carry the commit and the cases. A
   sentence that says "passes most cases" is out of date the day a case is added.
 - **Say when each Metric is run.** Timing is not a field of the Metric template, so it belongs to a solution that governs the

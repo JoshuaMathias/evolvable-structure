@@ -45,6 +45,13 @@ def write_csv(path: Path, columns: List[str], rows: List[Dict[str, str]]) -> Non
     Path(path).write_text(render_csv(columns, rows), encoding="utf-8")
 
 
+def is_command(text: str) -> bool:
+    """Whether a metric's command cell holds a command to run. Empty, or starting with ``none`` (the way a record says
+    a metric has no command), is not one."""
+    words = (text or "").strip().lower()
+    return bool(words) and not words.startswith("none")
+
+
 def ids(cell: str) -> List[str]:
     """The ``;``-separated entries of a cell, stripped, empties dropped."""
     return [part.strip() for part in (cell or "").split(SEP) if part.strip()]

@@ -8,7 +8,7 @@ evaluation/components/<component>/
   cases.json      the cases (or cases.csv, when the dataset is reviewed as a sheet; a "heldout" cell marks held-out cases)
   interface.py    the one function every implementation exposes (a docstring is enough)
   impls/<name>.py build(meter) -> fn          one file per alternative; drives the real code
-  broken/<name>.py                            the naive baseline an invariant solution's cases must fail
+  broken/<name>.py                            the naive baseline the cases of a single-implementation solution must fail
   noise.json      optional {"pass_margin": 0.15, "spend_tolerance": 0.2} for a sampled comparison
 ```
 

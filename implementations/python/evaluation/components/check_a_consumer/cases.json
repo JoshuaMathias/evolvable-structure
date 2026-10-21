@@ -407,22 +407,22 @@
   "id": "CCK-019",
   "area": "consumer",
   "kind": "consumer",
-  "description": "a recorded result that is not all passing",
+  "description": "a solution that names a component run without naming the implementation",
   "args": {
    "edits": [
     {
      "op": "csv_cell",
-     "path": "results.csv",
+     "path": "solutions.csv",
      "key_col": "solution_id",
      "key": "escalate",
-     "col": "passed",
-     "value": "0"
+     "col": "component",
+     "value": "mini"
     }
    ]
   },
   "expect": {
-   "rule": "C10",
-   "contains": "not all passing"
+   "rule": "C11",
+   "contains": "names both component and component_impl"
   }
  },
  {
@@ -451,7 +451,7 @@
   "id": "CCK-021",
   "area": "consumer",
   "kind": "consumer",
-  "description": "an invariant solution with no reason",
+  "description": "a solution that names a component run with no recorded run",
   "args": {
    "edits": [
     {
@@ -459,14 +459,22 @@
      "path": "solutions.csv",
      "key_col": "solution_id",
      "key": "escalate",
-     "col": "metric_kind",
-     "value": "invariant"
+     "col": "component",
+     "value": "mini"
+    },
+    {
+     "op": "csv_cell",
+     "path": "solutions.csv",
+     "key_col": "solution_id",
+     "key": "escalate",
+     "col": "component_impl",
+     "value": "live"
     }
    ]
   },
   "expect": {
    "rule": "C11",
-   "contains": "invariant"
+   "contains": "no recorded component run"
   }
  }
 ]

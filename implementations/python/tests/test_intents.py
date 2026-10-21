@@ -36,7 +36,7 @@ def add_solution(cfg, folder, solution_id, implementation, sub_intent=""):
     scaffold's problem, ideal and metric."""
     base = next(r for r in tables.read_csv(cfg.structure / "solutions.csv") if r["solution_id"] == "project-structure")
     row = dict(base, solution_id=solution_id, problem_ids="greeting-by-hand", ideal_ids="consistent-greeting",
-               metric_ids="greeting-pass-rate", implementations=implementation, selected=implementation)
+               metric_ids="structure-coverage", implementations=implementation, selected=implementation)
     tables.write_csv(folder / "solutions.csv", tables.read_header(cfg.structure / "solutions.csv"), [row])
     impl = dict(implementation_id=f"{solution_id}:{implementation}", solution_id=solution_id, name="By voice", description="Spoken.",
                 advantages="Warm.", disadvantages="Slow.", sub_intent=sub_intent)
@@ -44,7 +44,7 @@ def add_solution(cfg, folder, solution_id, implementation, sub_intent=""):
     rewrite(cfg.structure / "problems.csv", lambda rows, cols: [r.update(solution_ids=r["solution_ids"] + f";{solution_id}")
                                                                  for r in rows if r["problem_id"] == "greeting-by-hand"])
     rewrite(cfg.structure / "metrics.csv", lambda rows, cols: [r.update(solution_ids=r["solution_ids"] + f";{solution_id}")
-                                                                for r in rows if r["metric_id"] == "greeting-pass-rate"])
+                                                                for r in rows if r["metric_id"] == "structure-coverage"])
 
 
 def lines(cfg, rule):
@@ -124,8 +124,8 @@ def test_records_of_a_sub_intent_link_anywhere_in_the_tree(cfg):
     template_cols = tables.read_header(cfg.structure / "solutions.csv")
     top = next(r for r in tables.read_csv(cfg.structure / "solutions.csv") if r["solution_id"] == "greet-a-person")
     tables.write_csv(sub / "solutions.csv", template_cols, [dict(top, solution_id="speak-it", implementations="", selected="",
-                                                                metric_kind="specification", problem_ids="greeting-by-hand",
-                                                                ideal_ids="consistent-greeting", metric_ids="greeting-pass-rate")])
+                                                                problem_ids="greeting-by-hand",
+                                                                ideal_ids="consistent-greeting", metric_ids="structure-coverage")])
     registry_ids = [r["solution_id"] for r in registry.load(cfg).every_solution()]
     assert "speak-it" in registry_ids
     problems = [line for line in check.check(cfg) if "speak-it" in line and line.startswith(("S26", "S29"))]
@@ -197,8 +197,6 @@ def make_legacy(repo):
             return r[key] in TOP or r[key].startswith("project-structure:")
         top = [r for r in rows if is_top(r)]
         rest = [r for r in rows if not is_top(r)]
-        for r in top:
-            r.pop("metric_kind", None)
         if name == "solutions.csv":
             for r in rest:
                 r.update(overall_solution_ids="project-structure", parent_problem_ids="purpose-unrecorded", parent_ideal_ids="explicit-purpose")
@@ -210,8 +208,7 @@ def make_legacy(repo):
             tables.write_csv(overall / name, top_cols, top)
         else:
             tables.write_csv(overall / name, [c for c in cols if not c.startswith("parent_") and c != "overall_solution_ids"
-                                              and c not in ("interface_name", "selected", "selected_by", "invariant_reason", "gap",
-                                                            "action", "command")] + (["command"] if False else []), top)
+                                              and c not in ("interface_name", "selected", "selected_by", "command")], top)
         tables.write_csv(path, cols, rest)
     (repo / "esoi.toml").write_text((repo / "esoi.toml").read_text() + 'overall = "esoi/overall"\n')
     return repo
@@ -239,7 +236,7 @@ def test_migrate_moves_the_overall_network_into_the_top_intent(repo):
     rows = {r["implementation_id"]: r for r in tables.read_csv(after.structure / "implementations.csv")}
     assert set(tables.ids(rows["project-structure:esoi-records"]["uses_solution_ids"])) == {"greet-a-person", "project-purpose"}
     solution = next(r for r in tables.read_csv(after.structure / "solutions.csv") if r["solution_id"] == "project-structure")
-    assert solution["metric_kind"] == "specification" and solution["selected"] == "esoi-records"
+    assert solution["selected"] == "esoi-records" and "metric_kind" not in solution
     assert "overall_solution_ids" not in tables.read_header(after.structure / "solutions.csv")
     check.write_docs(after, say=lambda text: None)
     unfilled = check.check(after)   # the migration leaves the top intent's name and vision to the project

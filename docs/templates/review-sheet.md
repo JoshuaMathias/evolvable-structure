@@ -45,7 +45,7 @@ One spreadsheet tab per intent type, so a person can review problems, ideals, so
 | `interface_name` | generated |
 | `selected_implementation_id` | generated |
 | `selected_by` | generated |
-| `metric_kind` | generated |
+| `authoritative_metric_id` | generated |
 | `verdict` | generated |
 | `verdict_detail` | generated |
 | `component_ids` | generated |
@@ -106,10 +106,7 @@ One spreadsheet tab per intent type, so a person can review problems, ideals, so
 | `record` | generated |
 | `solution_ids` | generated |
 | `command` | generated |
-| `kind` | generated |
 | `latest_result` | generated |
-| `gap` | generated |
-| `action` | generated |
 | `auto_status` | generated |
 | `tracking_status` | reviewer |
 | `tracking_owner` | reviewer |

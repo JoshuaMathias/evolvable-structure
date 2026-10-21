@@ -151,11 +151,42 @@ def test_the_retired_overall_column_is_reported_in_the_intent_layout(cfg):
 
 
 def test_a_specification_solution_needs_no_interface_fields_or_metric_command(cfg):
-    spec = next(r for r in tables.read_csv(cfg.structure / "solutions.csv") if r["metric_kind"] == "specification")
-    assert spec["parameters"] == "" and spec["solution_id"] == "project-structure"
-    assert check(cfg) == []
-    edit(cfg, "solutions.csv", "solution_id", "project-structure", "metric_kind", "eval")
+    spec = next(r for r in tables.read_csv(cfg.structure / "solutions.csv") if r["solution_id"] == "project-structure")
+    assert spec["parameters"] == ""
+    assert check(cfg) == []   # none of its metrics has a command, so it is a specification, derived
+    edit(cfg, "metrics.csv", "metric_id", "structure-coverage", "command", "esoi run greet_a_person --impl live")
     assert any(p.startswith("R2 project-structure") for p in check(cfg))
+
+
+def test_removed_solution_columns_are_reported_with_where_their_content_goes(cfg):
+    path = cfg.structure / "solutions.csv"
+    rows, cols = tables.read_csv(path), tables.read_header(path)
+    for row in rows:
+        row.update(metric_kind="eval", invariant_reason="", gap="", action="")
+    tables.write_csv(path, cols + ["metric_kind", "invariant_reason", "gap", "action"], rows)
+    problems = check(cfg)
+    for old, where in (("metric_kind", "specification"), ("invariant_reason", "scoped_purpose"), ("gap", "scoped_purpose"),
+                       ("action", "milestones")):
+        assert any(p.startswith("R1") and f"removed column `{old}`" in p and where in p for p in problems), old
+
+
+def test_a_solution_with_two_metrics_names_the_authoritative_one(cfg):
+    path = cfg.structure / "metrics.csv"
+    rows, cols = tables.read_csv(path), tables.read_header(path)
+    rows.append({**{c: "" for c in cols}, "metric_id": "greeting-tone", "name": "Tone", "scoped_purpose": "How warm.",
+                 "record": "A reviewer's rating.", "solution_ids": "greet-a-person", "command": "esoi run greet_a_person --impl live"})
+    tables.write_csv(path, cols, rows)
+    assert any(p.startswith("R6 greet-a-person") and "authoritative_metric_id" in p for p in check(cfg))
+    spath = cfg.structure / "solutions.csv"
+    srows, scols = tables.read_csv(spath), tables.read_header(spath)
+    for row in srows:
+        row["authoritative_metric_id"] = "greeting-pass-rate" if row["solution_id"] == "greet-a-person" else ""
+    tables.write_csv(spath, scols + ["authoritative_metric_id"], srows)
+    assert not any(p.startswith("R6") for p in check(cfg))
+    for row in srows:
+        row["authoritative_metric_id"] = "elsewhere" if row["solution_id"] == "greet-a-person" else ""
+    tables.write_csv(spath, scols + ["authoritative_metric_id"], srows)
+    assert any(p.startswith("R6 greet-a-person") and "is not one of the solution's metrics" in p for p in check(cfg))
 
 
 def rename_header(cfg, name, old, new):

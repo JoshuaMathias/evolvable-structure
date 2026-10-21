@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Every metric outputs a number, so there is no metric kind.** The solution columns `metric_kind` and `invariant_reason` are
+  removed: a rule that holds or does not is measured as the pass rate on its cases, ranked like any other, and a solution
+  with a single implementation keeps a deliberately naive baseline in `broken/` that its cases must fail (S25). A solution none
+  of whose metrics has a command is a specification, derived from the missing run and never declared. When a solution has
+  several metrics, the new link column `authoritative_metric_id` names the one that decides which implementation is best (R6).
+  `gap` and `action` are removed too: a next step is a milestone (a value of a metric), and what a metric cannot see goes in
+  the metric's `scoped_purpose`. A repository with the old columns gets an R1 finding that says where each one's content goes.
 - **An empty `milestones` or `opportunities` is allowed.** `records.MAY_BE_EMPTY` names the two template fields a record may leave empty: a solution with no milestone has none its owner has chosen, and an intent need not state opportunities. Every other template field is still required (R2), and a sub-intent still states its opportunities (S28).
 - **Three record columns renamed.** `solutions.csv` `port` is `interface_name`, `implementations.csv` `path` is `filepath` (components and waivers keep `path`), and `intent.csv` `opportunity` is `opportunities`, now a field of the Intent template for every intent (the top intent states its own). A repository with the old headers gets an R1 or S28 finding naming the new column, not a crash; there is no migration. The `port` keyword of a code declaration is unchanged.
 - **A solution has Milestones, not Goals.** The solution column `goals` is now `milestones`: the solution's priorities in order, each a value of one or more metrics, with an optional end condition (when it stops being a priority and is archived) and an optional target time (a planned completion, which is not an end condition). The template parser attaches lines indented under a field to that field's question as guidance instead of reading them as new fields. Rule S22 lets `milestones` state target values. The implementation description asks how it achieves the purpose of its solution's definition. Standing conditions belong in `measures_of_success`; a constraint shared by many intents is specified once in its own intent, not as a milestone of each solution it limits. Existing records: rename the column and sort each cell.

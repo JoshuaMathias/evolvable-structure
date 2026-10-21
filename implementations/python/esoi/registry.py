@@ -12,7 +12,7 @@ from typing import Dict, List, Tuple
 
 from .config import Config
 from .intents import read_rows
-from .tables import SEP, ids
+from .tables import SEP, ids, is_command
 
 
 @dataclass
@@ -27,7 +27,7 @@ class Registry:
     waivers: List[Dict[str, str]] = field(default_factory=list)
     principles: List[Dict[str, str]] = field(default_factory=list)
     missing: List[Tuple[str, str]] = field(default_factory=list)   # (file, column) the rules read that a file lacks
-    specifications: List[Dict[str, str]] = field(default_factory=list)   # solutions of metric_kind "specification"
+    specifications: List[Dict[str, str]] = field(default_factory=list)   # solutions with no metric command (derived)
     solution_order: List[str] = field(default_factory=list)   # every solution id in tree order
 
     def every_solution(self) -> List[Dict[str, str]]:
@@ -53,7 +53,7 @@ def join_metrics(solutions: List[Dict[str, str]], metrics: List[Dict[str, str]])
 # when something needs it (see rules.registry_rules).
 RULE_COLUMNS = {
     "components.csv": ["component_id", "layer", "path", "role", "solutions"],
-    "solutions.csv": ["solution_id", "implementations", "selected", "gap", "action"],
+    "solutions.csv": ["solution_id", "implementations", "selected"],
     "waivers.csv": ["rule", "path", "reason"],
 }
 OPTIONAL_COLUMNS = {"solutions.csv": ["interface_name"]}
@@ -71,24 +71,23 @@ def fill_columns(name: str, rows: List[Dict[str, str]], missing: List[Tuple[str,
     return rows
 
 
-SPECIFICATION = "specification"
-
 
 def load(config: Config) -> Registry:
     """The records of every intent folder as one registry (the one structure folder in the legacy layout).
 
-    A solution whose ``metric_kind`` is ``specification`` is defined and has alternatives, but no run measures it
-    yet: its selected implementation builds on other solutions (``uses_solution_ids``) or is a document. It is kept
-    in ``specifications`` and out of ``solutions``, so the rules that demand a metric command, a component and a
-    recorded run apply to the solutions that have them."""
+    A solution none of whose metrics has a command is a specification: it is defined and has alternatives, but no
+    run measures it yet (its selected implementation builds on other solutions through ``uses_solution_ids`` or is a
+    document). That is derived from the missing command, never declared. It is kept in ``specifications`` and out of
+    ``solutions``, so the rules that demand a metric command, a component and a recorded run apply to the solutions
+    that have them."""
     metrics = read_rows(config, "metrics.csv")
     missing: List[Tuple[str, str]] = []
     every = join_metrics(fill_columns("solutions.csv", read_rows(config, "solutions.csv"), missing), metrics)
-    measured = [r for r in every if r.get("metric_kind", "").strip() != SPECIFICATION]
+    measured = [r for r in every if any(is_command(c) for c in ids(r.get("metric_command", "")))]
     return Registry(
         components=fill_columns("components.csv", read_rows(config, "components.csv"), missing),
         solutions=measured,
-        specifications=[r for r in every if r.get("metric_kind", "").strip() == SPECIFICATION],
+        specifications=[r for r in every if not any(is_command(c) for c in ids(r.get("metric_command", "")))],
         solution_order=[r.get("solution_id", "") for r in every],
         metrics=metrics,
         problems=read_rows(config, "problems.csv"),

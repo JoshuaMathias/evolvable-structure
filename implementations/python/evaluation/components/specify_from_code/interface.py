@@ -14,7 +14,7 @@ Kinds and the dict an implementation returns:
             "outputs": {id: text}}
   sync  args {edits: [fixture edits], solution?, keep?: {path, key_col, key, col, value}}
         -> {"before_count": S30 findings before, "after_count": after one sync, "changes": rows written, "second": rows a
-            second sync writes, "row": cells of the solution row (name, parameters, outputs, selected, metric_kind,
+            second sync writes, "row": cells of the solution row (name, parameters, outputs, selected,
             implementations), "kept": bool (the cell a person wrote still holds its text)}
   new   args {id, twice?: bool, intent?}
         -> {"files": [...], "text_only": bool (every remaining finding is a field only a person can write, or the first recorded run),

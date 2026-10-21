@@ -83,7 +83,7 @@ def test_the_board_prints_a_verdict_and_strict_fails_on_a_challenger(tmp_path):
     (tmp_path / "evaluation" / "components" / "results.csv").write_text(
         "date,component,impl,cases,passed,heldout,model_calls,tokens_in,tokens_out,cost_usd,cases_sha\n"
         "2026-01-01,mini,a,10,5,0/0,0,0,0,0.0,x\n2026-01-01,mini,b,10,8,0/0,0,0,0,0.0,x\n")
-    registry = Registry(solutions=[{"solution_id": "s", "selected": "a", "metric_kind": "eval", "selected_by": "hand",
+    registry = Registry(solutions=[{"solution_id": "s", "selected": "a", "selected_by": "hand",
                                     "metric_command": "esoi run mini --impl a"}])
     lines = []
     assert lb.board(cfg, registry, strict=False, say=lines.append) == 0
@@ -98,7 +98,7 @@ def test_the_board_shows_the_rows_a_verdict_compared_when_they_are_not_the_lates
         "date,component,impl,cases,passed,heldout,model_calls,tokens_in,tokens_out,cost_usd,cases_sha,sample\n"
         "2026-01-01,mini,a,40,23,0/0,0,0,0,0.0,x,sample:40\n2026-01-01,mini,b,40,12,0/0,0,0,0,0.0,x,sample:40\n"
         "2026-02-01,mini,a,1137,458,0/0,0,0,0,0.0,x,\n")
-    registry = Registry(solutions=[{"solution_id": "s", "selected": "a", "metric_kind": "eval", "selected_by": "hand",
+    registry = Registry(solutions=[{"solution_id": "s", "selected": "a", "selected_by": "hand",
                                     "metric_command": "esoi run mini --impl a"}])
     lines = []
     lb.board(cfg, registry, strict=False, say=lines.append)
@@ -106,17 +106,17 @@ def test_the_board_shows_the_rows_a_verdict_compared_when_they_are_not_the_lates
                for line in lines)
 
 
-def test_invariant_components_are_listed_apart(tmp_path):
+def test_complementary_arms_are_listed_apart(tmp_path):
     cfg = Config(root=tmp_path)
-    (tmp_path / "evaluation" / "components").mkdir(parents=True)
+    (tmp_path / "evaluation" / "components" / "mini").mkdir(parents=True)
+    (tmp_path / "evaluation" / "components" / "mini" / "invariant.txt").write_text("The arms cover different cases.\n")
     (tmp_path / "evaluation" / "components" / "results.csv").write_text(
         "date,component,impl,cases,passed,heldout,model_calls,tokens_in,tokens_out,cost_usd,cases_sha\n"
         "2026-01-01,mini,a,10,5,0/0,0,0,0,0.0,x\n2026-01-01,mini,b,10,8,0/0,0,0,0,0.0,x\n")
-    registry = Registry(solutions=[{"solution_id": "s", "selected": "a", "metric_kind": "invariant", "invariant_reason": "A rule.",
-                                    "metric_command": "esoi run mini --impl a"}])
+    registry = Registry(solutions=[{"solution_id": "s", "selected": "a", "metric_command": "esoi run mini --impl a"}])
     lines = []
     assert lb.board(cfg, registry, strict=True, say=lines.append) == 0
-    assert any(line.startswith("Invariant solutions") or "Invariant solutions" in line for line in lines)
+    assert any("Complementary arms" in line for line in lines)
 
 
 def test_one_malformed_results_line_does_not_stop_the_board(tmp_path):
@@ -169,7 +169,7 @@ def test_the_board_names_the_mismatch_and_strict_reports_it(tmp_path):
     (tmp_path / "evaluation" / "components" / "results.csv").write_text(
         "date,component,impl,cases,passed,heldout,model_calls,tokens_in,tokens_out,cost_usd,cases_sha,sample\n"
         "2026-01-01,mini,a,1137,458,0/0,0,0,0,0.0,x,\n2026-01-01,mini,b,40,12,0/0,0,0,0,0.0,x,sample:40\n")
-    registry = Registry(solutions=[{"solution_id": "s", "selected": "a", "metric_kind": "eval", "selected_by": "hand",
+    registry = Registry(solutions=[{"solution_id": "s", "selected": "a", "selected_by": "hand",
                                     "metric_command": "esoi run mini --impl a"}])
     lines = []
     assert lb.board(cfg, registry, strict=False, say=lines.append) == 0

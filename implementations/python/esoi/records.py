@@ -29,8 +29,8 @@ checks that each id names a record of the overall network. The overall network i
 Intent layout. When the structure folder holds an ``intent.csv`` it is the top intent and the records of every
 intent folder below it are checked as one set (``tables`` of ``check_records``): ids are unique across the tree and
 a link may name a record in any intent. ``overall_solution_ids`` belongs to the legacy layout only and is reported
-there as retired. A solution whose ``metric_kind`` is ``specification`` (see ``esoi.registry``) needs no interface
-fields and its metrics no command. The rules about the intents themselves are S28 and S29 (``esoi.rules.intents``).
+there as retired. A solution none of whose metrics has a command is a specification (derived, never declared; see
+``esoi.registry``): it needs no interface fields and its metrics no command. The rules about the intents themselves are S28 and S29 (``esoi.rules.intents``).
 
 Standard library only.
 """
@@ -40,13 +40,11 @@ import re
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
-from .tables import ids, read_csv, read_header
+from .tables import ids, is_command, read_csv, read_header
 
 FILES = {"problem": ("problems.csv", "problem_id"), "ideal": ("ideals.csv", "ideal_id"),
          "solution": ("solutions.csv", "solution_id"), "implementation": ("implementations.csv", "implementation_id"),
          "metric": ("metrics.csv", "metric_id")}
-SPECIFICATION = "specification"
-
 #: Template fields a record may leave empty. An empty cell is an honest statement that nothing is set yet: a
 #: solution with no milestone has none that its owner has chosen, and an intent need not state opportunities.
 #: Every other template field of a record is required.
@@ -65,10 +63,30 @@ Template = Dict[str, List[Dict[str, str]]]
 RENAMED_COLUMNS = {"solutions.csv": {"port": "interface_name"}, "implementations.csv": {"path": "filepath"}}
 
 
+#: Columns that no longer exist, with where their content goes now.
+REMOVED_COLUMNS = {
+    "solutions.csv": {
+        "metric_kind": "every metric outputs a number, so there is no kind; a solution with no recorded metric run is a "
+                       "specification, derived from that",
+        "invariant_reason": "put the reason in the metric's scoped_purpose",
+        "gap": "put what a metric cannot see in its scoped_purpose, or a weakness in a disadvantages cell",
+        "action": "a next step is a milestone: a value of a metric, in `milestones`",
+    },
+}
+
+
 def renamed_column_problems(name: str, header: Iterable[str], label: str) -> List[str]:
-    """R1 lines for each old column name still in the header of record file ``name``."""
-    return [f"R1 {label}: has the old column `{old}`, renamed `{new}` (rename it in the header; the values stay)"
-            for old, new in RENAMED_COLUMNS.get(name, {}).items() if old in header]
+    """R1 lines for each old column name still in the header of record file ``name``, and each removed column."""
+    out = [f"R1 {label}: has the old column `{old}`, renamed `{new}` (rename it in the header; the values stay)"
+           for old, new in RENAMED_COLUMNS.get(name, {}).items() if old in header]
+    out += [f"R1 {label}: has the removed column `{old}` ({advice}); delete the column"
+            for old, advice in REMOVED_COLUMNS.get(name, {}).items() if old in header]
+    return out
+
+
+def solutions_with_a_command(metric_rows: Iterable[Dict[str, str]]) -> Set[str]:
+    """Ids of the solutions that have a metric with a command; every other solution is a specification."""
+    return {sid for m in metric_rows if is_command(m.get("command", "")) for sid in ids(m.get("solution_ids", ""))}
 
 
 PARENT_COLUMNS = {"parent_problem_ids": "problem", "parent_ideal_ids": "ideal",
@@ -143,8 +161,10 @@ def check_headers(folder: Path, template: Template, interface_required: bool = T
         header = read_header(path)
         # a solution of kind specification needs no interface fields, and a header may omit them only for those
         need = [key, *fields(template, entity, interface_required)]
-        if entity == "solution" and rows and all(r.get("metric_kind", "").strip() == SPECIFICATION for r in rows):
-            need = [key, *fields(template, entity, False)]
+        if entity == "solution" and rows:
+            commanded = solutions_with_a_command(read_csv(Path(folder) / "metrics.csv"))
+            if not any(r.get(key, "") in commanded for r in rows):
+                need = [key, *fields(template, entity, False)]
         missing = [k for k in need if k not in header]
         if missing:
             bad.append(f"R1 {label or folder}/{name}: missing template column(s) {', '.join(missing)}"
@@ -187,7 +207,8 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
         if not rows and not (overall is not None and entity in ("problem", "ideal")):
             bad.append(f"R1 {FILES[entity][0]}: no records")
 
-    specified = {rid for rid, row in index["solution"].items() if row.get("metric_kind", "").strip() == SPECIFICATION}
+    commanded = solutions_with_a_command(index["metric"].values())
+    specified = {rid for rid in index["solution"] if rid not in commanded}
 
     def skipped(entity: str, row: Dict[str, str]) -> bool:
         if entity == "solution":
@@ -278,6 +299,14 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
                 bad.append(f"R3 {sid}: implementation {implementation_id(sid, entry)} has no record in implementations.csv")
         for iid in unclaimed:
             bad.append(f"R3 {sid}: implementations.csv record {iid} is not in the solution's implementations cell")
+    for sid, row in solutions.items():
+        mine = [mid for mid, m in index["metric"].items() if sid in ids(m.get("solution_ids", ""))]
+        chosen = row.get("authoritative_metric_id", "").strip()
+        if chosen and chosen not in mine:
+            bad.append(f"R6 {sid}: authoritative_metric_id {chosen!r} is not one of the solution's metrics")
+        elif len(mine) > 1 and not chosen and sid not in waived:
+            bad.append(f"R6 {sid}: has {len(mine)} metrics, so authoritative_metric_id names the one that decides "
+                       "which implementation is best")
     for sid, row in solutions.items():
         for mid in ids(row.get("governs_metric_ids", "")):
             if mid not in index["metric"]:

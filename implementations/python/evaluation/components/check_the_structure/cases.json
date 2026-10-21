@@ -343,28 +343,6 @@
   }
  },
  {
-  "id": "CTS-017",
-  "area": "repo",
-  "kind": "repo",
-  "description": "a solution with no metric and no gap",
-  "args": {
-   "edits": [
-    {
-     "op": "csv_cell",
-     "path": "esoi/metrics.csv",
-     "key_col": "metric_id",
-     "key": "greeting-pass-rate",
-     "col": "command",
-     "value": "none"
-    }
-   ]
-  },
-  "expect": {
-   "rule": "S7",
-   "contains": "no metric"
-  }
- },
- {
   "id": "CTS-018",
   "area": "repo",
   "kind": "repo",
@@ -586,77 +564,35 @@
   }
  },
  {
-  "id": "CTS-026",
-  "area": "repo",
-  "kind": "repo",
-  "description": "a solution with no metric kind",
-  "args": {
-   "edits": [
-    {
-     "op": "csv_cell",
-     "path": "esoi/solutions.csv",
-     "key_col": "solution_id",
-     "key": "greet-a-person",
-     "col": "metric_kind",
-     "value": ""
-    },
-    {
-     "op": "regen"
-    }
-   ]
-  },
-  "expect": {
-   "rule": "S11",
-   "contains": "metric_kind"
-  }
- },
- {
-  "id": "CTS-027",
-  "area": "repo",
-  "kind": "repo",
-  "description": "an invariant solution with no reason",
-  "args": {
-   "edits": [
-    {
-     "op": "csv_cell",
-     "path": "esoi/solutions.csv",
-     "key_col": "solution_id",
-     "key": "greet-a-person",
-     "col": "metric_kind",
-     "value": "invariant"
-    },
-    {
-     "op": "regen"
-    }
-   ]
-  },
-  "expect": {
-   "rule": "S11",
-   "contains": "invariant_reason"
-  }
- },
- {
   "id": "CTS-028",
   "area": "repo",
   "kind": "repo",
-  "description": "an invariant solution with a reason but no broken baseline",
+  "description": "a solution whose evaluation folder has one implementation and no broken baseline",
   "args": {
    "edits": [
     {
-     "op": "csv_cell",
-     "path": "esoi/solutions.csv",
-     "key_col": "solution_id",
-     "key": "greet-a-person",
-     "col": "metric_kind",
-     "value": "invariant"
+     "op": "delete",
+     "path": "evaluation/components/greet_a_person/impls/shout.py"
+    },
+    {
+     "op": "csv_drop",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "shout"
+    },
+    {
+     "op": "csv_drop",
+     "path": "esoi/implementations.csv",
+     "key_col": "implementation_id",
+     "key": "greet-a-person:shout"
     },
     {
      "op": "csv_cell",
      "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
-     "col": "invariant_reason",
-     "value": "The greeting holds or does not."
+     "col": "implementations",
+     "value": "demo/greet.py;evaluation/components/greet_a_person/impls/live.py"
     },
     {
      "op": "regen"
@@ -672,45 +608,37 @@
   "id": "CTS-029",
   "area": "repo",
   "kind": "repo",
-  "description": "an invariant solution is never ranked, so a better row is no challenger (clean)",
+  "description": "a solution with one implementation and a broken baseline is clean",
   "args": {
    "edits": [
     {
-     "op": "csv_cell",
-     "path": "esoi/solutions.csv",
-     "key_col": "solution_id",
-     "key": "greet-a-person",
-     "col": "metric_kind",
-     "value": "invariant"
+     "op": "delete",
+     "path": "evaluation/components/greet_a_person/impls/shout.py"
+    },
+    {
+     "op": "csv_drop",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "shout"
+    },
+    {
+     "op": "csv_drop",
+     "path": "esoi/implementations.csv",
+     "key_col": "implementation_id",
+     "key": "greet-a-person:shout"
     },
     {
      "op": "csv_cell",
      "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
-     "col": "invariant_reason",
-     "value": "The greeting holds or does not."
+     "col": "implementations",
+     "value": "demo/greet.py;evaluation/components/greet_a_person/impls/live.py"
     },
     {
      "op": "write",
      "path": "evaluation/components/greet_a_person/broken/naive.py",
      "content": "\"\"\"BASELINE: the naive greeting.\"\"\"\n"
-    },
-    {
-     "op": "csv_cell",
-     "path": "evaluation/components/results.csv",
-     "key_col": "impl",
-     "key": "live",
-     "col": "passed",
-     "value": "1"
-    },
-    {
-     "op": "csv_cell",
-     "path": "evaluation/components/results.csv",
-     "key_col": "impl",
-     "key": "shout",
-     "col": "passed",
-     "value": "2"
     },
     {
      "op": "regen"
@@ -1084,15 +1012,15 @@
   "id": "CTS-046",
   "area": "repo",
   "kind": "repo",
-  "description": "a score written into a gap",
+  "description": "a score written into a metric's scoped purpose",
   "args": {
    "edits": [
     {
      "op": "csv_cell",
-     "path": "esoi/solutions.csv",
-     "key_col": "solution_id",
-     "key": "greet-a-person",
-     "col": "gap",
+     "path": "esoi/metrics.csv",
+     "key_col": "metric_id",
+     "key": "greeting-pass-rate",
+     "col": "scoped_purpose",
      "value": "The live greeter passes 12/16 of the cases."
     },
     {
@@ -1159,24 +1087,16 @@
   "id": "CTS-049",
   "area": "repo",
   "kind": "repo",
-  "description": "a gap that calls a recorded implementation unrecorded",
+  "description": "a metric command that names an arm with no results row",
   "args": {
    "edits": [
     {
      "op": "csv_cell",
-     "path": "esoi/solutions.csv",
-     "key_col": "solution_id",
-     "key": "greet-a-person",
-     "col": "gap",
-     "value": "The shout implementation is not recorded."
-    },
-    {
-     "op": "csv_cell",
-     "path": "esoi/solutions.csv",
-     "key_col": "solution_id",
-     "key": "greet-a-person",
-     "col": "action",
-     "value": "Keep watching."
+     "path": "esoi/metrics.csv",
+     "key_col": "metric_id",
+     "key": "greeting-pass-rate",
+     "col": "command",
+     "value": "esoi run greet_a_person --impl live; esoi run greet_a_person --impl ghost"
     },
     {
      "op": "regen"
@@ -1185,40 +1105,7 @@
   },
   "expect": {
    "rule": "S24",
-   "contains": "says shout is not recorded"
-  }
- },
- {
-  "id": "CTS-050",
-  "area": "repo",
-  "kind": "repo",
-  "description": "an action that says to record an implementation that is recorded",
-  "args": {
-   "edits": [
-    {
-     "op": "csv_cell",
-     "path": "esoi/solutions.csv",
-     "key_col": "solution_id",
-     "key": "greet-a-person",
-     "col": "gap",
-     "value": "A rival is open."
-    },
-    {
-     "op": "csv_cell",
-     "path": "esoi/solutions.csv",
-     "key_col": "solution_id",
-     "key": "greet-a-person",
-     "col": "action",
-     "value": "Record shout on the cases."
-    },
-    {
-     "op": "regen"
-    }
-   ]
-  },
-  "expect": {
-   "rule": "S24",
-   "contains": "shout"
+   "contains": "ghost"
   }
  },
  {

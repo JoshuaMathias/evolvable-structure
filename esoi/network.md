@@ -67,8 +67,8 @@ intents as folders is the selected implementation of the `intent-registry` solut
 - **`python/` (sub-intent `esoi-python`)** is retired. `python-tools` was not a real alternative to the documents (its
   chosen parts built on the tools of the unselected alternative), and its eleven `py-*` solutions mirrored top solutions one
   to one. Each was folded into the top solution it mirrored: that solution's selected implementation points at the code
-  path, the component maps to it, and the cases metric is the solution's metric (so those solutions are now `invariant`
-  and measured, where they were `specification`). The selector is the exception, kept as `runtime-selection` in
+  path, the component maps to it, and the cases metric is the solution's metric (so those solutions are now measured,
+  where they were unmeasured specifications). The selector is the exception, kept as `runtime-selection` in
   `esoi-runtime` for the opportunity above. Version history keeps the earlier folder.
 
 No sub-intent was created for risks or uncertainties alone: those are disadvantages of an implementation or the solution's
@@ -76,11 +76,11 @@ metric. The detailed solutions that were once linked up to an overall network wi
 solutions of this intent, the solution of the sub-intent, or named by `uses_solution_ids` on the implementation that builds
 on them.
 
-### Known gaps with a review date
+### Solutions no run measures yet
 
-A solution of `metric_kind` `specification` is defined and has alternatives, but no run measures it, so it is not yet a
-way to follow principle 4 (the best implementation selected automatically). Each is recorded with a `gap` and an `action`
-whose review date is 2026-12-31, so none is a permanent escape: `apply-esoi`, `implementation-selection`,
+A solution none of whose metrics has a recorded run is a specification: it is defined and has alternatives, but it is not
+yet a way to follow principle 4 (the best implementation selected automatically). That is derived from the missing run, not
+declared. Its next step is its next milestone, a value of its metric: `apply-esoi`, `implementation-selection`,
 `discriminating-cases`, `the-standard`, `structure-budget`, `esoi-for-ai`, `the-steps` and `esoi-behaviour-judge`.
 
 ## The top intent's specifications, as first written

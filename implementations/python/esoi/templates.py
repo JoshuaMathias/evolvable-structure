@@ -33,8 +33,8 @@ PARENT_CELLS = {"problem": ["parent_problem_ids", "parent_ideal_ids"], "ideal": 
                 "implementation": ["sub_intent", "uses_solution_ids"], "metric": ["parent_metric_ids"]}
 INTENT_COLUMNS = ["intent_id", "implements"]
 LINKS = {"problem": ["solution_ids", "ideal_ids"], "ideal": ["problem_ids"],
-         "solution": ["problem_ids", "ideal_ids", "metric_ids", "interface_name", "implementations", "selected", "selected_by", "metric_kind",
-                      "invariant_reason", "gap", "action", "governs_metric_ids"],
+         "solution": ["problem_ids", "ideal_ids", "metric_ids", "interface_name", "implementations", "selected", "selected_by",
+                      "authoritative_metric_id", "governs_metric_ids"],
          "implementation": ["solution_id", "filepath"], "metric": ["solution_ids", "command", "run_policy_ids"]}
 KEYS = {"problem": "problem_id", "ideal": "ideal_id", "solution": "solution_id", "implementation": "implementation_id",
         "metric": "metric_id"}

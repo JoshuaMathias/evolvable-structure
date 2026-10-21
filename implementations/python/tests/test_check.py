@@ -120,17 +120,18 @@ def test_selection_rules_s7_s14_and_s23(cfg):
     assert any(line.startswith("S23") for line in check.check(cfg))
 
 
-def test_numbers_in_prose_and_unrecorded_claims(cfg):
-    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "gap", "It passes 12/16 of the cases.")
+def test_numbers_in_prose_and_unrecorded_arms(cfg):
+    edit(cfg, "metrics.csv", "metric_id", "greeting-pass-rate", "scoped_purpose", "It passes 12/16 of the cases.")
     check.write_docs(cfg, say=lambda text: None)
     assert any(line.startswith("S22") and "12/16" in line for line in check.check(cfg))
     edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "milestones", "1. Share of greetings in the standard form: 100%.")
     check.write_docs(cfg, say=lambda text: None)
     assert not any(line.startswith("S22") and "milestones" in line for line in check.check(cfg))   # a target value is allowed
-    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "gap", "The shout implementation is not recorded.")
-    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "action", "Keep watching.")
+    edit(cfg, "metrics.csv", "metric_id", "greeting-pass-rate", "scoped_purpose", "Measures the greetings.")
+    edit(cfg, "metrics.csv", "metric_id", "greeting-pass-rate", "command",
+         "esoi run greet_a_person --impl live; esoi run greet_a_person --impl ghost")
     check.write_docs(cfg, say=lambda text: None)
-    assert any(line.startswith("S24") for line in check.check(cfg))
+    assert any(line.startswith("S24") and "ghost" in line for line in check.check(cfg))
 
 
 def test_results_rules_s10_s16_s20(cfg):
@@ -164,8 +165,9 @@ def test_s21_names_an_orphan_evaluation_folder_and_s25_a_missing_baseline(cfg):
     (cfg.evaluation / "orphan").mkdir()
     (cfg.evaluation / "orphan" / "score.py").write_text('"""x."""\n')
     assert any(line.startswith("S21") for line in check.check(cfg))
-    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "metric_kind", "invariant")
-    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "invariant_reason", "A rule.")
+    only = [f for f in (cfg.evaluation / "greet_a_person" / "impls").glob("*.py") if f.name != "__init__.py"]
+    for extra in only[1:]:
+        extra.unlink()
     check.write_docs(cfg, say=lambda text: None)
     assert any(line.startswith("S25") for line in check.check(cfg))
 

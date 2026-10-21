@@ -7,7 +7,7 @@ What it does, when applied:
   project exists, in the project's own words (a product's is about the product, not about ESOI); no tool can say that, so the check
   reports both until a person fills them, and the overall network's ideals are the place to draw them from;
 * moves the overall network's records into the structure folder beside the detailed ones, so the structure folder is
-  the top intent. An overall solution becomes a solution of ``metric_kind`` ``specification`` whose ``selected`` is its
+  the top intent. An overall solution becomes a solution with no metric command (so a specification) whose ``selected`` is its
   selected implementation;
 * turns each detailed solution's ``overall_solution_ids`` into ``uses_solution_ids`` on the selected implementation of
   the overall solution it served (the overall solution's chosen way builds on the detailed one), and drops the retired
@@ -82,9 +82,8 @@ def plan(config: Config, apply: bool = False) -> Tuple[List[str], List[str]]:
         header = union_header(header_d[:1] or header_o[:1], header_o, header_d, drop=(RETIRED,))
         if entity == "solution":
             for row in rows[: len(solutions_o)]:
-                row["metric_kind"] = "specification"
                 row["selected"] = selected_of.get(row["solution_id"], "").partition(":")[2]
-            header = union_header(header, ["selected", "metric_kind"])
+            header = union_header(header, ["selected"])
         if entity == "implementation":
             for row in rows:
                 if row.get("implementation_id") in uses:
