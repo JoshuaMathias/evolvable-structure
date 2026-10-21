@@ -33,7 +33,7 @@ esoi/                       the folder that holds the top intent (the default; `
   problems.csv  solutions.csv  implementations.csv  ideals.csv  metrics.csv
   network.md                optional prose view
   review-sheets/            a sub-intent: a folder named by its intent_id, with its own intent.csv
-    intent.csv              its record, plus `implements` and `opportunity`
+    intent.csv              its record, plus `implements`
     solutions.csv ...
 ```
 
@@ -43,7 +43,8 @@ esoi/                       the folder that holds the top intent (the default; `
 - Naming convention: a sub-intent's folder is named by its `intent_id` (rule S28 checks it), so the folder name finds
   the intent and the intent id finds the folder.
 - A sub-intent's `intent.csv` has `implements`, the full id of the implementation in the parent intent that it arises
-  from, and `opportunity`, the opportunity that justifies it. The top intent leaves both empty.
+  from. Its `opportunities` (a field of the intent template, as for every intent) state the opportunities that
+  justify it. The top intent leaves `implements` empty.
 - The parent's `implementations.csv` names the sub-intent in an optional `sub_intent` column, so the link can be followed
   from either side, and lists in `uses_solution_ids` the solutions, anywhere in the tree, that the implementation builds
   on through their interfaces.

@@ -74,7 +74,7 @@ def create(config: Config, solution_id: str, intent_id: Optional[str] = None) ->
                                         implementations=IMPLEMENTATION, selected=IMPLEMENTATION, metric_kind="eval",
                                         selected_by="the only implementation so far"),
         "implementations": declarations.blank(tables["implementations"][0], implementation_id=f"{sid}:{IMPLEMENTATION}",
-                                              solution_id=sid, path=module, name=declarations.title(IMPLEMENTATION)),
+                                              solution_id=sid, filepath=module, name=declarations.title(IMPLEMENTATION)),
         "metrics": declarations.blank(tables["metrics"][0], metric_id=f"metric-{sid}", solution_ids=sid, command=command),
     }
     written: List[str] = []

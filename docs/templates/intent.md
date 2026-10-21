@@ -22,6 +22,12 @@ _What is this intent manifesting in present tense? e.g. "I am ..." or "The world
 
 <!-- your answer -->
 
+## Opportunities
+
+_What are potentials inspired by this intent?_
+
+<!-- your answer -->
+
 ## What it is not
 
 A general category like "parenting" or "career." An intent is also not an organization itself, rather the container of specification that clarifies why the organization exists (as a solution and implementation within an intent). In this example, different versions of the same organization can be documented as separate alternative implementations.

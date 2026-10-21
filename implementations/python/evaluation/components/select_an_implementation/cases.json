@@ -804,8 +804,8 @@
  {
   "id": "SEL-029",
   "kind": "declared",
-  "area": "declared: an implementation in a module not imported yet loads lazily from its record's path",
-  "description": "declared: an implementation in a module not imported yet loads lazily from its record's path",
+  "area": "declared: an implementation in a module not imported yet loads lazily from its record's filepath",
+  "description": "declared: an implementation in a module not imported yet loads lazily from its record's filepath",
   "args": {
    "solution": "pick",
    "lazy_module": {

@@ -11,7 +11,7 @@ from .base import Context, RuleGroup
 
 SUMMARIES = {
     "S30": "Every solution and implementation declared in the measured code (@solution, @implementation, register) has "
-           "its solutions.csv row and implementations.csv record, and the record's path is the declaring file; "
+           "its solutions.csv row and implementations.csv record, and the record's filepath is the declaring file; "
            "`esoi records sync` writes the missing rows.",
 }
 

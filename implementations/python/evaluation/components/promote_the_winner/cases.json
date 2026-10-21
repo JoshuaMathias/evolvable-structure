@@ -312,7 +312,7 @@
     {
      "implementation_id": "mini-solution:b",
      "solution_id": "mini-solution",
-     "path": "evaluation/components/mini/impls/b.py"
+     "filepath": "evaluation/components/mini/impls/b.py"
     }
    ]
   },

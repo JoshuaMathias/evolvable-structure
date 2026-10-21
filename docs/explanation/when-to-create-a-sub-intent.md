@@ -84,7 +84,7 @@ Questions to ask:
 - Is the opportunity beyond what the solution is scoped to do, or meaningful enough that someone wants to specify the
   implementation further?
 
-The sub-intent's `opportunity` is written down (see [intents-and-sub-intents.md](intents-and-sub-intents.md)), so the
+The sub-intent's `opportunities` are written down (see [intents-and-sub-intents.md](intents-and-sub-intents.md)), so the
 reason survives and can be challenged later.
 
 ## Practicality

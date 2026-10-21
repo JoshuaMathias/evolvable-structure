@@ -8,7 +8,7 @@ describes how those links are written down as columns in record files.
 | Problem | `solution_ids` it is addressed by, `ideal_ids` that oppose it |
 | Ideal | `problem_ids` it opposes |
 | Solution | `problem_ids` and `ideal_ids` it serves, `metric_ids` that measure it, its `implementations`, and `selected` |
-| Implementation | the `solution_id` it carries out, and the `path` of what was built |
+| Implementation | the `solution_id` it carries out, and the `filepath` of what was built |
 | Metric | the `solution_ids` it measures, and the `command` that produces its record |
 
 ## Links agree on both sides

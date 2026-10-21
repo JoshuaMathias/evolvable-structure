@@ -84,9 +84,9 @@ reason = "names a private folder"
 (`rule, path, reason`) and the five record files, each with the template's fields as columns plus links:
 `problems.csv`, `ideals.csv`, `solutions.csv`, `implementations.csv`, `metrics.csv`. Headers to copy are in
 [docs/templates/record-headers/](../../../docs/templates/record-headers/). A rule that reads a column a file lacks reports it
-(`no `port` column ...`) and sees it as empty; `port` is only a finding when a Protocol class or a selection table needs it.
+(`no `interface_name` column ...`) and sees it as empty; `interface_name` is only a finding when a Protocol class or a selection table needs it.
 A module may hold several implementations: list them as `path::name` in the solution's `implementations` cell and give each
-record in `implementations.csv` the same `path`; rule S14 accepts a selection-table module that either lists, and the record
+record in `implementations.csv` the same `filepath`; rule S14 accepts a selection-table module that either lists, and the record
 ids need not follow any pattern (the default is `solution:file-stem`, `solution:name` also matches).
 
 `solutions.csv` may carry two optional columns beyond the template: `promotion` (`automatic` lets `esoi select --promote`

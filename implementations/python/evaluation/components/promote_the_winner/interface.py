@@ -7,7 +7,7 @@ counts and only where the solution's policy allows it. The cases drive the LIVE 
 tables and records in a temporary folder. Deterministic and offline.
 
 Kinds and the dict an implementation returns:
-  decide  args {rows: [results rows], selected, promotion?: "automatic", records?: [{implementation_id, path}],
+  decide  args {rows: [results rows], selected, promotion?: "automatic", records?: [{implementation_id, filepath}],
                 stale?: [impl names whose row no longer counts], table_default?: bool}
           -> {"count": proposals, "status": "promote" | "propose" | "blocked" | "none", "winner", "selected", "command",
               "reason", "text" (the reason, for checks that quote it)}   (none when no rival clearly beats the selected implementation)

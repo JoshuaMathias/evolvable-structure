@@ -35,7 +35,7 @@ def render(registry: Registry, intent: Intent) -> str:
         lines += [one_line(intent.row["vision_statement"]), ""]
     if not intent.is_top:
         lines += [f"This sub-intent arises as the implementation `{intent.row.get('implements', '')}` of its parent "
-                  f"intent `{intent.parent}`. Opportunity: {one_line(intent.row.get('opportunity', ''))}", ""]
+                  f"intent `{intent.parent}`. Opportunities: {one_line(intent.row.get('opportunities', ''))}", ""]
     problems = mine(registry.problems, iid)
     if problems:
         lines += ["## Problems", ""] + [f"- `{r.get('problem_id', '')}`: {one_line(r.get('problem', ''))}" for r in problems] + [""]
@@ -51,7 +51,7 @@ def render(registry: Registry, intent: Intent) -> str:
     implementations = mine(registry.implementations, iid)
     if implementations:
         lines += ["## Implementations", "", "| Implementation | Name | Where | Sub-intent |", "|---|---|---|---|"]
-        lines += [f"| `{r.get('implementation_id', '')}` | {one_line(r.get('name', ''))} | {one_line(r.get('path', ''))} | "
+        lines += [f"| `{r.get('implementation_id', '')}` | {one_line(r.get('name', ''))} | {one_line(r.get('filepath', ''))} | "
                   f"{('[' + r['sub_intent'] + '](' + r['sub_intent'] + '/README.md)') if r.get('sub_intent') else ''} |"
                   for r in implementations] + [""]
     metrics = mine(registry.metrics, iid)

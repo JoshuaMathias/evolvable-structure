@@ -1,2 +1,2 @@
-intent_id,name,vision_statement,implements,opportunity
-esoi,Evolvable structure that optimizes intent (ESOI),"Every intention is turned into a structure that optimizes the fulfilling of that intent while supporting changes to it, and the intent and the structure evolve together in a continual feedback loop.",,
+intent_id,name,vision_statement,implements,opportunities
+esoi,Evolvable structure that optimizes intent (ESOI),"Every intention is turned into a structure that optimizes the fulfilling of that intent while supporting changes to it, and the intent and the structure evolve together in a continual feedback loop.",,"Any person, team or AI can state what a project is for and have the stated intent drive which implementation runs. Records that AI maintains and metrics that humans review could replace much of the routine choosing between alternatives. Implementations of one solution can be compared and swapped across projects, so a better way found once is reused."

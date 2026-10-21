@@ -36,7 +36,7 @@ TITLE = {"intent": ["name"], "problem": ["problem"], "ideal": ["name", "principl
          "implementation": ["name"], "metric": ["name"]}
 SUMMARY = {"intent": ["vision_statement"], "problem": ["problem", "why_it_matters"], "ideal": ["principle", "state_description"],
            "solution": ["scoped_purpose", "milestones"], "implementation": ["description"], "metric": ["scoped_purpose"]}
-BODY = {"intent": ["opportunity"], "problem": ["who_has_it", "why_hard"], "ideal": ["hints_of_measurement"],
+BODY = {"intent": ["opportunities"], "problem": ["who_has_it", "why_hard"], "ideal": ["hints_of_measurement"],
         "solution": ["knowledge", "usage_notes", "inputs", "outputs"], "implementation": ["advantages"],
         "metric": ["record"]}
 WEIGHTS = {"id": 3.0, "title": 3.0, "summary": 2.0, "body": 1.0}

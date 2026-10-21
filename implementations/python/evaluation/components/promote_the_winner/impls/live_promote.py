@@ -28,7 +28,7 @@ def world(root, args):
                      [{"solution_id": SOLUTION, "selected": selected, "selected_by": "the only one so far", "metric_ids": "m",
                        "metric_kind": "eval", "implementations": "a;b", "promotion": args.get("promotion", "")}])
     tables.write_csv(root / "specs" / "metrics.csv", ["metric_id", "command"], [{"metric_id": "m", "command": command}])
-    tables.write_csv(root / "specs" / "implementations.csv", ["implementation_id", "solution_id", "path"],
+    tables.write_csv(root / "specs" / "implementations.csv", ["implementation_id", "solution_id", "filepath"],
                      args.get("records", []))
     return config, registry_module.load(config)
 

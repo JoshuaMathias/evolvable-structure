@@ -53,7 +53,7 @@ def plan(config: Config, apply: bool = False) -> Tuple[List[str], List[str]]:
     done: List[str] = []
     solutions_o = read_csv(overall / "solutions.csv")
     intent_id = re.sub(r"[^a-z0-9]+", "-", (config.package or config.root.name).lower()).strip("-") or "top-intent"
-    intent_row = {"intent_id": intent_id, "name": "", "vision_statement": "", "implements": "", "opportunity": ""}
+    intent_row = {"intent_id": intent_id, "name": "", "vision_statement": "", "opportunities": "", "implements": ""}
     done.append(f"write {config.structure_dir}/intent.csv ({intent_id}: name and vision statement left empty for you)")
 
     selected_of: Dict[str, str] = {}
@@ -111,7 +111,7 @@ def plan(config: Config, apply: bool = False) -> Tuple[List[str], List[str]]:
         f"Delete {config.overall}/ and remove `overall` from the configuration once the merged records check.",
         "Decide which, if any, implementations become sub-intents: only one that brings insights on opportunities that "
         "do not emerge from its parent intent or the solution it implements. Move its solutions into a subfolder with "
-        "its own intent.csv (implements, opportunity) and name it in the implementation's sub_intent.",
+        "its own intent.csv (implements, opportunities) and name it in the implementation's sub_intent.",
         "Run `esoi check --write-docs` and `esoi tracker build`; fix what they name.",
         "See docs/guides/migrate-to-intents.md in the esoi repository."]
     return done, manual

@@ -42,7 +42,7 @@ One spreadsheet tab per intent type, so a person can review problems, ideals, so
 | `ideal_ids` | generated |
 | `metric_ids` | generated |
 | `implementation_ids` | generated |
-| `port` | generated |
+| `interface_name` | generated |
 | `selected_implementation_id` | generated |
 | `selected_by` | generated |
 | `metric_kind` | generated |
@@ -61,7 +61,7 @@ One spreadsheet tab per intent type, so a person can review problems, ideals, so
 |---|---|
 | `implementation_id` | key |
 | `solution_id` | generated |
-| `path` | generated |
+| `filepath` | generated |
 | `name` | generated |
 | `description` | generated |
 | `advantages` | generated |

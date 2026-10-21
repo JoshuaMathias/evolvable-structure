@@ -87,7 +87,7 @@ def test_record_headers_start_with_the_key_and_end_with_the_parent_links():
 
 
 def test_the_solutions_header_carries_every_column_the_rules_read():
-    """Rules S7 and S14 read `port`; a repository that copies the header must not lose it."""
+    """Rules S7 and S14 read `interface_name`; a repository that copies the header must not lose it."""
     from esoi.registry import OPTIONAL_COLUMNS, RULE_COLUMNS
     rows, _ = templates.parse(SAMPLE)
     header = templates.record_headers(rows)["solutions.csv"].strip().split(",")

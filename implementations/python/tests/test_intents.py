@@ -11,24 +11,24 @@ def rewrite(path, edit):
     tables.write_csv(path, cols, rows)
 
 
-def add_sub_intent(cfg, opportunity="A creative space the parent solution does not cover."):
+def add_sub_intent(cfg, opportunities="A creative space the parent solution does not cover."):
     """A sub-intent folder that arises from the scaffold's greet-a-person:live implementation."""
     sub = cfg.structure / "voices"
     sub.mkdir()
-    tables.write_csv(sub / "intent.csv", ["intent_id", "name", "vision_statement", "implements", "opportunity"],
+    tables.write_csv(sub / "intent.csv", ["intent_id", "name", "vision_statement", "implements", "opportunities"],
                      [dict(intent_id="voices", name="Greeting voices", vision_statement="Every greeting is spoken warmly.",
-                           implements="greet-a-person:live", opportunity=opportunity)])
+                           implements="greet-a-person:live", opportunities=opportunities)])
     rewrite(cfg.structure / "implementations.csv",
             lambda rows, cols: [r.update(sub_intent="voices" if r["implementation_id"] == "greet-a-person:live" else "")
                                 for r in rows])
     return sub
 
 
-def write_intent(folder, intent_id, implements, opportunity="A creative space the parent solution does not cover."):
+def write_intent(folder, intent_id, implements, opportunities="A creative space the parent solution does not cover."):
     folder.mkdir(exist_ok=True)
-    tables.write_csv(folder / "intent.csv", ["intent_id", "name", "vision_statement", "implements", "opportunity"],
+    tables.write_csv(folder / "intent.csv", ["intent_id", "name", "vision_statement", "implements", "opportunities"],
                      [dict(intent_id=intent_id, name=intent_id.title(), vision_statement=f"The {intent_id} are spoken well.",
-                           implements=implements, opportunity=opportunity)])
+                           implements=implements, opportunities=opportunities)])
 
 
 def add_solution(cfg, folder, solution_id, implementation, sub_intent=""):
@@ -94,8 +94,8 @@ def test_a_sub_intent_arises_from_an_implementation_of_its_parent(cfg):
 
 
 def test_a_sub_intent_needs_an_opportunity(cfg):
-    add_sub_intent(cfg, opportunity="")
-    assert any("opportunity" in line for line in lines(cfg, "S28"))
+    add_sub_intent(cfg, opportunities="")
+    assert any("opportunities" in line for line in lines(cfg, "S28"))
 
 
 def test_a_sub_intent_must_implement_an_implementation_that_names_it_back(cfg):
@@ -198,11 +198,11 @@ def make_legacy(repo):
         if name == "implementations.csv":
             for r in top:
                 r["selected"] = "yes"
-            top_cols = [c for c in cols if c not in ("path", "sub_intent", "uses_solution_ids")] + ["selected"]
+            top_cols = [c for c in cols if c not in ("filepath", "sub_intent", "uses_solution_ids")] + ["selected"]
             tables.write_csv(overall / name, top_cols, top)
         else:
             tables.write_csv(overall / name, [c for c in cols if not c.startswith("parent_") and c != "overall_solution_ids"
-                                              and c not in ("port", "selected", "selected_by", "invariant_reason", "gap",
+                                              and c not in ("interface_name", "selected", "selected_by", "invariant_reason", "gap",
                                                             "action", "command")] + (["command"] if False else []), top)
         tables.write_csv(path, cols, rest)
     (repo / "esoi.toml").write_text((repo / "esoi.toml").read_text() + 'overall = "esoi/overall"\n')
@@ -257,3 +257,12 @@ def test_migrate_refuses_where_there_is_nothing_to_migrate(cfg):
         assert "already exists" in str(exc)
     else:
         raise AssertionError("expected a refusal")
+
+
+def test_the_old_opportunity_column_gets_a_finding_not_a_crash(cfg):
+    path = cfg.structure / "intent.csv"
+    rows, cols = tables.read_csv(path), tables.read_header(path)
+    tables.write_csv(path, [("opportunity" if c == "opportunities" else c) for c in cols],
+                     [{("opportunity" if k == "opportunities" else k): v for k, v in r.items()} for r in rows])
+    found = lines(cfg, "S28")
+    assert any("old column `opportunity`, renamed `opportunities`" in line for line in found)

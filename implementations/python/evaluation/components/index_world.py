@@ -14,7 +14,7 @@ def make_world(projects):
         (folder / "docs" / "structure").mkdir(parents=True)
         (folder / "esoi.toml").write_text('structure_dir = "docs/structure"\n')
         tables.write_csv(folder / "docs" / "structure" / "intent.csv",
-                         ["intent_id", "name", "vision_statement", "implements", "opportunity"],
+                         ["intent_id", "name", "vision_statement", "implements", "opportunities"],
                          [dict(intent_id=project["id"], name=project["name"], vision_statement=project["vision"])])
         for rel, text in project.get("files", {}).items():
             (folder / rel).parent.mkdir(parents=True, exist_ok=True)

@@ -19,7 +19,7 @@ Kinds and the dict an implementation returns:
             innermost layer winning: per call (``using``), context (``override``), environment (``ESOI_SELECT_<ID>``),
             deployment (``[selection]`` in ``esoi.toml``), then the project default, the solution's ``selected`` in the
             records (no second copy in code). An unknown name fails loudly with the choices and the layer that named it.
-            ``lazy_module`` is an implementation in a module not imported yet, found through its record's ``path`` and
+            ``lazy_module`` is an implementation in a module not imported yet, found through its record's ``filepath`` and
             imported only when chosen.
 An implementation module in ``impls/`` exposes ``build(meter) -> select``. No implementation here calls a model.
 """

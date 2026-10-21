@@ -72,6 +72,8 @@ def baseline_repo(dest: Path) -> Path:
     scaffold.init(root, "demo", say=lambda text: None)
     set_cell(root, "esoi/intent.csv", "intent_id", "demo", "name", "Consistent greetings")
     set_cell(root, "esoi/intent.csv", "intent_id", "demo", "vision_statement", "Every person is greeted by their own name.")
+    set_cell(root, "esoi/intent.csv", "intent_id", "demo", "opportunities",
+             "Greetings could be spoken, translated and personalised without changing how names are kept.")
     # the scaffold also leaves its top solution to the project: write the stand-in project's own
     for column, value in dict(name="Greetings sent", scoped_purpose="Everything that greets a person for this project.",
                               milestones="1. Share of greetings in the standard form: 100%.", knowledge="The house style for greetings.",
@@ -94,7 +96,7 @@ def baseline_repo(dest: Path) -> Path:
     rows.append(dict(component_id="adapters", layer="adapters", path="demo/adapters/*.py", role="Fixture adapters.",
                      solutions="greet-a-person"))
     path.write_text(csv_text(cols, rows))
-    set_cell(root, "esoi/solutions.csv", "solution_id", "greet-a-person", "port", "Greeter")
+    set_cell(root, "esoi/solutions.csv", "solution_id", "greet-a-person", "interface_name", "Greeter")
     set_cell(root, "esoi/solutions.csv", "solution_id", "greet-a-person", "selected", "plain")
     check.write_docs(config.load(root), say=lambda text: None)
     return root

@@ -2,6 +2,7 @@ entity,field_key,question,group,required
 intent,definition,"In ESOI, intents are meaningful containers of a set of specifications. For human understanding, they serve as a personal category of interest or relate to a tangible container such as an organization.",meta,no
 intent,name,What is a specific phrase which distinguishes the topic of the intent from other intents?,specify,yes
 intent,vision_statement,"What is this intent manifesting in present tense? e.g. ""I am ..."" or ""The world is ..."" Any subject and verb can be used.",specify,yes
+intent,opportunities,What are potentials inspired by this intent?,specify,yes
 intent,what_it_is_not,"A general category like ""parenting"" or ""career."" An intent is also not an organization itself, rather the container of specification that clarifies why the organization exists (as a solution and implementation within an intent). In this example, different versions of the same organization can be documented as separate alternative implementations.",meta,no
 problem,definition,"A description of what motivated the intent. A challenge, difficulty, or description of how an ideal is not reached.",meta,no
 problem,problem,What is the problem?,specify,yes

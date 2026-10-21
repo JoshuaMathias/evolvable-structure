@@ -27,7 +27,7 @@ Which implementation runs is decided by one cascade, the innermost layer that na
 The project default is never written a second time in code: the records hold it, and ``esoi select --promote`` changes
 it when a rival wins on the solution's own metric. An unknown solution or name raises ``SelectionError`` listing the
 choices and the layer (and variable) that supplied the bad name, so a typo fails loudly instead of falling through. An
-implementation declared in a module that is not imported yet is imported lazily, from the ``path`` of its record, only
+implementation declared in a module that is not imported yet is imported lazily, from the ``filepath`` of its record, only
 when it is chosen, so an optional dependency is needed only when its implementation is picked.
 
 Several packages in one process may use the same solution id (two projects can each have a ``call-a-model``): a
@@ -280,7 +280,7 @@ def load_project(root: Optional[Path]) -> Optional[Project]:
             project = Project(config=cfg, defaults=records_defaults(cfg))
             for row in registry_module.load(cfg).implementations:
                 sid, _, name = row.get("implementation_id", "").partition(":")
-                where = row.get("path", "").strip().split("::")[0]
+                where = row.get("filepath", "").strip().split("::")[0]
                 if where.endswith(".py") and name and not where.startswith(cfg.evaluation_dir + "/"):   # a harness wrapper is no runtime choice
                     project.paths[(sid, key(name))] = where
             if cfg.selection_table:
@@ -468,7 +468,7 @@ def fetch(solution_id: str, name: str, project: Optional[Project], scope: str = 
     if project is not None and project.selector is not None and solution_id in project.selector.table:
         return project.selector.resolve(solution_id, name)
     raise SelectionError(f"{solution_id!r} lists {name!r} but no declaration of that name was found: declare it with "
-                         f"@implementation({solution_id!r}, {name!r}) in the module its record's `path` names")
+                         f"@implementation({solution_id!r}, {name!r}) in the module its record's `filepath` names")
 
 
 def resolve(solution_id: str, using: Optional[str] = None, environ: Optional[Mapping[str, str]] = None,

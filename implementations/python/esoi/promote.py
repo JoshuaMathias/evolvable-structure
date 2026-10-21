@@ -54,7 +54,7 @@ def new_selected(config: Config, registry: Registry, solution: Row, component: s
     sid = solution["solution_id"]
     if "/" in old.split("::")[0]:
         record = next((r for r in registry.implementations if r.get("implementation_id") == f"{sid}:{winner}"), {})
-        path = (record.get("path") or "").strip()
+        path = (record.get("filepath") or "").strip()
         guess = f"{config.evaluation_dir}/{component}/impls/{winner}.py"
         return path or (guess if (config.root / guess).is_file() else "")
     return f"{sid}:{winner}" if old.startswith(f"{sid}:") else winner

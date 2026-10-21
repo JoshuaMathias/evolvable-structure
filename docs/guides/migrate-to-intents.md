@@ -11,7 +11,7 @@ running `esoi check` after each.
 1. Pick the folder that will be the top intent (the configured structure folder, `esoi/` by default). Move the overall network's
    problems, ideals, solutions, implementations and metrics into it, beside the detailed records, keeping the ids
    unchanged. Ids are unique across the whole tree, so nothing that links to them breaks.
-2. Add `intent.csv` there with one row: `intent_id`, `name`, `vision_statement`, and empty `implements` and `opportunity`.
+2. Add `intent.csv` there with one row: `intent_id`, `name`, `vision_statement`, `opportunities` (what the intent inspires), and empty `implements`.
    The top intent's name and vision statement are the project's purpose, why the project exists, in its own words
    (present tense, "The world is ..."; see the [intent template](../templates/intent.md)). Do not copy them from the
    overall network when that network was written about the structure ("the structure that ..."): the evolvable structure
@@ -43,7 +43,7 @@ For each sub-intent:
    its `intent.csv`.
 2. Set `implements` to the full id of the implementation in the parent intent it arises from. If no such implementation
    exists yet, add one to the parent's `implementations.csv` first.
-3. Write the `opportunity` in one line.
+3. Write the `opportunities` in one line: the ones that do not emerge from the parent intent or the solution.
 4. Put the sub-intent's id in the parent implementation's `sub_intent` column, so the link reads both ways.
 
 ## 3. Replace `overall_solution_ids` with `uses_solution_ids`
@@ -68,7 +68,7 @@ esoi check --strict
 ```
 
 The checks cover: every sub-intent's `implements` resolves to an implementation in its parent intent, that
-implementation names the sub-intent back, every sub-intent has an `opportunity`, intent ids and record ids are unique
+implementation names the sub-intent back, every sub-intent has `opportunities`, intent ids and record ids are unique
 across the tree, and `uses_solution_ids` resolve. Fix what it names, commit, and add the project to your
 [local index](../explanation/local-index.md) if you keep one.
 

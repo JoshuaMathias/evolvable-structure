@@ -78,7 +78,7 @@ def test_several_implementations_in_one_module_get_distinct_tracker_rows(cfg):
     tables.write_csv(path, cols, rows)
     impls = cfg.structure / "implementations.csv"
     records = tables.read_csv(impls)
-    records += [dict(records[0], implementation_id=f"custom-{name}", path=f"demo/greet.py::{name}") for name in ("alpha", "beta")]
+    records += [dict(records[0], implementation_id=f"custom-{name}", filepath=f"demo/greet.py::{name}") for name in ("alpha", "beta")]
     tables.write_csv(impls, tables.read_header(impls), records)
     ids = [r["implementation_id"] for r in tracker.build(cfg, registry.load(cfg))["implementations"]]
     assert "custom-alpha" in ids and "custom-beta" in ids and len(ids) == len(set(ids))

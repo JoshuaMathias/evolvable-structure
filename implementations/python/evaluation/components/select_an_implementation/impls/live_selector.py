@@ -44,8 +44,8 @@ def project_folder(root, sid, args, tag):
         (root / package).mkdir()
         (root / package / "__init__.py").write_text("")
         (root / package / "mod.py").write_text(lazy["source"].replace("SID", sid))
-        rows.append({"implementation_id": f"{sid}:{lazy['name']}", "solution_id": sid, "path": f"{package}/mod.py"})
-    tables.write_csv(root / "specs" / "implementations.csv", ["implementation_id", "solution_id", "path"], rows)
+        rows.append({"implementation_id": f"{sid}:{lazy['name']}", "solution_id": sid, "filepath": f"{package}/mod.py"})
+    tables.write_csv(root / "specs" / "implementations.csv", ["implementation_id", "solution_id", "filepath"], rows)
 
 
 def declared_case(args):

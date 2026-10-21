@@ -269,7 +269,7 @@
       "implementation_id": "greet-a-person:friendly",
       "solution_id": "greet-a-person",
       "name": "Mine",
-      "path": "demo/elsewhere.py"
+      "filepath": "demo/elsewhere.py"
      }
     }
    ]

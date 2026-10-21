@@ -110,7 +110,7 @@ def test_selection_rules_s7_s14_and_s23(cfg):
         '"""Table."""\nSELECTION = {"greet-a-person": {"default": "plain", "implementations": {"plain": "demo.greet:greet"}}}\n')
     cfg.selection = "demo/selection.py:SELECTION"
     assert any(line.startswith("S7 Greeter") for line in check.check(cfg))
-    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "port", "Greeter")
+    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "interface_name", "Greeter")
     assert any(line.startswith("S7 greet-a-person") and "selection table" in line for line in check.check(cfg))
     edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "selected", "plain")
     check.write_docs(cfg, say=lambda text: None)
@@ -209,16 +209,16 @@ def commit(root, message="change"):
     return subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
 
 
-def test_a_solutions_file_without_a_port_column_is_a_problem_when_something_needs_it_not_a_crash(cfg):
-    drop_column(cfg, "solutions.csv", "port")
-    assert check.check(cfg) == []   # no port, no selection table: nothing reads the column
+def test_a_solutions_file_without_an_interface_name_column_is_a_problem_when_something_needs_it_not_a_crash(cfg):
+    drop_column(cfg, "solutions.csv", "interface_name")
+    assert check.check(cfg) == []   # no interface_name, no selection table: nothing reads the column
     (cfg.root / "demo" / "ports.py").write_text(PORT)
     found = check.check(cfg)
-    assert any(line.startswith("S7") and "no `port` column" in line for line in found)
+    assert any(line.startswith("S7") and "no `interface_name` column" in line for line in found)
     (cfg.root / "demo" / "selection.py").write_text(
         '"""Table."""\nSELECTION = {"greet-a-person": {"default": "plain", "implementations": {"plain": "demo.greet:greet"}}}\n')
     cfg.selection = "demo/selection.py:SELECTION"
-    assert any("no `port` column" in line for line in check.check(cfg))
+    assert any("no `interface_name` column" in line for line in check.check(cfg))
 
 
 def test_every_column_the_rules_read_may_be_missing_without_a_crash(cfg):
@@ -241,13 +241,13 @@ def test_several_implementations_in_one_module_are_listed_by_the_path_of_their_r
         '"""Table."""\nSELECTION = {"greet-a-person": {"default": "plain", "implementations": {'
         '"plain": "demo.greet:greet", "alpha": "demo.providers:Alpha", "beta": "demo.providers:Beta"}}}\n')
     cfg.selection = "demo/selection.py:SELECTION"
-    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "port", "Greeter")
+    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "interface_name", "Greeter")
     edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "selected", "plain")
     found = check.check(cfg)
     assert sum("demo/providers.py, which" in line for line in found) == 2   # not listed anywhere yet
     rows = tables.read_csv(cfg.structure / "implementations.csv")
     first = next(r for r in rows if r["solution_id"] == "greet-a-person")
-    rows += [dict(first, implementation_id=f"greet-a-person:{name}", path="demo/providers.py::" + name) for name in ("alpha", "beta")]
+    rows += [dict(first, implementation_id=f"greet-a-person:{name}", filepath="demo/providers.py::" + name) for name in ("alpha", "beta")]
     tables.write_csv(cfg.structure / "implementations.csv", tables.read_header(cfg.structure / "implementations.csv"), rows)
     edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "implementations",
          tables.read_csv(cfg.structure / "solutions.csv")[0]["implementations"] + ";demo/providers.py::alpha;demo/providers.py::beta")

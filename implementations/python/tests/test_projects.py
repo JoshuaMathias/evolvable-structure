@@ -16,7 +16,7 @@ def home(tmp_path, monkeypatch):
 def make_project(root: Path, name="Greeter", vision="Every person is greeted by name."):
     (root / "docs" / "structure").mkdir(parents=True)
     (root / "esoi.toml").write_text('structure_dir = "docs/structure"\n')
-    tables.write_csv(root / "docs" / "structure" / "intent.csv", ["intent_id", "name", "vision_statement", "implements", "opportunity"],
+    tables.write_csv(root / "docs" / "structure" / "intent.csv", ["intent_id", "name", "vision_statement", "implements", "opportunities"],
                      [dict(intent_id="greeter", name=name, vision_statement=vision)])
     (root / "CLAUDE.md").write_text("Start here.\n")
     return root
@@ -127,7 +127,7 @@ def test_structure_of_reads_the_configuration_in_pyproject(tmp_path):
     project = tmp_path / "lib"
     (project / "specs").mkdir(parents=True)
     (project / "pyproject.toml").write_text('[tool.esoi]\nstructure_dir = "specs"\n')
-    tables.write_csv(project / "specs" / "intent.csv", ["intent_id", "name", "vision_statement", "implements", "opportunity"],
+    tables.write_csv(project / "specs" / "intent.csv", ["intent_id", "name", "vision_statement", "implements", "opportunities"],
                      [dict(intent_id="lib", name="Library", vision_statement="The library is used.")])
     assert projects.structure_of(project) == ("pyproject.toml", project / "specs")
     assert projects.describe(project) == ("Library", "The library is used.")
@@ -194,9 +194,9 @@ def test_a_project_on_a_previous_default_folder_is_found_and_both_folders_are_no
     for name, previous in (("a", "docs/structure"), ("b", "structure")):
         folder = tmp_path / name / previous
         folder.mkdir(parents=True)
-        (folder / "intent.csv").write_text("intent_id,name,vision_statement,implements,opportunity\nx,X,Y,,\n")
+        (folder / "intent.csv").write_text("intent_id,name,vision_statement,implements,opportunities\nx,X,Y,,\n")
         assert projects.structure_of(tmp_path / name) == (previous + "/", tmp_path / name / previous)
         assert projects.describe(tmp_path / name) == ("X", "Y")
     (tmp_path / "b" / "esoi").mkdir()
-    (tmp_path / "b" / "esoi" / "intent.csv").write_text("intent_id,name,vision_statement,implements,opportunity\n")
+    (tmp_path / "b" / "esoi" / "intent.csv").write_text("intent_id,name,vision_statement,implements,opportunities\n")
     assert projects.structure_of(tmp_path / "b") == ("", None)

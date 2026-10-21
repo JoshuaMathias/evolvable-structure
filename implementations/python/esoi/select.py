@@ -65,7 +65,7 @@ def load_table(spec: str, root: Optional[Path] = None) -> Table:
 
 def default_name(solution: Mapping[str, str], implementations: List[Mapping[str, str]]) -> str:
     """The implementation name a solution row's ``selected`` cell stands for. ``selected`` is a name, an
-    ``implementation_id`` (``solution:name``), or the path of an implementation (``path`` or ``path::name``); the
+    ``implementation_id`` (``solution:name``), or the filepath of an implementation (``filepath`` or ``filepath::name``); the
     implementation records say which, so a project may write it in the style it already uses."""
     selected = (solution.get("selected") or "").strip()
     sid = solution.get("solution_id", "")
@@ -73,7 +73,7 @@ def default_name(solution: Mapping[str, str], implementations: List[Mapping[str,
         return ""
     module, _, named = selected.partition("::")
     for record in (r for r in implementations if r.get("solution_id") == sid):
-        iid, path = record.get("implementation_id", ""), (record.get("path") or "").strip()
+        iid, path = record.get("implementation_id", ""), (record.get("filepath") or "").strip()
         suffix = iid.partition(":")[2].strip().lower()
         if selected in (iid, f"{sid}:{selected}") or (path == module and (not named or suffix == named.strip().lower())):
             return suffix or selected.lower()

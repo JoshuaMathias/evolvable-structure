@@ -58,9 +58,9 @@ def columns_without_extras(own) -> Dict[str, List[str]]:
     return {
         "problems": ["problem_id"] + own("problem") + ["solution_ids", "ideal_ids", "component_ids", "auto_status"],
         "solutions": ["solution_id"] + own("solution") + [
-            "problem_ids", "ideal_ids", "metric_ids", "implementation_ids", "port", "selected_implementation_id",
+            "problem_ids", "ideal_ids", "metric_ids", "implementation_ids", "interface_name", "selected_implementation_id",
             "selected_by", "metric_kind", "verdict", "verdict_detail", "component_ids", "auto_status"],
-        "implementations": ["implementation_id", "solution_id", "path"] + own("implementation") + [
+        "implementations": ["implementation_id", "solution_id", "filepath"] + own("implementation") + [
             "kind", "selected", "latest_result", "latest_cost_usd", "cases_sha", "auto_status"],
         "ideals": ["ideal_id", "scope"] + own("ideal") + ["problem_ids", "solution_ids", "metric_ids", "auto_status"],
         "metrics": ["metric_id"] + own("metric") + ["solution_ids", "command", "kind", "latest_result", "gap",
@@ -170,7 +170,7 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
             res = results.get((comp, stem(path))) if comp else None
             rec = impl_records.get(iid, {})
             impls.append({
-                "implementation_id": iid, "solution_id": sid, "path": path,
+                "implementation_id": iid, "solution_id": sid, "filepath": path,
                 **{k: rec.get(k, "") for k in extra["implementations"]},
                 **{k: rec.get(k, "") for k in fields(template, "implementation", True)}, "kind": kind_of(config, path),
                 "selected": "yes" if is_sel else "",
@@ -183,7 +183,7 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
         sol_rows.append({
             **{k: s.get(k, "") for k in extra["solutions"]},
             **{k: s.get(k, "") for k in ["solution_id"] + fields(template, "solution", True)
-               + ["problem_ids", "ideal_ids", "metric_ids", "port", "selected_by", "metric_kind"]},
+               + ["problem_ids", "ideal_ids", "metric_ids", "interface_name", "selected_by", "metric_kind"]},
             "implementation_ids": SEP.join(impl_ids), "selected_implementation_id": selected_id,
             "verdict": verdict.get("verdict", ""), "verdict_detail": verdict.get("detail", ""),
             "component_ids": SEP.join(by_solution.get(sid, [])),

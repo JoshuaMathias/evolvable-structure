@@ -286,7 +286,7 @@
      "path": "esoi/solutions.csv",
      "key_col": "solution_id",
      "key": "greet-a-person",
-     "col": "port",
+     "col": "interface_name",
      "value": "Greeter;Other"
     },
     {
@@ -1645,19 +1645,19 @@
   "id": "CTS-068",
   "area": "repo",
   "kind": "repo",
-  "description": "a solutions file with no port column while the package has a port",
+  "description": "a solutions file with no interface_name column while the package has a port",
   "args": {
    "edits": [
     {
      "op": "csv_drop_col",
      "path": "esoi/solutions.csv",
-     "col": "port"
+     "col": "interface_name"
     }
    ]
   },
   "expect": {
    "rule": "S7",
-   "contains": "no `port` column"
+   "contains": "no `interface_name` column"
   }
  },
  {
@@ -1710,7 +1710,7 @@
      "key": "greet-a-person:greet",
      "row": {
       "implementation_id": "custom-alpha",
-      "path": "demo/providers.py::alpha"
+      "filepath": "demo/providers.py::alpha"
      }
     },
     {
@@ -1790,7 +1790,7 @@
       "description": "Says hi.",
       "advantages": "Warm.",
       "disadvantages": "Informal.",
-      "path": "demo/elsewhere.py"
+      "filepath": "demo/elsewhere.py"
      }
     },
     {
@@ -1800,7 +1800,7 @@
   },
   "expect": {
    "rule": "S30",
-   "contains": "its record's `path` says"
+   "contains": "its record's `filepath` says"
   }
  },
  {
@@ -1825,7 +1825,7 @@
       "description": "Says hi.",
       "advantages": "Warm.",
       "disadvantages": "Informal.",
-      "path": "demo/friendly.py"
+      "filepath": "demo/friendly.py"
      }
     },
     {

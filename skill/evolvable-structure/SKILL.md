@@ -34,6 +34,7 @@ Intent specification:
     Specify:
         - Name: What is a specific phrase which distinguishes the topic of the intent from other intents?
         - Vision statement: What is this intent manifesting in present tense? e.g. "I am ..." or "The world is ..." Any subject and verb can be used.
+        - Opportunities: What are potentials inspired by this intent?
     What it's not: A general category like "parenting" or "career." An intent is also not an organization itself, rather the container of specification that clarifies why the organization exists (as a solution and implementation within an intent). In this example, different versions of the same organization can be documented as separate alternative implementations.
 
 The five specification templates within an intent (each intent can have multiple of the below items, which relate to each other in a network):

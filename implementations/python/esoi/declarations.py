@@ -170,15 +170,15 @@ def drift(config: Config, registry: Registry, declared: Declared) -> List[str]:
             continue
         record = records.get(decl.implementation_id)
         if record is None:   # a record whose id follows no pattern still counts when its path is this file and it is alone there
-            alone = [r for r in records.values() if r.get("solution_id") == sid and (r.get("path") or "").strip() == decl.file]
+            alone = [r for r in records.values() if r.get("solution_id") == sid and (r.get("filepath") or "").strip() == decl.file]
             siblings = [d for (s, _), d in declared.implementations.items() if s == sid and d.file == decl.file]
             record = alone[0] if len(alone) == 1 and len(siblings) == 1 else None
         if record is None:
             bad.append(f"S30 {decl.implementation_id}: declared at {decl.file}:{decl.line} but implementations.csv has no "
                        "such record (`esoi records sync` writes it)")
-        elif (record.get("path") or "").strip().split("::")[0] != decl.file and decl.line:
-            bad.append(f"S30 {decl.implementation_id}: declared in {decl.file} but its record's `path` says "
-                       f"{(record.get('path') or '').strip() or 'nothing'} (`esoi records sync` fills an empty path; "
+        elif (record.get("filepath") or "").strip().split("::")[0] != decl.file and decl.line:
+            bad.append(f"S30 {decl.implementation_id}: declared in {decl.file} but its record's `filepath` says "
+                       f"{(record.get('filepath') or '').strip() or 'nothing'} (`esoi records sync` fills an empty filepath; "
                        "a wrong one is yours to correct)")
     return bad
 
@@ -196,7 +196,7 @@ def table_rows(folder: Path, name: str, key: str, template: Dict[str, List[Dict[
     path = folder / name
     if path.is_file():
         return read_header(path), read_csv(path)
-    extra = {"implementation": ["path", "sub_intent", "uses_solution_ids"]}.get(entity, [])
+    extra = {"implementation": ["filepath", "sub_intent", "uses_solution_ids"]}.get(entity, [])
     columns = [key] + fields(template, entity, True) + extra
     return columns, []
 
@@ -225,7 +225,7 @@ def sync(config: Config, registry: Registry, declared: Declared, intent_id: Opti
             continue
         names = sorted(n for s, n in declared.implementations if s == sid)
         row = blank(sol_cols, solution_id=sid, name=title(decl.name or sid), scoped_purpose=decl.purpose,
-                    parameters=decl.parameters, outputs=decl.outputs, port=decl.port, implementations=";".join(names),
+                    parameters=decl.parameters, outputs=decl.outputs, interface_name=decl.port, implementations=";".join(names),
                     selected=names[0] if len(names) == 1 else "", selected_by="the only implementation declared so far"
                     if len(names) == 1 else "", metric_kind="specification")
         sol_rows.append(row)
@@ -233,14 +233,14 @@ def sync(config: Config, registry: Registry, declared: Declared, intent_id: Opti
         done.append(f"solutions.csv: add {sid} (from {decl.file}:{decl.line})")
     for (sid, name), decl in sorted(declared.implementations.items()):
         if decl.implementation_id not in known_records:
-            imp_rows.append(blank(imp_cols, implementation_id=decl.implementation_id, solution_id=sid, path=decl.file,
+            imp_rows.append(blank(imp_cols, implementation_id=decl.implementation_id, solution_id=sid, filepath=decl.file,
                                   name=title(name), description=decl.purpose))
             done.append(f"implementations.csv: add {decl.implementation_id} (from {decl.file}:{decl.line})")
         else:
             record = next((r for r in imp_rows if r.get("implementation_id") == decl.implementation_id), None)
-            if record is not None and "path" in record and not record["path"].strip():
-                record["path"] = decl.file
-                done.append(f"implementations.csv: fill the empty path of {decl.implementation_id}")
+            if record is not None and "filepath" in record and not record["filepath"].strip():
+                record["filepath"] = decl.file
+                done.append(f"implementations.csv: fill the empty filepath of {decl.implementation_id}")
         row = sol_by_id.get(sid)
         listed = ids(row["implementations"]) if row is not None and "implementations" in row else []
         if row is not None and "implementations" in row and name not in listed \

@@ -75,7 +75,7 @@ def test_selection_is_a_legacy_table_string_or_a_table_of_deployment_choices(tmp
 
 def make_records(folder):
     folder.mkdir(parents=True)
-    (folder / "intent.csv").write_text("intent_id,name,vision_statement,implements,opportunity\n")
+    (folder / "intent.csv").write_text("intent_id,name,vision_statement,implements,opportunities\n")
 
 
 @pytest.mark.parametrize("previous", ["docs/structure", "structure"])

@@ -17,13 +17,13 @@ SOLUTION_KINDS = {"eval", "invariant"}
 PORT_CLASS = re.compile(r"^class (\w+)\((?:[\w, ]*)Protocol", re.M)
 
 SUMMARIES = {
-    "S7": "Every Protocol class is in the port cell of some solution; implementation paths and metric scripts "
+    "S7": "Every Protocol class is in the interface_name cell of some solution; implementation filepaths and metric scripts "
           "exist; selected is a listed implementation or a selection-table name; no metric means a gap and an action.",
     "S11": "Every solution is eval or invariant (an invariant states invariant_reason), is linked from some "
            "component, and every linked id exists.",
-    "S14": "Every solution with a port has a selection-table entry and no entry lacks a row; a default, when the entry "
+    "S14": "Every solution with an interface_name has a selection-table entry and no entry lacks a row; a default, when the entry "
            "holds one, is one of its implementations and each implementation's module is listed in the row's implementations cell or "
-           "in the `path` of one of its implementations.csv records (several implementations may share a module).",
+           "in the `filepath` of one of its implementations.csv records (several implementations may share a module).",
     "S18": "Solution and component ids are unique and no id repeats inside one cell.",
     "S19": "Every component names at least one solution.",
     "S23": "For a solution whose selection-table entry still holds a `default`, selected equals it (an entry with no "
@@ -47,15 +47,15 @@ FILE_RULE = {"components.csv": "S2", "solutions.csv": "S7", "waivers.csv": "S9"}
 
 
 def listed_modules(ctx: Context, solution_id: str, row: dict) -> set:
-    """The module files a solution lists: the paths in its ``implementations`` cell and the ``path`` of each of its
-    ``implementations.csv`` records (``path::name`` counts as ``path``), so one module may hold several of them."""
+    """The module files a solution lists: the paths in its ``implementations`` cell and the ``filepath`` of each of its
+    ``implementations.csv`` records (``filepath::name`` counts as ``filepath``), so one module may hold several of them."""
     paths = ids(row.get("implementations", ""))
-    paths += [r.get("path", "") for r in ctx.registry.implementations if r.get("solution_id") == solution_id]
+    paths += [r.get("filepath", "") for r in ctx.registry.implementations if r.get("solution_id") == solution_id]
     return {p.split("::")[0].strip() for p in paths if p.strip()}
 
 
 def missing_columns(ctx: Context, needs_port: bool) -> List[str]:
-    """One problem per column the rules read that a registry file lacks (``port`` only when something needs it)."""
+    """One problem per column the rules read that a registry file lacks (``interface_name`` only when something needs it)."""
     folder = ctx.config.structure_dir
     bad = []
     for name, column in ctx.registry.missing:
@@ -74,11 +74,11 @@ def run(ctx: Context) -> List[str]:
     covered = set()
     for r in ctx.solutions:
         sid = r["solution_id"]
-        covered.update(ids(r.get("port", "")))
+        covered.update(ids(r.get("interface_name", "")))
         records = [x for x in ctx.registry.implementations if x.get("solution_id") == sid]
         suffixes = {x.get("implementation_id", "").partition(":")[2] for x in records} - {""}
         impls = ids(r["implementations"]) + sorted(suffixes) + [x.get("implementation_id", "") for x in records] \
-            + [x["path"].strip() for x in records if x.get("path", "").strip()]
+            + [x["filepath"].strip() for x in records if x.get("filepath", "").strip()]
         if sid in table:
             names = table[sid].get("implementations", {})
             if r["selected"] and r["selected"] not in names:
@@ -106,7 +106,7 @@ def run(ctx: Context) -> List[str]:
         elif not (r["gap"].strip() and r["action"].strip()):
             bad.append(f"S7 {sid}: no metric, so gap and action are required")
     for p in sorted(ports_in_package(ctx) - covered):
-        bad.append(f"S7 {p}: port is listed in the `port` cell of no solutions.csv row (add it to the row of the "
+        bad.append(f"S7 {p}: port is listed in the `interface_name` cell of no solutions.csv row (add it to the row of the "
                    "solution it serves; a port needs no row of its own)")
 
     sol_ids = {r["solution_id"] for r in ctx.every_solution()}   # a component may serve a specification solution too
@@ -129,12 +129,12 @@ def run(ctx: Context) -> List[str]:
             bad.append(f"S11 {sid}: no component lists it in `solutions` (link it in components.csv or add a waiver)")
 
     if config.selection_table:
-        port_rows = {r["solution_id"]: r for r in ctx.solutions if r.get("port", "").strip()}
+        port_rows = {r["solution_id"]: r for r in ctx.solutions if r.get("interface_name", "").strip()}
         for sid in sorted(set(port_rows) - set(table)):
-            bad.append(f"S14 {sid}: solutions.csv row has port {port_rows[sid]['port']} but no entry in "
+            bad.append(f"S14 {sid}: solutions.csv row has interface_name {port_rows[sid]['interface_name']} but no entry in "
                        f"{config.selection_table.partition(':')[0]} (add one so resolve({sid!r}) works)")
         for sid in sorted(set(table) - set(port_rows)):
-            bad.append(f"S14 {sid}: selection table entry has no solutions.csv row with a port")
+            bad.append(f"S14 {sid}: selection table entry has no solutions.csv row with an interface_name")
         for sid, entry in table.items():
             implementations = entry.get("implementations", {})
             has_default = bool(entry.get("default"))   # an entry without one takes the records' `selected`: nothing to compare
@@ -168,7 +168,7 @@ def run(ctx: Context) -> List[str]:
                 if n > 1:
                     bad.append(f"S18 components.csv {r['component_id']}: `{col}` lists {ident} {n} times")
     for r in ctx.solutions:
-        for col in ("port", "implementations"):
+        for col in ("interface_name", "implementations"):
             for ident, n in Counter(ids(r[col])).items():
                 if n > 1:
                     bad.append(f"S18 solutions.csv {r['solution_id']}: `{col}` lists {ident} {n} times")

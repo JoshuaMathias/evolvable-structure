@@ -59,6 +59,7 @@ meant for a solution that is technology).
 |---|---|---|
 | `name` | yes | What is a specific phrase which distinguishes the topic of the intent from other intents? |
 | `vision_statement` | yes | What is this intent manifesting in present tense? e.g. "I am ..." or "The world is ..." Any subject and verb can be used. |
+| `opportunities` | yes | What are potentials inspired by this intent? |
 
 What it is not: A general category like "parenting" or "career." An intent is also not an organization itself, rather the container of specification that clarifies why the organization exists (as a solution and implementation within an intent). In this example, different versions of the same organization can be documented as separate alternative implementations.
 

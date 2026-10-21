@@ -75,7 +75,7 @@ IMPLEMENTATIONS = {
 # The top intent is why THIS project exists, in its own words, so the scaffold leaves it empty: `esoi check` reports the
 # name and the vision statement until the project fills them. The sample below is a stand-in project (greetings) only to
 # show the shape; replace it with your own.
-SAMPLE["intent"] = {"name": "", "vision_statement": ""}
+SAMPLE["intent"] = {"name": "", "vision_statement": "", "opportunities": ""}
 # The starter solution for the evolvable structure the project applies: how its intent is recorded, measured and
 # selected. It is a solution inside the top intent, not the top solution; its implementation uses the generic esoi
 # solutions, and whatever is specific to this project belongs in the project's own solutions.
@@ -183,7 +183,7 @@ def files_for(package: str, template) -> Dict[str, str]:
         return ["solution_id"] + fields(template, "solution", True) + extra
 
     solution = record("solution", template, SAMPLE["solution"], solution_id=SOLUTION, problem_ids="greeting-by-hand",
-                      ideal_ids="consistent-greeting", metric_ids="greeting-pass-rate", port="",
+                      ideal_ids="consistent-greeting", metric_ids="greeting-pass-rate", interface_name="",
                       implementations=";".join(greet_paths), selected=greet_paths[0], selected_by="measured on the example cases",
                       metric_kind="eval", invariant_reason="", gap="", action="")
     structure_solution = record("solution", template, STRUCTURE["solution"], solution_id="project-structure",
@@ -199,7 +199,7 @@ def files_for(package: str, template) -> Dict[str, str]:
         stem = path.rsplit("/", 1)[-1][:-3]
         name, description, advantages, disadvantages = IMPLEMENTATIONS[stem]
         impl_rows.append(record("implementation", template, dict(name=name, description=description, advantages=advantages,
-                                disadvantages=disadvantages), implementation_id=f"{SOLUTION}:{stem}", solution_id=SOLUTION, path=path))
+                                disadvantages=disadvantages), implementation_id=f"{SOLUTION}:{stem}", solution_id=SOLUTION, filepath=path))
     impl_rows.append(record("implementation", template, dict(name="Records and checks with esoi", description="The project's intent records, checked and selected by metric with esoi, plus the solutions of this project.",
                                                              advantages="Reuses the generic esoi solutions instead of building them again.",
                                                              disadvantages="Depends on esoi; no rival has been compared yet."),
@@ -209,7 +209,7 @@ def files_for(package: str, template) -> Dict[str, str]:
                             uses_solution_ids=f"{SOLUTION};project-structure"))
     out: Dict[str, str] = {}
     out[f"{structure}/intent.csv"] = render_csv(
-        ["intent_id"] + fields(template, "intent", True) + ["implements", "opportunity"],
+        ["intent_id"] + fields(template, "intent", True) + ["implements"],
         [record("intent", template, SAMPLE["intent"], intent_id=package.replace("_", "-"))])
     out[f"{structure}/problems.csv"] = render_csv(
         ["problem_id"] + fields(template, "problem", True) + ["solution_ids", "ideal_ids", "parent_problem_ids", "parent_ideal_ids"],
@@ -222,11 +222,11 @@ def files_for(package: str, template) -> Dict[str, str]:
         [record("ideal", template, SAMPLE["ideal"], ideal_id="consistent-greeting", problem_ids="greeting-by-hand"),
          record("ideal", template, STRUCTURE["ideal"], ideal_id="explicit-purpose", problem_ids="purpose-unrecorded")])
     out[f"{structure}/solutions.csv"] = render_csv(
-        sol_cols(["problem_ids", "ideal_ids", "metric_ids", "port", "implementations", "selected", "selected_by", "metric_kind",
+        sol_cols(["problem_ids", "ideal_ids", "metric_ids", "interface_name", "implementations", "selected", "selected_by", "metric_kind",
                   "invariant_reason", "gap", "action", "parent_problem_ids", "parent_ideal_ids"]),
         [solution, structure_solution, purpose_solution])
     out[f"{structure}/implementations.csv"] = render_csv(
-        ["implementation_id", "solution_id", "path"] + fields(template, "implementation", True)
+        ["implementation_id", "solution_id", "filepath"] + fields(template, "implementation", True)
         + ["sub_intent", "uses_solution_ids"], impl_rows)
     out[f"{structure}/metrics.csv"] = render_csv(
         ["metric_id"] + fields(template, "metric", True) + ["solution_ids", "command", "parent_metric_ids"],

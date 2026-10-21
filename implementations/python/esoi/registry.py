@@ -49,14 +49,14 @@ def join_metrics(solutions: List[Dict[str, str]], metrics: List[Dict[str, str]])
 
 
 # Columns the rules read. A file that lacks one is reported (rules S2, S7, S9) and the rules see it as empty, so a
-# header that was edited or never had the column cannot crash a check. An optional column (``port``) is only a finding
+# header that was edited or never had the column cannot crash a check. An optional column (``interface_name``) is only a finding
 # when something needs it (see rules.registry_rules).
 RULE_COLUMNS = {
     "components.csv": ["component_id", "layer", "path", "role", "solutions"],
     "solutions.csv": ["solution_id", "implementations", "selected", "gap", "action"],
     "waivers.csv": ["rule", "path", "reason"],
 }
-OPTIONAL_COLUMNS = {"solutions.csv": ["port"]}
+OPTIONAL_COLUMNS = {"solutions.csv": ["interface_name"]}
 
 
 def fill_columns(name: str, rows: List[Dict[str, str]], missing: List[Tuple[str, str]]) -> List[Dict[str, str]]:

@@ -120,8 +120,8 @@ def test_implementation_records_are_matched_by_path_or_name_not_only_by_a_fixed_
     path = cfg.structure / "implementations.csv"
     rows, cols = tables.read_csv(path), tables.read_header(path)
     first = rows[0]
-    extra = [dict(first, implementation_id="any-id-one", path="demo/providers.py::one"),
-             dict(first, implementation_id="greet-a-person:two", path="demo/providers.py")]
+    extra = [dict(first, implementation_id="any-id-one", filepath="demo/providers.py::one"),
+             dict(first, implementation_id="greet-a-person:two", filepath="demo/providers.py")]
     tables.write_csv(path, cols, rows + extra)
     solutions = cfg.structure / "solutions.csv"
     cells, scols = tables.read_csv(solutions), tables.read_header(solutions)
@@ -149,3 +149,19 @@ def test_a_specification_solution_needs_no_interface_fields_or_metric_command(cf
     assert check(cfg) == []
     edit(cfg, "solutions.csv", "solution_id", "project-structure", "metric_kind", "eval")
     assert any(p.startswith("R2 project-structure") for p in check(cfg))
+
+
+def rename_header(cfg, name, old, new):
+    path = cfg.structure / name
+    rows, cols = tables.read_csv(path), tables.read_header(path)
+    tables.write_csv(path, [new if c == old else c for c in cols], [{(new if k == old else k): v for k, v in r.items()} for r in rows])
+
+
+def test_a_repository_with_the_old_column_names_gets_a_finding_not_a_crash(cfg):
+    rename_header(cfg, "solutions.csv", "interface_name", "port")
+    rename_header(cfg, "implementations.csv", "filepath", "path")
+    found = check(cfg)
+    assert any("`port`, renamed `interface_name`" in line for line in found)
+    assert any("`path`, renamed `filepath`" in line for line in found)
+    assert any("`port`" in line for line in records.check_headers(cfg.structure, template.load_for(cfg)))
+    assert any("`path`" in line for line in records.check_headers(cfg.structure, template.load_for(cfg)))

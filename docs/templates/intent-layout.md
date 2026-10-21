@@ -20,8 +20,8 @@ An intent is a folder. Its record is `intent.csv` (one row) and its specificatio
 | `intent_id` | you | A short stable id, unique across the tree. |
 | `name` | you | What is a specific phrase which distinguishes the topic of the intent from other intents? |
 | `vision_statement` | you | What is this intent manifesting in present tense? e.g. "I am ..." or "The world is ..." Any subject and verb can be used. |
+| `opportunities` | you | What are potentials inspired by this intent? |
 | `implements` | you | Sub-intent only: the full id of the parent intent's implementation it arises from (`<solution_id>:<name>`). Empty for the top intent. |
-| `opportunity` | you | Sub-intent only: the opportunity that does not emerge directly from the parent intent or from the solution it implements, which earns this intent its own folder. Empty for the top intent. |
 
 ## What it is not
 
@@ -33,4 +33,4 @@ In the parent intent's `implementations.csv`, the implementation the sub-intent 
 
 ## When to add a sub-intent
 
-Only when it brings insights on opportunities that do not emerge directly from the parent intent or the solution it implements (see [when to create a sub-intent](../explanation/when-to-create-a-sub-intent.md)). Risks belong in an implementation's or a metric's disadvantages and uncertainties in the solution's metric, so neither earns a sub-intent alone.
+Only when it brings insights on opportunities that do not emerge directly from the parent intent or the solution it implements; its `opportunities` cell states them (see [when to create a sub-intent](../explanation/when-to-create-a-sub-intent.md)). Risks belong in an implementation's or a metric's disadvantages and uncertainties in the solution's metric, so neither earns a sub-intent alone.

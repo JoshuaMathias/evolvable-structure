@@ -56,6 +56,16 @@ IMPERATIVE = {"add", "allow", "avoid", "build", "call", "change", "check", "choo
 
 Template = Dict[str, List[Dict[str, str]]]
 # optional parent columns on any record, and the kind of overall-network record each one names
+# Columns that were renamed: a file that still has the old header is reported by R1 with the new name, never a crash.
+RENAMED_COLUMNS = {"solutions.csv": {"port": "interface_name"}, "implementations.csv": {"path": "filepath"}}
+
+
+def renamed_column_problems(name: str, header: Iterable[str], label: str) -> List[str]:
+    """R1 lines for each old column name still in the header of record file ``name``."""
+    return [f"R1 {label}: has the old column `{old}`, renamed `{new}` (rename it in the header; the values stay)"
+            for old, new in RENAMED_COLUMNS.get(name, {}).items() if old in header]
+
+
 PARENT_COLUMNS = {"parent_problem_ids": "problem", "parent_ideal_ids": "ideal",
                   "overall_solution_ids": "solution", "parent_metric_ids": "metric"}
 # optional columns of an implementation in the intent layout: the sub-intent it is specified as, and the solutions
@@ -102,16 +112,16 @@ def match_implementations(solution_id: str, entries: List[str], records: Dict[st
                           ) -> Tuple[Dict[str, str], List[str]]:
     """Pair each entry of a solution's ``implementations`` cell with its record in ``implementations.csv``.
 
-    An entry is ``path`` or ``path::name`` (several implementations may live in one module). Its record is, in order,
+    An entry is ``filepath`` or ``filepath::name`` (several implementations may live in one module). Its record is, in order,
     the one whose id is the default id (``solution:file-stem``), the one whose id is ``solution:name``, or the one
-    whose ``path`` cell equals the entry, so record ids need not follow any pattern. Returns ``({entry: record id or
+    whose ``filepath`` cell equals the entry, so record ids need not follow any pattern. Returns ``({entry: record id or
     ""}, record ids no entry claimed)``; ``records`` are the records of this solution, by id."""
     claimed: Dict[str, str] = {}
     for entry in entries:
         name = entry.partition("::")[2]
         wanted = [implementation_id(solution_id, entry)] + ([f"{solution_id}:{name}"] if name else [])
         hit = next((i for i in wanted if i in records), None) \
-            or next((i for i, r in records.items() if r.get("path", "").strip() == entry), None)
+            or next((i for i, r in records.items() if r.get("filepath", "").strip() == entry), None)
         claimed[entry] = hit or ""
     return claimed, sorted(set(records) - set(claimed.values()))
 
@@ -134,6 +144,7 @@ def check_headers(folder: Path, template: Template, interface_required: bool = T
         if missing:
             bad.append(f"R1 {label or folder}/{name}: missing template column(s) {', '.join(missing)}"
                        " (run `esoi template sync`, then fill them)")
+        bad += renamed_column_problems(name, header, f"{label or folder}/{name}")
     return bad
 
 
@@ -196,6 +207,7 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
             if missing:
                 bad.append(f"R1 {FILES[entity][0]}: missing template column(s) {', '.join(missing)}"
                            " (run `esoi template sync`, then fill them)")
+            bad += renamed_column_problems(FILES[entity][0], rows[0], FILES[entity][0])
         for row in rows:
             if skipped(entity, row):
                 continue
