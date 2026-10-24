@@ -27,62 +27,62 @@ Joshua's exceptional expertise is framed here as evolvable structure. He's had a
 - **Evolvable Structure:** Structure that finds the ideal balance of longevity and changeability through predicting what will likely be useful to change in the future vs what is more useful as stable and unchanging. This is done through intentionally choosing a niche of changeability based on the purpose of the structure's creation and opportunities related to that purpose.
 - **Adaptable:** Changeable to handle different situations or contexts in the moment.
 - **Intent:** A conceptualization within consciousness which motivates a future state. Useful context can be lost when translating consciousness into the physical world. Consequently, ESOI specifies intent as Problems, Solutions, Implementations, Ideals, and Metrics. An intent brings insights on risks, uncertanties, and opportunities. Risks are addressed by considering disadvantages of Implementations and Metrics, uncertainties are addressed by Metrics, and opportunities are addressed by Solutions.
-    Note: Downstream automation may create intents without consciousness, but any automated system originated as a conscious intent at some point. Intents of consciousness should be prioritized over non-conscious intents.
+    - Note: Downstream automation may create intents without consciousness, but any automated system originated as a conscious intent at some point. Intents of consciousness should be prioritized over non-conscious intents.
 
 Intent specification:
 - **Intent**: In ESOI, intents are meaningful containers of a set of specifications. For human understanding, they serve as a personal category of interest or relate to a tangible container such as an organization.
-    Specify:
+    - Specify:
         - Name: What is a specific phrase which distinguishes the topic of the intent from other intents?
         - Vision statement: What is this intent manifesting in present tense? e.g. "I am ..." or "The world is ..." Any subject and verb can be used.
         - Opportunities: What are potentials inspired by this intent?
-    What it's not: A general category like "parenting" or "career." An intent is also not an organization itself, rather the container of specification that clarifies why the organization exists (as a solution and implementation within an intent). In this example, different versions of the same organization can be documented as separate alternative implementations.
+    - What it's not: A general category like "parenting" or "career." An intent is also not an organization itself, rather the container of specification that clarifies why the organization exists (as a solution and implementation within an intent). In this example, different versions of the same organization can be documented as separate alternative implementations.
 
 The five specification templates within an intent (each intent can have multiple of the below items, which relate to each other in a network):
 - **Problem**: A description of what motivated the intent. A challenge, difficulty, or description of how an ideal is not reached.
-    Specify:
+    - Specify:
         - What is the problem?
         - Who or what type of person has the problem?
         - Why does this problem matter?
         - Why is the problem hard to resolve?
         - What solutions or workarounds already attempt to address the prompt?
-    What it's not: A decision, task, recommendation, or component, but all of these can *have* problems.
-    Connects to: **Ideals** that oppose at least one aspect of the problem, **Solutions** that would solve at least one aspect of the problem
+    - What it's not: A decision, task, recommendation, or component, but all of these can *have* problems.
+    - Connects to: **Ideals** that oppose at least one aspect of the problem, **Solutions** that would solve at least one aspect of the problem
 - **Solution**: A definition of how one or more problems can be addressed to fulfill the intent.
-    Specify:
+    - Specify:
         - Name: What's a name that describes the type of solution it is?
         - Scoped Purpose: What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding?
         - Milestones: What are the solution's priorities in order?
-            Each milestone is a value of one or more metrics, which doesn't have to be the authoritative metric directly but it should relate to it.
-            End condition (optional): Condition for the milestone to no longer be a priority (date or other circumstance), at which point it's archived.
-            Target completion time (optional): Planned completion date and time (which other dependent milestones may rely on). May be a date or a specific minute of a date where precision is needed.
+            - Each milestone is a value of one or more metrics, which doesn't have to be the authoritative metric directly but it should relate to it.
+            - End condition (optional): Condition for the milestone to no longer be a priority (date or other circumstance), at which point it's archived.
+            - Target completion time (optional): Planned completion date and time (which other dependent milestones may rely on). May be a date or a specific minute of a date where precision is needed.
         - Knowledge: What knowledge informs the solution's definition or implementations?
         - Measures of Success: What would indicate the solution is successful?
-    If technology, specify interface details where applicable:
+    - If technology, specify interface details where applicable:
         - Parameters
         - Inputs
         - Outputs
         - Effects (other than outputs)
         - Other information on when and how to use the solution
-    What it's not: Fully functional code or solution, but it can be an abstract class, template, or routing which a separate structure solution network defines.
-    Connects to: **Implementations** that build what the solution defines, **Metrics** that define and implement the solution's measures of success, **Problems** the solution addresses, 
+    - What it's not: Fully functional code or solution, but it can be an abstract class, template, or routing which a separate structure solution network defines.
+    - Connects to: **Implementations** that build what the solution defines, **Metrics** that define and implement the solution's measures of success, **Problems** the solution addresses, 
 - **Implementation**: The built structure which carries out its associated solution; also known as an alternative.
-    Specify:
+    - Specify:
         - Name: What's a name that distinguishes this implementation from other alternatives?
         - Description: How does the implementation achieve the purpose of its solution's definition?
         - Advantages
         - Disadvantages
-    What it's not: What endusers of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solution's will define interfaces.
+    - What it's not: What endusers of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solution's will define interfaces.
 - **Ideal**: A definition of the future state implied by the intent, in a particular dimension or aspect.
-    Specify:
-        Name: What's a combined noun with adjective that represents the ideal's direction of interest?
-        Principle: What does this ideal ask for?
-        State Description: Describe what it would be like to experience this ideal.
-        Hints of Measurement: How would you know this ideal is reached?
-    What it's not: A practical metric or solution, or technology.
-    Connects to: Problems the ideal opposes.
+    - Specify:
+        - Name: What's a combined noun with adjective that represents the ideal's direction of interest?
+        - Principle: What does this ideal ask for?
+        - State Description: Describe what it would be like to experience this ideal.
+        - Hints of Measurement: How would you know this ideal is reached?
+    - What it's not: A practical metric or solution, or technology.
+    - Connects to: Problems the ideal opposes.
 - **Metric**: A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Consequently, every solution has only one authoritative metric, which can be a combination of multiple metrics or factors with weights that reflect the solution's ideals and purpose.
-    Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).
-    Specify:
+    - Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).
+    - Specify:
         - Name: What's a name that clarifies what is being measured?
         - Scoped purpose: What does this metric attempt to measure?
         - Record: What is recorded as the metric to compare implementations?
