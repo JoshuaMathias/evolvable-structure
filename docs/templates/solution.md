@@ -16,6 +16,12 @@ _What's a name that describes the type of solution it is?_
 
 <!-- your answer -->
 
+## Description
+
+_What is the solution or what roles does it intend to fill?_
+
+<!-- your answer -->
+
 ## Scoped purpose
 
 _What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding?_
@@ -37,6 +43,18 @@ _What knowledge informs the solution's definition or implementations?_
 ## Measures of success
 
 _What would indicate the solution is successful?_
+
+<!-- your answer -->
+
+## Tags
+
+_What classifications may be necessary to avoid risk? Possible risks (structural problems): R1: Adding a new solution that duplicates an existing one. R2: Not leveraging the benefits of an existing solution, such as partial overlap of purpose. R3: Not being aware of solutions that need to change definition or implementation due to something else changing. R4: Using a solution when it should not be for the particular use case._
+
+<!-- your answer -->
+
+## Risk addressed
+
+_Every tag should name what risk it mitigates, which are linked problems, whether from the same intent as the solution or from other intents (such as R1-R4 above which are problems defined for ESOI). Consequently, a solution's connected problems are also tags but are not sufficient on their own._
 
 <!-- your answer -->
 

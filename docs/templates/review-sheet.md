@@ -29,10 +29,13 @@ One spreadsheet tab per intent type, so a person can review problems, ideals, so
 |---|---|
 | `solution_id` | key |
 | `name` | generated |
+| `description` | generated |
 | `scoped_purpose` | generated |
 | `milestones` | generated |
 | `knowledge` | generated |
 | `measures_of_success` | generated |
+| `tags` | generated |
+| `risk_addressed` | generated |
 | `parameters` | generated |
 | `inputs` | generated |
 | `outputs` | generated |
@@ -85,7 +88,6 @@ One spreadsheet tab per intent type, so a person can review problems, ideals, so
 | `name` | generated |
 | `principle` | generated |
 | `state_description` | generated |
-| `hints_of_measurement` | generated |
 | `problem_ids` | generated |
 | `solution_ids` | generated |
 | `metric_ids` | generated |

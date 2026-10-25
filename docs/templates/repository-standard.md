@@ -82,10 +82,13 @@ Connects to: Ideals that oppose at least one aspect of the problem, Solutions th
 | Column | Required | Question |
 |---|---|---|
 | `name` | yes | What's a name that describes the type of solution it is? |
+| `description` | yes | What is the solution or what roles does it intend to fill? |
 | `scoped_purpose` | yes | What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding? |
 | `milestones` | yes | What are the solution's priorities in order? Each milestone is a value of one or more metrics, which doesn't have to be the authoritative metric directly but it should relate to it. End condition (optional): Condition for the milestone to no longer be a priority (date or other circumstance), at which point it's archived. Target completion time (optional): Planned completion date and time (which other dependent milestones may rely on). May be a date or a specific minute of a date where precision is needed. |
 | `knowledge` | yes | What knowledge informs the solution's definition or implementations? |
 | `measures_of_success` | yes | What would indicate the solution is successful? |
+| `tags` | yes | What classifications may be necessary to avoid risk? Possible risks (structural problems): R1: Adding a new solution that duplicates an existing one. R2: Not leveraging the benefits of an existing solution, such as partial overlap of purpose. R3: Not being aware of solutions that need to change definition or implementation due to something else changing. R4: Using a solution when it should not be for the particular use case. |
+| `risk_addressed` | yes | Every tag should name what risk it mitigates, which are linked problems, whether from the same intent as the solution or from other intents (such as R1-R4 above which are problems defined for ESOI). Consequently, a solution's connected problems are also tags but are not sufficient on their own. |
 | `parameters` | no | Parameters |
 | `inputs` | no | Inputs |
 | `outputs` | no | Outputs |
@@ -113,8 +116,7 @@ What it is not: What endusers of the relevant solution directly interact with. T
 |---|---|---|
 | `name` | yes | What's a combined noun with adjective that represents the ideal's direction of interest? |
 | `principle` | yes | What does this ideal ask for? |
-| `state_description` | yes | Describe what it would be like to experience this ideal. |
-| `hints_of_measurement` | yes | How would you know this ideal is reached? |
+| `state_description` | yes | Describe what it would be like to experience this ideal. Hints of Measurement: How would you know this ideal is reached? |
 
 What it is not: A practical metric or solution, or technology.
 
