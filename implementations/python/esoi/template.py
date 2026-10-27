@@ -15,6 +15,9 @@ so ``BARE_KEYS`` maps each to a short stable key by the words that identify it; 
 question keeps its key as long as those words stay. An unmapped bare question gets a key from its first words
 and is reported.
 
+A field line written ``Name (optional): ...`` is optional: its row has ``required`` = ``no`` (an interface field is always
+``no``), the generated record-headers still list its column, and the checks (S26) neither demand it nor its text.
+
 The parser is tolerant: an empty ``- `` bullet (an unfinished section) is skipped and counted, bullets and
 indentation may vary, and a missing section is reported, not fatal. A repository without the skill uses the copy
 shipped in ``esoi/data/esoi_template.csv``.
@@ -79,6 +82,16 @@ def template_lines(skill_text: str) -> List[str]:
             break
         block.append(line)
     return block
+
+
+OPTIONAL = re.compile(r"^([A-Z][A-Za-z]*(?: [A-Za-z]+){0,3})\s*\(optional\)\s*(?=:)")
+
+
+def split_optional(text: str) -> Tuple[str, bool]:
+    """The field line without its ``(optional)`` marker, and whether it had one. The marker sits right after the field
+    name, as in ``Knowledge (optional): What ...``; the name itself never carries it."""
+    found = OPTIONAL.match(text)
+    return (found.group(1) + text[found.end():], True) if found else (text, False)
 
 
 def field_key(entity: str, text: str) -> Tuple[str, str, bool]:
@@ -154,6 +167,7 @@ def parse(skill_text: str) -> Tuple[List[Dict[str, str]], List[str]]:
         keys: set = set()
         for group in ("specify", "interface"):
             for text in item[group]:
+                text, optional = split_optional(text)
                 key, question, mapped = field_key(entity, text)
                 if key in keys:
                     notes.append(f"{entity}: duplicate key {key!r} skipped")
@@ -162,7 +176,7 @@ def parse(skill_text: str) -> Tuple[List[Dict[str, str]], List[str]]:
                 if not mapped:
                     notes.append(f"{entity}: bare question {question!r} has no entry in BARE_KEYS; key {key!r} guessed")
                 rows.append({"entity": entity, "field_key": key, "question": question, "group": group,
-                             "required": "yes" if group == "specify" else "no"})
+                             "required": "yes" if group == "specify" and not optional else "no"})
         for name, key in (("not", "what_it_is_not"), ("connects", "connects_to")):
             if item[name]:
                 rows.append({"entity": entity, "field_key": key, "question": clean(" ".join(item[name])),

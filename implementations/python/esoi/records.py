@@ -46,10 +46,10 @@ from .tables import DEFAULT_METRIC_COMMAND, ids, is_command, read_csv, read_head
 FILES = {"problem": ("problems.csv", "problem_id"), "ideal": ("ideals.csv", "ideal_id"),
          "solution": ("solutions.csv", "solution_id"), "implementation": ("implementations.csv", "implementation_id"),
          "metric": ("metrics.csv", "metric_id")}
-#: Template fields a record may leave empty. An empty cell is an honest statement that nothing is set yet: a
-#: solution with no milestone has none that its owner has chosen, and an intent need not state opportunities.
+#: Template fields a record may leave empty even though the template requires them: an intent need not state
+#: opportunities. (A solution states at least one milestone; a field the template marks "(optional)" is not checked.)
 #: Every other template field of a record is required.
-MAY_BE_EMPTY: Dict[str, Set[str]] = {"solution": {"milestones"}, "intent": {"opportunities"}}
+MAY_BE_EMPTY: Dict[str, Set[str]] = {"intent": {"opportunities"}}
 #: Template fields that records carry in another column: an implementation's `dependencies` are its `uses_solution_ids`.
 CARRIED_ELSEWHERE: Dict[str, Set[str]] = {"implementation": {"dependencies"}}
 TEMPLATE_DATA = Path(__file__).resolve().parent / "data" / "esoi_template.csv"
@@ -167,6 +167,13 @@ def fields(template: Template, entity: str, interface_required: bool) -> List[st
             if r["group"] in groups and r["field_key"] not in CARRIED_ELSEWHERE.get(entity, ())]
 
 
+def checked_fields(template: Template, entity: str, interface_required: bool) -> List[str]:
+    """The fields a record must carry and fill: ``fields`` without the ones the template marks ``(optional)``
+    (``required`` = ``no`` on a ``specify`` row). An interface field is checked only when ``interface_required``."""
+    optional = {r["field_key"] for r in template.get(entity, []) if r["group"] == "specify" and r["required"] != "yes"}
+    return [k for k in fields(template, entity, interface_required) if k not in optional]
+
+
 def implementation_id(solution_id: str, path: str) -> str:
     """The record id of an implementation named by a solution's ``implementations`` cell."""
     stem = path.rsplit("/", 1)[-1]
@@ -203,11 +210,11 @@ def check_headers(folder: Path, template: Template, interface_required: bool = T
         rows = read_csv(path)
         header = read_header(path)
         # a solution of kind specification needs no interface fields, and a header may omit them only for those
-        need = [key, *fields(template, entity, interface_required)]
+        need = [key, *checked_fields(template, entity, interface_required)]
         if entity == "solution" and rows:
             commanded = solutions_with_a_command(read_csv(Path(folder) / "metrics.csv"), metric_command)
             if not any(r.get(key, "") in commanded for r in rows):
-                need = [key, *fields(template, entity, False)]
+                need = [key, *checked_fields(template, entity, False)]
         missing = [k for k in need if k not in header]
         if missing:
             bad.append(f"R1 {label or folder}/{name}: missing template column(s) {', '.join(missing)}"
@@ -275,7 +282,7 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
         return False
 
     for entity, rows in tables.items():
-        need = fields(template, entity, interface_required)
+        need = checked_fields(template, entity, interface_required)
         if rows and not merged:
             missing = [k for k in [keys[entity], *need] if k not in rows[0]]
             if missing:
@@ -286,7 +293,7 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
         for row in rows:
             if skipped(entity, row):
                 continue
-            wanted = fields(template, entity, False) if specification_only(entity, row) else need
+            wanted = checked_fields(template, entity, False) if specification_only(entity, row) else need
             empty = [k for k in wanted if k in row and not row[k].strip() and k not in MAY_BE_EMPTY.get(entity, ())]
             if empty:
                 bad.append(f"R2 {row.get(keys[entity], '')}: template field(s) not filled: {', '.join(empty)}")

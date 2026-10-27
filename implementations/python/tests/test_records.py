@@ -57,16 +57,18 @@ def test_every_implementation_needs_a_record_and_the_reverse(cfg):
 
 
 def test_waiving_a_solution_skips_its_template_fields(cfg):
-    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "knowledge", "")
+    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "measures_of_success", "")
     assert any(p.startswith("R2") for p in check(cfg))
     assert not any(p.startswith("R2 greet-a-person") for p in check(cfg, waived={"greet-a-person"}))
 
 
-def test_an_empty_milestones_cell_is_an_honest_gap_not_a_finding(cfg):
+def test_a_solution_needs_a_milestone_and_may_skip_optional_fields(cfg):
     edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "milestones", "")
+    assert any(p.startswith("R2 greet-a-person") and "milestones" in p for p in check(cfg))
+    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "milestones", "1. Share of greetings in the standard form: 100%.")
+    for column in ("knowledge", "tags", "out_of_scope"):
+        edit(cfg, "solutions.csv", "solution_id", "greet-a-person", column, "")
     assert not any(p.startswith("R2 greet-a-person") for p in check(cfg))
-    edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "measures_of_success", "")
-    assert any(p.startswith("R2 greet-a-person") and "measures_of_success" in p and "milestones" not in p for p in check(cfg))
 
 
 def test_parent_links_resolve_in_the_tree(cfg):

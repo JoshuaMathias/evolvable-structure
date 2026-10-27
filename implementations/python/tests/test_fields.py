@@ -48,3 +48,13 @@ def test_migrate_folder_rewrites_in_place(tmp_path):
     assert tables.read_header(tmp_path / "metrics.csv") == ["metric_id", "name", "purpose", "record", "disadvantages"]
     assert tables.read_csv(tmp_path / "solutions.csv")[0]["out_of_scope"] == "It avoids more."
     assert fields.migrate_folder(tmp_path) == []
+
+
+def test_milestones_carry_whether_they_are_met():
+    cell = "1. Share of greetings in the standard form: 100%. [met: 2026-10-26] 2. Pass rate 12.5% on new cases."
+    got = fields.parse_milestones(cell)
+    assert got == [{"text": "Share of greetings in the standard form: 100%.", "met": True, "met_on": "2026-10-26"},
+                   {"text": "Pass rate 12.5% on new cases.", "met": False, "met_on": ""}]
+    assert fields.format_milestones(got) == cell
+    assert fields.parse_milestones("") == [] and fields.parse_milestones("Just one")[0]["met"] is False
+    assert fields.parse_milestones("1. a [met]")[0] == {"text": "a", "met": True, "met_on": ""}

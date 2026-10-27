@@ -75,6 +75,45 @@ def format_tags(tags: Iterable[Tag]) -> str:
     return json.dumps(clean, ensure_ascii=False, separators=(", ", ": ")) if clean else ""
 
 
+# ---- milestones ---------------------------------------------------------------------------------------------------
+
+#: A milestone in a ``milestones`` cell is numbered in priority order: ``1. <text> 2. <text>``. Whether it has been met is a
+#: marker at the end of its own text: ``[met: 2026-10-26]`` (the date, or a date and minute, it was reached) or ``[met]`` when
+#: the date is not known. A milestone with no marker is not met. The marker is part of the cell, so the text stays readable.
+MET = re.compile(r"\s*\[met(?::\s*([^\]]*?))?\s*\]\s*$", re.I)
+NUMBERED = re.compile(r"(?:(?<=^)|(?<=\s))(\d+)\.\s+(?=\S)")
+
+
+def parse_milestones(cell: Optional[str]) -> List[Dict[str, object]]:
+    """The milestones of a ``milestones`` cell, in order, as ``[{"text": str, "met": bool, "met_on": str}]`` (``met_on`` is
+    empty when unmet or when no date was written). A cell with no numbers is one milestone; an empty cell is none. The
+    text never includes the number or the marker, so cells written before the marker existed parse as all unmet."""
+    text = (cell or "").strip()
+    if not text:
+        return []
+    marks = list(NUMBERED.finditer(text))
+    parts = [text[m.end():(marks[i + 1].start() if i + 1 < len(marks) else len(text))] for i, m in enumerate(marks)] if marks else [text]
+    out: List[Dict[str, object]] = []
+    for part in parts:
+        part = part.strip()
+        found = MET.search(part)
+        out.append({"text": MET.sub("", part).strip(), "met": bool(found), "met_on": (found.group(1) or "").strip() if found else ""})
+    return [m for m in out if m["text"]]
+
+
+def format_milestones(milestones: Iterable[Dict[str, object]]) -> str:
+    """The ``milestones`` cell for these milestones (``parse_milestones`` reads it back): numbered from 1, a met one ending
+    ``[met: DATE]`` (or ``[met]`` with no date)."""
+    parts = []
+    for i, m in enumerate([m for m in milestones if str(m.get("text", "")).strip()], 1):
+        text = str(m["text"]).strip()
+        if m.get("met") or str(m.get("met_on", "")).strip():
+            on = str(m.get("met_on", "")).strip()
+            text += f" [met: {on}]" if on else " [met]"
+        parts.append(f"{i}. {text}")
+    return " ".join(parts)
+
+
 # ---- splitting the old text ---------------------------------------------------------------------------------------
 
 SENTENCE = re.compile(r"(?<=[.!?])\s+(?=[A-Z])")

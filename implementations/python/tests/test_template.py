@@ -93,3 +93,12 @@ def test_stale_against_source_is_none_when_the_source_is_unreachable(cfg):
     source.write_text(SAMPLE)
     cfg.template_source = "SKILL.md"
     assert template.stale_against_source(cfg) is True
+
+
+def test_optional_marker_is_read_per_field_and_stripped_from_the_name():
+    from esoi import template
+    text = ("Intent specification:\n- **Solution**: A way.\n    - Specify:\n        - Name: What is it called?\n"
+            "        - Knowledge (optional): What informs it?\n")
+    rows, _ = template.parse(text)
+    got = {r["field_key"]: (r["required"], r["question"]) for r in rows if r["entity"] == "solution"}
+    assert got["name"][0] == "yes" and got["knowledge"] == ("no", "What informs it?")
