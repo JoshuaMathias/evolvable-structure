@@ -99,7 +99,7 @@ The five specification templates within an intent (each intent can have multiple
         - Name: What's a name that clarifies what is being measured?
         - Purpose: A statement of what the metric ensures, specifically and comprehensively yet simply stated. This statement does not need to enumerate its current implementation, rather it encapsulates an intention to measure.
         - Record: What is recorded as the metric to compare implementations?
-        - Disadvantages: What can the metric not see, or what could it reward wrongly?
+        - Disadvantages (optional): What can the metric not see, or what could it reward wrongly?
 
 Remember: ESOI is applied both to structure and to applications of structure. The structure itself is an implementation of a solution which defines the purpose of the structure.
 

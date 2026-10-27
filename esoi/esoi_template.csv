@@ -47,4 +47,4 @@ metric,definition,"A practical way to measure the distance between the implement
 metric,name,What's a name that clarifies what is being measured?,specify,yes
 metric,purpose,"A statement of what the metric ensures, specifically and comprehensively yet simply stated. This statement does not need to enumerate its current implementation, rather it encapsulates an intention to measure.",specify,yes
 metric,record,What is recorded as the metric to compare implementations?,specify,yes
-metric,disadvantages,"What can the metric not see, or what could it reward wrongly?",specify,yes
+metric,disadvantages,"What can the metric not see, or what could it reward wrongly?",specify,no

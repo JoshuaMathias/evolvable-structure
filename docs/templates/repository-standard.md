@@ -132,6 +132,6 @@ Connects to: Problems the ideal opposes.
 | `name` | yes | What's a name that clarifies what is being measured? |
 | `purpose` | yes | A statement of what the metric ensures, specifically and comprehensively yet simply stated. This statement does not need to enumerate its current implementation, rather it encapsulates an intention to measure. |
 | `record` | yes | What is recorded as the metric to compare implementations? |
-| `disadvantages` | yes | What can the metric not see, or what could it reward wrongly? |
+| `disadvantages` | no | What can the metric not see, or what could it reward wrongly? |
 
 <!-- esoi-template:end -->
