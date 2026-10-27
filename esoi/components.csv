@@ -5,7 +5,7 @@ structure-registry,docs,esoi/**,This repository's own overall network and detail
 project-files,project,*,"Files at the repository root: readme, configuration, contributing, licence.",docs-and-templates
 wiki,scripts,scripts/docs_to_wiki.py,"Generating the GitHub wiki from docs/ on every push to main, so the docs stay the one source.",docs-and-templates
 public-skill,docs,skill/**;.claude-plugin/**;implementations/python/esoi/data/skill/**,"The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package.",skill-distribution;behave-by-esoi;follow-the-steps
-records-core,core,implementations/python/esoi/__init__.py;implementations/python/esoi/tables.py;implementations/python/esoi/config.py;implementations/python/esoi/registry.py;implementations/python/esoi/records.py,"Loading the configuration and the CSV records, and checking the intent records against the template.",intent-registry
+records-core,core,implementations/python/esoi/__init__.py;implementations/python/esoi/tables.py;implementations/python/esoi/config.py;implementations/python/esoi/registry.py;implementations/python/esoi/records.py;implementations/python/esoi/fields.py,"Loading the configuration and the CSV records, and checking the intent records against the template.",intent-registry
 template-reader,core,implementations/python/esoi/template.py;implementations/python/esoi/data/*,Reading the intent template from its source and keeping the parsed copy.,template-sync
 expectations,core,implementations/python/esoi/expect.py,The declarative check that case-driven evaluations share.,measurement-harness
 leaderboard,core,implementations/python/esoi/leaderboard.py,Ranking implementations from the results log and calling a verdict.,leaderboard

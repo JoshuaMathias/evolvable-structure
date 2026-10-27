@@ -34,7 +34,7 @@ connects to. The definitions of intent, evolvable, structure and the rest are in
 - **Give every record a short, stable id.** Other records link to it, so renaming it is a change to many files.
 - **Fill every field.** A field you cannot answer is a gap worth knowing about. A solution's `milestones` may stay empty
   (no milestone is chosen yet); for any other field, say what you know and name what the metric cannot see in the
-  metric's `scoped_purpose`, or a weakness in an implementation's `disadvantages`.
+  metric's `disadvantages`, or a weakness in an implementation's `disadvantages`.
 - **Keep numbers out of prose.** Scores belong to the results log, where they carry the commit and the cases. A
   sentence that says "passes most cases" is out of date the day a case is added.
 - **Say when each Metric is run.** Timing is not a field of the Metric template, so it belongs to a solution that governs the

@@ -14,6 +14,7 @@
     esoi select --snapshot FILE            write the defaults and modules for a package shipped without the records
     esoi tracker build|check               build or verify the review tracker tabs
     esoi consumer check --registry CSV     check a consuming repository's integration registry
+    esoi fields migrate [--apply]          split scoped_purpose into the new solution and metric fields in every records folder (dry run without --apply)
     esoi intent migrate [--apply]          move a legacy overall layout to the intent layout (dry run without --apply)
     esoi spec index [--out FILE]|find TEXT [-k N] [--expand N]|show ID [--tier 0|1|2]|related ID [--depth N]|intent [ID] [--cache FILE]   the specification index: find the few records a new use case needs
     esoi projects init|add|list|check|index|where   the local ESOI index (a folder named by ESOI_HOME, else ~/.esoi)
@@ -97,6 +98,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--depth", type=int, default=1, help="related: how many link steps to follow")
     p.add_argument("--cache", default=None, help="read the index from this file when the records have not changed, else rebuild it there")
     p = sub.add_parser("intent", help="the intent layout")
+    p.add_argument("action", choices=["migrate"])
+    p.add_argument("--apply", action="store_true", help="migrate: write the files (without it, only report the plan)")
+    p = sub.add_parser("fields", help="the 2026-10-26 field change")
     p.add_argument("action", choices=["migrate"])
     p.add_argument("--apply", action="store_true", help="migrate: write the files (without it, only report the plan)")
     p = sub.add_parser("projects", help="the local ESOI index: the projects ESOI is applied to on this machine")
@@ -305,6 +309,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.action == "sync":
             return skill.sync(config, args.source)
         return skill.check(config, args.source, args.denylist)
+    if args.cmd == "fields":
+        from . import fields, intents
+        done = fields.migrate_tree([folder for _, folder in intents.folders(config)], args.apply)
+        for line in done:
+            print(line)
+        print(f"esoi fields migrate: {len(done)} file(s) " + ("migrated" if args.apply else "would change (dry run; pass --apply)") if done
+              else "esoi fields migrate: records already use the current fields")
+        return 0
     if args.cmd == "intent":
         from . import migrate
         return migrate.run_cli(config, args.apply)

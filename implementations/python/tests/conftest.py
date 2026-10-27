@@ -24,7 +24,9 @@ def fill_top_intent(root):
 
     edit("intent.csv", lambda r: r.update(name="Consistent greetings", vision_statement="Every person is greeted by their own name."))
     edit("solutions.csv", lambda r: r["solution_id"] == "project-purpose" and r.update(
-        name="Greetings sent", scoped_purpose="Everything that greets a person for this project.",
+        name="Greetings sent", description="Every greeting the project sends is the one it meant to send.",
+        purpose="Greet people for this project.", approach="Send each greeting through the one greeting function.",
+        out_of_scope="Anything that is not a greeting.", tags='[{"tag": "greetings", "risk_ids": ["greeting-by-hand"]}]',
         milestones="1. Share of greetings in the standard form: 100%.", knowledge="The house style for greetings.",
         measures_of_success="The greeting cases pass.", problem_ids="greeting-by-hand", ideal_ids="consistent-greeting",
         metric_ids="purpose-met"))
@@ -36,7 +38,8 @@ def fill_top_intent(root):
     rows, cols = tables.read_csv(path), tables.read_header(path)
     if not any(r["metric_id"] == "purpose-met" for r in rows):
         rows.append({**{col: "" for col in cols}, "metric_id": "purpose-met", "name": "Purpose met",
-                     "scoped_purpose": "Whether the greetings the project sends are the ones it meant to send.",
+                     "purpose": "Ensure the greetings the project sends are the ones it meant to send.",
+                     "disadvantages": "It is reviewed by hand, so it sees only what the reviewer looks at.",
                      "record": "Reviewed by hand; no run measures it yet.", "solution_ids": "project-purpose"})
     tables.write_csv(path, cols, rows)
     from esoi import check   # the tracker tabs and the READMEs follow the records

@@ -224,7 +224,7 @@ def sync(config: Config, registry: Registry, declared: Declared, intent_id: Opti
         if sid in known_solutions:
             continue
         names = sorted(n for s, n in declared.implementations if s == sid)
-        row = blank(sol_cols, solution_id=sid, name=title(decl.name or sid), scoped_purpose=decl.purpose,
+        row = blank(sol_cols, solution_id=sid, name=title(decl.name or sid), purpose=decl.purpose,
                     parameters=decl.parameters, outputs=decl.outputs, interface_name=decl.port, implementations=";".join(names),
                     selected=names[0] if len(names) == 1 else "")
         sol_rows.append(row)

@@ -35,9 +35,9 @@ KINDS = {"intent": "intent", "problem": "problem_id", "ideal": "ideal_id", "solu
 TITLE = {"intent": ["name"], "problem": ["problem"], "ideal": ["name", "principle"], "solution": ["name"],
          "implementation": ["name"], "metric": ["name"]}
 SUMMARY = {"intent": ["vision_statement"], "problem": ["problem", "why_it_matters"], "ideal": ["principle", "state_description"],
-           "solution": ["scoped_purpose", "milestones"], "implementation": ["description"], "metric": ["scoped_purpose"]}
+           "solution": ["approach", "purpose", "milestones"], "implementation": ["description"], "metric": ["purpose"]}
 BODY = {"intent": ["opportunities"], "problem": ["who_has_it", "why_hard"], "ideal": ["hints_of_measurement"],
-        "solution": ["knowledge", "usage_notes", "inputs", "outputs"], "implementation": ["advantages"],
+        "solution": ["description", "out_of_scope", "knowledge", "usage_notes", "inputs", "outputs"], "implementation": ["advantages"],
         "metric": ["record"]}
 WEIGHTS = {"id": 3.0, "title": 3.0, "summary": 2.0, "body": 1.0}
 STOP = frozenset("a an and are as at be by for from has have in is it its of on or that the their this to was were which "

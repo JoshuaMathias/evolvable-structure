@@ -134,13 +134,13 @@ def test_s26_fails_on_a_column_the_owner_has_not_approved_and_passes_once_they_l
 
 
 def test_numbers_in_prose_and_unrecorded_arms(cfg):
-    edit(cfg, "metrics.csv", "metric_id", "greeting-pass-rate", "scoped_purpose", "It passes 12/16 of the cases.")
+    edit(cfg, "metrics.csv", "metric_id", "greeting-pass-rate", "purpose", "It passes 12/16 of the cases.")
     check.write_docs(cfg, say=lambda text: None)
     assert any(line.startswith("S22") and "12/16" in line for line in check.check(cfg))
     edit(cfg, "solutions.csv", "solution_id", "greet-a-person", "milestones", "1. Share of greetings in the standard form: 100%.")
     check.write_docs(cfg, say=lambda text: None)
     assert not any(line.startswith("S22") and "milestones" in line for line in check.check(cfg))   # a target value is allowed
-    edit(cfg, "metrics.csv", "metric_id", "greeting-pass-rate", "scoped_purpose", "Measures the greetings.")
+    edit(cfg, "metrics.csv", "metric_id", "greeting-pass-rate", "purpose", "Measures the greetings.")
     edit(cfg, "metrics.csv", "metric_id", "greeting-pass-rate", "command",
          "esoi run greet_a_person --impl live; esoi run greet_a_person --impl ghost")
     check.write_docs(cfg, say=lambda text: None)

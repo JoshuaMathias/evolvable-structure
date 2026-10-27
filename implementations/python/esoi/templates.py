@@ -145,7 +145,7 @@ def overall_template(entities: Dict[str, Dict[str, object]]) -> str:
 
 SOLUTION_HINTS = {
     "name": "Name the policy after what it governs, for example \"when this repository's metrics are run\".",
-    "scoped_purpose": "Which Metric records it governs, and which runs it deliberately leaves out (paid runs, say).",
+    "purpose": "Which Metric records it governs, and which runs it deliberately leaves out (paid runs, say).",
     "milestones": "The policy's priorities in order, each a value of a metric, such as the share of metrics with a result at "
                   "the current commit. A milestone may carry an end condition (when it stops being a priority and is "
                   "archived) and a target completion time (when it is planned to be reached); they are separate, and "
@@ -171,7 +171,7 @@ def metric_run_policy_template(entities: Dict[str, Dict[str, object]]) -> str:
            "A Metric is what gets run, and when to run it is itself a solution: it has a problem, ideals, alternative "
            "implementations and a metric of its own. Record yours as a small ESOI network that the repository's other "
            "records link to. Nothing here adds a field to the intent template: timing is not a field of the Metric "
-           "template (name, scoped purpose, record), so it lives in the solution that governs the metrics.", "",
+           "template (name, purpose, record, disadvantages), so it lives in the solution that governs the metrics.", "",
            "Read [when-metrics-are-run.md](../explanation/when-metrics-are-run.md) first.", "",
            "## 1. The problem and the ideals", "",
            "Copy [problem.md](problem.md) and [ideal.md](ideal.md). Typical problems: results that are stale when a decision "

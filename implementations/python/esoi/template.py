@@ -10,7 +10,7 @@ it is read here instead of being copied. The parsed form is ``esoi_template.csv`
 records), ``interface`` (optional, for a solution that is technology) and ``meta`` (the definition, "What it's
 not" and "Connects to" text, not a column).
 
-Field keys are snake_case of the label (``Scoped Purpose`` -> ``scoped_purpose``). A bare question has no label,
+Field keys are snake_case of the label (``Measures of Success`` -> ``measures_of_success``). A bare question has no label,
 so ``BARE_KEYS`` maps each to a short stable key by the words that identify it; refining the wording of a
 question keeps its key as long as those words stay. An unmapped bare question gets a key from its first words
 and is reported.

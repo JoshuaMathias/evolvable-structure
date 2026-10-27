@@ -24,6 +24,7 @@ from typing import Dict, List
 from . import check as check_module
 from . import leaderboard
 from .config import DEFAULT_STRUCTURE_DIR, Config, from_mapping
+from .fields import format_tags
 from .records import FILES, TEMPLATE_DATA, fields, load_template
 from .tables import render_csv
 
@@ -45,10 +46,14 @@ SAMPLE: Dict[str, Dict[str, str]] = {
         "hints_of_measurement": "Every sample name comes back inside the greeting, and the form never varies."},
     "solution": {
         "name": "Greeting function",
-        "scoped_purpose": "Greet one person by name in plain text. It does not translate or personalise beyond the name.",
+        "description": "Gives every greeting the same standard form, so a person always sees their own name in it.",
+        "purpose": "Greet one person by name in plain text.",
+        "approach": "Format the given name into the house greeting.",
+        "out_of_scope": "It does not translate or personalise beyond the name.",
         "milestones": "1. Share of sample names that appear in a greeting of the standard form: 100%.",
         "knowledge": "The house style for greetings.",
         "measures_of_success": "Every example case passes.",
+        "tags": format_tags([{"tag": "text", "risk_ids": ["greeting-by-hand"]}]),
         "parameters": "None.",
         "inputs": "A name as text.",
         "outputs": "A greeting as text.",
@@ -61,8 +66,9 @@ SAMPLE: Dict[str, Dict[str, str]] = {
         "disadvantages": ""},
     "metric": {
         "name": "Greeting pass rate",
-        "scoped_purpose": "Measures whether the greeting keeps the name and the standard form.",
-        "record": "Cases passed out of cases run, per implementation, on the same cases."},
+        "purpose": "Ensure the greeting keeps the name and the standard form.",
+        "record": "Cases passed out of cases run, per implementation, on the same cases.",
+        "disadvantages": "It cannot see whether the greeting suits a person's culture or language."},
 }
 IMPLEMENTATIONS = {
     "greet": ("Package function", "Formats the name into the standard greeting.", "Simple and matches the house style.",
@@ -93,15 +99,19 @@ STRUCTURE = {
         "hints_of_measurement": "Every solution is reached from the top solution, through the solutions its implementation builds on."},
     "solution": {
         "name": "Project structure",
-        "scoped_purpose": "How this project records its intent, measures alternatives and selects the best by metric; "
-                          "its implementation uses the esoi solutions and holds whatever is specific to this project.",
+        "description": "Keeps the project's intent, alternatives and measurements in one checked place.",
+        "purpose": "Record the project's intent, measure alternatives and select the best by metric.",
+        "approach": "Build on the esoi solutions and hold whatever is specific to this project beside them.",
+        "out_of_scope": "It does not say what the project is for: that is the project's own top intent.",
         "milestones": "1. Share of building blocks with a metric: 100%. 2. Share of building blocks with a recorded run: 100%.",
         "knowledge": "The project's own history and goals, and the esoi documentation.",
-        "measures_of_success": "Every solution of the project is recorded with a problem, an ideal and a metric, and the check passes."},
+        "measures_of_success": "Every solution of the project is recorded with a problem, an ideal and a metric, and the check passes.",
+        "tags": format_tags([{"tag": "records", "risk_ids": ["purpose-unrecorded"]}])},
     "metric": {
         "name": "Coverage by measured solutions",
-        "scoped_purpose": "Measures whether the structure's building blocks each have a recorded run.",
-        "record": "The share of solutions the structure's implementation builds on that have a recorded run."},
+        "purpose": "Ensure the structure's building blocks each have a recorded run.",
+        "record": "The share of solutions the structure's implementation builds on that have a recorded run.",
+        "disadvantages": "It counts recorded runs, not whether the runs measure anything worth measuring."},
 }
 
 CONFIG = '''# esoi configuration for this repository. Every key is optional; see the esoi documentation.

@@ -987,7 +987,7 @@
   "id": "CTS-046",
   "area": "repo",
   "kind": "repo",
-  "description": "a score written into a metric's scoped purpose",
+  "description": "a score written into a metric's purpose",
   "args": {
    "edits": [
     {
@@ -995,7 +995,7 @@
      "path": "esoi/metrics.csv",
      "key_col": "metric_id",
      "key": "greeting-pass-rate",
-     "col": "scoped_purpose",
+     "col": "purpose",
      "value": "The live greeter passes 12/16 of the cases."
     },
     {

@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 from .config import Config
+from .fields import upgrade_rows
 from .tables import read_csv, read_header
 
 INTENT_FILE = "intent.csv"
@@ -70,12 +71,15 @@ def folders(config: Config) -> List[Tuple[str, Path]]:
     return [(i.intent_id, i.folder) for i in intents] if intents else [("", config.structure)]
 
 
+ENTITY_OF_FILE = {"solutions.csv": "solution", "metrics.csv": "metric"}
+
+
 def read_rows(config: Config, name: str) -> List[Row]:
     """The rows of one record file across every intent folder, in tree order. In the intent layout each row also
     carries ``intent_id``, the intent whose folder holds it."""
     rows: List[Row] = []
     for intent_id, folder in folders(config):
-        for row in read_csv(folder / name):
+        for row in upgrade_rows(ENTITY_OF_FILE.get(name, ""), read_csv(folder / name)):
             if intent_id:
                 row.setdefault("intent_id", intent_id)
             rows.append(row)

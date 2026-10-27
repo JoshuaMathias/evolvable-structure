@@ -40,6 +40,7 @@ import re
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
+from .fields import upgrade_rows
 from .tables import DEFAULT_METRIC_COMMAND, ids, is_command, read_csv, read_header
 
 FILES = {"problem": ("problems.csv", "problem_id"), "ideal": ("ideals.csv", "ideal_id"),
@@ -49,6 +50,8 @@ FILES = {"problem": ("problems.csv", "problem_id"), "ideal": ("ideals.csv", "ide
 #: solution with no milestone has none that its owner has chosen, and an intent need not state opportunities.
 #: Every other template field of a record is required.
 MAY_BE_EMPTY: Dict[str, Set[str]] = {"solution": {"milestones"}, "intent": {"opportunities"}}
+#: Template fields that records carry in another column: an implementation's `dependencies` are its `uses_solution_ids`.
+CARRIED_ELSEWHERE: Dict[str, Set[str]] = {"implementation": {"dependencies"}}
 TEMPLATE_DATA = Path(__file__).resolve().parent / "data" / "esoi_template.csv"
 # The template says a problem is not a task or a recommendation: these openings read as one.
 IMPERATIVE = {"add", "allow", "avoid", "build", "call", "change", "check", "choose", "create", "decide", "define",
@@ -68,9 +71,14 @@ REMOVED_COLUMNS = {
     "solutions.csv": {
         "metric_kind": "every metric outputs a number, so there is no kind; a solution with no recorded metric run is a "
                        "specification, derived from that",
-        "invariant_reason": "put the reason in the metric's scoped_purpose",
-        "gap": "put what a metric cannot see in its scoped_purpose, or a weakness in a disadvantages cell",
+        "invariant_reason": "put the reason in the metric's purpose",
+        "gap": "put what a metric cannot see in the metric's disadvantages",
+        "scoped_purpose": "split into description, purpose, approach and out_of_scope (run `esoi fields migrate`)",
+        "risk_addressed": "each tag now carries its own risk_ids in the tags cell (run `esoi fields migrate`)",
         "action": "a next step is a milestone: a value of a metric, in `milestones`",
+    },
+    "metrics.csv": {
+        "scoped_purpose": "renamed `purpose`, with what the metric cannot see in `disadvantages` (run `esoi fields migrate`)",
     },
 }
 
@@ -155,7 +163,8 @@ def load_template(path: Optional[Path] = None) -> Template:
 def fields(template: Template, entity: str, interface_required: bool) -> List[str]:
     """The field keys a record of ``entity`` must carry and fill."""
     groups = {"specify"} | ({"interface"} if interface_required else set())
-    return [r["field_key"] for r in template.get(entity, []) if r["group"] in groups]
+    return [r["field_key"] for r in template.get(entity, [])
+            if r["group"] in groups and r["field_key"] not in CARRIED_ELSEWHERE.get(entity, ())]
 
 
 def implementation_id(solution_id: str, path: str) -> str:
@@ -232,7 +241,7 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
     bad: List[str] = []
     merged = tables is not None
     retired = retired or set()
-    tables = tables if merged else {entity: read_csv(Path(struct) / name) for entity, (name, _) in FILES.items()}
+    tables = tables if merged else {entity: upgrade_rows(entity, read_csv(Path(struct) / name)) for entity, (name, _) in FILES.items()}
     keys = {entity: key for entity, (_, key) in FILES.items()}
     index: Dict[str, Dict[str, Dict[str, str]]] = {}
     for entity, rows in tables.items():
@@ -388,7 +397,7 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
                 bad.append(f"R5 {rid}: names no parent problem, ideal, metric or area of the overall solution")
 
     solution_texts = {re.sub(r"\W+", " ", row.get(k, "").lower()).strip()
-                      for row in solutions.values() for k in ("name", "scoped_purpose", "milestones") if row.get(k)}
+                      for row in solutions.values() for k in ("name", "purpose", "approach", "milestones") if row.get(k)}
     for pid, row in problems.items():
         text = row.get("problem", "").strip()
         if not text:

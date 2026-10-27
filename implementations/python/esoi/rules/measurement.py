@@ -172,7 +172,7 @@ def run(ctx: Context) -> List[str]:
                                "real inputs (a real model call, real data), keep the scripted version as a unit test, or "
                                "waive naming why this metric cannot be real")
     for m in ctx.registry.metrics:
-        for col in ("scoped_purpose", "record"):
+        for col in ("purpose", "record"):
             hit = UNREAL_METRIC.search(m.get(col, ""))
             if hit and not ctx.waived("S31", m.get("metric_id", "")):
                 bad.append(f"S31 metrics.csv {m.get('metric_id', '')}: `{col}` says {hit.group(0)!r}; a metric must measure "

@@ -165,7 +165,7 @@ def test_removed_solution_columns_are_reported_with_where_their_content_goes(cfg
         row.update(metric_kind="eval", invariant_reason="", gap="", action="")
     tables.write_csv(path, cols + ["metric_kind", "invariant_reason", "gap", "action"], rows)
     problems = check(cfg)
-    for old, where in (("metric_kind", "specification"), ("invariant_reason", "scoped_purpose"), ("gap", "scoped_purpose"),
+    for old, where in (("metric_kind", "specification"), ("invariant_reason", "purpose"), ("gap", "disadvantages"),
                        ("action", "milestones")):
         assert any(p.startswith("R1") and f"removed column `{old}`" in p and where in p for p in problems), old
 
@@ -173,7 +173,7 @@ def test_removed_solution_columns_are_reported_with_where_their_content_goes(cfg
 def test_a_solution_with_two_metrics_names_the_authoritative_one(cfg):
     path = cfg.structure / "metrics.csv"
     rows, cols = tables.read_csv(path), tables.read_header(path)
-    rows.append({**{c: "" for c in cols}, "metric_id": "greeting-tone", "name": "Tone", "scoped_purpose": "How warm.",
+    rows.append({**{c: "" for c in cols}, "metric_id": "greeting-tone", "name": "Tone", "purpose": "How warm.",
                  "record": "A reviewer's rating.", "solution_ids": "greet-a-person", "command": "esoi run greet_a_person --impl live"})
     tables.write_csv(path, cols, rows)
     assert any(p.startswith("R6 greet-a-person") and "authoritative_metric_id" in p for p in check(cfg))

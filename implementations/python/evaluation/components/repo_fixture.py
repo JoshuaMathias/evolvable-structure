@@ -75,7 +75,9 @@ def baseline_repo(dest: Path) -> Path:
     set_cell(root, "esoi/intent.csv", "intent_id", "demo", "opportunities",
              "Greetings could be spoken, translated and personalised without changing how names are kept.")
     # the scaffold also leaves its top solution to the project: write the stand-in project's own
-    for column, value in dict(name="Greetings sent", scoped_purpose="Everything that greets a person for this project.",
+    for column, value in dict(name="Greetings sent", description="Every greeting the project sends is the one it meant to send.",
+        purpose="Greet people for this project.", approach="Send each greeting through the one greeting function.",
+        out_of_scope="Anything that is not a greeting.", tags='[{"tag": "greetings", "risk_ids": ["greeting-by-hand"]}]',
                               milestones="1. Share of greetings in the standard form: 100%.", knowledge="The house style for greetings.",
                               measures_of_success="The greeting cases pass.", problem_ids="greeting-by-hand",
                               ideal_ids="consistent-greeting", metric_ids="purpose-met").items():
@@ -87,7 +89,8 @@ def baseline_repo(dest: Path) -> Path:
     path = root / "esoi/metrics.csv"
     rows, cols = read_rows(path), read_header(path)
     rows.append({**{col: "" for col in cols}, "metric_id": "purpose-met", "name": "Purpose met",
-                 "scoped_purpose": "Whether the greetings the project sends are the ones it meant to send.",
+                 "purpose": "Ensure the greetings the project sends are the ones it meant to send.",
+                     "disadvantages": "It is reviewed by hand, so it sees only what the reviewer looks at.",
                  "record": "Reviewed by hand; no run measures it yet.", "solution_ids": "project-purpose"})
     path.write_text(csv_text(cols, rows))
     toml = (root / "esoi.toml").read_text().replace('layers = ["core"]', 'layers = ["core", "adapters"]')
