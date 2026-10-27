@@ -30,12 +30,13 @@ One spreadsheet tab per intent type, so a person can review problems, ideals, so
 | `solution_id` | key |
 | `name` | generated |
 | `description` | generated |
-| `scoped_purpose` | generated |
+| `purpose` | generated |
+| `approach` | generated |
+| `out_of_scope` | generated |
 | `milestones` | generated |
 | `knowledge` | generated |
 | `measures_of_success` | generated |
 | `tags` | generated |
-| `risk_addressed` | generated |
 | `parameters` | generated |
 | `inputs` | generated |
 | `outputs` | generated |
@@ -68,6 +69,7 @@ One spreadsheet tab per intent type, so a person can review problems, ideals, so
 | `description` | generated |
 | `advantages` | generated |
 | `disadvantages` | generated |
+| `dependencies` | generated |
 | `kind` | generated |
 | `selected` | generated |
 | `latest_result` | generated |
@@ -88,6 +90,7 @@ One spreadsheet tab per intent type, so a person can review problems, ideals, so
 | `name` | generated |
 | `principle` | generated |
 | `state_description` | generated |
+| `hints_of_measurement` | generated |
 | `problem_ids` | generated |
 | `solution_ids` | generated |
 | `metric_ids` | generated |
@@ -103,8 +106,9 @@ One spreadsheet tab per intent type, so a person can review problems, ideals, so
 |---|---|
 | `metric_id` | key |
 | `name` | generated |
-| `scoped_purpose` | generated |
+| `purpose` | generated |
 | `record` | generated |
+| `disadvantages` | generated |
 | `solution_ids` | generated |
 | `command` | generated |
 | `latest_result` | generated |

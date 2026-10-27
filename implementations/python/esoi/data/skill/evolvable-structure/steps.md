@@ -58,8 +58,17 @@ doesn't settle them alone. An AI can carry out every other step and report it.
     whether the resources to create and maintain it outweigh the benefit of defining it, within the timeframe up to the
     next highest priority milestone (step 1). Risks and uncertainties alone do not justify one: "Risks are addressed by
     considering disadvantages of Implementations and Metrics, uncertainties are addressed by Metrics". Where a solution elsewhere
-    already serves a need, record that the implementation builds on it. Each Solution record names its problems and ideals, its scoped purpose (including what it
-    deliberately avoids), milestones, knowledge and measures of success. Milestones are the solution's priorities in
+    already serves a need, record that the implementation builds on it. Each Solution record names its problems and ideals, a description, purpose, approach and out of scope,
+    milestones, knowledge, measures of success and tags. The description is its unique value proposition, never a
+    restatement of its knowledge. The purpose is the niche of utility it serves; the approach is how it solves problems,
+    true of every implementation, and is the strategy statement people see in the app (start with a verb, name no actor).
+    Out of scope holds only exclusions that are not otherwise apparent: what it could plausibly be confused with (a
+    neighbouring solution in the same intent, a solution in another intent, or a familiar idea that sounds the same).
+    The key is intelligent specificity: say what only this solution is for. Out of scope is never a place for generic
+    disclaimers that could sit on any solution ("it does not prescribe techniques, promise a result by a date, or replace
+    a teacher's accountability", "not every ideal is necessary"); leave it empty rather than fill it with those. Knowledge
+    carries the person's own principles word for word (for a map proposition, the original proposition sentence). Each
+    tag names the risk it mitigates, a linked problem such as R1-R4. (Joshua, 2026-10-26, on the Developmental Map spec.) Milestones are the solution's priorities in
     order. Each is a value of one or more metrics that relate to the solution's authoritative metric (a pass rate of
     100% on an end-to-end test counts), optionally with the condition (a date or a circumstance) after which it is no
     longer a priority and is archived. A condition that must keep holding is not a milestone: it belongs in measures of success

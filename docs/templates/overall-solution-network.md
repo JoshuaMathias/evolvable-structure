@@ -15,7 +15,7 @@ Write each item as a heading with the id and a short title, then one bullet per 
 - **Who or what type of person has the problem?** <!-- Who has it -->
 - **Why does this problem matter?** <!-- Why it matters -->
 - **Why is the problem hard to resolve?** <!-- Why hard -->
-- **What solutions or workarounds already attempt to address the prompt?** <!-- Existing attempts -->
+- **What solutions or workarounds already attempt to address the problem?** <!-- Existing attempts -->
 - **Addressed by:** <!-- solution ids -->  **Opposed by:** <!-- ideal ids -->
 
 ## Ideals
@@ -23,20 +23,22 @@ Write each item as a heading with the id and a short title, then one bullet per 
 ### I1 Short title
 - **What's a combined noun with adjective that represents the ideal's direction of interest?** <!-- Name -->
 - **What does this ideal ask for?** <!-- Principle -->
-- **Describe what it would be like to experience this ideal. Hints of Measurement: How would you know this ideal is reached?** <!-- State description -->
+- **Describe what it would be like to experience this ideal.** <!-- State description -->
+- **How would you know this ideal is reached?** <!-- Hints of measurement -->
 - **Opposes:** <!-- problem ids -->
 
 ## The overall solution and its areas
 
 ### S1 Short title
 - **What's a name that describes the type of solution it is?** <!-- Name -->
-- **What is the solution or what roles does it intend to fill?** <!-- Description -->
-- **What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding?** <!-- Scoped purpose -->
+- **What is the solution's unique value proposition, which justifies its existence? (Consider how it differs from other solutions, without explicitly stating anything about other solutions)** <!-- Description -->
+- **An inspiring sentence which clarifies the niche of utility that the solution serves without enumerating use cases. Start with a verb and name who or what it serves where relevant.** <!-- Purpose -->
+- **An inspiring sentence which clarifies how the solution solves problems, which applies to every implementation. This is also the solution's human-readable strategy statement. Start with a verb and name no actor (worded like a responsibility).** <!-- Approach -->
+- **What type of use cases is the solution intentionally avoiding, which exclusions aren't otherwise apparent or typical? (Don't explicitly name other solutions that aren't in scope)** <!-- Out of scope -->
 - **What are the solution's priorities in order? Each milestone is a value of one or more metrics, which doesn't have to be the authoritative metric directly but it should relate to it. End condition (optional): Condition for the milestone to no longer be a priority (date or other circumstance), at which point it's archived. Target completion time (optional): Planned completion date and time (which other dependent milestones may rely on). May be a date or a specific minute of a date where precision is needed.** <!-- Milestones -->
-- **What knowledge informs the solution's definition or implementations?** <!-- Knowledge -->
+- **What knowledge informs the solution's definition or implementations? This can be a list of many items, including chosen assumptions, best guesses, evidence, theories, or perspectives which inform the solution or its implementations.** <!-- Knowledge -->
 - **What would indicate the solution is successful?** <!-- Measures of success -->
-- **What classifications may be necessary to avoid risk? Possible risks (structural problems): R1: Adding a new solution that duplicates an existing one. R2: Not leveraging the benefits of an existing solution, such as partial overlap of purpose. R3: Not being aware of solutions that need to change definition or implementation due to something else changing. R4: Using a solution when it should not be for the particular use case.** <!-- Tags -->
-- **Every tag should name what risk it mitigates, which are linked problems, whether from the same intent as the solution or from other intents (such as R1-R4 above which are problems defined for ESOI). Consequently, a solution's connected problems are also tags but are not sufficient on their own.** <!-- Risk addressed -->
+- **What classifications may be necessary to avoid risk? Risk Addressed: Every tag should name what risk it mitigates, which are linked problems, whether from the same intent as the solution or from other intents (such as R1-R4 below which are problems defined for ESOI). Tags are not problems themselves; they help mitigate structural problems such as through tagging topics or types of technology used. Note: Possible risks (structural problems): R1 (duplication): Adding a new solution that duplicates an existing one. R2 (opportunity): Not leveraging the benefits of an existing solution, such as partial overlap of purpose. R3 (dependency): Not being aware of solutions that need to change definition or implementation due to something else changing. R4 (mistake): Using a solution when it should not be for the particular use case.** <!-- Tags -->
 - **Parameters** <!-- Parameters -->
 - **Inputs** <!-- Inputs -->
 - **Outputs** <!-- Outputs -->
@@ -48,15 +50,17 @@ Write each item as a heading with the id and a short title, then one bullet per 
 
 ### A1 Short title
 - **What's a name that distinguishes this implementation from other alternatives?** <!-- Name -->
-- **How does the implementation achieve the purpose of its solution's definition?** <!-- Description -->
+- **What is the implementation's unique value proposition, to achieve the purpose of its solution? (Consider how it differs from other existing or potential alternatives, without explicitly stating anything about other implementations)** <!-- Description -->
 - **Advantages** <!-- Advantages -->
 - **Disadvantages** <!-- Disadvantages -->
+- **Solutions that the implementation uses. Note: Ideally the ESOI framework used enables automatic dependency awareness.** <!-- Dependencies -->
 - **Implements:** <!-- solution id -->
 
 ## Top metrics
 
 ### M1 Short title
 - **What's a name that clarifies what is being measured?** <!-- Name -->
-- **What does this metric attempt to measure?** <!-- Scoped purpose -->
+- **A statement of what the metric ensures, specifically and comprehensively yet simply stated. This statement does not need to enumerate its current implementation, rather it encapsulates an intention to measure.** <!-- Purpose -->
 - **What is recorded as the metric to compare implementations?** <!-- Record -->
+- **What can the metric not see, or what could it reward wrongly?** <!-- Disadvantages -->
 - **Measures:** <!-- solution ids -->

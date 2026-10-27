@@ -18,7 +18,7 @@ _What's a name that distinguishes this implementation from other alternatives?_
 
 ## Description
 
-_How does the implementation achieve the purpose of its solution's definition?_
+_What is the implementation's unique value proposition, to achieve the purpose of its solution? (Consider how it differs from other existing or potential alternatives, without explicitly stating anything about other implementations)_
 
 <!-- your answer -->
 
@@ -34,6 +34,12 @@ _Disadvantages_
 
 <!-- your answer -->
 
+## Dependencies
+
+_Solutions that the implementation uses. Note: Ideally the ESOI framework used enables automatic dependency awareness._
+
+<!-- your answer -->
+
 ## What it is not
 
-What endusers of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solution's will define interfaces.
+What end users of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solutions will define interfaces.

@@ -7,6 +7,19 @@ Part of `../principles.md`. When generality is the wrong move, from Joshua's pus
 These come from Joshua's own pushback and from where his structures failed. They are weighed
 alongside the patterns.
 
+- **A proxy metric is checked against the person's verdict on real outputs before its rise is trusted.**
+  Passing synthetic bad cases is not enough: a proxy can climb while the real work gets worse, because
+  it rewards what is easy to count (more facts, more coverage) instead of the purpose (what only this
+  artifact can say). Before reporting a proxy's improvement, put the real outputs in front of the person
+  or a reviewer briefed on the purpose, and treat their rejection as the known-bad case the next version
+  of the metric must fail. Joshua, 2026-10-24, on letters that had scored higher than ever: "this is
+  embarrasing to send... please improve whatever the metric is and then improve" them.
+- **Citing the principles is not applying ESOI.** A pass that only says which principles shaped the
+  work (one core, parameters at the edge, one source of truth) is a description, not an application.
+  Applying it means writing the records from `SKILL.md`'s templates (the intent, its problems, ideals,
+  solutions, an authoritative metric with cases, implementations including a baseline) through
+  `../steps.md`, measuring the implementations on those cases, and recording the before and after.
+  Joshua, 2026-10-24: "you have to apply esoi with real specifications not just principles".
 - **Generality earns its place through the purpose, and scope wins most corrections.** `SKILL.md`
   asks to predict what will be useful to change and says improving the structure up front is worth
   the time, so the test is not "has a second case arrived" but "can you name the likely change and

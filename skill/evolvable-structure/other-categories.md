@@ -111,6 +111,14 @@ and player governance proposals (proposals, not records of how they worked).
   regenerates it. Joshua, 2026-10-16: "every separately operational answer should be a separate
   question essentially ... relationship to metrics is a good way to think about it, if metric could be
   separate."
+- **Content needs an ideal for its own quality, set by the role the person plays in it.** A piece
+  measured only by a process ideal and a conversion metric (subscribers, sign-ups) gets optimized into
+  a pitch. Before drafting anything for it (questions, slides, a script), check that the spec names
+  the person's role (guest, host, teacher), an ideal for what makes the piece worth watching in that
+  role, and a metric that reads it (retention, responses to the ideas), plus a gate a draft must pass
+  before recording. Applying the skill only to the deck's build pipeline missed this. Joshua,
+  2026-10-26, on interview slides that toured products: "I'm not here to teach and preach, I'm being
+  interviewed", then "something must be wrong with the esoi specification for this".
 - **Principles with a purpose and a decision.** Each Writealyze principle card says how the truth
   relates to the purpose and how it is applied in decisions, so a new case can be checked against it.
 

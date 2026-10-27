@@ -24,7 +24,13 @@ _What does this ideal ask for?_
 
 ## State description
 
-_Describe what it would be like to experience this ideal. Hints of Measurement: How would you know this ideal is reached?_
+_Describe what it would be like to experience this ideal._
+
+<!-- your answer -->
+
+## Hints of measurement
+
+_How would you know this ideal is reached?_
 
 <!-- your answer -->
 

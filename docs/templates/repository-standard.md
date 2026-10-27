@@ -71,24 +71,25 @@ What it is not: A general category like "parenting" or "career." An intent is al
 | `who_has_it` | yes | Who or what type of person has the problem? |
 | `why_it_matters` | yes | Why does this problem matter? |
 | `why_hard` | yes | Why is the problem hard to resolve? |
-| `existing_attempts` | yes | What solutions or workarounds already attempt to address the prompt? |
+| `existing_attempts` | yes | What solutions or workarounds already attempt to address the problem? |
 
 What it is not: A decision, task, recommendation, or component, but all of these can *have* problems.
 
 Connects to: Ideals that oppose at least one aspect of the problem, Solutions that would solve at least one aspect of the problem
 
-**Solution**: A definition of how one or more problems can be addressed to fulfill the intent.
+**Solution**: A strategic definition of how one or more problems can be addressed to fulfill the intent.
 
 | Column | Required | Question |
 |---|---|---|
 | `name` | yes | What's a name that describes the type of solution it is? |
-| `description` | yes | What is the solution or what roles does it intend to fill? |
-| `scoped_purpose` | yes | What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding? |
+| `description` | yes | What is the solution's unique value proposition, which justifies its existence? (Consider how it differs from other solutions, without explicitly stating anything about other solutions) |
+| `purpose` | yes | An inspiring sentence which clarifies the niche of utility that the solution serves without enumerating use cases. Start with a verb and name who or what it serves where relevant. |
+| `approach` | yes | An inspiring sentence which clarifies how the solution solves problems, which applies to every implementation. This is also the solution's human-readable strategy statement. Start with a verb and name no actor (worded like a responsibility). |
+| `out_of_scope` | yes | What type of use cases is the solution intentionally avoiding, which exclusions aren't otherwise apparent or typical? (Don't explicitly name other solutions that aren't in scope) |
 | `milestones` | yes | What are the solution's priorities in order? Each milestone is a value of one or more metrics, which doesn't have to be the authoritative metric directly but it should relate to it. End condition (optional): Condition for the milestone to no longer be a priority (date or other circumstance), at which point it's archived. Target completion time (optional): Planned completion date and time (which other dependent milestones may rely on). May be a date or a specific minute of a date where precision is needed. |
-| `knowledge` | yes | What knowledge informs the solution's definition or implementations? |
+| `knowledge` | yes | What knowledge informs the solution's definition or implementations? This can be a list of many items, including chosen assumptions, best guesses, evidence, theories, or perspectives which inform the solution or its implementations. |
 | `measures_of_success` | yes | What would indicate the solution is successful? |
-| `tags` | yes | What classifications may be necessary to avoid risk? Possible risks (structural problems): R1: Adding a new solution that duplicates an existing one. R2: Not leveraging the benefits of an existing solution, such as partial overlap of purpose. R3: Not being aware of solutions that need to change definition or implementation due to something else changing. R4: Using a solution when it should not be for the particular use case. |
-| `risk_addressed` | yes | Every tag should name what risk it mitigates, which are linked problems, whether from the same intent as the solution or from other intents (such as R1-R4 above which are problems defined for ESOI). Consequently, a solution's connected problems are also tags but are not sufficient on their own. |
+| `tags` | yes | What classifications may be necessary to avoid risk? Risk Addressed: Every tag should name what risk it mitigates, which are linked problems, whether from the same intent as the solution or from other intents (such as R1-R4 below which are problems defined for ESOI). Tags are not problems themselves; they help mitigate structural problems such as through tagging topics or types of technology used. Note: Possible risks (structural problems): R1 (duplication): Adding a new solution that duplicates an existing one. R2 (opportunity): Not leveraging the benefits of an existing solution, such as partial overlap of purpose. R3 (dependency): Not being aware of solutions that need to change definition or implementation due to something else changing. R4 (mistake): Using a solution when it should not be for the particular use case. |
 | `parameters` | no | Parameters |
 | `inputs` | no | Inputs |
 | `outputs` | no | Outputs |
@@ -97,18 +98,19 @@ Connects to: Ideals that oppose at least one aspect of the problem, Solutions th
 
 What it is not: Fully functional code or solution, but it can be an abstract class, template, or routing which a separate structure solution network defines.
 
-Connects to: Implementations that build what the solution defines, Metrics that define and implement the solution's measures of success, Problems the solution addresses,
+Connects to: Implementations that build what the solution defines, Metrics that define and implement the solution's measures of success, Problems the solution addresses.
 
 **Implementation**: The built structure which carries out its associated solution; also known as an alternative.
 
 | Column | Required | Question |
 |---|---|---|
 | `name` | yes | What's a name that distinguishes this implementation from other alternatives? |
-| `description` | yes | How does the implementation achieve the purpose of its solution's definition? |
+| `description` | yes | What is the implementation's unique value proposition, to achieve the purpose of its solution? (Consider how it differs from other existing or potential alternatives, without explicitly stating anything about other implementations) |
 | `advantages` | yes | Advantages |
 | `disadvantages` | yes | Disadvantages |
+| `dependencies` | yes | Solutions that the implementation uses. Note: Ideally the ESOI framework used enables automatic dependency awareness. |
 
-What it is not: What endusers of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solution's will define interfaces.
+What it is not: What end users of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solutions will define interfaces.
 
 **Ideal**: A definition of the future state implied by the intent, in a particular dimension or aspect.
 
@@ -116,7 +118,8 @@ What it is not: What endusers of the relevant solution directly interact with. T
 |---|---|---|
 | `name` | yes | What's a combined noun with adjective that represents the ideal's direction of interest? |
 | `principle` | yes | What does this ideal ask for? |
-| `state_description` | yes | Describe what it would be like to experience this ideal. Hints of Measurement: How would you know this ideal is reached? |
+| `state_description` | yes | Describe what it would be like to experience this ideal. |
+| `hints_of_measurement` | yes | How would you know this ideal is reached? |
 
 What it is not: A practical metric or solution, or technology.
 
@@ -127,7 +130,8 @@ Connects to: Problems the ideal opposes.
 | Column | Required | Question |
 |---|---|---|
 | `name` | yes | What's a name that clarifies what is being measured? |
-| `scoped_purpose` | yes | What does this metric attempt to measure? |
+| `purpose` | yes | A statement of what the metric ensures, specifically and comprehensively yet simply stated. This statement does not need to enumerate its current implementation, rather it encapsulates an intention to measure. |
 | `record` | yes | What is recorded as the metric to compare implementations? |
+| `disadvantages` | yes | What can the metric not see, or what could it reward wrongly? |
 
 <!-- esoi-template:end -->

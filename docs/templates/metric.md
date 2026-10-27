@@ -16,14 +16,20 @@ _What's a name that clarifies what is being measured?_
 
 <!-- your answer -->
 
-## Scoped purpose
+## Purpose
 
-_What does this metric attempt to measure?_
+_A statement of what the metric ensures, specifically and comprehensively yet simply stated. This statement does not need to enumerate its current implementation, rather it encapsulates an intention to measure._
 
 <!-- your answer -->
 
 ## Record
 
 _What is recorded as the metric to compare implementations?_
+
+<!-- your answer -->
+
+## Disadvantages
+
+_What can the metric not see, or what could it reward wrongly?_
 
 <!-- your answer -->

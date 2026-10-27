@@ -2,7 +2,7 @@
 
 # Solution (template)
 
-> A definition of how one or more problems can be addressed to fulfill the intent.
+> A strategic definition of how one or more problems can be addressed to fulfill the intent.
 
 Copy this file once per record. Answer every question; leave none empty. Give the record a short stable id (a few lowercase words joined by hyphens) so other records can link to it.
 
@@ -18,13 +18,25 @@ _What's a name that describes the type of solution it is?_
 
 ## Description
 
-_What is the solution or what roles does it intend to fill?_
+_What is the solution's unique value proposition, which justifies its existence? (Consider how it differs from other solutions, without explicitly stating anything about other solutions)_
 
 <!-- your answer -->
 
-## Scoped purpose
+## Purpose
 
-_What types of use cases could the solution be used for? What type of use cases is the solution intentionally avoiding?_
+_An inspiring sentence which clarifies the niche of utility that the solution serves without enumerating use cases. Start with a verb and name who or what it serves where relevant._
+
+<!-- your answer -->
+
+## Approach
+
+_An inspiring sentence which clarifies how the solution solves problems, which applies to every implementation. This is also the solution's human-readable strategy statement. Start with a verb and name no actor (worded like a responsibility)._
+
+<!-- your answer -->
+
+## Out of scope
+
+_What type of use cases is the solution intentionally avoiding, which exclusions aren't otherwise apparent or typical? (Don't explicitly name other solutions that aren't in scope)_
 
 <!-- your answer -->
 
@@ -36,7 +48,7 @@ _What are the solution's priorities in order? Each milestone is a value of one o
 
 ## Knowledge
 
-_What knowledge informs the solution's definition or implementations?_
+_What knowledge informs the solution's definition or implementations? This can be a list of many items, including chosen assumptions, best guesses, evidence, theories, or perspectives which inform the solution or its implementations._
 
 <!-- your answer -->
 
@@ -48,13 +60,7 @@ _What would indicate the solution is successful?_
 
 ## Tags
 
-_What classifications may be necessary to avoid risk? Possible risks (structural problems): R1: Adding a new solution that duplicates an existing one. R2: Not leveraging the benefits of an existing solution, such as partial overlap of purpose. R3: Not being aware of solutions that need to change definition or implementation due to something else changing. R4: Using a solution when it should not be for the particular use case._
-
-<!-- your answer -->
-
-## Risk addressed
-
-_Every tag should name what risk it mitigates, which are linked problems, whether from the same intent as the solution or from other intents (such as R1-R4 above which are problems defined for ESOI). Consequently, a solution's connected problems are also tags but are not sufficient on their own._
+_What classifications may be necessary to avoid risk? Risk Addressed: Every tag should name what risk it mitigates, which are linked problems, whether from the same intent as the solution or from other intents (such as R1-R4 below which are problems defined for ESOI). Tags are not problems themselves; they help mitigate structural problems such as through tagging topics or types of technology used. Note: Possible risks (structural problems): R1 (duplication): Adding a new solution that duplicates an existing one. R2 (opportunity): Not leveraging the benefits of an existing solution, such as partial overlap of purpose. R3 (dependency): Not being aware of solutions that need to change definition or implementation due to something else changing. R4 (mistake): Using a solution when it should not be for the particular use case._
 
 <!-- your answer -->
 
@@ -96,4 +102,4 @@ Fully functional code or solution, but it can be an abstract class, template, or
 
 ## Connects to
 
-Implementations that build what the solution defines, Metrics that define and implement the solution's measures of success, Problems the solution addresses,
+Implementations that build what the solution defines, Metrics that define and implement the solution's measures of success, Problems the solution addresses.

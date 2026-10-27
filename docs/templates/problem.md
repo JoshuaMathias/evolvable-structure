@@ -36,7 +36,7 @@ _Why is the problem hard to resolve?_
 
 ## Existing attempts
 
-_What solutions or workarounds already attempt to address the prompt?_
+_What solutions or workarounds already attempt to address the problem?_
 
 <!-- your answer -->
 
