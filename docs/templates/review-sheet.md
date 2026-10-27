@@ -69,7 +69,6 @@ One spreadsheet tab per intent type, so a person can review problems, ideals, so
 | `description` | generated |
 | `advantages` | generated |
 | `disadvantages` | generated |
-| `dependencies` | generated |
 | `kind` | generated |
 | `selected` | generated |
 | `latest_result` | generated |

@@ -2,7 +2,7 @@
 
 # When metrics are run (policy template)
 
-A Metric is what gets run, and when to run it is itself a solution: it has a problem, ideals, alternative implementations and a metric of its own. Record yours as a small ESOI network that the repository's other records link to. Nothing here adds a field to the intent template: timing is not a field of the Metric template (name, scoped purpose, record), so it lives in the solution that governs the metrics.
+A Metric is what gets run, and when to run it is itself a solution: it has a problem, ideals, alternative implementations and a metric of its own. Record yours as a small ESOI network that the repository's other records link to. Nothing here adds a field to the intent template: timing is not a field of the Metric template (name, purpose, record, disadvantages), so it lives in the solution that governs the metrics.
 
 Read [when-metrics-are-run.md](../explanation/when-metrics-are-run.md) first.
 
@@ -32,6 +32,8 @@ _What is the solution's unique value proposition, which justifies its existence?
 
 _An inspiring sentence which clarifies the niche of utility that the solution serves without enumerating use cases. Start with a verb and name who or what it serves where relevant._
 
+For this policy: Which Metric records it governs, and which runs it deliberately leaves out (paid runs, say).
+
 <!-- your answer -->
 
 ### Approach
@@ -48,7 +50,7 @@ _What type of use cases is the solution intentionally avoiding, which exclusions
 
 ### Milestones
 
-_What are the solution's priorities in order? Each milestone is a value of one or more metrics, which doesn't have to be the authoritative metric directly but it should relate to it. End condition (optional): Condition for the milestone to no longer be a priority (date or other circumstance), at which point it's archived. Target completion time (optional): Planned completion date and time (which other dependent milestones may rely on). May be a date or a specific minute of a date where precision is needed._
+_What are the solution's priorities in order? Every solution specifies at least one. Each milestone is a value of one or more metrics, which doesn't have to be the authoritative metric directly but it should relate to it. End condition (optional): Condition for the milestone to no longer be a priority (date or other circumstance), at which point it's archived. Met: Whether the milestone has been reached, and when. Target completion time (optional): Planned completion date and time (which other dependent milestones may rely on). May be a date or a specific minute of a date where precision is needed._
 
 For this policy: The policy's priorities in order, each a value of a metric, such as the share of metrics with a result at the current commit. A milestone may carry an end condition (when it stops being a priority and is archived) and a target completion time (when it is planned to be reached); they are separate, and each is written only when it is known. A budget shared by many intents is specified once in its own intent, not as a milestone here.
 

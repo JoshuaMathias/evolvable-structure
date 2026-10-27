@@ -53,14 +53,15 @@ The five specification templates within an intent (each intent can have multiple
         - Description: What is the solution's unique value proposition, which justifies its existence? (Consider how it differs from other solutions, without explicitly stating anything about other solutions)
         - Purpose: An inspiring sentence which clarifies the niche of utility that the solution serves without enumerating use cases. Start with a verb and name who or what it serves where relevant.
         - Approach: An inspiring sentence which clarifies how the solution solves problems, which applies to every implementation. This is also the solution's human-readable strategy statement. Start with a verb and name no actor (worded like a responsibility).
-        - Out of Scope: What type of use cases is the solution intentionally avoiding, which exclusions aren't otherwise apparent or typical? (Don't explicitly name other solutions that aren't in scope)
-        - Milestones: What are the solution's priorities in order?
+        - Out of Scope (optional): What type of use cases is the solution intentionally avoiding, which exclusions aren't otherwise apparent or typical? (Don't explicitly name other solutions that aren't in scope)
+        - Milestones: What are the solution's priorities in order? Every solution specifies at least one.
             - Each milestone is a value of one or more metrics, which doesn't have to be the authoritative metric directly but it should relate to it.
             - End condition (optional): Condition for the milestone to no longer be a priority (date or other circumstance), at which point it's archived.
+            - Met: Whether the milestone has been reached, and when.
             - Target completion time (optional): Planned completion date and time (which other dependent milestones may rely on). May be a date or a specific minute of a date where precision is needed.
-        - Knowledge: What knowledge informs the solution's definition or implementations? This can be a list of many items, including chosen assumptions, best guesses, evidence, theories, or perspectives which inform the solution or its implementations.
+        - Knowledge (optional): What knowledge informs the solution's definition or implementations? This can be a list of many items, including chosen assumptions, best guesses, evidence, theories, or perspectives which inform the solution or its implementations.
         - Measures of Success: What would indicate the solution is successful?
-        - Tags: What classifications may be necessary to avoid risk?
+        - Tags (optional): What classifications may be necessary to avoid risk?
             - Risk Addressed: Every tag should name what risk it mitigates, which are linked problems, whether from the same intent as the solution or from other intents (such as R1-R4 below which are problems defined for ESOI). Tags are not problems themselves; they help mitigate structural problems such as through tagging topics or types of technology used.
             - Note: Possible risks (structural problems):
                 - R1 (duplication): Adding a new solution that duplicates an existing one.
@@ -81,7 +82,7 @@ The five specification templates within an intent (each intent can have multiple
         - Description: What is the implementation's unique value proposition, to achieve the purpose of its solution? (Consider how it differs from other existing or potential alternatives, without explicitly stating anything about other implementations)
         - Advantages
         - Disadvantages
-        - Dependencies: Solutions that the implementation uses.
+        - Dependencies (optional): Solutions that the implementation uses.
             - Note: Ideally the ESOI framework used enables automatic dependency awareness.
     - What it's not: What end users of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solutions will define interfaces.
 - **Ideal**: A definition of the future state implied by the intent, in a particular dimension or aspect.
