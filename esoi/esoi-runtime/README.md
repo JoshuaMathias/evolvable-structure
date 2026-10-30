@@ -11,6 +11,7 @@ This sub-intent arises as the implementation `implementation-selection:declarati
 | Solution | Name | Selected | Metric |
 |---|---|---|---|
 | `runtime-selection` | Select an implementation while the program runs | declarations-and-cascade | Python selector cases |
+| `assemble-by-name` | assemble-by-name | assembler | metric-assemble-by-name |
 
 ## Implementations
 
@@ -18,7 +19,9 @@ This sub-intent arises as the implementation `implementation-selection:declarati
 |---|---|---|---|
 | `runtime-selection:select` | Selector class and table | implementations/python/esoi/select.py |  |
 | `runtime-selection:declarations-and-cascade` | Declarations in code with one cascade | implementations/python/esoi/runtime.py |  |
+| `assemble-by-name:assembler` | assemble-by-name:assembler | implementations/python/esoi/assemble.py |  |
 
 ## Metrics
 
 - `metric-runtime-selection`, Python selector cases: `esoi run select_an_implementation --impl live_selector`
+- `metric-assemble-by-name`, metric-assemble-by-name: `python -m pytest implementations/python/tests/test_assemble.py`

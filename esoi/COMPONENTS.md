@@ -66,3 +66,4 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `selection` | core | Resolving an implementation of a solution from a selection table. | runtime-selection |
 | `eval-select-an-implementation` | evaluation | Cases for resolving a selection. | runtime-selection |
 | `runtime` | core | Declarations in code and the cascade that picks the implementation a call runs. | runtime-selection |
+| `assemble` | core | unconfirmed: for Joshua to confirm. | assemble-by-name |

@@ -30,6 +30,7 @@ The main feature is explanation and templates that need no code; Python is one e
 | `implementations/python/` | The `esoi` package, its tests and evaluation components | changing the tools |
 | `esoi/` | ESOI applied to this repository. It holds the top intent (here ESOI itself, because that is why this repository exists; another project's top intent is its own purpose); `esoi-runtime/` is a sub-intent with its own `intent.csv`; its folder is named by its intent id | adding or changing a part |
 | `examples/` | Adopters as short testimonials | an adopter has a paragraph to add |
+| `docs/explanation/what-belongs-where.md` | What belongs in this library and what stays in an adopting application | an application needs a generic capability, or you are unsure where code goes |
 
 ## Rules for work here
 

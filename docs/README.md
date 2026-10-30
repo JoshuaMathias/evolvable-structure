@@ -28,6 +28,8 @@ a team process, a personal schedule.
 - [A metric must be meaningfully real](explanation/metrics-must-be-real.md): no scripted stand-ins; creative and limited measures are fine, fake ones are not (rule S31).
 - [Declare, call, measure, promote](explanation/graceful-selection.md): the graceful way to declare alternatives in code and let the metric pick.
 - [When metrics are run](explanation/when-metrics-are-run.md): when to run each metric and who approves the spend.
+- [Depend on other solutions by name](explanation/cross-dependency-by-name.md): why one solution needs another by name, not by import.
+- [What belongs in the library and what stays in an application](explanation/what-belongs-where.md): the test, with a table.
 
 ## Where it applies
 
@@ -50,6 +52,7 @@ a team process, a personal schedule.
 - [Apply ESOI with the Python tools](guides/apply-with-tools.md)
 - [Migrate to intents](guides/migrate-to-intents.md): from the two-level overall layout.
 - [Install the skill](guides/install-the-skill.md): give an AI agent the principles.
+- [Assemble the parts of a program by name](guides/assemble-by-name.md): resolve, build in dependency order, fail early.
 
 ## Background
 

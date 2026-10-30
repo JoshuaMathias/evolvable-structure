@@ -59,7 +59,7 @@ esoi select --promote                            # promote the winner of its own
 The selection table is the advanced layer underneath, for a project that wants every choice as data.
 
 More in [Apply ESOI with the Python tools](https://github.com/JoshuaMathias/evolvable-structure/wiki/Apply-ESOI-with-the-Python-tools)
-[Declare, call, measure, promote](docs/explanation/graceful-selection.md) and [the package's README](implementations/python/README.md). It needs Python 3.11 or later and has no dependencies in
+[Declare, call, measure, promote](docs/explanation/graceful-selection.md) and [the package's README](implementations/python/README.md). When one solution needs another, see [Assemble the parts of a program by name](docs/guides/assemble-by-name.md) and [what belongs in the library and what in an application](docs/explanation/what-belongs-where.md). It needs Python 3.11 or later and has no dependencies in
 its core; Google Sheets sync is an optional extra (`esoi[sheets]`).
 
 ## What is in this repository

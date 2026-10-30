@@ -1,2 +1,3 @@
 metric_id,name,purpose,record,disadvantages,solution_ids,command,parent_metric_ids,run_policy_ids
 metric-runtime-selection,Python selector cases,Measures whether the python selector does what its solution defines.,"Cases passed out of cases run for each implementation on the same cases, one row per run in the results log pinned to the commit and the case hash.",,runtime-selection,esoi run select_an_implementation --impl live_selector,metric-resolution-correctness,when-metrics-are-run
+metric-assemble-by-name,metric-assemble-by-name,unconfirmed: for Joshua to confirm.,unconfirmed: for Joshua to confirm.,unconfirmed: for Joshua to confirm.,assemble-by-name,python -m pytest implementations/python/tests/test_assemble.py,metric-resolution-correctness,when-metrics-are-run
