@@ -1,8 +1,9 @@
 # Evolvable Structure that Optimizes Intent (ESOI)
 
-ESOI is Joshua Mathias's way to make sure what you intend actually happens, and keeps getting better. You put your
-intent into words (a name and a vision) and a few short kinds of record (the problem, the ideal you want, the solution, the ways of doing it,
-and how to measure them), try more than one way, and let a measurement pick the best. The structure stays steady while
+ESOI makes sure what you intend actually happens, and keeps getting better. You put your intent into words (a name and
+a vision) and five short kinds of record: **problem** (what is in the way), **ideal** (the future you want),
+**solution** (what to do about it), **implementation** (one built way of doing it) and **metric** (how to measure
+how close it gets). You try more than one way and let the measurement pick the best. The structure stays steady while
 the ways of doing things improve, and it changes with you when your intent does.
 
 It works for anything with an intent and more than one way to serve it: a product, code, a course, a coaching program,
