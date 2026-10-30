@@ -24,4 +24,4 @@ This sub-intent arises as the implementation `implementation-selection:declarati
 ## Metrics
 
 - `metric-runtime-selection`, Python selector cases: `esoi run select_an_implementation --impl live_selector`
-- `metric-assemble-by-name`, metric-assemble-by-name: `python -m pytest implementations/python/tests/test_assemble.py`
+- `metric-assemble-by-name`, metric-assemble-by-name: `esoi run assemble_by_name --impl live_assembler`

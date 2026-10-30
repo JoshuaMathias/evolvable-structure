@@ -7,19 +7,19 @@ implementations, and the dependency is resolved **by name** when the program is 
 
 ## Why a name and not an import
 
-- **The seat is the contract.** A solution is declared once as an interface (a Protocol class). An implementation says "I need
+- **The solution is the contract.** A solution is declared once as an interface (a Protocol class). An implementation says "I need
   a `store`" by typing a constructor parameter with that interface. It imports the contract, never an alternative.
 - **A name is data.** Which store to use can live in configuration, a database row or an environment variable, and change
   without touching code. An import path cannot be data safely: a path from a file is a way to run code nobody reviewed.
-  A name is checked against a narrow pattern and against the list of names the seat has, so a typo or a hostile value fails
+  A name is checked against a narrow pattern and against the list of names the solution has, so a typo or a hostile value fails
   instead of importing something.
 - **The records already say it.** `implementations.csv` has a `uses_solution_ids` column. With needs read from the typed
   parameters, the column is derived and checked rather than written by hand, and the graph of "who needs whom" can be tested:
   no cycles among default arms, every need met, a solution with no default arm marked as supplied by the consumer.
 - **Failures come early.** Building in dependency order at startup means a cycle or an unmet need stops the program before it
   serves anything, with the chain named, instead of failing on the first call that happens to reach it.
-- **Cost is paid once.** Resolution happens in `assemble`, then the result is frozen. A call does no lookup, takes no lock and
-  cannot be re-pointed by a later registration.
+- **Cost is paid once.** Resolution happens in `assemble`, then the result is frozen: its choices and implementations are fixed, so a later
+  registration cannot re-point an assembled object. A call on one of its objects does no lookup and takes no lock.
 
 ## What this does not mean
 

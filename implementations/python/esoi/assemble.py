@@ -1,11 +1,12 @@
 """Depend on other solutions by name, not by import: resolve a part by a validated name, build the parts a program uses in
 dependency order, and fail at startup on a cycle or a need nothing meets.
 
+    from pathlib import Path
     from typing import Protocol
     from esoi import solution, implementation
     from esoi.assemble import Assembler, AssemblyConfig
 
-    @solution("store")                       # a seat: a Protocol class, so importing it runs nothing
+    @solution("store")                       # a Protocol class, so importing it runs nothing
     class Store(Protocol):
         def get(self, key: str) -> str: ...
 
@@ -13,24 +14,30 @@ dependency order, and fail at startup on a cycle or a need nothing meets.
     class Memory:
         def get(self, key): return key
 
-    @implementation("report")
+    @implementation("report", "plain")
     class Report:
-        def __init__(self, store: Store):    # a parameter typed with a seat IS a need of that seat
+        def __init__(self, store: Store):    # a parameter typed with a solution's Protocol IS a need of that solution
             self.store = store
 
-    parts = Assembler("mylib", package_dir, noun="mylib")        # one per package: its scope, its folder
-    system = parts.assemble(AssemblyConfig(seats=("report",)))   # builds store, then report, once
-    system["report"].store is system["store"]                    # needs injected by name, no import between the two
+    parts = Assembler("mylib", Path(__file__).parent)    # once, in the package mylib: its scope and its folder
+    system = parts.assemble(AssemblyConfig(solutions=("report",), selections={"store": "memory", "report": "plain"}))
+    assert system["report"].store is system["store"]     # built in order, needs injected by name
 
-A name is the only thing configuration, a row or an environment can carry. It is checked against ``NAME_PATTERN`` before
-``esoi.runtime`` sees it (an import path such as ``os:system`` never reaches an import) and must be one the seat lists.
-An import target comes only from a ``register`` call in the consumer's code (trusted) or from the package's own packaged
-records and snapshot, whose module must start with the scope and whose file must lie inside ``package_dir``.
+A name is the only thing configuration, a row or an environment can carry. It is checked against ``NAME_PATTERN`` and must
+be one the solution lists. A module is imported only when a record of the package names it (a record's ``filepath``, or the
+package's own ``esoi_selection.json``), it starts with the scope, and its file lies inside ``package_dir``: ``safe_module``
+decides that from the position of the file, importing nothing, and the import then checks each package on the way against
+that file. ``Assembler.modules`` are the package's own modules that declare solutions and arms; ``prepare`` imports them.
 
-Everything goes through ``esoi.runtime`` (register, resolve, names, choose) under the package's scope. The library reads no
-environment: the only environment ``esoi.runtime`` sees is ``AssemblyConfig.selection_environ``, a mapping the consumer
-hands in (default empty). It never imports a consumer: the consumer constructs the ``Assembler`` and passes it what it
-owns. Standard library and ``esoi`` only.
+Under an Assembler the records come from one place: the folder ``records`` names (its ``esoi.toml`` is read, never searched
+for in a parent folder), else the snapshot beside the package. The deployment table, the selection table of an
+``esoi.toml``, ``override()`` and the process environment are not consulted; ``sys.path`` is not changed; a load error is raised.
+The cascade is: explicit name, the consumer's selections, ``AssemblyConfig.selection_environ`` (the only environment
+``esoi`` is given, and only the variable of this scope and solution), then the package default.
+
+It never imports a consumer: the consumer constructs the ``Assembler`` and passes it what it owns. Standard library and ``esoi``
+only. ``Assembly`` is frozen: choices and implementations are fixed when ``assemble`` returns, nothing resolves later.
+``Assembler.choice`` and ``Assembler.resolve`` are lookups made when they are called.
 """
 from __future__ import annotations
 
@@ -42,19 +49,25 @@ import inspect
 import json
 import logging
 import re
+import threading
 import typing
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple
 
+from . import config as config_module
+from . import registry as registry_module
 from . import runtime
 from .fields import parse_tags
+from .select import default_name
 from .tables import ids, read_csv, read_header, write_csv
+
+__all__ = ["Assembler", "Assembly", "AssemblyConfig", "AssemblyError", "CONSUMER_PROVIDED", "NAME_PATTERN", "check_name",
+           "cycle_of", "problems"]
 
 NAME_PATTERN = "^[a-z0-9][a-z0-9_-]*$"
 NAME = re.compile(r"[a-z0-9][a-z0-9_-]*")
-FORBIDDEN_ENVIRON = (runtime.ROOT_ENV, runtime.SNAPSHOT_ENV)   # these would point esoi at records the package did not ship
 CONSUMER_PROVIDED = "consumer-provided"   # the tag of a solution that has no default arm because the consumer supplies it
 log = logging.getLogger("esoi.assemble")
 
@@ -64,10 +77,12 @@ class AssemblyError(ValueError):
 
 
 def check_name(name: Any, what: str = "name") -> str:
-    """The name, or ``AssemblyError``. ``:`` and ``.`` (import paths) and anything off the pattern never reach ``esoi``."""
+    """The name, or ``AssemblyError``. A name is lower case letters, digits, ``_`` and ``-``; ``.`` and ``:`` (import
+    paths) and path separators never pass, so a name is never mistaken for something to import. A dotted model name such
+    as ``gpt-4.1`` is data for ``options``, or an arm named ``gpt-4-1``: no recorded arm name here needs a dot."""
     if not isinstance(name, str) or not NAME.fullmatch(name):
-        raise AssemblyError(f"{what} {name!r} rejected: a name matches {NAME_PATTERN} (never an import path, so ':' and '.' "
-                            f"are refused); remedy: pass one of the names the seat lists with names(solution_id)")
+        raise AssemblyError(f"{what} {name!r} rejected: a name matches {NAME_PATTERN} (never an import path, so '.' and ':' "
+                            f"are refused); remedy: pass one of the names the solution lists with names(solution_id)")
     return name
 
 
@@ -75,27 +90,17 @@ def check_name(name: Any, what: str = "name") -> str:
 class AssemblyConfig:
     """What a consumer hands the assembler, once, at startup.
 
-    ``seats`` is the manifest of solution ids the consumer uses (empty: every seat that has a default arm or is provided).
-    ``names`` are explicit names per solution id and ``selections`` the consumer's own selections (they live on this object,
-    never process-wide). ``options`` are the non-seat constructor arguments per solution id. ``selection_environ`` is the
-    only environment ``esoi`` ever sees: a consumer that wants an ``ESOI_SELECT_<SCOPE>_<SOLUTION_ID>`` choice puts it here.
+    ``solutions`` is the manifest of solution ids the consumer uses (empty: every solution that has a default arm or is
+    provided). ``names`` are explicit names per solution id and ``selections`` the consumer's own selections (they live on
+    this object, never process-wide). ``options`` are the non-solution constructor arguments per solution id.
+    ``selection_environ`` is the only environment ``esoi`` ever sees: a consumer that wants an
+    ``ESOI_SELECT_<SCOPE>_<SOLUTION_ID>`` choice puts exactly that variable here, and nothing else is accepted.
     """
-    seats: Tuple[str, ...] = ()
+    solutions: Tuple[str, ...] = ()
     names: Mapping[str, str] = field(default_factory=dict)
     selections: Mapping[str, str] = field(default_factory=dict)
     options: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
     selection_environ: Mapping[str, str] = field(default_factory=dict)
-
-
-def environ_of(config: Optional[AssemblyConfig]) -> Dict[str, str]:
-    """The environment ``esoi`` is allowed to see: the config field, validated. Never the process environment."""
-    raw = dict((config or AssemblyConfig()).selection_environ)
-    for key, value in raw.items():
-        if key in FORBIDDEN_ENVIRON:
-            raise AssemblyError(f"selection_environ may not set {key}: it would point esoi at records the package did not ship")
-        if key.startswith(runtime.ENV_PREFIX) and value:
-            check_name(str(value), f"selection_environ {key}")
-    return {str(k): str(v) for k, v in raw.items()}
 
 
 def builder_of(target: Any) -> Any:
@@ -117,8 +122,26 @@ def config_hash(options: Mapping[str, Any]) -> str:
     return hashlib.sha256(json.dumps(options, sort_keys=True, default=str).encode()).hexdigest()[:8]
 
 
+def protocol_members(protocol: Any) -> Set[str]:
+    """The names a Protocol class requires of an object: its methods and annotated attributes, own and inherited."""
+    members: Set[str] = set()
+    for klass in protocol.__mro__:
+        if klass in (typing.Protocol, typing.Generic, object) or not getattr(klass, "_is_protocol", False):
+            continue
+        members |= {n for n in vars(klass) if not (n.startswith("__") and n.endswith("__")) and not n.startswith("_abc_")
+                    and n not in ("_is_protocol", "_is_runtime_protocol")}
+        members |= set(klass.__dict__.get("__annotations__", {}))
+    return members
+
+
+def same_declaration(one: Any, other: Any) -> bool:
+    """The same object, or the same definition imported again (a reloaded module declares its arm anew)."""
+    return one is other or (getattr(one, "__module__", 0) == getattr(other, "__module__", 1)
+                            and getattr(one, "__qualname__", 0) == getattr(other, "__qualname__", 1))
+
+
 def cycle_of(edges: Mapping[str, Set[str]]) -> List[str]:
-    """One dependency cycle in ``{seat: {seats it needs}}`` as a list ending where it began, or []."""
+    """One dependency cycle in ``{solution: {solutions it needs}}`` as a list ending where it began, or []."""
     state: Dict[str, int] = {}
     stack: List[str] = []
 
@@ -149,8 +172,8 @@ def problems(solutions: Sequence[Mapping[str, str]], implementations: Sequence[M
     """Every way the records and the declared needs disagree. Empty means the graph is sound. ``needs`` is
     ``{implementation_id: {solution ids}}`` as ``Assembler.declared_needs`` reads it from the constructor parameters."""
     bad: List[str] = []
-    seats = {s["solution_id"]: s for s in solutions}
-    tags = {sid: {t["tag"] for t in parse_tags(s.get("tags", ""))} for sid, s in seats.items()}
+    rows = {s["solution_id"]: s for s in solutions}
+    tags = {sid: {t["tag"] for t in parse_tags(s.get("tags", ""))} for sid, s in rows.items()}
     for row in implementations:
         iid = row["implementation_id"]
         recorded = set(ids(row.get("uses_solution_ids", "")))
@@ -158,14 +181,14 @@ def problems(solutions: Sequence[Mapping[str, str]], implementations: Sequence[M
             bad.append(f"{iid}: uses_solution_ids is {sorted(recorded) or 'empty'} but its constructor parameters need "
                        f"{sorted(needs[iid]) or 'nothing'} (sync_uses writes it)")
         for need in sorted(needs.get(iid, set())):
-            if need not in seats:
+            if need not in rows:
                 bad.append(f"{iid}: needs {need}, which is no solution in the records")
-            elif not seats[need].get("selected", "").strip() and CONSUMER_PROVIDED not in tags[need]:
-                bad.append(f"{iid}: needs {need}: the seat has no default arm and is not tagged {CONSUMER_PROVIDED}")
+            elif not rows[need].get("selected", "").strip() and CONSUMER_PROVIDED not in tags[need]:
+                bad.append(f"{iid}: needs {need}: the solution has no default arm and is not tagged {CONSUMER_PROVIDED}")
     for sid, tag in tags.items():
-        if CONSUMER_PROVIDED in tag and seats[sid].get("selected", "").strip():
-            bad.append(f"{sid}: tagged {CONSUMER_PROVIDED} but has a default arm ({seats[sid]['selected']})")
-    default = {sid: s.get("selected", "").strip() for sid, s in seats.items()}
+        if CONSUMER_PROVIDED in tag and rows[sid].get("selected", "").strip():
+            bad.append(f"{sid}: tagged {CONSUMER_PROVIDED} but has a default arm ({rows[sid]['selected']})")
+    default = {sid: s.get("selected", "").strip() for sid, s in rows.items()}
     edges: Dict[str, Set[str]] = {}
     for row in implementations:
         sid = row["solution_id"]
@@ -178,27 +201,32 @@ def problems(solutions: Sequence[Mapping[str, str]], implementations: Sequence[M
 
 
 class Assembly:
-    """The built objects of one consumer, frozen. ``assembly[solution_id]`` is the object; ``reasons`` has one line per seat."""
+    """The built objects of one consumer, frozen. ``assembly[solution_id]`` is the object; ``reasons`` has one line per
+    solution; ``choice`` and ``implementation`` return what was chosen and loaded when ``assemble`` ran."""
 
-    def __init__(self, assembler: "Assembler", config: AssemblyConfig, objects: Mapping[str, Any], reasons: Mapping[str, str]):
+    def __init__(self, assembler: "Assembler", config: AssemblyConfig, built: Mapping[str, Tuple[Any, str, Any, Any]]):
+        """``built`` is ``{solution_id: (object, reason line, Choice or None, implementation or None)}`` in build order."""
         self.assembler = assembler
         self.config = config
-        self.objects = MappingProxyType(dict(objects))
-        self.reason_by_seat = MappingProxyType(dict(reasons))
+        self.objects = MappingProxyType({sid: item[0] for sid, item in built.items()})
+        self.reason_by_solution = MappingProxyType({sid: item[1] for sid, item in built.items()})
+        self.choices = MappingProxyType({sid: item[2] for sid, item in built.items() if item[2] is not None})
+        self.implementations = MappingProxyType({sid: item[3] for sid, item in built.items() if item[3] is not None})
 
     @property
     def reasons(self) -> Tuple[str, ...]:
-        return tuple(self.reason_by_seat.values())
+        return tuple(self.reason_by_solution.values())
 
-    def seats(self) -> List[str]:
+    def solutions(self) -> List[str]:
+        """The assembled solution ids, in build order."""
         return list(self.objects)
 
     def __getitem__(self, solution_id: str) -> Any:
         try:
             return self.objects[solution_id]
         except KeyError:
-            raise AssemblyError(f"{solution_id!r} was not assembled; assembled seats: {', '.join(self.objects) or 'none'}; "
-                                "remedy: list it in AssemblyConfig.seats or provide it") from None
+            raise AssemblyError(f"{solution_id!r} was not assembled; assembled: {', '.join(self.objects) or 'none'}; "
+                                "remedy: list it in AssemblyConfig.solutions or provide it") from None
 
     def __contains__(self, solution_id: str) -> bool:
         return solution_id in self.objects
@@ -206,33 +234,158 @@ class Assembly:
     def get(self, solution_id: str, default: Any = None) -> Any:
         return self.objects.get(solution_id, default)
 
-    def choice(self, solution_id: str, name: Optional[str] = None) -> runtime.Choice:
-        return self.assembler.choice(solution_id, name, self.config)
+    def choice(self, solution_id: str) -> runtime.Choice:
+        """The arm chosen for an assembled solution and the layer that chose it (a provided object has none)."""
+        try:
+            return self.choices[solution_id]
+        except KeyError:
+            raise AssemblyError(f"{solution_id!r} has no recorded choice: it was not assembled, or it was provided") from None
 
-    def resolve(self, solution_id: str, name: Optional[str] = None) -> Any:
-        """The implementation object (not built) under this consumer's selections."""
-        return self.assembler.resolve(solution_id, name, self.config)
+    def implementation(self, solution_id: str) -> Any:
+        """The implementation class or function the solution's object was built from (not instantiated again)."""
+        try:
+            return self.implementations[solution_id]
+        except KeyError:
+            raise AssemblyError(f"{solution_id!r} has no recorded implementation: it was not assembled, or it was provided") \
+                from None
+
+
+@dataclass(frozen=True)
+class Packaged:
+    """What the package's own records or snapshot say: the default per solution, and the module per ``(solution, name)``."""
+    defaults: Mapping[str, str]
+    modules: Mapping[Tuple[str, str], str]
+    source: str
 
 
 @dataclass(frozen=True)
 class Assembler:
     """Name-based resolution and assembly for the solutions one package declares.
 
-    ``scope`` is the package's top-level name (the scope its solutions are declared under), ``package_dir`` its folder (the
-    safe-loading boundary), ``seats_module`` the dotted module that declares the seats (imported once, by ``prepare``, so a
-    name can be checked before anything else is imported), and ``noun`` the word its messages use for the package.
+    ``scope`` is the package's top-level name (the scope its solutions are declared under) and ``package_dir`` its folder
+    (the safe-loading boundary). ``modules`` are the dotted modules of the package that declare its solutions and arms:
+    ``prepare`` imports exactly these, once, before any name is checked. ``records`` is the folder holding the package's
+    ``esoi.toml`` (development in a checkout); leave it out and the package default comes from ``esoi_selection.json`` in
+    ``package_dir``, as an installed copy has it. Neither is ever searched for in a parent folder.
     """
     scope: str
     package_dir: Path
-    seats_module: str = ""
-    noun: str = "package"
+    modules: Tuple[str, ...] = ()
+    records: Optional[Path] = None
+    lock: Any = field(default_factory=threading.RLock, init=False, repr=False, compare=False)
+    memo: Dict[str, Any] = field(default_factory=dict, init=False, repr=False, compare=False)
+    sealed: Dict[Tuple[str, str], Any] = field(default_factory=dict, init=False, repr=False, compare=False)
 
-    # names and the cascade
+    # modules and records
+
+    def expected_files(self, module: str) -> List[Path]:
+        """The files ``module`` can be, by position under ``package_dir``: ``a/b.py`` or ``a/b/__init__.py``."""
+        base = Path(self.package_dir).resolve()
+        parts = module.split(".")[1:]
+        if not parts:
+            return [base / "__init__.py"]
+        return [base.joinpath(*parts).with_suffix(".py"), base.joinpath(*parts, "__init__.py")]
+
+    def safe_module(self, module: str) -> str:
+        """A packaged record's module, or ``AssemblyError``: it must start with the scope, be plain dotted identifiers, and be a
+        file that lies inside ``package_dir``. Nothing is imported to find out: only the position of the file is read."""
+        parts = module.split(".") if isinstance(module, str) else []
+        if not parts or parts[0] != self.scope or len(parts) < 2 or not all(p.isidentifier() for p in parts):
+            raise AssemblyError(f"packaged record module {module!r} rejected: it must start with '{self.scope}.' and be plain "
+                                "dotted names")
+        if not any(f.is_file() for f in self.expected_files(module)):
+            raise AssemblyError(f"packaged record module {module!r} rejected: its file is not inside the installed "
+                                f"{self.scope} package")
+        return module
+
+    def import_arm(self, module: str) -> None:
+        """Import a packaged module after ``safe_module``. Each package on the way is imported only once the file the import
+        system would run is the one under ``package_dir``, so a look-alike earlier on ``sys.path`` never runs."""
+        self.safe_module(module)
+        parts = module.split(".")
+        for end in range(1, len(parts) + 1):
+            prefix = ".".join(parts[:end])
+            try:
+                spec = importlib.util.find_spec(prefix)
+            except (ImportError, ValueError):
+                spec = None
+            origin = Path(spec.origin).resolve() if spec is not None and spec.origin not in (None, "built-in", "frozen") else None
+            if origin is None or origin not in self.expected_files(prefix):
+                raise AssemblyError(f"packaged record module {module!r} rejected: {prefix!r} would be loaded from "
+                                    f"{origin or 'nowhere'}, which is not inside the installed {self.scope} package")
+            try:
+                importlib.import_module(prefix)
+            except Exception as error:
+                raise AssemblyError(f"cannot import {prefix!r} ({type(error).__name__}: {error}); remedy: install what it needs, "
+                                    "or choose another implementation") from error
+
+    def packaged(self) -> Packaged:
+        """The package's own records (``records``) or snapshot, read once. A file that cannot be read is an error."""
+        with self.lock:
+            if "packaged" not in self.memo:
+                self.memo["packaged"] = self.read_records(Path(self.records)) if self.records is not None else self.read_snapshot()
+            return self.memo["packaged"]
+
+    def read_snapshot(self) -> Packaged:
+        path = Path(self.package_dir) / runtime.SNAPSHOT_NAME
+        if not path.is_file():
+            return Packaged({}, {}, "no records and no snapshot")
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            defaults = {sid: runtime.key(entry.get("default", "")) for sid, entry in data.items() if entry.get("default")}
+            modules = {(sid, runtime.key(n)): str(m) for sid, entry in data.items() for n, m in entry.get("modules", {}).items()}
+        except (OSError, ValueError, AttributeError) as error:
+            raise AssemblyError(f"the snapshot {path} cannot be read ({error}); remedy: regenerate it with esoi select --snapshot")\
+                from error
+        return Packaged(defaults, modules, "the packaged snapshot")
+
+    def read_records(self, root: Path) -> Packaged:
+        """The records of the folder ``root`` (its ``esoi.toml`` directly: no search upward, no selection table run)."""
+        file = root / "esoi.toml"
+        if not file.is_file():
+            raise AssemblyError(f"records folder {root} has no esoi.toml; it is never looked for in a parent folder")
+        try:
+            cfg = config_module.load(file)
+            loaded = registry_module.load(cfg)
+            defaults = {r["solution_id"]: runtime.key(name) for r in loaded.every_solution()
+                        if r.get("solution_id") and (name := default_name(r, loaded.implementations))}
+            project = runtime.Project(config=cfg)
+            modules = {}
+            for row in loaded.implementations:
+                sid, name = row.get("implementation_id", "").split(":", 1) if ":" in row.get("implementation_id", "") else ("", "")
+                where = row.get("filepath", "").strip().split("::")[0]
+                if where.endswith(".py") and name and not where.startswith(cfg.evaluation_dir + "/"):
+                    modules[(sid, runtime.key(name))] = runtime.module_for(project, where)
+        except Exception as error:
+            raise AssemblyError(f"the records in {root} cannot be loaded ({type(error).__name__}: {error})") from error
+        return Packaged(defaults, modules, "the records")
+
+    def owned(self, target: Any) -> bool:
+        """Whether a declared target is defined in the package itself (its ``__init__`` included)."""
+        module = str(getattr(target, "__module__", None) or type(target).__module__)
+        return module == self.scope or module.startswith(self.scope + ".")
+
+    def seal(self) -> None:
+        """Remember each arm the package itself has declared in code. A later ``runtime.register(..., replace=True)`` over
+        one is then refused at load, which a plain registry cannot tell from a consumer's own arm."""
+        with self.lock:
+            for (scope, sid), entry in list(runtime.REGISTRY.items()):
+                if scope == self.scope:
+                    for name, target in list(entry.implementations.items()):
+                        if not isinstance(target, str) and self.owned(target):
+                            self.sealed.setdefault((sid, name), target)
 
     def prepare(self) -> None:
-        """Declare the seats (importing them runs nothing): after this the scope knows its solution ids."""
-        if self.seats_module:
-            importlib.import_module(self.seats_module)
+        """Import the package's declaring modules once: after this the scope knows its solution ids and the arms it declares."""
+        with self.lock:
+            if self.memo.get("prepared"):
+                return
+            for module in self.modules:
+                self.import_arm(module)
+            self.seal()
+            self.memo["prepared"] = True
+
+    # names and the cascade
 
     def known_solution(self, solution_id: str) -> bool:
         self.prepare()
@@ -245,101 +398,125 @@ class Assembler:
             raise AssemblyError(f"unknown solution {solution_id!r} in scope {self.scope!r}; available: {', '.join(known) or 'none'}")
         return solution_id
 
-    def names(self, solution_id: str, config: Optional[AssemblyConfig] = None) -> List[str]:
-        """Every implementation name that can be chosen for a seat: declared in code, recorded, or in the packaged snapshot."""
+    def names(self, solution_id: str) -> List[str]:
+        """Every implementation name that can be chosen for a solution: declared in code, recorded, or in the snapshot."""
         self.check_solution(solution_id)
-        return runtime.names(solution_id, environ=environ_of(config), scope=self.scope)
+        entry = runtime.REGISTRY.get((self.scope, solution_id))
+        found = set(entry.implementations) if entry else set()
+        return sorted(found | {n for sid, n in self.packaged().modules if sid == solution_id})
 
-    def declared(self, solution_id: str, config: Optional[AssemblyConfig] = None) -> List[str]:
-        """Names the package itself declares for a seat: its records and snapshot, and code in its own modules."""
-        project = runtime.project_for(solution_id, environ_of(config), self.scope)
-        found: Set[str] = set()
-        if project is not None:
-            found |= {n for sid, n in project.paths if sid == solution_id}
-            found |= set(project.snapshot.get(solution_id, {}).get("modules", {}))
-        entry = runtime.entry_of(solution_id, self.scope)
-        for name, target in (entry.implementations.items() if entry else ()):
-            if str(getattr(target, "__module__", "")).startswith(self.scope + "."):
-                found.add(name)
-        return sorted(found)
+    def declared(self, solution_id: str) -> List[str]:
+        """Names the package itself declares for a solution: its records and snapshot, and code in its own modules (its
+        ``__init__`` included)."""
+        self.prepare()
+        self.seal()
+        found = {n for sid, n in self.packaged().modules if sid == solution_id}
+        return sorted(found | {n for sid, n in self.sealed if sid == solution_id})
 
-    def module_for(self, solution_id: str, name: str, config: Optional[AssemblyConfig] = None) -> str:
+    def module_for(self, solution_id: str, name: str) -> str:
         """The dotted module the package's own records or snapshot name for an arm ('' when none)."""
-        project = runtime.project_for(solution_id, environ_of(config), self.scope)
-        if project is None:
-            return ""
-        if project.config is not None and (solution_id, name) in project.paths:
-            return runtime.module_for(project, project.paths[(solution_id, name)])
-        return str(project.snapshot.get(solution_id, {}).get("modules", {}).get(name, ""))
+        return self.packaged().modules.get((solution_id, name), "")
 
-    def safe_module(self, module: str) -> str:
-        """A packaged record's module, or ``AssemblyError``: it must start with the scope and its ``find_spec`` origin must
-        lie inside ``package_dir``. Nothing is imported to find out."""
-        if not isinstance(module, str) or not module.startswith(self.scope + ".") or ".." in module:
-            raise AssemblyError(f"packaged record module {module!r} rejected: it must start with '{self.scope}.'")
-        try:
-            spec = importlib.util.find_spec(module)
-        except (ImportError, ValueError):
-            spec = None
-        origin = Path(spec.origin).resolve() if spec is not None and spec.origin not in (None, "built-in", "frozen") else None
-        if origin is None or Path(self.package_dir).resolve() not in origin.parents:
-            raise AssemblyError(f"packaged record module {module!r} rejected: its file is not inside the installed "
-                                f"{self.scope} package")
-        return module
+    def selection_environ(self, config: Optional[AssemblyConfig]) -> Dict[str, str]:
+        """The environment ``esoi`` is allowed to see: the config field, validated. Never the process environment. Only the
+        variable of this scope and a known solution is accepted, and its value must be a name."""
+        self.prepare()
+        allowed = {runtime.env_name(sid, self.scope) for scope, sid in runtime.REGISTRY if scope == self.scope}
+        found = {}
+        for variable, value in dict((config or AssemblyConfig()).selection_environ).items():
+            if variable not in allowed:
+                raise AssemblyError(f"selection_environ may not set {variable}: only {runtime.ENV_PREFIX}<SCOPE>_<SOLUTION_ID> of "
+                                    f"scope {self.scope!r} is read (allowed: {', '.join(sorted(allowed)) or 'none'})")
+            if value:
+                found[variable] = check_name(str(value), f"selection_environ {variable}")
+        return found
 
-    def choice(self, solution_id: str, name: Optional[str] = None, config: Optional[AssemblyConfig] = None) -> runtime.Choice:
-        """Which arm a seat would use now and which layer decided it. Cascade: explicit name, the consumer's selections on the
-        config, then the package default. A name a layer supplies that is unknown is an error, never a fall-through."""
-        self.check_solution(solution_id)
-        cfg = config or AssemblyConfig()
-        env = environ_of(cfg)
-        available = runtime.names(solution_id, environ=env, scope=self.scope)
-        for layer, named in (("explicit name", name or cfg.names.get(solution_id)), ("consumer selections", cfg.selections.get(solution_id))):
+    def pick(self, solution_id: str, name: Optional[str], cfg: AssemblyConfig) -> Optional[runtime.Choice]:
+        """The first layer that names an arm, checked against the names that can be chosen; None when no layer names one."""
+        available = self.names(solution_id)
+        variable = runtime.env_name(solution_id, self.scope)
+        for layer, named in (("explicit name", name or cfg.names.get(solution_id)),
+                             ("consumer selections", cfg.selections.get(solution_id)),
+                             ("selection environ", self.selection_environ(cfg).get(variable))):
             if named:
                 check_name(named, f"{layer} for {solution_id!r}")
                 if named not in available:
                     raise AssemblyError(f"unknown implementation {named!r} for {solution_id!r} in scope {self.scope!r} (layer: {layer}); "
                                         f"available: {', '.join(available) or 'none'}; remedy: use one of them, or register your own "
                                         f"under a name you own with register()")
-                return runtime.Choice(named, layer, "")
-        try:
-            picked = runtime.choose(solution_id, None, environ=env, scope=self.scope)
-        except runtime.SelectionError as error:
-            raise AssemblyError(f"{solution_id!r} in scope {self.scope!r}: {error}; available: {', '.join(available) or 'none'}; "
-                                f"remedy: name one, or provide your own object") from error
-        labels = {"call": "explicit name", "context": "context override", "environment": "selection environ",
-                  "deployment": "deployment (esoi.toml)", "project": f"{self.noun} default"}
-        return runtime.Choice(picked.name, labels.get(picked.layer, picked.layer), picked.source)
+                return runtime.Choice(named, layer, variable if layer == "selection environ" else "")
+        default = self.packaged().defaults.get(solution_id, "")
+        if default and default not in available:
+            raise AssemblyError(f"the default {default!r} of {solution_id!r} in scope {self.scope!r} (from {self.packaged().source}) is "
+                                f"not an implementation that can be chosen; available: {', '.join(available) or 'none'}")
+        return runtime.Choice(default, f"{self.scope} default", self.packaged().source) if default else None
 
-    def load(self, solution_id: str, picked: str, config: Optional[AssemblyConfig] = None) -> Any:
-        """The implementation object for a name. A packaged arm's module is imported here, after the safe-loading check, so
-        ``esoi`` never extends ``sys.path`` or imports a module the package did not vouch for."""
-        entry = runtime.entry_of(solution_id, self.scope)
-        if entry is None or picked not in entry.implementations:
-            module = self.module_for(solution_id, picked, config)
-            if module:
-                importlib.import_module(self.safe_module(module))
-        return runtime.resolve(solution_id, picked, environ=environ_of(config), scope=self.scope)
+    def choice(self, solution_id: str, name: Optional[str] = None, config: Optional[AssemblyConfig] = None) -> runtime.Choice:
+        """Which arm a solution would use now and which layer decided it (looked up when called). A name a layer supplies
+        that is unknown is an error, never a fall-through."""
+        self.check_solution(solution_id)
+        picked = self.pick(solution_id, name, config or AssemblyConfig())
+        if picked is None:
+            raise AssemblyError(f"{solution_id!r} in scope {self.scope!r}: no layer names an implementation (explicit name, consumer "
+                                f"selections, selection environ, package default); available: {', '.join(self.names(solution_id)) or 'none'}; "
+                                f"remedy: name one, or provide your own object")
+        return picked
+
+    def load(self, solution_id: str, picked: str) -> Any:
+        """The implementation object for a name. A packaged arm's module is imported here, after the safe-loading check; an
+        arm the package declared is refused if something else was registered over it behind ``register``'s back."""
+        self.check_solution(solution_id)
+        check_name(picked, f"implementation name for {solution_id!r}")
+        with self.lock:
+            entry = runtime.REGISTRY.get((self.scope, solution_id))
+            module = self.module_for(solution_id, picked)
+            if module and (entry is None or picked not in entry.implementations):
+                self.import_arm(module)
+                self.seal()
+                entry = runtime.REGISTRY.get((self.scope, solution_id))
+            target = entry.implementations.get(picked) if entry else None
+            if target is None:
+                raise AssemblyError(f"{solution_id!r} lists {picked!r}{' (module ' + module + ')' if module else ''} but no declaration "
+                                    f"of that name was found; declare it with @implementation({solution_id!r}, {picked!r})")
+            if isinstance(target, str):
+                raise AssemblyError(f"{picked!r} for {solution_id!r} is an import reference, which an Assembler never loads; "
+                                    "register the object itself")
+            sealed = self.sealed.get((solution_id, picked))
+            recorded = (solution_id, picked) in self.packaged().modules
+            if (sealed is not None and not same_declaration(target, sealed)) or (recorded and not self.owned(target)):
+                raise AssemblyError(f"{picked!r} is declared by the {self.scope} package for {solution_id!r} but another object was "
+                                    f"registered under it (runtime.register with replace=True); remedy: register your own under a "
+                                    f"name you own with Assembler.register")
+            return target
 
     def resolve(self, solution_id: str, name: Optional[str] = None, config: Optional[AssemblyConfig] = None) -> Any:
-        """The chosen implementation object of a seat (a class is not instantiated)."""
-        return self.load(solution_id, self.choice(solution_id, name, config).name, config)
+        """The chosen implementation object of a solution (a class is not instantiated), looked up when called."""
+        return self.load(solution_id, self.choice(solution_id, name, config).name)
 
     def register(self, solution_id: str, name: str, target: Any, replace: bool = False) -> None:
         """Register an implementation (a class, a function, or an instance) under a name the consumer owns. The package's own
         names are never replaced: asking to register or replace one raises, so a consumer cannot shadow an arm by accident or
-        by attack. Registered targets are trusted code of the consumer that called this; never loaded from a record."""
+        by attack. Registered targets are trusted code of the consumer that called this; never loaded from a record, and
+        never an import reference. Register through here: ``runtime.register`` skips this protection (an arm the package
+        declared is then refused at load)."""
         self.check_solution(solution_id)
         check_name(name, f"registered name for {solution_id!r}")
-        if name in self.declared(solution_id):
-            raise AssemblyError(f"{name!r} is declared by the {self.noun} for {solution_id!r} in scope {self.scope!r} and cannot be "
-                                f"{'replaced' if replace else 'registered over'}; remedy: register your own under a name you own")
-        runtime.register(solution_id, name, target, scope=self.scope, replace=replace)
+        if isinstance(target, str):
+            raise AssemblyError(f"register an object for {solution_id!r}, not the import reference {target!r}")
+        with self.lock:
+            if name in self.declared(solution_id):
+                raise AssemblyError(f"{name!r} is declared by the {self.scope} package for {solution_id!r} and cannot be "
+                                    f"{'replaced' if replace else 'registered over'}; remedy: register your own under a name you own")
+            try:
+                runtime.add(solution_id, name, target, None, self.scope, replace)
+            except runtime.SelectionError as error:
+                raise AssemblyError(str(error)) from error
+            self.seal()
 
     # needs
 
-    def seat_of(self, protocol: Any) -> Optional[str]:
-        """The solution id a seat Protocol was declared for in this scope, or None."""
+    def solution_of(self, protocol: Any) -> Optional[str]:
+        """The solution id a Protocol was declared for in this scope, or None."""
         self.prepare()
         for (scope, sid), entry in runtime.REGISTRY.items():
             if scope == self.scope and entry.interface is protocol:
@@ -347,7 +524,7 @@ class Assembler:
         return None
 
     def needs_of(self, target: Any) -> Dict[str, str]:
-        """``{parameter name: solution id}`` for each parameter typed with a seat Protocol. An instance has none."""
+        """``{parameter name: solution id}`` for each parameter typed with a solution's Protocol. An instance has none."""
         build = builder_of(target)
         if build is None:
             return {}
@@ -357,66 +534,76 @@ class Assembler:
             raise AssemblyError(f"cannot read the parameter types of {getattr(target, '__qualname__', target)!r}: {error}") from error
         found = {}
         for param in inspect.signature(build).parameters:
-            seat = self.seat_of(hints.get(param)) if param in hints else None
-            if seat:
-                found[param] = seat
+            sid = self.solution_of(hints.get(param)) if param in hints else None
+            if sid:
+                found[param] = sid
         return found
 
-    def declared_needs(self, implementations: Sequence[Mapping[str, str]]) -> Dict[str, Set[str]]:
-        """``{implementation_id: {seat ids it needs}}`` read from the constructor parameters of each recorded implementation."""
-        found = {}
+    def declared_needs(self, implementations: Sequence[Mapping[str, str]]) -> Tuple[Dict[str, Set[str]], List[str]]:
+        """``({implementation_id: {solution ids it needs}}, findings)`` read from the constructor parameters of each recorded
+        implementation. An arm that cannot be loaded (an optional dependency missing) is a finding, not an exception, and is
+        left out of the first."""
+        found: Dict[str, Set[str]] = {}
+        findings: List[str] = []
         for row in implementations:
-            sid, _, name = row["implementation_id"].partition(":")
-            found[row["implementation_id"]] = set(self.needs_of(self.load(sid, name)).values())
-        return found
+            iid = row["implementation_id"]
+            sid, name = iid.split(":", 1) if ":" in iid else (iid, "")
+            try:
+                found[iid] = set(self.needs_of(self.load(sid, name)).values())
+            except AssemblyError as error:
+                findings.append(f"{iid}: cannot be loaded to read its needs ({error})")
+        return found, findings
 
     def uses_problems(self, folder: Path) -> List[str]:
         """Every disagreement between the records in ``folder`` and the needs the code declares. Empty means sound."""
         rows = read_csv(Path(folder) / "implementations.csv")
-        return problems(read_csv(Path(folder) / "solutions.csv"), rows, self.declared_needs(rows))
+        needs, findings = self.declared_needs(rows)
+        return findings + problems(read_csv(Path(folder) / "solutions.csv"), rows, needs)
 
-    def sync_uses(self, folder: Path) -> None:
-        """Write the ``uses_solution_ids`` column of ``implementations.csv`` in ``folder`` from the constructor parameters."""
+    def sync_uses(self, folder: Path) -> List[str]:
+        """Write the ``uses_solution_ids`` column of ``implementations.csv`` in ``folder`` from the constructor parameters.
+        A row whose arm cannot be loaded keeps its cell and is returned as a finding."""
         path = Path(folder) / "implementations.csv"
         rows = read_csv(path)
-        needs = self.declared_needs(rows)
+        needs, findings = self.declared_needs(rows)
         for row in rows:
-            row["uses_solution_ids"] = ";".join(sorted(needs[row["implementation_id"]]))
+            if row["implementation_id"] in needs:
+                row["uses_solution_ids"] = ";".join(sorted(needs[row["implementation_id"]]))
         write_csv(path, read_header(path), rows)
+        return findings
 
     # assembly
 
     def check_provided(self, solution_id: str, obj: Any) -> None:
+        """A provided object must have every method and attribute the solution's Protocol names (presence by name, not
+        signatures). When the solution has no Protocol to check against, that is an error: say so rather than accept."""
         self.check_solution(solution_id)
-        entry = runtime.entry_of(solution_id, self.scope)
+        entry = runtime.REGISTRY.get((self.scope, solution_id))
         protocol = entry.interface if entry is not None else None
-        if protocol is not None and getattr(protocol, "_is_runtime_protocol", False) and not isinstance(obj, protocol):
-            raise AssemblyError(f"the object provided for {solution_id!r} does not satisfy {protocol.__name__}")
+        if not (inspect.isclass(protocol) and getattr(protocol, "_is_protocol", False)):
+            raise AssemblyError(f"cannot check the object provided for {solution_id!r}: the solution declares no Protocol class; "
+                                "remedy: declare it with @solution on a typing.Protocol class")
+        missing = sorted(m for m in protocol_members(protocol) if not hasattr(obj, m))
+        if missing:
+            raise AssemblyError(f"the object provided for {solution_id!r} does not satisfy {protocol.__name__}: missing "
+                                f"{', '.join(missing)}")
 
-    def seats_with_a_default(self, config: AssemblyConfig) -> List[str]:
-        found = []
-        for scope, sid in sorted(runtime.REGISTRY):
-            if scope != self.scope:
-                continue
-            try:
-                self.choice(sid, None, config)
-            except AssemblyError:
-                continue
-            found.append(sid)
-        return found
+    def with_a_default(self, config: AssemblyConfig) -> List[str]:
+        """Every solution of the scope that some layer names an arm for. A layer that names a broken one raises."""
+        self.prepare()
+        return [sid for scope, sid in sorted(runtime.REGISTRY) if scope == self.scope and self.pick(sid, None, config) is not None]
 
     def assemble(self, config: Optional[AssemblyConfig] = None, provided: Optional[Mapping[str, Any]] = None) -> Assembly:
-        """Build the seats a consumer uses, in dependency order, once. A provided object wins for its seat; otherwise the
-        cascade's arm is built with its needs injected and its ``options`` passed. A cycle or an unmet need fails here,
-        naming the chain. The result is frozen: nothing resolves at call time, so no lock is needed."""
+        """Build the solutions a consumer uses, in dependency order, once. A provided object wins for its solution; otherwise
+        the cascade's arm is built with its needs injected and its ``options`` passed. A cycle or an unmet need fails here,
+        naming the chain. The result is frozen: its choices and implementations are fixed."""
         cfg = config or AssemblyConfig()
         given = dict(provided or {})
-        environ_of(cfg)
         self.prepare()
+        self.selection_environ(cfg)
         for sid, obj in given.items():
             self.check_provided(sid, obj)
-        objects: Dict[str, Any] = {}
-        reasons: Dict[str, str] = {}
+        built: Dict[str, Tuple[Any, str, Any, Any]] = {}
 
         def need_error(chain: List[Tuple[str, str]], sid: str) -> AssemblyError:
             remedy = f"remedy: pass provided={{{sid!r}: ...}} or register an arm for it"
@@ -424,46 +611,43 @@ class Assembler:
                 return AssemblyError(f"{sid}: no arm, not provided; {remedy}")
             parent, arm = chain[-1]
             return AssemblyError(f"{parent} ({arm}) needs {sid}: no arm, not provided (chain: "
-                                 f"{' -> '.join([s for s, _ in chain] + [sid])}); {remedy}")
+                                 f"{' -> '.join([p for p, a in chain] + [sid])}); {remedy}")
 
         def build(sid: str, chain: List[Tuple[str, str]]) -> Any:
-            if sid in objects:
-                return objects[sid]
-            ring = [s for s, _ in chain]
+            if sid in built:
+                return built[sid][0]
+            ring = [p for p, a in chain]
             if sid in ring:
                 raise AssemblyError("dependency cycle: " + " -> ".join(ring[ring.index(sid):] + [sid]))
             if sid in given:
-                objects[sid] = given[sid]
-                reasons[sid] = (f"{sid} -> {type(given[sid]).__name__} (layer: consumer provided, package version "
-                                f"{package_version(given[sid])}, config hash {config_hash({})})")
-                return objects[sid]
-            explicit = bool(cfg.names.get(sid) or cfg.selections.get(sid))
-            try:
-                picked = self.choice(sid, None, cfg)
-            except AssemblyError:
-                if explicit:
-                    raise
-                raise need_error(chain, sid) from None
-            target = self.load(sid, picked.name, cfg)
+                reason = (f"{sid} -> {type(given[sid]).__name__} (layer: consumer provided, package version "
+                          f"{package_version(given[sid])}, config hash {config_hash({})})")
+                built[sid] = (given[sid], reason, None, None)
+                return given[sid]
+            picked = self.pick(sid, None, cfg)
+            if picked is None:
+                raise need_error(chain, sid)
+            target = self.load(sid, picked.name)
             options = dict(cfg.options.get(sid, {}))
             kwargs = {param: build(need, chain + [(sid, picked.name)]) for param, need in self.needs_of(target).items()}
             if inspect.isclass(target) or inspect.isfunction(target):   # a class or factory is built; anything else is an instance
-                built = builder_of(target)
-                params = inspect.signature(built).parameters if built is not None else {}
+                builder = builder_of(target)
+                params = inspect.signature(builder).parameters if builder is not None else {}
                 extra = [k for k in options if k not in params or k in kwargs]
                 if extra:
                     raise AssemblyError(f"{sid} ({picked.name}) has no option(s) {', '.join(extra)}; its parameters: "
                                         f"{', '.join(p for p in params if p != 'self' and p not in kwargs) or 'none'}")
-                objects[sid] = target(**kwargs, **options)
+                obj = target(**kwargs, **options)
             else:
-                objects[sid] = target
-            reasons[sid] = (f"{sid} -> {picked.name} (layer: {picked.layer}, package version {package_version(target)}, "
-                            f"config hash {config_hash(options)})")
-            return objects[sid]
+                obj = target
+            reason = (f"{sid} -> {picked.name} (layer: {picked.layer}, package version {package_version(target)}, "
+                      f"config hash {config_hash(options)})")
+            built[sid] = (obj, reason, picked, target)
+            return obj
 
-        for sid in (list(cfg.seats) or sorted(set(given) | set(self.seats_with_a_default(cfg)))):
+        for sid in (list(cfg.solutions) or sorted(set(given) | set(self.with_a_default(cfg)))):
             self.check_solution(sid)
             build(sid, [])
-        for line in reasons.values():
-            log.info(line)
-        return Assembly(self, cfg, objects, reasons)
+        for item in built.values():
+            log.info(item[1])
+        return Assembly(self, cfg, built)

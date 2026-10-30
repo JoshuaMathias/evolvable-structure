@@ -16,29 +16,21 @@ words and the code still describes something a website, a data pipeline or a cou
 |---|---|
 | Name validation, and the rule that configuration carries names, never import paths | The names themselves: its solution ids and implementation names |
 | Safe loading of a packaged arm: prefix check and a location check inside the package folder | The packaged records and snapshot it ships |
-| Name-based lookup across solutions, so one solution can depend on another without importing it | Which solutions exist, as Protocol seats, and what their methods mean |
-| Reading needs from typed constructor parameters and checking them against `uses_solution_ids` | The arms (implementations) of its seats and their third-party libraries |
-| Building in dependency order, injecting needs and options, a frozen result with a reason line per seat | Its configuration values: which arm, which options, its prompts, keys and settings |
+| Name-based lookup across solutions, so one solution can depend on another without importing it | Which solutions exist, as Protocol classes, and what their methods mean |
+| Reading needs from typed constructor parameters and checking them against `uses_solution_ids` | The arms (implementations) of its solutions and their third-party libraries |
+| Building in dependency order, injecting needs and options, a frozen result with a reason line per solution | Its configuration values: which arm, which options, its prompts, keys and settings |
 | Startup failure on a cycle or an unmet need, naming the chain | Domain logic: scoring, selection of a model tier, risk rules, storage, search |
 | The cascade (explicit name, selections, default) and late binding through `esoi.runtime` | The decision of which arm is best for its domain, as a metric with real cases |
 | Packaging a pruned selection (a snapshot for an installed copy) | Adapters to its own products and services |
 | Checks over records and declarations that any adopter could run | Checks whose subject is its own domain (for example, vendor names in its core code) |
 
-## Examples from one migration
+## Examples
 
-An application that assembles AI parts (model call, search, card store, risk watching) had written, for its own use:
-a name validator, a loader that refused modules outside its package, a registry lookup by name, a reader of constructor
-types, a builder that ordered parts by their needs, and a check that the recorded needs matched the code. None of that mentions
-AI. It moved here as `esoi.assemble`, and the application now constructs one `Assembler` for its package and keeps only what
-it is about: its seats as Protocols, its arms, its configuration, the rule that picks a model tier, the card store, the
-risk watcher and the scoring of its registry.
-
-The one piece that looked general and stayed: the scan that finds vendor names in a consumer's core code. It takes a list of
-the application's vendor terms and counts branches that compare against them; the question it answers is the application's.
+An adopter that moved its own generic assembly code here is told in [examples/adopters.md](../../examples/adopters.md).
 
 ## What an application may keep
 
-Its records (`esoi/*.csv`), its Protocol seats and arms, its configuration, its domain logic, and thin names that bind the
+Its records (`esoi/*.csv`), its Protocol classes and arms, its configuration, its domain logic, and thin names that bind the
 library to its package (for example, one `Assembler` object and the public names it exports). A thin binding is a few lines.
 If an application module grows a function that would read the same with the domain words removed, it has drifted: move it.
 

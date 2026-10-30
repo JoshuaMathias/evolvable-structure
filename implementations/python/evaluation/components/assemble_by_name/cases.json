@@ -1,0 +1,1045 @@
+[
+ {
+  "id": "ASM-001",
+  "kind": "assemble",
+  "area": "build order and needs injected by name",
+  "description": "build order and needs injected by name",
+  "args": {
+   "register": [
+    [
+     "toy-index",
+     "acme-index",
+     "consumer:StoreIndex",
+     false
+    ],
+    [
+     "toy-report",
+     "acme-report",
+     "consumer:IndexReport",
+     false
+    ]
+   ],
+   "config": {
+    "solutions": [
+     "toy-report"
+    ],
+    "selections": {
+     "toy-index": "acme-index",
+     "toy-report": "acme-report"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "",
+    "order": [
+     "toy-store",
+     "toy-index",
+     "toy-report"
+    ],
+    "built": {
+     "toy-store": "Memory",
+     "toy-index": "StoreIndex",
+     "toy-report": "IndexReport"
+    }
+   }
+  }
+ },
+ {
+  "id": "ASM-002",
+  "kind": "assemble",
+  "area": "the package default builds without a consumer",
+  "description": "the package default builds without a consumer",
+  "args": {},
+  "expect": {
+   "eq": {
+    "error": "",
+    "order": [
+     "toy-store"
+    ],
+    "built": {
+     "toy-store": "Memory"
+    }
+   }
+  }
+ },
+ {
+  "id": "ASM-003",
+  "kind": "assemble",
+  "area": "a provided object wins for its solution",
+  "description": "a provided object wins for its solution",
+  "args": {
+   "register": [
+    [
+     "toy-index",
+     "acme-index",
+     "consumer:StoreIndex",
+     false
+    ],
+    [
+     "toy-report",
+     "acme-report",
+     "consumer:IndexReport",
+     false
+    ]
+   ],
+   "config": {
+    "solutions": [
+     "toy-report"
+    ],
+    "selections": {
+     "toy-index": "acme-index",
+     "toy-report": "acme-report"
+    }
+   },
+   "provided": {
+    "toy-store": "consumer:Mine"
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "",
+    "built": {
+     "toy-store": "Mine",
+     "toy-index": "StoreIndex",
+     "toy-report": "IndexReport"
+    }
+   }
+  }
+ },
+ {
+  "id": "ASM-004",
+  "kind": "assemble",
+  "area": "an option the constructor does not take fails",
+  "description": "an option the constructor does not take fails",
+  "args": {
+   "register": [
+    [
+     "toy-index",
+     "acme-index",
+     "consumer:StoreIndex",
+     false
+    ],
+    [
+     "toy-report",
+     "acme-report",
+     "consumer:IndexReport",
+     false
+    ]
+   ],
+   "config": {
+    "solutions": [
+     "toy-report"
+    ],
+    "selections": {
+     "toy-index": "acme-index",
+     "toy-report": "acme-report"
+    },
+    "options": {
+     "toy-index": {
+      "nope": 1
+     }
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError"
+   },
+   "contains": [
+    "no option"
+   ]
+  }
+ },
+ {
+  "id": "ASM-005",
+  "kind": "assemble",
+  "area": "hostile names value os:system",
+  "description": "hostile names value os:system",
+  "args": {
+   "config": {
+    "solutions": [
+     "toy-store"
+    ],
+    "names": {
+     "toy-store": "os:system"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError",
+    "executed": false,
+    "arm_loaded": false
+   },
+   "contains": [
+    "rejected"
+   ]
+  }
+ },
+ {
+  "id": "ASM-006",
+  "kind": "assemble",
+  "area": "hostile names value os.system",
+  "description": "hostile names value os.system",
+  "args": {
+   "config": {
+    "solutions": [
+     "toy-store"
+    ],
+    "names": {
+     "toy-store": "os.system"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError",
+    "executed": false,
+    "arm_loaded": false
+   },
+   "contains": [
+    "rejected"
+   ]
+  }
+ },
+ {
+  "id": "ASM-007",
+  "kind": "assemble",
+  "area": "hostile names value ../x.py",
+  "description": "hostile names value ../x.py",
+  "args": {
+   "config": {
+    "solutions": [
+     "toy-store"
+    ],
+    "names": {
+     "toy-store": "../x.py"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError",
+    "executed": false,
+    "arm_loaded": false
+   },
+   "contains": [
+    "rejected"
+   ]
+  }
+ },
+ {
+  "id": "ASM-008",
+  "kind": "assemble",
+  "area": "hostile names value a/b",
+  "description": "hostile names value a/b",
+  "args": {
+   "config": {
+    "solutions": [
+     "toy-store"
+    ],
+    "names": {
+     "toy-store": "a/b"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError",
+    "executed": false,
+    "arm_loaded": false
+   },
+   "contains": [
+    "rejected"
+   ]
+  }
+ },
+ {
+  "id": "ASM-009",
+  "kind": "assemble",
+  "area": "hostile names value evil;rm",
+  "description": "hostile names value evil;rm",
+  "args": {
+   "config": {
+    "solutions": [
+     "toy-store"
+    ],
+    "names": {
+     "toy-store": "evil;rm"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError",
+    "executed": false,
+    "arm_loaded": false
+   },
+   "contains": [
+    "rejected"
+   ]
+  }
+ },
+ {
+  "id": "ASM-010",
+  "kind": "assemble",
+  "area": "hostile selections value os:system",
+  "description": "hostile selections value os:system",
+  "args": {
+   "config": {
+    "solutions": [
+     "toy-store"
+    ],
+    "selections": {
+     "toy-store": "os:system"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError",
+    "executed": false,
+    "arm_loaded": false
+   },
+   "contains": [
+    "rejected"
+   ]
+  }
+ },
+ {
+  "id": "ASM-011",
+  "kind": "assemble",
+  "area": "hostile selections value os.system",
+  "description": "hostile selections value os.system",
+  "args": {
+   "config": {
+    "solutions": [
+     "toy-store"
+    ],
+    "selections": {
+     "toy-store": "os.system"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError",
+    "executed": false,
+    "arm_loaded": false
+   },
+   "contains": [
+    "rejected"
+   ]
+  }
+ },
+ {
+  "id": "ASM-012",
+  "kind": "assemble",
+  "area": "hostile selections value ../x.py",
+  "description": "hostile selections value ../x.py",
+  "args": {
+   "config": {
+    "solutions": [
+     "toy-store"
+    ],
+    "selections": {
+     "toy-store": "../x.py"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError",
+    "executed": false,
+    "arm_loaded": false
+   },
+   "contains": [
+    "rejected"
+   ]
+  }
+ },
+ {
+  "id": "ASM-013",
+  "kind": "assemble",
+  "area": "hostile selections value a/b",
+  "description": "hostile selections value a/b",
+  "args": {
+   "config": {
+    "solutions": [
+     "toy-store"
+    ],
+    "selections": {
+     "toy-store": "a/b"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError",
+    "executed": false,
+    "arm_loaded": false
+   },
+   "contains": [
+    "rejected"
+   ]
+  }
+ },
+ {
+  "id": "ASM-014",
+  "kind": "assemble",
+  "area": "hostile selections value evil;rm",
+  "description": "hostile selections value evil;rm",
+  "args": {
+   "config": {
+    "solutions": [
+     "toy-store"
+    ],
+    "selections": {
+     "toy-store": "evil;rm"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError",
+    "executed": false,
+    "arm_loaded": false
+   },
+   "contains": [
+    "rejected"
+   ]
+  }
+ },
+ {
+  "id": "ASM-015",
+  "kind": "assemble",
+  "area": "hostile selection_environ value",
+  "description": "hostile selection_environ value",
+  "args": {
+   "config": {
+    "solutions": [
+     "toy-store"
+    ],
+    "selection_environ": {
+     "ESOI_SELECT_PKG_TOY_STORE": "os:system"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError",
+    "executed": false
+   },
+   "contains": [
+    "rejected"
+   ]
+  }
+ },
+ {
+  "id": "ASM-016",
+  "kind": "assemble",
+  "area": "a variable that is not this scope's selection variable",
+  "description": "a variable that is not this scope's selection variable",
+  "args": {
+   "config": {
+    "selection_environ": {
+     "PATH": "memory"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError"
+   },
+   "contains": [
+    "may not set"
+   ]
+  }
+ },
+ {
+  "id": "ASM-017",
+  "kind": "assemble",
+  "area": "a name with a dot is refused",
+  "description": "a name with a dot is refused",
+  "args": {
+   "config": {
+    "solutions": [
+     "toy-store"
+    ],
+    "names": {
+     "toy-store": "gpt-4.1"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError"
+   },
+   "contains": [
+    "rejected"
+   ]
+  }
+ },
+ {
+  "id": "ASM-018",
+  "kind": "assemble",
+  "area": "a listed-looking name that is not listed",
+  "description": "a listed-looking name that is not listed",
+  "args": {
+   "config": {
+    "solutions": [
+     "toy-store"
+    ],
+    "names": {
+     "toy-store": "os"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError",
+    "executed": false
+   },
+   "contains": [
+    "unknown implementation 'os'"
+   ]
+  }
+ },
+ {
+  "id": "ASM-019",
+  "kind": "assemble",
+  "area": "a broken selection is not silently dropped",
+  "description": "a broken selection is not silently dropped",
+  "args": {
+   "config": {
+    "selections": {
+     "toy-store": "nope"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError"
+   },
+   "contains": [
+    "unknown implementation 'nope'"
+   ]
+  }
+ },
+ {
+  "id": "ASM-020",
+  "kind": "assemble",
+  "area": "a cycle names the ring",
+  "description": "a cycle names the ring",
+  "args": {
+   "register": [
+    [
+     "toy-index",
+     "loop-a",
+     "consumer:LoopA",
+     false
+    ],
+    [
+     "toy-report",
+     "loop-b",
+     "consumer:LoopB",
+     false
+    ]
+   ],
+   "config": {
+    "solutions": [
+     "toy-index"
+    ],
+    "selections": {
+     "toy-index": "loop-a",
+     "toy-report": "loop-b"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError"
+   },
+   "contains": [
+    "dependency cycle: toy-index -> toy-report -> toy-index"
+   ]
+  }
+ },
+ {
+  "id": "ASM-021",
+  "kind": "assemble",
+  "area": "a longer cycle names every solution",
+  "description": "a longer cycle names every solution",
+  "args": {
+   "register": [
+    [
+     "toy-report",
+     "r2",
+     "consumer:ReportNeedsStore",
+     false
+    ],
+    [
+     "toy-store",
+     "s2",
+     "consumer:StoreNeedsIndex",
+     false
+    ],
+    [
+     "toy-index",
+     "i2",
+     "consumer:IndexNeedsReport",
+     false
+    ]
+   ],
+   "config": {
+    "solutions": [
+     "toy-report"
+    ],
+    "selections": {
+     "toy-report": "r2",
+     "toy-store": "s2",
+     "toy-index": "i2"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError"
+   },
+   "contains": [
+    "toy-report -> toy-store -> toy-index -> toy-report"
+   ]
+  }
+ },
+ {
+  "id": "ASM-022",
+  "kind": "assemble",
+  "area": "an unmet need names the chain",
+  "description": "an unmet need names the chain",
+  "args": {
+   "register": [
+    [
+     "toy-report",
+     "acme-report",
+     "consumer:IndexReport",
+     false
+    ]
+   ],
+   "config": {
+    "solutions": [
+     "toy-report"
+    ],
+    "selections": {
+     "toy-report": "acme-report"
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError"
+   },
+   "contains": [
+    "toy-report (acme-report) needs toy-index: no arm, not provided",
+    "toy-report -> toy-index"
+   ]
+  }
+ },
+ {
+  "id": "ASM-023",
+  "kind": "assemble",
+  "area": "a solution with no arm and nothing provided",
+  "description": "a solution with no arm and nothing provided",
+  "args": {
+   "config": {
+    "solutions": [
+     "toy-index"
+    ]
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError"
+   },
+   "contains": [
+    "toy-index: no arm, not provided"
+   ]
+  }
+ },
+ {
+  "id": "ASM-024",
+  "kind": "assemble",
+  "area": "a hostile esoi.toml in a parent folder is never read",
+  "description": "a hostile esoi.toml in a parent folder is never read",
+  "args": {
+   "outside": {
+    "esoi.toml": "structure_dir = \"specs\"\npython_path = [\".\"]\n\n[selection]\ntoy-store = \"pwn\"\n",
+    "specs/solutions.csv": "solution_id,selected,implementations\ntoy-store,pwn,\n",
+    "specs/implementations.csv": "implementation_id,solution_id,filepath\ntoy-store:pwn,toy-store,evil.py\n",
+    "evil.py": "open(MARKER, 'w').write('x')\n"
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "",
+    "built": {
+     "toy-store": "Memory"
+    },
+    "executed": false,
+    "path_same": true
+   }
+  }
+ },
+ {
+  "id": "ASM-025",
+  "kind": "assemble",
+  "area": "a snapshot module of the standard library",
+  "description": "a snapshot module of the standard library",
+  "args": {
+   "snapshot_module": "os"
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError",
+    "executed": false
+   },
+   "contains": [
+    "rejected"
+   ]
+  }
+ },
+ {
+  "id": "ASM-026",
+  "kind": "assemble",
+  "area": "a snapshot module that only looks like the package",
+  "description": "a snapshot module that only looks like the package",
+  "args": {
+   "snapshot_module": "PKG_evil",
+   "outside": {
+    "PKG_evil.py": "open(MARKER, 'w').write('x')\n"
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError",
+    "executed": false
+   },
+   "contains": [
+    "rejected"
+   ]
+  }
+ },
+ {
+  "id": "ASM-027",
+  "kind": "assemble",
+  "area": "a snapshot module that is no file of the package",
+  "description": "a snapshot module that is no file of the package",
+  "args": {
+   "snapshot_module": "PKG.nothere"
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError",
+    "executed": false
+   },
+   "contains": [
+    "not inside the installed"
+   ]
+  }
+ },
+ {
+  "id": "ASM-028",
+  "kind": "assemble",
+  "area": "a snapshot module whose import fails is raised, not swallowed",
+  "description": "a snapshot module whose import fails is raised, not swallowed",
+  "args": {
+   "snapshot_module": "PKG.broken",
+   "inside": {
+    "broken.py": "raise ImportError('optional extra missing')\n"
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError"
+   },
+   "contains": [
+    "cannot import",
+    "optional extra missing"
+   ]
+  }
+ },
+ {
+  "id": "ASM-029",
+  "kind": "assemble",
+  "area": "registering over a package name",
+  "description": "registering over a package name",
+  "args": {
+   "register": [
+    [
+     "toy-store",
+     "memory",
+     "consumer:Mine",
+     false
+    ]
+   ]
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError"
+   },
+   "contains": [
+    "declared by the"
+   ]
+  }
+ },
+ {
+  "id": "ASM-030",
+  "kind": "assemble",
+  "area": "replacing a package name",
+  "description": "replacing a package name",
+  "args": {
+   "register": [
+    [
+     "toy-store",
+     "memory",
+     "consumer:Mine",
+     true
+    ]
+   ]
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError"
+   },
+   "contains": [
+    "declared by the"
+   ]
+  }
+ },
+ {
+  "id": "ASM-031",
+  "kind": "assemble",
+  "area": "replacing a package name behind the assembler's back",
+  "description": "replacing a package name behind the assembler's back",
+  "args": {
+   "behind": [
+    [
+     "toy-store",
+     "memory",
+     "consumer:Mine"
+    ]
+   ]
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError"
+   },
+   "contains": [
+    "registered under it"
+   ]
+  }
+ },
+ {
+  "id": "ASM-032",
+  "kind": "assemble",
+  "area": "an arm declared in the package __init__ cannot be shadowed",
+  "description": "an arm declared in the package __init__ cannot be shadowed",
+  "args": {
+   "inside": {
+    "__init__.py": "from esoi import solution, implementation\n\n\n@solution(\"toy-init\")\nclass Init:\n    pass\n\n\n@implementation(\"toy-init\", \"inline\")\nclass Inline:\n    pass\n"
+   },
+   "register": [
+    [
+     "toy-init",
+     "inline",
+     "consumer:Mine",
+     false
+    ]
+   ]
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError"
+   },
+   "contains": [
+    "declared by the"
+   ]
+  }
+ },
+ {
+  "id": "ASM-033",
+  "kind": "assemble",
+  "area": "an override() block is not a layer",
+  "description": "an override() block is not a layer",
+  "args": {
+   "register": [
+    [
+     "toy-store",
+     "acme",
+     "consumer:Mine",
+     false
+    ]
+   ],
+   "override": {
+    "toy-store": "acme"
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "",
+    "built": {
+     "toy-store": "Memory"
+    }
+   }
+  }
+ },
+ {
+  "id": "ASM-034",
+  "kind": "assemble",
+  "area": "a provided object missing a Protocol method (runtime checkable)",
+  "description": "a provided object missing a Protocol method (runtime checkable)",
+  "args": {
+   "provided": {
+    "toy-store": "object"
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError"
+   },
+   "contains": [
+    "does not satisfy Store"
+   ]
+  }
+ },
+ {
+  "id": "ASM-035",
+  "kind": "assemble",
+  "area": "a provided object missing a method of a Protocol that is not runtime checkable",
+  "description": "a provided object missing a method of a Protocol that is not runtime checkable",
+  "args": {
+   "provided": {
+    "toy-plain": "object"
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError"
+   },
+   "contains": [
+    "does not satisfy Plain: missing ping"
+   ]
+  }
+ },
+ {
+  "id": "ASM-036",
+  "kind": "assemble",
+  "area": "a provided object that has the method of a Protocol that is not runtime checkable",
+  "description": "a provided object that has the method of a Protocol that is not runtime checkable",
+  "args": {
+   "provided": {
+    "toy-plain": "consumer:Pinger"
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "",
+    "built": {
+     "toy-store": "Memory",
+     "toy-plain": "Pinger"
+    }
+   }
+  }
+ },
+ {
+  "id": "ASM-037",
+  "kind": "assemble",
+  "area": "a provided object for a solution with no Protocol cannot be checked",
+  "description": "a provided object for a solution with no Protocol cannot be checked",
+  "args": {
+   "provided": {
+    "toy-fn": "object"
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "AssemblyError"
+   },
+   "contains": [
+    "cannot check the object provided for 'toy-fn'"
+   ]
+  }
+ },
+ {
+  "id": "ASM-038",
+  "kind": "assemble",
+  "area": "preparing imports no arm and runs nothing",
+  "description": "preparing imports no arm and runs nothing",
+  "args": {
+   "only_prepare": true,
+   "count_arm_imports": true
+  },
+  "expect": {
+   "eq": {
+    "error": "",
+    "arm_loaded": false,
+    "arm_imports": 0,
+    "executed": false
+   }
+  }
+ },
+ {
+  "id": "ASM-039",
+  "kind": "assemble",
+  "area": "concurrent assembles import once and agree",
+  "description": "concurrent assembles import once and agree",
+  "args": {
+   "threads": 8,
+   "count_arm_imports": true,
+   "config": {
+    "solutions": [
+     "toy-store"
+    ]
+   }
+  },
+  "expect": {
+   "eq": {
+    "error": "",
+    "agree": true,
+    "errors": [],
+    "arm_imports": 1,
+    "built": {
+     "toy-store": "Memory"
+    }
+   }
+  }
+ },
+ {
+  "id": "ASM-040",
+  "kind": "docs",
+  "area": "the example in the module docstring runs",
+  "description": "the example in the module docstring runs",
+  "args": {
+   "docs": "docstring"
+  },
+  "expect": {
+   "eq": {
+    "error": ""
+   }
+  }
+ },
+ {
+  "id": "ASM-041",
+  "kind": "docs",
+  "area": "every python block of the guide runs",
+  "description": "every python block of the guide runs",
+  "args": {
+   "docs": "guide"
+  },
+  "expect": {
+   "eq": {
+    "error": ""
+   }
+  }
+ }
+]
