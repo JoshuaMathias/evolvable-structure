@@ -83,13 +83,15 @@ doesn't settle them alone. An AI can carry out every other step and report it.
     one as authoritative. For each solution, one authoritative Metric measuring the distance to its
     ideals: what is recorded and on which cases. Write the cases now (inputs and what a good result looks like),
     including cases where the right result is to do less. The main solution's metric measures the outcome in the real
-    world, not only task completion (10). Write down what the metric cannot see (7). A person confirms each metric and
-    its cases, since this is where people steer from (4).
+    world, not only task completion (10). Write down what the metric cannot see (7). Where it costs to run, order its
+    cascading conditionals cheapest first, each with the value needed to move on. A person confirms each metric and its
+    cases, since this is where people steer from (4).
 14. **Check the metric before trusting it.** A metric is a solution too, with its own best: agreeing with what a
     person would judge. Show it can tell good from bad: a known-good result passes, a known-bad one and a do-nothing
     baseline fail. A metric that relies on a model's judgement is compared with a person's verdicts on a sample.
     Decide when the metric is run, and for any run that costs money, write the estimate, a staged sample (3, then 10,
-    then 30 cases) and who approves the spend.
+    then 30 cases) and who approves the spend. Say what makes a result expire, such as an implementation that changed or
+    a dataset that aged, and what checks the metric itself (10).
 15. **Review from other perspectives.** Read the records as the people served, the people who maintain the work, a
     critic looking for risk, and someone a year from now. Add the problems, ideals and cases they would add (6, 7).
 
@@ -102,9 +104,12 @@ doesn't settle them alone. An AI can carry out every other step and report it.
     in a way that is useful the next time (11). Not every alternative needs to be built in full before it is measured
     once.
 18. **Measure.** Run every implementation on the same cases, as the run policy from step 14 allows, and record each
-    result with the date, the implementation, the version measured and which cases were used.
+    result with the date, the implementation, the version measured and which cases were used. Run a stage of the
+    cascade only when its value is worth its cost; a stage not run stays empty (null), never estimated (10).
 19. **Select by the metric, and record it in one place.** The best implementation by the authoritative metric becomes
-    the default, ideally used automatically (4). Record which one is selected and why (it won; it tied and was kept
+    the default, ideally used automatically (4): the highest result at the latest stage ever run, unless a rival
+    scored higher at an earlier stage and has not reached it yet. Rerun or retire an implementation whose result has
+    expired. Record which one is selected and why (it won; it tied and was kept
     for a stated reason; or it lost and is kept until a named decision) in the single source of truth for these
     records (3).
 
