@@ -126,7 +126,8 @@ tokens_in, tokens_out, cost_usd, seconds, git_sha, cases_sha, sample, model, det
 `;`-separated, `-dirty` for uncommitted changes) when `code_paths` names code in another repository. `cost_usd` is what the
 provider reported, else tokens times the `prices` entry of the model (an exact name, else the longest listed prefix), `0.0` when no
 model was called, and blank when the model has no price. `sample` is blank for the full set, `sample:N` for `--sample N` and
-`only:ids` for `--only`; the leaderboard compares two arms only on rows with the same `cases_sha`, `sample` and case count
+`only:ids` for `--only`, and `slice:<id>` (or `sample:N/slice:<id>`) on the derived row of a circumstance (`circumstances.csv`);
+only whole-run rows decide the default verdict; the leaderboard compares two arms only on rows with the same `cases_sha`, `sample` and case count
 (a log from before the column is told apart by the count), each rival on the newest such run both have, and reports a rival
 with none as not comparable (`--strict` fails on it).
 

@@ -19,6 +19,27 @@ reader can tell which wording of ESOI a release carries. `## Unreleased` collect
 renaming it to the version, adding that opening line, bumping `pyproject.toml` and `__version__` in the same commit, and
 starting a new empty `## Unreleased`. Tagging and publishing are separate decisions of the library's owner.
 
+### What a feature that adds record files changes for an adopter
+
+Seeing a difference by circumstance (see [the guide](../guides/measure-per-circumstance.md)) is the example of a minor bump that
+adds structure. An adopter that does nothing sees only these:
+
+- **One optional record file.** `circumstances.csv` is read when it exists, in any intent folder. It is not one of the five
+  template entities, and every cell is an id, a link or a condition a machine reads, so it carries no prose field. A prose field
+  on a circumstance (a `description`) is not added by the library: the owner of the specification proposes and approves fields,
+  as for any field (rule R7). A repository without the file records exactly what it did before.
+- **The results log.** A recorded run of a component that has circumstances also appends derived rows whose `sample` is
+  `slice:<id>`, and writes `per_case.csv` beside the log. Both are excluded from the staleness test of the measured code; the
+  table's hash is part of it, so editing `circumstances.csv` makes the derived rows stale until `esoi run --stale` derives them
+  again.
+- **A behavior change in the default verdict.** Only a row that scored a whole run (the full set or `sample:N`) decides it. A row
+  recorded with `--only` no longer does, which is the defect that made a recorded subset the newest key two arms share. A
+  repository whose only shared rows were `only:` rows now reads UNMEASURED until the arms are run on the same sample, and a rival
+  recorded only on named cases is listed as `not comparable: named cases only`.
+- **Names.** An implementation name may be a variant, `name@key=value`; the metric command pattern accepts it.
+
+Routing a call by circumstance (a map written by `esoi select --promote` and applied at run time) is designed and not built.
+
 ## The stamp: which skill and template this library follows
 
 `implementations/python/esoi/data/skill_version.json` is generated, never edited. It holds commits and hashes only, no

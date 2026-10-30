@@ -24,6 +24,9 @@ Which implementation runs is decided by one cascade, the innermost layer that na
     4. deployment         ``[selection]`` in ``esoi.toml``: ``greet-a-person = "name"``
     5. project default    the solution's ``selected`` in the records (read at run time; or a snapshot, see below)
 
+A name may be a variant, ``name@key=value`` (see ``esoi.variants``): the implementation ``name`` is called with the
+parameters as keyword arguments.
+
 The project default is never written a second time in code: the records hold it, and ``esoi select --promote`` changes
 it when a rival wins on the solution's own metric. An unknown solution or name raises ``SelectionError`` listing the
 choices and the layer (and variable) that supplied the bad name, so a typo fails loudly instead of falling through. An
@@ -63,6 +66,7 @@ from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple
 
 from . import config as config_module
 from . import registry as registry_module
+from . import variants
 from .select import Selector, import_ref, records_defaults
 
 ENV_PREFIX = "ESOI_SELECT_"
@@ -419,7 +423,11 @@ def choose(solution_id: str, using: Optional[str] = None, environ: Optional[Mapp
                              f"with {ROOT_ENV})" + (f"; solutions that have implementations: {', '.join(solutions)}"
                                                     if solutions else "")))
     layer, name, source = layers[0]
-    if name not in known:
+    try:
+        variants.split(name)
+    except ValueError as exc:
+        raise SelectionError(f"{exc} (named by the {layer} layer: {source})") from exc
+    if variants.base_of(name) not in known:
         raise SelectionError(f"unknown implementation {name!r} for {solution_id!r} (named by the {layer} layer: {source}); "
                              f"choices: {', '.join(known) or 'none'}")
     return Choice(name, layer, source)
@@ -473,11 +481,14 @@ def fetch(solution_id: str, name: str, project: Optional[Project], scope: str = 
 
 def resolve(solution_id: str, using: Optional[str] = None, environ: Optional[Mapping[str, str]] = None,
             scope: Optional[str] = None) -> Any:
-    """The chosen implementation object of a solution (a class is not instantiated)."""
+    """The chosen implementation object of a solution (a class is not instantiated). For a variant, the object with its
+    parameters bound as keyword arguments."""
     env = os.environ if environ is None else environ
     where = locate(solution_id, scope)
     picked = choose(solution_id, using, env, where)
-    return fetch(solution_id, picked.name, project_for(solution_id, env, where), where)
+    base, params = variants.split(picked.name)
+    found = fetch(solution_id, base, project_for(solution_id, env, where), where)
+    return functools.partial(found, **params) if params else found
 
 
 def load_declared(config: Any, solution_id: str) -> Dict[str, Any]:

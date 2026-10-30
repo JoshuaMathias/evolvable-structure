@@ -187,3 +187,27 @@ def test_a_recorded_only_run_does_not_decide_the_default_verdict():
     latest = {impl: h[-1] for impl, h in hist.items()}
     assert lb.verdict(latest, "a", history=hist)[0] == "WIN"
     assert lb.challengers(latest, "a", history=hist) == []
+
+
+def test_a_rival_recorded_only_on_named_cases_is_reported_not_comparable_never_skipped():
+    """Hazard: a rival whose rows were all `only:` or `slice:` was dropped without a note (a real results log has such arms)."""
+    own = row("a", 8, cases=10, date="2026-01-01")
+    rival_only = row("b", 9, cases=2, sample="only:X,Y", date="2026-02-01")
+    rival_slice = row("c", 9, cases=3, sample="slice:big", date="2026-02-01")
+    hist = history(own, rival_only, rival_slice)
+    latest = {impl: h[-1] for impl, h in hist.items()}
+    pairs, unmatched = lb.rival_pairs(latest, "a", history=hist)
+    assert pairs == [] and [i for i, _ in unmatched] == ["b", "c"]
+    assert "not comparable: named cases only" in unmatched[0][1]
+    label, detail = lb.verdict(latest, "a", history=hist)
+    assert label == "UNMEASURED" and "b scored on only:X,Y only; not comparable: named cases only" in detail
+    both = history(own, row("d", 5, cases=10, date="2026-01-01"), rival_only)
+    pairs, unmatched = lb.rival_pairs({i: h[-1] for i, h in both.items()}, "a", history=both)
+    assert [r["impl"] for _, r in pairs] == ["d"] and [i for i, _ in unmatched] == ["b"]   # compared where it can be, noted where not
+
+
+def test_a_variant_row_finds_the_arm_kind_of_its_base(tmp_path):
+    impls = tmp_path / "c" / "impls"
+    impls.mkdir(parents=True)
+    (impls / "guard.py").write_text('"""BASELINE: nothing added."""\n')
+    assert lb.arm_kind(row("guard@harness=native", 1), tmp_path) == "baseline"

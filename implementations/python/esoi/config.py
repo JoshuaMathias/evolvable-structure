@@ -141,6 +141,11 @@ class Config:
         return self.root / self.results
 
     @property
+    def per_case(self) -> str:
+        """The per-case log written beside the results log when a component has circumstances (``esoi.harness.record_slices``)."""
+        return str(Path(self.results).with_name("per_case.csv"))
+
+    @property
     def tracker_dir(self) -> Path:
         return self.structure / self.tracker_folder
 

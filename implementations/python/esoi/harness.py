@@ -32,7 +32,10 @@ import csv
 import datetime
 import functools
 import importlib
+import inspect
+import io
 import json
+import os
 import pkgutil
 import subprocess
 import sys
@@ -40,9 +43,10 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from . import balance
+from . import balance, circumstances, variants
 from .config import Config
-from .leaderboard import cases_digest
+from .assemble import check_name
+from .leaderboard import cases_digest, is_partial
 
 RESULT_COLUMNS = ["date", "component", "impl", "cases", "passed", "dev", "heldout", "model_calls",
                   "tokens_in", "tokens_out", "cost_usd", "seconds", "balanced", "git_sha", "cases_sha", "sample", "model", "details"]
@@ -133,19 +137,39 @@ def declared_build(config: Config, component: str, name: str) -> Optional[Callab
         return None
     score = importlib.import_module(f"{component}.score")
 
-    def build(meter: CallMeter) -> Callable:
+    def build(meter: CallMeter, **params: Any) -> Callable:
+        bound = functools.partial(check_parameters(target, params, name), **params) if params else target   # esoi.variants
         if hasattr(score, "adapt"):
-            return score.adapt(target, meter)
-        return lambda kind, args: target(**args)
+            return score.adapt(bound, meter)
+        return lambda kind, args: bound(**args)
     return build
+
+
+def check_parameters(fn: Callable, params: Dict[str, Any], name: str) -> Callable:
+    """``fn``, or ``RunError`` when it takes none of a variant's parameters by that name: an unknown key fails the arm once,
+    loudly, instead of failing every case into a 0/N row."""
+    try:
+        accepted = inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        return fn
+    if not any(p.kind is p.VAR_KEYWORD for p in accepted.values()):
+        unknown = sorted(set(params) - set(accepted))
+        if unknown:
+            raise RunError(f"{name} takes no parameter {', '.join(unknown)} (it takes: {', '.join(accepted) or 'none'})")
+    return fn
 
 
 def load_impl(spec: str, component: str, config: Optional[Config] = None) -> Callable:
     """``--impl name`` -> ``<component>/impls/name.py``'s ``build``, else the implementation of that name the code
-    declares (needs ``config``); ``module:function`` is also accepted."""
+    declares (needs ``config``); ``module:function`` is also accepted. A variant (``name@key=value``, see ``esoi.variants``)
+    resolves ``name`` and passes the parameters to its ``build(meter, **params)``."""
     if ":" in spec:
         module, _, attr = spec.partition(":")
         return getattr(importlib.import_module(module), attr)
+    spec, params = variants.split(spec)
+    if params:
+        build = load_impl(spec, component, config)
+        return lambda meter: check_parameters(build, params, spec)(meter, **params)
     try:
         return importlib.import_module(f"{component}.impls.{spec}").build
     except ModuleNotFoundError as exc:
@@ -293,7 +317,7 @@ def current_sha(config: Config) -> str:
     itself is not the code under test)."""
     sha = git(config, "rev-parse", "--short", "HEAD")
     if sha and git(config, "status", "--porcelain", "--untracked-files=no", "--", *own_code_paths(config),
-                   config.evaluation_dir, f":(exclude){config.results}"):
+                   config.evaluation_dir, f":(exclude){config.results}", f":(exclude){config.per_case}"):
         sha += "-dirty"
     return sha
 
@@ -303,7 +327,7 @@ def changed_since(config: Config, sha: str) -> Optional[List[str]]:
     working tree since the commit a result was recorded at; ``None`` when that commit is not known here."""
     base = sha.removesuffix("-dirty")
     done = subprocess.run(["git", "diff", "--name-only", base, "--", *own_code_paths(config), config.evaluation_dir,
-                           f":(exclude){config.results}"], cwd=config.root, capture_output=True, text=True)
+                           f":(exclude){config.results}", f":(exclude){config.per_case}"], cwd=config.root, capture_output=True, text=True)
     return done.stdout.split() if done.returncode == 0 else None
 
 
@@ -334,6 +358,8 @@ def stale_reason(config: Config, component: str, row: Optional[Dict[str, str]], 
     now = cases_digest(component, config.evaluation)
     if row.get("cases_sha", "") != now:
         return f"its latest row was recorded on other cases (cases_sha {row.get('cases_sha') or 'blank'}, now {now})"
+    if why := circumstances_stale(config, component, row):
+        return why
     if strict and row["git_sha"].endswith("-dirty"):
         return "its latest row was recorded on uncommitted code"
     if strict and (changed := changed_since(config, row["git_sha"])):
@@ -422,6 +448,11 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     args = ap.parse_args(argv)
     cases = load_cases(component, config)
     whole = len(cases)
+    try:
+        circs = circumstances.for_component(config, component)   # an unreadable circumstance fails here, before any model call
+        circumstances.check_fields(circs, cases)
+    except ValueError as exc:
+        raise RunError(str(exc)) from exc
     if args.only:
         keep = {c.strip() for c in args.only.split(",")}
         cases = [c for c in cases if c["id"] in keep]
@@ -435,29 +466,31 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     budget = args.max_calls if args.max_calls is not None else "none"
     say(f"{component}: {len(cases)} case(s), impl {args.impl}, model-call budget {budget}: "
         f"{', '.join(str(c['id']) for c in cases[:12])}{' ...' if len(cases) > 12 else ''}")
+    impl = args.impl if ":" in args.impl else variants.canonical(args.impl)   # one spelling of a variant in every record
     meter = CallMeter(args.max_calls)
-    fn = load_impl(args.impl, component, config)(meter)
+    fn = load_impl(impl, component, config)(meter)
     rows: List[Dict[str, Any]] = []
     started = time.time()
     for case in cases:
-        before, t0 = meter.calls, time.time()
+        before, t0, in0, out0 = meter.calls, time.time(), meter.tokens_in, meter.tokens_out
         try:
             row = scorer(fn, case)
         except BudgetExceeded:
             raise
         except Exception as exc:
             row = dict(ok=False, note=f"{type(exc).__name__}: {exc}")
-        row.update(id=case["id"], area=case.get("area"), calls=meter.calls - before, seconds=round(time.time() - t0, 1))
+        row.update(id=case["id"], area=case.get("area"), calls=meter.calls - before, seconds=round(time.time() - t0, 1),
+                   tokens_in=meter.tokens_in - in0, tokens_out=meter.tokens_out - out0)
         rows.append(row)
         say(f"[{row['id']:9}] {'PASS' if row['ok'] else 'FAIL'} calls={row['calls']} {row.get('got', '')} | {row.get('note', '')}")
     passed = sum(bool(r["ok"]) for r in rows)
     held = [r for r, c in zip(rows, cases) if c.get("heldout")]
-    summary = dict(component=component, impl=args.impl, cases=len(rows), passed=passed,
+    summary = dict(component=component, impl=impl, cases=len(rows), passed=passed,
                    dev=f"{sum(bool(r['ok']) for r in rows if r not in held)}/{len(rows) - len(held)}",
                    heldout=f"{sum(bool(r['ok']) for r in held)}/{len(held)}",
                    model_calls=meter.calls, tokens_in=meter.tokens_in, tokens_out=meter.tokens_out,
                    cli_reported_cost_usd=round(meter.cost_usd, 4), seconds=round(time.time() - started, 1),
-                   model=SIMULATED_MODEL if declares_simulated(impl_path(config, component, args.impl)) else meter.model,
+                   model=SIMULATED_MODEL if declares_simulated(impl_path(config, component, variants.base_of(impl))) else meter.model,
                    sample=sample)
     cost = run_cost(config, summary, summary["model"])
     summary.update(balance.balanced(passed, len(rows), cost, summary["seconds"], config.balance.get(component)))
@@ -478,7 +511,107 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     if args.record:
         record_result(summary, config)
         say(f"recorded in {config.results}")
+        if not sample.startswith("only:"):
+            for part in record_slices(config, component, circs, summary, cases, rows):
+                say(f"recorded {part['sample']}: {part['passed']}/{part['cases']} (derived from this run)")
     return summary, rows
+
+
+PER_CASE_COLUMNS = ["component", "impl", "cases_sha", "circumstances_sha", "sample", "case_id", "heldout", "ok", "calls",
+                    "tokens_in", "tokens_out", "seconds", "circumstances"]
+PER_CASE_KEY = ("component", "impl", "cases_sha", "sample", "case_id")
+
+
+def read_per_case(config: Config, every: bool = False) -> List[Dict[str, str]]:
+    """The per-case log, the newest row of each (arm, cases, sample, case) or, with ``every``, every row in file order; a
+    repeated header line (two recorders creating the file together) is not a row."""
+    path = config.root / config.per_case
+    if not path.is_file():
+        return []
+    with open(path, newline="", encoding="utf-8") as fh:
+        rows = [r for r in csv.DictReader(fh) if r.get("component") != "component"]
+    return rows if every else list({tuple(r.get(k) or "" for k in PER_CASE_KEY): r for r in rows}.values())
+
+
+def write_per_case(config: Config, new: List[Dict[str, str]]) -> None:
+    """Add rows to the per-case log without losing another recorder's: one append of the whole batch (``O_APPEND``), then,
+    when the arm had rows of its own from older cases or an earlier run of the same sample, a compaction written to a
+    temporary file and moved over the log in one step. A row lost to a compaction that overlapped an append is re-derived:
+    the arm is stale (``circumstances_stale``) until its rows are back."""
+    path = config.root / config.per_case
+    path.parent.mkdir(parents=True, exist_ok=True)
+    out = io.StringIO()
+    writer = csv.DictWriter(out, PER_CASE_COLUMNS, lineterminator="\n")
+    if not path.is_file() or path.stat().st_size == 0:
+        writer.writeheader()
+    writer.writerows(new)
+    fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+    try:
+        os.write(fd, out.getvalue().encode("utf-8"))
+    finally:
+        os.close(fd)
+    arm = {(r["component"], r["impl"]) for r in new}
+    keep = [r for r in read_per_case(config) if (r["component"], r["impl"]) not in arm or r["cases_sha"] == new[0]["cases_sha"]]
+    if len(keep) != len(read_per_case(config, every=True)):   # superseded rows, rows of older cases or a repeated header
+        temporary = path.with_name(path.name + f".{os.getpid()}.tmp")
+        with open(temporary, "w", newline="", encoding="utf-8") as fh:
+            compacted = csv.DictWriter(fh, PER_CASE_COLUMNS, lineterminator="\n")
+            compacted.writeheader()
+            compacted.writerows(keep)
+        os.replace(temporary, path)
+
+
+def record_slices(config: Config, component: str, circs: List[circumstances.Circumstance], summary: Dict[str, Any],
+                  cases: List[dict], rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """The derived rows of a recorded run, one per circumstance it satisfies and has cases in (``slice:<id>``, or
+    ``sample:N/slice:<id>``), appended to the results log, and the run's per-case log. Nothing is written for a component with
+    no circumstances. A slice costs no model call: it is a sum over the cases the run already scored."""
+    if not circs:
+        return []
+    key = dict(component=component, impl=summary["impl"], cases_sha=cases_digest(component, config.evaluation),
+               circumstances_sha=circumstances.digest(circs), sample=summary["sample"])
+    write_per_case(config, [dict(key, case_id=str(c["id"]), heldout="yes" if c.get("heldout") else "", ok="1" if r["ok"] else "0",
+                                 calls=r["calls"], tokens_in=r["tokens_in"], tokens_out=r["tokens_out"], seconds=r["seconds"],
+                                 circumstances=";".join(circumstances.case_circumstances(circs, c))) for c, r in zip(cases, rows)])
+    total = (summary["tokens_in"] + summary["tokens_out"]) or 0
+    written = []
+    for cid, found in circumstances.slices(circs, cases, circumstances.run_context(summary.get("model"), summary["impl"])).items():
+        check_name(cid, "slice id")   # a '/' or ';' would make the row read as a whole run
+        part = [rows[i] for i in found]
+        dev = [i for i in found if not cases[i].get("heldout")]
+        held = [i for i in found if cases[i].get("heldout")]
+        share = sum(r["tokens_in"] + r["tokens_out"] for r in part) / total if total else len(found) / len(rows)
+        piece = dict(summary, cases=len(found), passed=sum(bool(r["ok"]) for r in part),
+                     dev=f"{sum(bool(rows[i]['ok']) for i in dev)}/{len(dev)}", heldout=f"{sum(bool(rows[i]['ok']) for i in held)}/{len(held)}",
+                     model_calls=sum(r["calls"] for r in part), tokens_in=sum(r["tokens_in"] for r in part),
+                     tokens_out=sum(r["tokens_out"] for r in part), seconds=round(sum(r["seconds"] for r in part), 1),
+                     cli_reported_cost_usd=round(summary["cli_reported_cost_usd"] * share, 4),
+                     sample=(summary["sample"] + "/" if summary["sample"] else "") + f"slice:{cid}", details="derived from the run of the same date")
+        for stale_key in ("balanced", "accuracy", "cost_per_case", "seconds_per_case"):
+            piece.pop(stale_key, None)
+        piece.update(balance.balanced(piece["passed"], piece["cases"], run_cost(config, piece, piece["model"]), piece["seconds"],
+                                      config.balance.get(component)))
+        record_result(piece, config)
+        written.append(piece)
+    return written
+
+
+def circumstances_stale(config: Config, component: str, row: Dict[str, str]) -> str:
+    """Why a whole-run row's derived rows no longer count: ``circumstances.csv`` changed (or cannot be read) since they were
+    derived, or the per-case log holds no rows for the run. Empty for a component with no circumstances."""
+    if is_partial(row):
+        return ""
+    try:
+        circs = circumstances.for_component(config, component)
+    except ValueError as exc:
+        return f"circumstances.csv cannot be read: {exc}"
+    if not circs:
+        return ""
+    wanted = (component, row.get("impl", ""), row.get("cases_sha", ""), (row.get("sample") or "").strip())
+    mine = [r for r in read_per_case(config) if (r["component"], r["impl"], r["cases_sha"], r["sample"]) == wanted]
+    if not any(r["circumstances_sha"] == circumstances.digest(circs) for r in mine):
+        return "its slice rows and per-case log were not derived from the current circumstances.csv (re-run it to derive them)"
+    return ""
 
 
 def declares_constant(path: Path, name: str) -> bool:
@@ -527,7 +660,7 @@ def stale_arms(config: Config) -> List[Tuple[str, str]]:
     re-run on the selected arm's cases and sample."""
     from . import leaderboard
     from .registry import first_arm, load
-    latest = leaderboard.latest_results(config.results_path)
+    latest = leaderboard.latest_results(config.results_path)   # every arm, even one recorded only on named cases
     arms: List[Tuple[str, str]] = []
     for row in load(config).solutions:
         comp, impl = first_arm(config, row.get("metric_command", ""))
@@ -545,8 +678,8 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
     """Run every selected implementation, and every rival recorded beside it, whose recorded result is stale, and record
     it; the loop to run after changing measured code or cases, on committed code.
 
-    Each run uses the sample of the selected arm's latest row (size and selection, so a re-record stays comparable with
-    its rivals); ``full`` runs the whole set instead. A rival that is current but was scored on another sample than the
+    Each run uses the sample of the selected arm's newest whole-run row (an ``only:`` or ``slice:`` row is never the row
+    staleness is judged on), so a re-record stays comparable with its rivals; ``full`` runs the whole set instead. A rival that is current but was scored on another sample than the
     selected arm is not stale, it is not comparable: it is re-run on the selected arm's sample too.
 
     An arm that may spend money (``paid_reason``) is never run by default: it is listed as skipped with the command that
@@ -554,9 +687,10 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
     from . import leaderboard
     from .registry import first_arm, load
     prepare_path(config)
-    latest = leaderboard.latest_results(config.results_path)
+    latest = leaderboard.latest_results(config.results_path, whole=True)   # staleness is judged on the newest whole run, not an only: row
     selected_arms = {first_arm(config, r.get("metric_command", "")) for r in load(config).solutions}
     skipped: List[str] = []
+    failed = 0
     target: Dict[str, List[str]] = {}   # component -> run flags of its selected arm's sample
     for comp, impl in stale_arms(config):
         row = latest.get(comp, {}).get(impl)
@@ -580,14 +714,19 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
             continue
         say(f"{comp}/{impl}: stale, {why}")
         score = importlib.import_module(f"{comp}.score")
-        run_component(comp, score.score_case, ["--impl", impl] + flags + (["--record"] if record else []), config,
-                      lambda text: None)
+        try:
+            run_component(comp, score.score_case, ["--impl", impl] + flags + (["--record"] if record else []), config,
+                          lambda text: None)
+        except RunError as exc:   # an arm that cannot start (an unknown variant key, a bad circumstance) fails once, loudly
+            failed += 1
+            say(f"{comp}/{impl}: ERROR, {exc}")
+            continue
         say(f"{comp}/{impl}: run" + (f" ({' '.join(flags)})" if flags else "") + (" and recorded" if record else ""))
     if skipped:
         say(f"skipped {len(skipped)} paid arm(s); stage and budget them first (see the metric run policy), then run each with "
             "`esoi run <component> --impl <name> --max-calls N --record`, or "
             f"`esoi run --stale --include {' --include '.join(skipped)}`")
-    return 0
+    return 1 if failed else 0
 
 
 def run_cli(argv: List[str], config: Config, say: Callable[[str], None] = print) -> int:

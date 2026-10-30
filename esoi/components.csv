@@ -61,3 +61,4 @@ versioning,tools,implementations/python/esoi/versioning.py,"The stamp of the ski
 rules-versioning,tools,implementations/python/esoi/rules/version_rules.py,"The rule S34: the template version a repository records is the one the library carries.",template-sync;structure-rules
 metric-record,tools,implementations/python/esoi/spec_slice.py;implementations/python/esoi/metric_meter.py;implementations/python/esoi/metric_results.py;implementations/python/esoi/iteration.py,unconfirmed: for Joshua to confirm.,keep-metric-record
 eval-keep-metric-record,evaluation,implementations/python/evaluation/components/keep_metric_record/**,unconfirmed: for Joshua to confirm.,keep-metric-record
+circumstances,core,implementations/python/esoi/circumstances.py;implementations/python/esoi/variants.py,unconfirmed: for Joshua to confirm.,leaderboard;runtime-selection

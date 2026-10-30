@@ -49,6 +49,7 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 from .config import Config
 from .registry import Registry, first_arm, harness_arms
+from .variants import base_of
 
 Row = Dict[str, str]
 Rows = Dict[str, Row]
@@ -124,9 +125,30 @@ def slice_results(path: Path) -> Dict[str, Dict[str, Dict[str, List[Row]]]]:
     return out
 
 
-def latest_results(path: Path) -> Dict[str, Rows]:
-    """{component: {impl: row}} keeping the newest row per implementation."""
-    return {comp: {impl: history[-1] for impl, history in impls.items()} for comp, impls in all_results(path).items()}
+def as_whole(row: Row) -> Row:
+    """A slice row read as the run of its slice's cases: the ``slice:`` part of its ``sample`` label dropped, so ``verdict``
+    judges the arms of one circumstance exactly as it judges the arms of one case set."""
+    head, _, last = (row.get("sample") or "").strip().rpartition("/")
+    return {**row, "sample": head if last.startswith(SLICE_MARK) else (row.get("sample") or "")}
+
+
+def slice_verdicts(component: str, incumbent: str, slices: Dict[str, Dict[str, Dict[str, List[Row]]]],
+                   eval_dir: Optional[Path] = None) -> List[Tuple[str, str, str]]:
+    """``(circumstance id, verdict label, detail)`` of ``incumbent`` in each circumstance the component has slice rows for
+    (``slice_results``). A slice verdict is a PROPOSAL read by a person: nothing is selected by it. Name the incumbent the
+    marginal-value rule names (the no-add-on baseline arm, to which a tie goes), not the arm that is selected."""
+    out = []
+    for cid, group in sorted(slices.get(component, {}).items()):
+        history = {impl: [as_whole(r) for r in found] for impl, found in group.items()}
+        out.append((cid, *verdict({impl: found[-1] for impl, found in history.items()}, incumbent, eval_dir, history)))
+    return out
+
+
+def latest_results(path: Path, whole: bool = False) -> Dict[str, Rows]:
+    """{component: {impl: row}} keeping the newest row per implementation. With ``whole``, the newest row that scored a whole
+    run (not ``only:`` or ``slice:``), the row staleness is judged on; an arm with none is left out."""
+    return {comp: {impl: found[-1] for impl, history in impls.items() if (found := [r for r in history if not (whole and is_partial(r))])}
+            for comp, impls in all_results(path).items()}
 
 
 def selected_impls(config: Config, solutions: List[Row]) -> Dict[str, str]:
@@ -211,7 +233,7 @@ def arm_kind(row: Row, eval_dir: Optional[Path] = None) -> str:
     ``alternative``, or ``""`` for live code. Shown beside every row so a reader can tell a rival from a reference."""
     if eval_dir is None:
         return ""
-    path = Path(eval_dir) / row.get("component", "") / "impls" / (row["impl"] + ".py")
+    path = Path(eval_dir) / row.get("component", "") / "impls" / (base_of(row["impl"]) + ".py")
     if not path.is_file():
         return ""
     found = ARM_MARKER.match(path.read_text(encoding="utf-8"))
@@ -302,13 +324,18 @@ def rival_pairs(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
     ``cases_key``): for each rival, the newest key both arms have a row for, and on it each arm's newest row.
     ``unmatched`` is ``(rival, why)`` for each rival (ablation and validity arms excluded) that shares no key, so it is
     not compared at all."""
-    arms = {impl: [r for r in found if not is_partial(r)] for impl, found in history_of(rows, history).items()}
+    every = history_of(rows, history)
+    arms = {impl: [r for r in found if not is_partial(r)] for impl, found in every.items()}
     mine = arms.get(selected) or []
     pairs: List[Tuple[Row, Row]] = []
     unmatched: List[Tuple[str, str]] = []
     for impl in sorted(arms):
         theirs = arms[impl]
-        if impl == selected or not theirs or is_ablation(theirs[-1], eval_dir):
+        if impl == selected or is_ablation((theirs or every[impl])[-1], eval_dir):
+            continue
+        if not theirs:   # recorded only on named cases (only:) or slices: never silently skipped
+            if mine:
+                unmatched.append((impl, f"scored on {every[impl][-1].get('sample')} only; not comparable: named cases only (no run of the whole set)"))
             continue
         best = None   # (rival position, selected position) of the newest shared key
         for i, rival in enumerate(theirs):

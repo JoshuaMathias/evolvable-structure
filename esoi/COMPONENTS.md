@@ -67,6 +67,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `rules-versioning` | tools | The rule S34: the template version a repository records is the one the library carries. | template-sync, structure-rules |
 | `metric-record` | tools | unconfirmed: for Joshua to confirm. | keep-metric-record |
 | `eval-keep-metric-record` | evaluation | unconfirmed: for Joshua to confirm. | keep-metric-record |
+| `circumstances` | core | unconfirmed: for Joshua to confirm. | leaderboard, runtime-selection |
 | `selection` | core | Resolving an implementation of a solution from a selection table. | runtime-selection |
 | `eval-select-an-implementation` | evaluation | Cases for resolving a selection. | runtime-selection |
 | `runtime` | core | Declarations in code and the cascade that picks the implementation a call runs. | runtime-selection |

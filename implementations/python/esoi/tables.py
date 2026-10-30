@@ -45,8 +45,9 @@ def write_csv(path: Path, columns: List[str], rows: List[Dict[str, str]]) -> Non
     Path(path).write_text(render_csv(columns, rows), encoding="utf-8")
 
 
-#: The command a metric records a run through: ``esoi run <component> --impl <name>`` (a configuration may change it).
-DEFAULT_METRIC_COMMAND = r"(?:esoi run|run\.py) (\w+) --impl (\w+)"
+#: The command a metric records a run through: ``esoi run <component> --impl <name>`` (a configuration may change it). The name
+#: may be a variant, ``base@key=value,key=value`` (see ``esoi.variants``).
+DEFAULT_METRIC_COMMAND = r"(?:esoi run|run\.py) (\w+) --impl (\w[\w@=-]*(?:[.,][\w@=-]+)*)"
 
 
 def is_command(text: str, pattern: str = DEFAULT_METRIC_COMMAND) -> bool:

@@ -55,6 +55,7 @@ a team process, a personal schedule.
 - [Install the skill](guides/install-the-skill.md): give an AI agent the principles.
 - [Assemble the parts of a program by name](guides/assemble-by-name.md): resolve, build in dependency order, fail early.
 - [Keep a metric's value before and after a piece of work](guides/measure-before-and-after.md): find the slice of the specification, read the metric twice, keep the rows.
+- [Measure an implementation per circumstance](guides/measure-per-circumstance.md): circumstances, variants, slice rows, and how to read a slice verdict as a proposal.
 
 ## Background
 
