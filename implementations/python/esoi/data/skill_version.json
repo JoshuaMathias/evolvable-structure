@@ -1,0 +1,22 @@
+{
+ "format": 1,
+ "history": [],
+ "skill": {
+  "commit": "4432aee8c07d0e1d550499e7c03fb2e441780ff9",
+  "committed": false,
+  "copy_sha256": "d524d28131fc876748a561534b29f1e54f8a7744b1568bf90d8f2ffb0a0998f5",
+  "date": "2026-10-30",
+  "skill_md_sha256": "a2afe567e06d055e9ef1642485cb37c82d129c6e8d7d9a2191d26a7aef78e827"
+ },
+ "template": {
+  "changes": [
+   "baseline: the first recorded template version; earlier changes are in CHANGELOG.md"
+  ],
+  "date": "2026-10-30",
+  "sha256": "d6f3843a430c",
+  "skill_commit": "4432aee8c07d0e1d550499e7c03fb2e441780ff9",
+  "skill_committed": false,
+  "skill_md_sha256": "a2afe567e06d055e9ef1642485cb37c82d129c6e8d7d9a2191d26a7aef78e827",
+  "version": 1
+ }
+}

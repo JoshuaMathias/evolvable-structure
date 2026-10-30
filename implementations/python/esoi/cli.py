@@ -19,6 +19,7 @@
     esoi intent migrate [--apply]          move a legacy overall layout to the intent layout (dry run without --apply)
     esoi spec index [--out FILE]|find TEXT [-k N] [--expand N]|show ID [--tier 0|1|2]|related ID [--depth N]|intent [ID] [--cache FILE]   the specification index: find the few records a new use case needs
     esoi projects init|add|list|check|index|where   the local ESOI index (a folder named by ESOI_HOME, else ~/.esoi)
+    esoi version [--record]                the package version, the skill it follows, the template version; --record writes the template version into esoi.toml
     esoi hygiene [--staged] [--history]    scan for secrets, machine paths and real addresses
     esoi sheet-sync sync|push|pull|check   two-way sync of the tracker with a Google Sheet (esoi[sheets])
 
@@ -119,6 +120,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--relations", default="", help="add: ';'-separated kind:project_id (uses, used-by, sub-intent-of, example-of, related)")
     p.add_argument("--notes", default="")
     p.add_argument("--replace", action="store_true", help="add: update a project that is already listed")
+    p = sub.add_parser("version", help="the package, skill and template versions")
+    p.add_argument("--record", action="store_true", help="record the library's template version under [records] in esoi.toml")
     p = sub.add_parser("hygiene", help="scan for secrets and private data")
     p.add_argument("--root", default=".")
     p.add_argument("--staged", action="store_true")
@@ -254,6 +257,31 @@ def select_command(config, args: argparse.Namespace) -> int:
         return 2
 
 
+def version_command(args: argparse.Namespace, config_module) -> int:
+    """``esoi version``: works without a configuration; ``--record`` needs one."""
+    from . import versioning
+    try:
+        config = config_module.load(args.config)
+    except config_module.ConfigMissing:
+        config = None
+    except config_module.ConfigError as exc:
+        print(f"esoi: {exc}", file=sys.stderr)
+        return 2
+    if args.record:
+        if config is None:
+            print("esoi: no esoi.toml found to record the template version in", file=sys.stderr)
+            return 2
+        try:
+            print(f"wrote {versioning.record(config)} under [records] in {config.source.name}")
+        except versioning.VersionError as exc:
+            print(f"esoi: {exc}", file=sys.stderr)
+            return 2
+        return 0
+    for line in versioning.report(config):
+        print(line)
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     argv = sys.argv[1:] if argv is None else list(argv)
     if "run" in argv:   # everything after `run` belongs to the harness, flags included
@@ -274,6 +302,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.cmd == "skill" and args.action == "install":
         from . import skill
         return skill.install(args.project, args.dest, args.from_dir, args.force)
+    if args.cmd == "version":
+        return version_command(args, config_module)
     if args.cmd == "hygiene":
         from . import hygiene
         table = {}

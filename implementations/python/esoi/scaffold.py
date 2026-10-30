@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from . import check as check_module
-from . import leaderboard
+from . import leaderboard, versioning
 from .config import DEFAULT_STRUCTURE_DIR, Config, from_mapping
 from .fields import format_tags
 from .records import FILES, TEMPLATE_DATA, fields, load_template
@@ -118,6 +118,9 @@ CONFIG = '''# esoi configuration for this repository. Every key is optional; see
 package = "{package}"
 layers = ["core"]
 code_paths = ["{package}"]
+
+# The version of the ESOI intent template these records follow; `esoi check` says when a newer esoi changes the template.
+records.template_version = {version}
 '''
 GREET = '''"""The example solution, declared where it lives: the interface, and the alternative the project ships."""
 from esoi import implementation, solution
@@ -251,7 +254,7 @@ def files_for(package: str, template) -> Dict[str, str]:
         [dict(zip(["component_id", "layer", "path", "role", "solutions"], c)) for c in components])
     out[f"{structure}/waivers.csv"] = render_csv(["rule", "path", "reason"], [])
     out[f"{structure}/esoi_template.csv"] = TEMPLATE_DATA.read_text(encoding="utf-8")
-    out["esoi.toml"] = CONFIG.format(package=package)
+    out["esoi.toml"] = CONFIG.format(package=package, version=max(versioning.template_version(versioning.bundled_stamp()), 1))
     out[".gitignore"] = "__pycache__/\n.esoi_cache/\n"
     out[f"{package}/__init__.py"] = INIT.format(package=package)
     out[f"{package}/greet.py"] = GREET

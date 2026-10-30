@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "esoi"
-version = "0.1.0"
+version = "0.2.0"
 description = "Evolvable Structure that Optimizes Intent: records, checks, measured selection and a leaderboard for any repository."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -39,4 +39,4 @@ Issues = "https://github.com/JoshuaMathias/evolvable-structure/issues"
 include = ["esoi*"]
 
 [tool.setuptools.package-data]
-esoi = ["data/*.csv", "data/*.md", "data/skill/**/*"]
+esoi = ["data/*.csv", "data/*.md", "data/*.json", "data/skill/**/*"]

@@ -107,6 +107,18 @@ wins on the solution's own metric; empty means a person applies the printed prop
 The code under `code_paths` is read (not imported) for
 `@solution`, `@implementation` and `register` declarations (rule S30; `esoi records sync` writes the missing rows).
 
+## Versions
+
+```toml
+[records]
+template_version = 1               # the intent template version these records follow (`esoi version --record`)
+```
+
+Rule S34 compares it with the template version the installed `esoi` carries and names what changed when the library's is
+newer; a repository that records none is not failed, and `esoi check` prints one note. A library that syncs the author's
+skill sets `version_stamp = "path/to/skill_version.json"` so `esoi skill sync` and `esoi template sync` write the stamp
+there. See [Versioning](../../../docs/explanation/versioning.md).
+
 ## Results log
 
 `esoi run --record` appends to `results` with columns `date, component, impl, cases, passed, dev, heldout, model_calls,

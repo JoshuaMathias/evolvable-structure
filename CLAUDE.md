@@ -29,6 +29,7 @@ The main feature is explanation and templates that need no code; Python is one e
 | `skill/`, `.claude-plugin/`, `implementations/python/esoi/data/skill/` | Public copy of the author's skill; generated, never hand-edit | the skill changes (run `esoi skill sync` with `ESOI_SKILL_SOURCE`) |
 | `implementations/python/` | The `esoi` package, its tests and evaluation components | changing the tools |
 | `esoi/` | ESOI applied to this repository. It holds the top intent (here ESOI itself, because that is why this repository exists; another project's top intent is its own purpose); `esoi-runtime/` is a sub-intent with its own `intent.csv`; its folder is named by its intent id | adding or changing a part |
+| `docs/explanation/versioning.md` | How the package, the skill stamp and the template version are numbered, and what a repository records (rule S34) | releasing, syncing the skill or template, or a repository reports S34 |
 | `examples/` | Adopters as short testimonials | an adopter has a paragraph to add |
 | `docs/explanation/what-belongs-where.md` | What belongs in this library and what stays in an adopting application | an application needs a generic capability, or you are unsure where code goes |
 

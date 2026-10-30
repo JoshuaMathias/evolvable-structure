@@ -20,6 +20,7 @@ import re
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
+from . import versioning
 from .config import Config
 from .records import FILES, PARENT_COLUMNS
 from .template import (ENTITIES, apply_section, parse, render_section, render_template_csv, standard_doc_path,
@@ -381,6 +382,12 @@ def sync(config: Config, source: Optional[str] = None, check: bool = False, say:
         say("nothing parsed; refusing to write")
         return 2
     wanted: Dict[Path, str] = {template_csv_path(config): render_template_csv(rows)}
+    stamp = versioning.stamp_path(config)
+    if stamp is not None:
+        before = template_csv_path(config)
+        wanted[stamp] = versioning.render_stamp(versioning.template_stamp(
+            versioning.read_stamp(stamp), before.read_text(encoding="utf-8") if before.exists() else "",
+            wanted[before], versioning.source_identity(path.parent, [path.name]), skill_text))
     standard = standard_doc_path(config)
     if standard.exists():
         current = standard.read_text(encoding="utf-8")

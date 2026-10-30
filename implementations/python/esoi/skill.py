@@ -34,6 +34,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
 
+from . import versioning
 from .config import Config
 
 SOURCE_ENV = "ESOI_SKILL_SOURCE"
@@ -253,6 +254,22 @@ def copy_folders(config: Config, settings: Settings) -> List[Path]:
     return [config.root / settings.dir] + [config.root / c for c in settings.copies]
 
 
+def wanted_stamp(config: Config, folder: Path, settings: Settings, wanted: Dict[str, str]) -> Optional[str]:
+    """The text of the version stamp after a sync from ``folder``, or None when this repository keeps no stamp."""
+    path = versioning.stamp_path(config)
+    if path is None:
+        return None
+    stamp = versioning.read_stamp(path)
+    identity = versioning.source_identity(folder, sorted(wanted))
+    stamp["skill"] = versioning.skill_section(stamp, identity, (folder / SKILL_FILE).read_text(encoding="utf-8"), wanted)
+    return versioning.render_stamp(stamp)
+
+
+def stamp_differs(config: Config, text: Optional[str]) -> bool:
+    path = versioning.stamp_path(config)
+    return text is not None and path is not None and (not path.is_file() or path.read_text(encoding="utf-8") != text)
+
+
 def sync(config: Config, source: Optional[str] = None, check: bool = False, say: Callable[[str], None] = print) -> int:
     """Write (or with ``check`` only compare) every copy. Exit codes: 0 ok, 1 stale, 2 source or settings not usable."""
     try:
@@ -269,6 +286,9 @@ def sync(config: Config, source: Optional[str] = None, check: bool = False, say:
     for target in copy_folders(config, settings):
         for line in differences(wanted, read_copy(target)):
             stale.append(f"{target.relative_to(config.root).as_posix()}/{line}")
+    stamp = wanted_stamp(config, folder, settings, wanted)
+    if stamp_differs(config, stamp):
+        stale.append(f"{config.version_stamp} (version stamp)")
     if check:
         say("stale: " + "; ".join(stale) + " (run `esoi skill sync`)" if stale else "esoi skill copy is current")
         return 1 if stale else 0
@@ -279,6 +299,8 @@ def sync(config: Config, source: Optional[str] = None, check: bool = False, say:
             path = target / rel
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(text, encoding="utf-8")
+    if stamp is not None:
+        versioning.stamp_path(config).write_text(stamp, encoding="utf-8")
     say(f"wrote {len(wanted)} file(s) to {len(copy_folders(config, settings))} folder(s)")
     return 0
 
@@ -309,6 +331,8 @@ def check(config: Config, source: Optional[str] = None, denylist: Optional[str] 
             say(f"esoi: {exc}")
             return 2
         problems += [f"{settings.dir}/{line} (stale against the source)" for line in differences(wanted, primary)]
+        if stamp_differs(config, wanted_stamp(config, folder, settings, wanted)):
+            problems.append(f"{config.version_stamp} (version stamp stale against the source; run `esoi skill sync`)")
     if not terms:
         say("note: no deny list given, so only the generic leaks were checked")
     for line in problems:

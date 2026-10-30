@@ -30,6 +30,7 @@ a team process, a personal schedule.
 - [When metrics are run](explanation/when-metrics-are-run.md): when to run each metric and who approves the spend.
 - [Depend on other solutions by name](explanation/cross-dependency-by-name.md): why one solution needs another by name, not by import.
 - [What belongs in the library and what stays in an application](explanation/what-belongs-where.md): the test, with a table.
+- [Versioning](explanation/versioning.md): the package version, the skill and template stamp, and the template version a repository records (rule S34).
 
 ## Where it applies
 

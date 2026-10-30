@@ -50,6 +50,7 @@ The full walk through is [docs/guides/apply-with-tools.md](../../docs/guides/app
 | `esoi.check`, `esoi.rules` | The rule runner and the built-in rule groups; a plugin interface for your own |
 | `esoi.runtime` | Declare solutions and alternatives in code (`@solution`, `@implementation`, `register`) and run the selected one: per call, context, environment, deployment, then the records' default |
 | `esoi.assemble` | Depend on other solutions by name: validated names, safe loading, needs from typed constructor parameters checked against `uses_solution_ids`, build in dependency order, fail at startup on a cycle or an unmet need ([guide](../../docs/guides/assemble-by-name.md)) |
+| `esoi.versioning` | The stamp of the skill and template the library follows, the template version, and recording it in a repository (`esoi version`, rule S34) |
 | `esoi.select` | The selection table and `Selector`, the lower layer; defaults may come from the records |
 | `esoi.declarations`, `esoi.newsolution` | Read the declarations from the source, sync the records, start a new solution |
 | `esoi.promote` | Switch the selected implementation to the winner of the solution's own metric, or propose it |

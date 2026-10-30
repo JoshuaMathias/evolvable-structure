@@ -24,4 +24,4 @@ See ``esoi.runtime`` for the cascade (call, context, environment, deployment, pr
 """
 from .runtime import SelectionError, implementation, override, register, resolve, solution
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

@@ -14,7 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable, List, Optional
 
-from . import intents, leaderboard, readme, rules, template, tracker
+from . import intents, leaderboard, readme, rules, template, tracker, versioning
 from .config import Config
 from .registry import load as load_registry
 from .rules.base import Context
@@ -69,7 +69,7 @@ LEGACY_NOTE = ("note: this repository uses the legacy two-level layout (`overall
 
 def notes(config: Config) -> List[str]:
     """Lines that are information, not violations: they never change the exit code."""
-    return [LEGACY_NOTE] if config.overall and not config.intent_mode else []
+    return ([LEGACY_NOTE] if config.overall and not config.intent_mode else []) + versioning.note(config)
 
 
 def write_docs(config: Config, say: Callable[[str], None] = print) -> None:

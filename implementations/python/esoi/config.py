@@ -78,6 +78,7 @@ class Config:
     tracker_extra: Dict[str, List[str]] = field(default_factory=dict)
     template_source: str = ""
     template_csv: str = ""
+    version_stamp: str = ""   # the generated stamp of the skill and template this library follows (esoi.versioning); only a library sets it
     plugins: List[str] = field(default_factory=list)
     disable: List[str] = field(default_factory=list)
     rules: Dict[str, Dict[str, Any]] = field(default_factory=dict)

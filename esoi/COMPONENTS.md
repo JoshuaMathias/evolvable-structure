@@ -63,6 +63,8 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `eval-spec_index` | evaluation | Cases and scorer for spec-index. | spec-index |
 | `cascade` | tools | Reading a metric's cascading conditionals, choosing the implementation by the latest stage run, expiry of results and the next stage to run. | leaderboard, promote-the-winner |
 | `rules-cascade` | tools | The rules about cascading conditionals: the list can be read (S32) and the selection follows the cascade (S33). | structure-rules, leaderboard |
+| `versioning` | tools | The stamp of the skill and template the library follows, the template version, and recording it in a repository. | template-sync |
+| `rules-versioning` | tools | The rule S34: the template version a repository records is the one the library carries. | template-sync, structure-rules |
 | `selection` | core | Resolving an implementation of a solution from a selection table. | runtime-selection |
 | `eval-select-an-implementation` | evaluation | Cases for resolving a selection. | runtime-selection |
 | `runtime` | core | Declarations in code and the cascade that picks the implementation a call runs. | runtime-selection |
