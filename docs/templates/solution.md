@@ -54,7 +54,7 @@ _What knowledge informs the solution's definition or implementations? This can b
 
 ## Measures of success
 
-_What would indicate the solution is successful?_
+_What would indicate the solution is successful? Note: These are metric solutions, with specific fields defined there. However, humans using ESOI may specify this in natural language, which AI can then translate into fully specified metrics._
 
 <!-- your answer -->
 

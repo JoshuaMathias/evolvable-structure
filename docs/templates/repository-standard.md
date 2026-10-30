@@ -88,7 +88,7 @@ Connects to: Ideals that oppose at least one aspect of the problem, Solutions th
 | `out_of_scope` | no | What type of use cases is the solution intentionally avoiding, which exclusions aren't otherwise apparent or typical? (Don't explicitly name other solutions that aren't in scope) |
 | `milestones` | yes | What are the solution's priorities in order? Every solution specifies at least one. Each milestone is a value of one or more metrics, which doesn't have to be the authoritative metric directly but it should relate to it. End condition (optional): Condition for the milestone to no longer be a priority (date or other circumstance), at which point it's archived. Met: Whether the milestone has been reached, and when. Target completion time (optional): Planned completion date and time (which other dependent milestones may rely on). May be a date or a specific minute of a date where precision is needed. |
 | `knowledge` | no | What knowledge informs the solution's definition or implementations? This can be a list of many items, including chosen assumptions, best guesses, evidence, theories, or perspectives which inform the solution or its implementations. |
-| `measures_of_success` | yes | What would indicate the solution is successful? |
+| `measures_of_success` | yes | What would indicate the solution is successful? Note: These are metric solutions, with specific fields defined there. However, humans using ESOI may specify this in natural language, which AI can then translate into fully specified metrics. |
 | `tags` | no | What classifications may be necessary to avoid risk? Risk Addressed: Every tag should name what risk it mitigates, which are linked problems, whether from the same intent as the solution or from other intents (such as R1-R4 below which are problems defined for ESOI). Tags are not problems themselves; they help mitigate structural problems such as through tagging topics or types of technology used. Note: Possible risks (structural problems): R1 (duplication): Adding a new solution that duplicates an existing one. R2 (opportunity): Not leveraging the benefits of an existing solution, such as partial overlap of purpose. R3 (dependency): Not being aware of solutions that need to change definition or implementation due to something else changing. R4 (mistake): Using a solution when it should not be for the particular use case. |
 | `parameters` | no | Parameters |
 | `inputs` | no | Inputs |
@@ -125,7 +125,7 @@ What it is not: A practical metric or solution, or technology.
 
 Connects to: Problems the ideal opposes.
 
-**Metric**: A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Consequently, every solution has only one authoritative metric, which can be a combination of multiple metrics or factors with weights that reflect the solution's ideals and purpose. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).
+**Metric**: A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Consequently, every solution has only one authoritative metric, which can be a combination of multiple metrics or factors with weights that reflect the solution's ideals and purpose. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions). For metrics that cost resources to run, it's recommended to define cascading conditionals.
 
 | Column | Required | Question |
 |---|---|---|
@@ -133,5 +133,6 @@ Connects to: Problems the ideal opposes.
 | `purpose` | yes | A statement of what the metric ensures, specifically and comprehensively yet simply stated. This statement does not need to enumerate its current implementation, rather it encapsulates an intention to measure. |
 | `record` | yes | What is recorded as the metric to compare implementations? |
 | `disadvantages` | no | What can the metric not see, or what could it reward wrongly? |
+| `cascading_conditionals` | no | If specified, this ordered list is used when running the authoritative metric and cheaper or prioritized metrics are earlier in the list to determine whether it's worth running subsequent metrics. Each item in the list defines (1) the parameters of one of the solution's metrics (e.g. scale, or simulation vs real) and (2) the required value of the metric in order to move onto the next scale, and optionally (3) other conditions required before it's worth running the metric for that stage of the list. If the metric parameters are the same across items, then the next item is not run. |
 
 <!-- esoi-template:end -->

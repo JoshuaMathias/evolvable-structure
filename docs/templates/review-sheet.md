@@ -108,6 +108,7 @@ One spreadsheet tab per intent type, so a person can review problems, ideals, so
 | `purpose` | generated |
 | `record` | generated |
 | `disadvantages` | generated |
+| `cascading_conditionals` | generated |
 | `solution_ids` | generated |
 | `command` | generated |
 | `latest_result` | generated |

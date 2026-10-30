@@ -66,7 +66,7 @@ For this policy: What informed it: how noisy the metrics are, what a run costs, 
 
 ### Measures of success
 
-_What would indicate the solution is successful?_
+_What would indicate the solution is successful? Note: These are metric solutions, with specific fields defined there. However, humans using ESOI may specify this in natural language, which AI can then translate into fully specified metrics._
 
 For this policy: How you would know the policy works: decisions backed by current results, spend inside the budget, no stale result found late.
 

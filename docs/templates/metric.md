@@ -2,7 +2,7 @@
 
 # Metric (template)
 
-> A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Consequently, every solution has only one authoritative metric, which can be a combination of multiple metrics or factors with weights that reflect the solution's ideals and purpose. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions).
+> A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Consequently, every solution has only one authoritative metric, which can be a combination of multiple metrics or factors with weights that reflect the solution's ideals and purpose. Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions). For metrics that cost resources to run, it's recommended to define cascading conditionals.
 
 Copy this file once per record. Answer every question; leave none empty. Give the record a short stable id (a few lowercase words joined by hyphens) so other records can link to it.
 
@@ -31,5 +31,11 @@ _What is recorded as the metric to compare implementations?_
 ## Disadvantages
 
 _What can the metric not see, or what could it reward wrongly?_
+
+<!-- your answer -->
+
+## Cascading conditionals
+
+_If specified, this ordered list is used when running the authoritative metric and cheaper or prioritized metrics are earlier in the list to determine whether it's worth running subsequent metrics. Each item in the list defines (1) the parameters of one of the solution's metrics (e.g. scale, or simulation vs real) and (2) the required value of the metric in order to move onto the next scale, and optionally (3) other conditions required before it's worth running the metric for that stage of the list. If the metric parameters are the same across items, then the next item is not run._
 
 <!-- your answer -->

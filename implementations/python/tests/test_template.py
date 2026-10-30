@@ -102,3 +102,13 @@ def test_optional_marker_is_read_per_field_and_stripped_from_the_name():
     rows, _ = template.parse(text)
     got = {r["field_key"]: (r["required"], r["question"]) for r in rows if r["entity"] == "solution"}
     assert got["name"][0] == "yes" and got["knowledge"] == ("no", "What informs it?")
+
+
+def test_optional_marker_may_carry_a_note_after_a_semicolon():
+    from esoi import template
+    text = ("Intent specification:\n- **Metric**: A measure.\n    - Specify:\n        - Name: What is measured?\n"
+            "        - Cascading Conditionals (optional; for any case where the metric is costly): If given, run in order.\n")
+    rows, notes = template.parse(text)
+    got = {r["field_key"]: (r["required"], r["question"]) for r in rows if r["entity"] == "metric"}
+    assert got["cascading_conditionals"] == ("no", "If given, run in order.")
+    assert not [n for n in notes if "BARE_KEYS" in n]

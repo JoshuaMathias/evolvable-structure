@@ -84,12 +84,13 @@ def template_lines(skill_text: str) -> List[str]:
     return block
 
 
-OPTIONAL = re.compile(r"^([A-Z][A-Za-z]*(?: [A-Za-z]+){0,3})\s*\(optional\)\s*(?=:)")
+OPTIONAL = re.compile(r"^([A-Z][A-Za-z]*(?: [A-Za-z]+){0,3})\s*\(optional(?:;[^)]*)?\)\s*(?=:)")
 
 
 def split_optional(text: str) -> Tuple[str, bool]:
     """The field line without its ``(optional)`` marker, and whether it had one. The marker sits right after the field
-    name, as in ``Knowledge (optional): What ...``; the name itself never carries it."""
+    name, as in ``Knowledge (optional): What ...``; the name itself never carries it. The marker may carry a note after
+    a semicolon, as in ``Cascading Conditionals (optional; for any case ...): If ...``, which is dropped with it."""
     found = OPTIONAL.match(text)
     return (found.group(1) + text[found.end():], True) if found else (text, False)
 
