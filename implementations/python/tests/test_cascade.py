@@ -161,3 +161,19 @@ def test_the_cascade_command_reports_stages_results_and_the_next_run(cfg, capsys
     assert cascade.run_cli(cfg, "greet-a-person", strict=False) == 0
     out = capsys.readouterr().out
     assert "greeting-pass-rate: whole" in out and "chosen by the cascade:" in out and "next for" in out
+
+
+def test_promotion_follows_the_cascade_when_the_metric_has_one(cfg):
+    from esoi import promote, registry
+    set_cascade(cfg, "whole [sample=full | real=no]")
+    results, header = tables.read_csv(cfg.results_path), tables.read_header(cfg.results_path)
+    for r in results:   # the baseline passes every case and the live arm one
+        r.update(passed="2", dev="2/2") if r["impl"] == "shout" else r.update(passed="1", dev="1/2")
+    tables.write_csv(cfg.results_path, header, results)
+    [proposal] = promote.propose(cfg, registry.load(cfg), stale=lambda c, comp, row, strict: "")
+    assert (proposal.winner, proposal.current) == ("shout", "live")
+    assert "metric cascade" in proposal.selected_by and "latest stage run" in proposal.selected_by
+    for r in results:   # the live arm passes every case: the cascade keeps it
+        r.update(passed="2", dev="2/2") if r["impl"] == "live" else r.update(passed="1", dev="1/2")
+    tables.write_csv(cfg.results_path, header, results)
+    assert promote.propose(cfg, registry.load(cfg), stale=lambda c, comp, row, strict: "") == []

@@ -251,6 +251,41 @@ def next_stage(stages: List[Stage], mine: Standing, selected: Optional[Standing]
     return None, "every stage has a counting result"
 
 
+def shared_pair(stages: List[Stage], standing: Dict[str, Standing], first: str, second: str) -> Optional[Tuple[Row, Row]]:
+    """The two implementations' rows at the latest stage both have a counting result for, scored on the same cases and
+    sample, or ``None`` when they share none."""
+    a, b = standing.get(first), standing.get(second)
+    if a is None or b is None:
+        return None
+    common = [i for i in a.rows if i in b.rows and leaderboard.comparable(a.rows[i], b.rows[i])]
+    return (a.rows[max(common)], b.rows[max(common)]) if common else None
+
+
+def solution_choice(config, registry, solution: Row, component: str, current: str, history: Dict[str, List[Row]],
+                    stale: Callable, today: Optional[datetime.date] = None) -> Optional[Tuple[Optional[str], Optional[Tuple[Row, Row]]]]:
+    """What the cascade says about a solution's selected arm ``current``, or ``None`` when no linked metric has a readable
+    cascade with counting results (the plain comparison then applies). ``(None, None)`` means the selected arm stays;
+    otherwise ``(winner, (current's row, winner's row) at their latest shared stage or None)``. ``stale`` is
+    ``harness.stale_reason``."""
+    from .tables import ids
+    by_id = {m.get("metric_id", ""): m for m in registry.metrics}
+    stages: List[Stage] = []
+    for metric_id in ids(solution.get("metric_ids", "")):
+        found, errors = parse(by_id.get(metric_id, {}).get("cascading_conditionals", ""))
+        if found and not errors:
+            stages = found
+            break
+    if not stages:
+        return None
+    standing = standings(stages, history, today, lambda row: stale(config, component, row, True), config.evaluation)
+    decision = decide(stages, standing, config.evaluation)
+    if not decision.winner:
+        return None
+    if decision.winner == current:
+        return None, None
+    return decision.winner, shared_pair(stages, standing, current, decision.winner)
+
+
 def run_command(component: str, impl: str, stage: Stage) -> str:
     """The ``esoi run`` line that records a result for this stage. It is a suggestion: a stage with ``real=yes`` calls a
     model, so it needs the metric run policy's estimate, budget and approval first."""

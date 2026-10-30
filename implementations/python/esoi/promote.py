@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from . import leaderboard
+from . import cascade, leaderboard
 from .config import Config
 from .declarations import intent_folder
 from .harness import stale_reason
@@ -69,6 +69,13 @@ def evidence(own: Row, rival: Row, current: str, winner: str, today: str) -> str
             f"run {own.get('date', '')} at {own.get('git_sha', '')}")
 
 
+def cascade_evidence(own: Row, rival: Row, current: str, winner: str, today: str) -> str:
+    return (f"promoted {today} by esoi select --promote on the solution's metric cascade: {winner} is chosen over {current} by the "
+            f"latest stage run; at their latest shared stage (cases_sha {rival.get('cases_sha', '')}) {winner} "
+            f"{rival.get('passed', '')}/{rival.get('cases', '')} run {rival.get('date', '')} at {rival.get('git_sha', '')}; "
+            f"{current} {own.get('passed', '')}/{own.get('cases', '')} run {own.get('date', '')} at {own.get('git_sha', '')}")
+
+
 def switch_command(config: Config, command: str, current: str, winner: str) -> str:
     """``command`` with its first harness arm pointed at ``winner``."""
     match = next(iter(re.finditer(config.metric_command, command or "")), None)
@@ -95,13 +102,18 @@ def propose(config: Config, registry: Registry, today: Optional[str] = None,
             continue
         arms = history.get(component, {})
         rows = {impl: rs[-1] for impl, rs in arms.items()}
-        beaten = leaderboard.challengers(rows, current, config.evaluation, arms)
-        if not beaten:
-            continue
-        winner_row = leaderboard.rank({r["impl"]: r for r in beaten})[0]
-        winner = winner_row["impl"]
-        pair = next(((own, rival) for own, rival in leaderboard.rival_pairs(rows, current, config.evaluation, arms)[0]
-                     if rival["impl"] == winner), None)
+        via = cascade.solution_choice(config, registry, solution, component, current, arms, stale)
+        if via is not None:   # the metric has cascading conditionals: the latest stage run decides (esoi.cascade)
+            winner, pair = via
+            if winner is None:
+                continue
+        else:
+            beaten = leaderboard.challengers(rows, current, config.evaluation, arms)
+            if not beaten:
+                continue
+            winner = leaderboard.rank({r["impl"]: r for r in beaten})[0]["impl"]
+            pair = next(((own, rival) for own, rival in leaderboard.rival_pairs(rows, current, config.evaluation, arms)[0]
+                         if rival["impl"] == winner), None)
         proposal = Proposal(sid, "blocked", current, winner)
         out.append(proposal)
         if pair is None:
@@ -124,7 +136,8 @@ def propose(config: Config, registry: Registry, today: Optional[str] = None,
             continue
         linked = [metrics[m] for m in ids(solution.get("metric_ids", "")) if m in metrics]
         target = next((m for m in linked if switch_command(config, m.get("command", ""), current, winner)), None)
-        proposal.selected, proposal.selected_by = selected, evidence(own, rival, current, winner, today)
+        proposal.selected = selected
+        proposal.selected_by = (cascade_evidence if via is not None else evidence)(own, rival, current, winner, today)
         proposal.edits = [f"solutions.csv {sid}: selected {solution.get('selected', '')!r} -> {selected!r}",
                           f"evidence: {proposal.selected_by}"]
         if target is not None:
