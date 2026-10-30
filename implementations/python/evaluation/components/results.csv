@@ -416,3 +416,4 @@ date,component,impl,cases,passed,dev,heldout,model_calls,tokens_in,tokens_out,co
 2026-10-30,spec_index,weighted_tfidf,35,30,30/35,0/0,0,0,0,0.0,0.0,d7c0205,e7c655d0,none,,,
 2026-10-30,spec_index,term_overlap,35,27,27/35,0/0,0,0,0,0.0,0.0,d7c0205,e7c655d0,none,,,
 2026-10-30,select_an_implementation,live_selector,32,32,32/32,0/0,0,0,0,0.0,0.1,d7c0205,8ba84fe1,none,,,
+2026-10-30,assemble_by_name,live_assembler,41,41,41/41,0/0,0,0,0,0.0,0.4,aa9f411,1b43c4f0,none,,,
