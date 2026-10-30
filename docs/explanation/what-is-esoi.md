@@ -1,60 +1,76 @@
 # What ESOI is
 
-ESOI, Evolvable Structure that Optimizes Intent, is a way of working. You write down the intent behind a thing as
-records, build the thing as one of several possible implementations, measure the implementations against a metric
-chosen to reflect the intent, and let the metric choose which one runs. The records, the measurements and the choice
-live in a structure that is relatively stable while the implementations, and even the intent, change. The structure
-is not final either: it helps you specify the intent, and the intent and the structure evolve together.
+**ESOI, Evolvable Structure that Optimizes Intent, is a way to make sure what you intend actually happens, and keeps
+getting better.** You write the intent down as five short kinds of record, build more than one way to serve it, and let
+a measurement pick the best.
 
-Which parts stay stable and which stay changeable is a deliberate choice, made from the structure's purpose and a
-prediction of what will be useful to change. The aim is progress over time, judged by the farthest future you can
-reasonably plan for; fast progress now can be right for that future, but is not assumed to be.
+## The five records, in one sentence each
 
-Intent starts in a person's consciousness, and some of its context is lost when it is written down, so the records
-are a limited translation of it. Automation can create intents of its own, but a conscious intent takes priority.
+| Record | One sentence | Example: a weekly newsletter |
+|---|---|---|
+| **Problem** | What is in the way: a challenge, or how the ideal is not reached. | Readers stop opening it after a month. |
+| **Ideal** | The future state you want, in one dimension. | Most readers open it every week. |
+| **Solution** | What must be done to address the problem, without saying how. | Give each issue a reason to be opened. |
+| **Implementation** | One built way of doing it. A solution has two or more, so there is a choice. | A: one story per issue. B: three short tips. |
+| **Metric** | How to measure the distance between an implementation and the ideal. | Share of readers who open 4 issues in a row. |
 
-The author's own definitions and principles are quoted in [from-the-skill.md](from-the-skill.md). They are the
-authority; this page only orients you.
+The **intent** is the container: a name and a vision statement. The five records live inside it.
+Fuller definitions, each in the author's words: [intent types](intent-types.md).
 
-There happen to be thirteen principles, a number the author finds fitting. In numerology 13 reduces to 1 + 3 = 4,
-stability and hard work, and is read as a controlled clearing away of outgrown structures to make room for a fresh
-foundation; as an angel number it stands for focus, change and adaptability. That is close to what ESOI asks of a
-structure: stable enough to build on, and changeable without losing what came before. The count is a nicety, not a
-rule, and it will change if a principle ever needs splitting or merging.
+## How they fit
+
+```
+Problem  --opposed by-->  Ideal
+   |                        |
+   v                        v
+Solution  <--measured by--  Metric
+   |
+   v
+Implementation A, B, C ...  --> the metric picks the best one
+```
+
+[How the records connect](how-they-connect.md) has the exact links between them.
 
 ## The loop
 
-This is the short version. The full order, step by step, is in [the steps](../../skill/evolvable-structure/steps.md).
+1. **Say why.** Name the intent. Write the problem and the ideal that opposes it.
+2. **Say what.** Write the solution: what it must do and how you will know it works.
+3. **Build alternatives.** Each way of doing it is an implementation. A second one is what makes a choice possible.
+4. **Measure.** Run every implementation on the same cases and record the result.
+   See [choosing by metric](choosing-by-metric.md).
+5. **Choose and review.** The best implementation by the metric runs. People review the problems, ideals, metrics and
+   results, not every implementation.
+6. **Grow by intents.** Add a sub-intent only when it brings insights the parent does not.
+   See [when to create a sub-intent](when-to-create-a-sub-intent.md).
+7. **Evolve.** When the intent changes, a better implementation appears, or the metric proves wrong, change the record
+   and run the loop again.
 
-1. **Say why.** Name the intent and its vision statement, then write the problem someone has and the ideal state that
-   opposes it. See [intent-types.md](intent-types.md).
-2. **Say what.** Write a solution: what it is for, what it must do, how you will know it works, and its interface.
-   The solution does not say how.
-3. **Build alternatives.** Each way of doing it is an implementation. Having a second one is what makes a choice
-   possible.
-4. **Measure.** A metric measures the distance between an implementation and the ideal. Run every implementation on the
-   same cases and record the result with the commit and the cases it was run on. See
-   [choosing-by-metric.md](choosing-by-metric.md).
-5. **Choose and review.** The best implementation by the authoritative metric is used automatically. To steer, people
-   need only review the problems, ideals, metrics and results, not the implementations. They can still read, review
-   and improve an implementation, and that still adds value; what changes is that choosing no longer depends on it.
-6. **Grow by intents.** Specify a sub-intent if and only if it brings insights on opportunities that don't emerge
-   directly from the parent intent or solution that the sub-intent is implementing, and only if the resources to create
-   and maintain it do not outweigh its benefits within the timeframe currently prioritized. It is a container of its
-   own, arising as an implementation of a solution in the parent intent. See
-   [intents-and-sub-intents.md](intents-and-sub-intents.md) and [when-to-create-a-sub-intent.md](when-to-create-a-sub-intent.md).
-7. **Evolve.** When the intent changes, or a better implementation appears, or the metric turns out to be wrong, change
-   the record and run the loop again. The structure is itself a solution with its own records.
+## Why it is called evolvable
+
+The records, the measurements and the choice live in a **structure that stays relatively stable** while the
+implementations, and even the intent, change. Which parts stay stable is a deliberate choice, made from the structure's
+purpose and a prediction of what will be useful to change. The structure itself is a solution with its own records, so
+it evolves with the intent.
 
 ## Where it applies
 
-Anywhere there is an intent and more than one way to serve it: code, a data pipeline, a course, a coaching program, a
-team process, a document. See [beyond-code.md](beyond-code.md).
-That includes an AI agent's own behaviour: the skill that carries these principles is one implementation among several,
-and how well an agent acts by them can be measured. See [esoi-for-ai.md](esoi-for-ai.md).
+Anything with an intent and more than one way to serve it: code, a data pipeline, a course, a coaching program, a team
+process, a document, an AI agent's own behaviour. See [beyond code](beyond-code.md) and
+[ESOI for AI](esoi-for-ai.md).
 
-## What a small start looks like
+## A small start
 
-One intent (a name and a vision statement), one problem, one ideal, one solution with two implementations, one metric with a handful of cases. The
-[guide for applying it by hand](../guides/apply-by-hand.md) takes about an hour, and everything after that is
-adding to it when the work asks for it.
+One intent, one problem, one ideal, one solution with two implementations, one metric with a handful of cases.
+[Apply ESOI by hand](../guides/apply-by-hand.md) takes about an hour and needs no tools.
+
+## Good to know
+
+- **Intent starts in a person's consciousness.** Some of its context is lost when written down, so the records are a
+  limited translation. Automation can create intents of its own, but a conscious intent takes priority.
+- **The aim is progress over time**, judged by the farthest future you can reasonably plan for. Fast progress now can be
+  right for that future, but is not assumed to be.
+- **The author's definitions and principles are the authority**: [from the skill](from-the-skill.md). This page only
+  orients you.
+- **Thirteen principles**, a number the author finds fitting: in numerology 13 reduces to 1 + 3 = 4, stability and hard
+  work, read as a controlled clearing away of outgrown structures to make room for a fresh foundation. A nicety, not a
+  rule; it changes if a principle is ever split or merged.
