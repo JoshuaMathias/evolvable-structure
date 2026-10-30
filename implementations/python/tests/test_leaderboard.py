@@ -176,3 +176,14 @@ def test_the_board_names_the_mismatch_and_strict_reports_it(tmp_path):
     text = "\n".join(lines)
     assert "UNMEASURED" in text and "mini (selected: a) UNMEASURED" in text and "WIN:" not in text and "LOSS" not in text and "? b is not comparable with a" in text
     assert lb.board(cfg, registry, strict=True, say=lambda t: None) == 1
+
+
+def test_a_recorded_only_run_does_not_decide_the_default_verdict():
+    """Hazard: `esoi run --only ids --record` once made the slice the newest key both arms share, so it decided the verdict."""
+    full_a, full_b = row("a", 8, cases=10, date="2026-01-01"), row("b", 5, cases=10, date="2026-01-01")
+    only_a = row("a", 0, cases=2, sample="only:X,Y", date="2026-02-01")
+    only_b = row("b", 2, cases=2, sample="only:X,Y", date="2026-02-01")
+    hist = history(full_a, full_b, only_a, only_b)
+    latest = {impl: h[-1] for impl, h in hist.items()}
+    assert lb.verdict(latest, "a", history=hist)[0] == "WIN"
+    assert lb.challengers(latest, "a", history=hist) == []

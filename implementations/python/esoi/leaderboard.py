@@ -19,6 +19,10 @@ have a row for, not on each arm's latest row; a rival that shares none is not co
 comparable" on the board) and a verdict never rests on it. Rows recorded before ``cases_sha`` existed have it blank,
 are FLAGGED ``unverified`` and are shown but never treated as evidence against a verified row.
 
+Only rows that scored a whole run decide the default verdict: a run of named cases (``only:ids``) and a derived row for one
+circumstance (``slice:id``, see ``esoi.circumstances``) are partial, so recording one never changes which arm the default
+verdict favours. Slice rows are kept out of ``all_results`` and read with ``slice_results``; the same ``verdict`` judges them.
+
 Verdicts: WIN (it beats every rival on the same cases), TIE (a rival is inside the noise, so the selection is kept
 for a reason outside the number), LOSS (a rival beats it), UNMEASURED (no rival was compared). Noise: exact pass
 counts and a spend tolerance when no model was called; a pass-rate margin and a wider spend tolerance when one
@@ -77,8 +81,23 @@ def invariant_reason(component: str, eval_dir: Optional[Path] = None) -> str:
     return ""
 
 
-def all_results(path: Path) -> Dict[str, Dict[str, List[Row]]]:
-    """{component: {impl: [rows, oldest first]}}: every row of the results log, in date order (file order within a date)."""
+SLICE_MARK = "slice:"
+
+
+def slice_id(row: Row) -> str:
+    """The circumstance a derived row describes (``slice:small-file`` or ``sample:12/slice:small-file``), else ``""``."""
+    last = (row.get("sample") or "").strip().rsplit("/", 1)[-1]
+    return last[len(SLICE_MARK):] if last.startswith(SLICE_MARK) else ""
+
+
+def is_partial(row: Row) -> bool:
+    """A row that scored named cases (``only:``) or one circumstance's cases (``slice:``): never the default verdict's evidence."""
+    return bool(slice_id(row)) or (row.get("sample") or "").strip().startswith("only:")
+
+
+def all_results(path: Path, slices: bool = False) -> Dict[str, Dict[str, List[Row]]]:
+    """{component: {impl: [rows, oldest first]}}: every row of the results log, in date order (file order within a date).
+    Derived slice rows are left out unless ``slices`` is true (``slice_results`` reads those)."""
     out: Dict[str, Dict[str, List[Row]]] = {}
     if not Path(path).exists():
         return out
@@ -86,10 +105,22 @@ def all_results(path: Path) -> Dict[str, Dict[str, List[Row]]]:
         for row in csv.DictReader(fh):
             if not (row.get("component") and row.get("impl")):
                 continue   # a blank or half-written line is no result
+            if bool(slice_id(row)) != slices:
+                continue
             out.setdefault(row["component"], {}).setdefault(row["impl"], []).append(row)
     for impls in out.values():
         for history in impls.values():
             history.sort(key=lambda r: r.get("date") or "")   # stable: a later line of the same date stays later
+    return out
+
+
+def slice_results(path: Path) -> Dict[str, Dict[str, Dict[str, List[Row]]]]:
+    """{component: {circumstance id: {impl: [rows, oldest first]}}}: the derived slice rows of the results log."""
+    out: Dict[str, Dict[str, Dict[str, List[Row]]]] = {}
+    for comp, impls in all_results(path, slices=True).items():
+        for impl, history in impls.items():
+            for found in history:
+                out.setdefault(comp, {}).setdefault(slice_id(found), {}).setdefault(impl, []).append(found)
     return out
 
 
@@ -271,8 +302,8 @@ def rival_pairs(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
     ``cases_key``): for each rival, the newest key both arms have a row for, and on it each arm's newest row.
     ``unmatched`` is ``(rival, why)`` for each rival (ablation and validity arms excluded) that shares no key, so it is
     not compared at all."""
-    arms = history_of(rows, history)
-    mine = arms.get(selected) or ([rows[selected]] if selected in rows else [])
+    arms = {impl: [r for r in found if not is_partial(r)] for impl, found in history_of(rows, history).items()}
+    mine = arms.get(selected) or []
     pairs: List[Tuple[Row, Row]] = []
     unmatched: List[Tuple[str, str]] = []
     for impl in sorted(arms):
