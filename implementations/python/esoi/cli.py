@@ -10,6 +10,7 @@
     esoi run COMPONENT --impl NAME [--record]   run and record one implementation over a component's cases
     esoi leaderboard [--strict]            rank the implementations of every evaluated solution
     esoi select SOLUTION [--name NAME]     show which implementation runs now, and which layer of the cascade chose it
+    esoi cascade [SOLUTION] [--strict]     a metric's cascading conditionals: each stage's results, the chosen implementation, what to run next
     esoi select --promote [SOLUTION]       switch `selected` to the rival that clearly wins on the solution's own metric
     esoi select --snapshot FILE            write the defaults and modules for a package shipped without the records
     esoi tracker build|check               build or verify the review tracker tabs
@@ -77,6 +78,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--promote", action="store_true", help="switch `selected` to the rival that wins on the solution's metric")
     p.add_argument("--dry-run", action="store_true", help="promote: print what would change without writing it")
     p.add_argument("--snapshot", default=None, metavar="FILE", help="write the defaults and modules as JSON for a package without the records")
+    p = sub.add_parser("cascade", help="the stages of a costly metric, what each implementation reached, and what to run next")
+    p.add_argument("solution", nargs="?", default="")
+    p.add_argument("--strict", action="store_true", help="exit 1 when the cascade chooses another implementation than `selected`")
     p = sub.add_parser("tracker", help="the review tracker")
     p.add_argument("action", choices=["build", "check"])
     p = sub.add_parser("consumer", help="check a consuming repository")
@@ -372,6 +376,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         return leaderboard.board(config, registry.load(config), args.strict, stale=harness.stale_reason)
     if args.cmd == "select":
         return select_command(config, args)
+    if args.cmd == "cascade":
+        from . import cascade
+        return cascade.run_cli(config, args.solution, args.strict)
     if args.cmd == "tracker":
         from . import registry, tracker
         loaded = registry.load(config)

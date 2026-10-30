@@ -11,6 +11,10 @@ never install or require them on your own.
   and a selected implementation, every file belongs to a component, and recorded results are current.
 - `esoi run` runs each implementation of a solution on the same cases and records the result; `esoi leaderboard` ranks them
   and says which one the metric selects.
+- `esoi cascade` reads a costly metric's `cascading_conditionals` (stages, cheapest first, each with the gate to move on and
+  when a result expires). It shows every implementation's result per stage (a stage not run is empty, never estimated), the
+  implementation chosen by the latest stage run, and the next stage worth running; rules S32 and S33 check the list and the
+  selection.
 - `esoi tracker` and `esoi sheet-sync` build a review sheet (and sync it with a Google Sheet) so a person can steer by
   reviewing problems, ideals and metrics instead of reading implementations.
 - The runtime part is meant for production, and is declared once where the code is: `@solution("greet")` on the

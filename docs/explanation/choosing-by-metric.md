@@ -64,6 +64,24 @@ Some implementations are not rivals. A **baseline** is a floor someone might pla
 **ablation** is part of a candidate measured alone, and a **validity** arm checks the metric itself, so neither is offered
 as the thing to adopt. Mark each by the first word of its description.
 
+## Cascading conditionals
+
+A metric that costs to run lists its stages, cheapest first, in its `cascading_conditionals` field. A stage names which
+results belong to it (`sample`, `real`), what a result must show before the next stage is worth running (`gate`,
+`min-pass-rate`), when a result expires (`max-age-days`) and any other condition (`when`):
+
+```
+offline [sample=full | real=no | gate=all-pass] > staged [sample=sample | real=yes | gate=competitive | max-age-days=90 | when=a person approved the spend] > whole [sample=full | real=yes]
+```
+
+`esoi cascade [SOLUTION]` shows, for every implementation, the result at each stage (a stage that was not run says so; it
+is never estimated), which implementation the cascade chooses, and the next stage worth running with the `esoi run` line
+that records it. Downstream users take the implementation with the highest result at the latest stage that has been run,
+unless another implementation scored higher at an earlier stage the two share and has not been run at the latest one: it
+stays chosen until it is. A result expires when the measured code or the cases changed, or when it is older than the
+stage allows; an expired result counts as not run. Rule S32 checks that the list can be read and S33 that `selected` is the
+implementation the cascade chooses.
+
 ## When to run
 
 Running a metric costs time and sometimes money, and a result only supports a decision while it is current. See
