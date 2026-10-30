@@ -13,6 +13,11 @@ checked before anyone trusts it.
 Steps marked **(human)** are where a conscious intent has to be stated or confirmed. An AI drafts them and asks; it
 doesn't settle them alone. An AI can carry out every other step and report it.
 
+Ask at the level of the intent first. When simplifying or re-scoping, the human questions are about what belongs in
+the work at all and why (its core claim, which components the purpose truly needs, what is worth its cost in time);
+settle those before asking about parameters such as sizes, dates or budgets, which follow from the answers or have a
+sensible default. Offer inventive restructurings as options, not only cuts.
+
 ## Part 1: Understand the intent
 
 1. **State the purpose (human).** Name the intent (a specific phrase that distinguishes its topic) and write its vision
