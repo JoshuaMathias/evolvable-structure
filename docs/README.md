@@ -54,6 +54,7 @@ a team process, a personal schedule.
 - [Migrate to intents](guides/migrate-to-intents.md): from the two-level overall layout.
 - [Install the skill](guides/install-the-skill.md): give an AI agent the principles.
 - [Assemble the parts of a program by name](guides/assemble-by-name.md): resolve, build in dependency order, fail early.
+- [Keep a metric's value before and after a piece of work](guides/measure-before-and-after.md): find the slice of the specification, read the metric twice, keep the rows.
 
 ## Background
 

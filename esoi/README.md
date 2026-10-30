@@ -91,6 +91,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 | `readable-records` | Readable records | generated-readme | README fidelity |
 | `promote-the-winner` | Promote the winner | margin-promotion | Promotion correctness |
 | `spec-index` | Specification index | weighted-tfidf | Specification recall at k |
+| `keep-metric-record` | keep-metric-record | library-modules | unconfirmed: for Joshua to confirm. |
 
 ## Implementations
 
@@ -155,6 +156,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 | `promote-the-winner:person-edits-the-records` | A person edits the records |  |  |
 | `spec-index:weighted-tfidf` | Field-weighted TF-IDF over the index | implementations/python/esoi/spec_index.py |  |
 | `spec-index:term-overlap` | Plain term overlap | implementations/python/esoi/spec_index.py |  |
+| `keep-metric-record:library-modules` | unconfirmed: for Joshua to confirm. | implementations/python/esoi/iteration.py |  |
 
 ## Metrics
 
@@ -185,3 +187,4 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 - `metric-readme-fidelity`, README fidelity: `esoi run readable_records --impl live_readme`
 - `metric-promotion-correctness`, Promotion correctness: `esoi run promote_the_winner --impl live_promote`
 - `metric-spec-index-recall`, Specification recall at k: `esoi run spec_index --impl weighted_tfidf; esoi run spec_index --impl term_overlap`
+- `metric-keep-metric-record`, unconfirmed: for Joshua to confirm.: `esoi run keep_metric_record --impl live_record`

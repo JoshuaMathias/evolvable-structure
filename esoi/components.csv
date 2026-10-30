@@ -59,3 +59,5 @@ cascade,tools,implementations/python/esoi/cascade.py,"Reading a metric's cascadi
 rules-cascade,tools,implementations/python/esoi/rules/cascade_rules.py,"The rules about cascading conditionals: the list can be read (S32) and the selection follows the cascade (S33).",structure-rules;leaderboard
 versioning,tools,implementations/python/esoi/versioning.py,"The stamp of the skill and template the library follows, the template version, and recording it in a repository.",template-sync
 rules-versioning,tools,implementations/python/esoi/rules/version_rules.py,"The rule S34: the template version a repository records is the one the library carries.",template-sync;structure-rules
+metric-record,tools,implementations/python/esoi/spec_slice.py;implementations/python/esoi/metric_meter.py;implementations/python/esoi/metric_results.py;implementations/python/esoi/iteration.py,unconfirmed: for Joshua to confirm.,keep-metric-record
+eval-keep-metric-record,evaluation,implementations/python/evaluation/components/keep_metric_record/**,unconfirmed: for Joshua to confirm.,keep-metric-record

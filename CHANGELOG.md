@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-Nothing yet. See [Versioning](docs/explanation/versioning.md) for how a release is numbered and what each section names.
+- **Keep a metric's value before and after a piece of work: `esoi.spec_slice`, `esoi.metric_meter`, `esoi.metric_results`, `esoi.iteration`.** `RepoSliceSource` finds, with no model, the solution a request serves, its next milestone (neither met nor archived), its authoritative metric and the command that records it; `meters_from_names` and `read_value` read that metric in a bounded, announced reading (`recorded_row` while its row is current, `offline_arm` only for an arm that cannot spend money, run with zero model calls and a scrubbed environment you pass in); `MetricResult`, `FileMetricLedger` and `reconcile` keep measured, recorded and not-applicable rows without one overwriting another; `MetricIteration` wires them for one piece of work. Every setting is an argument and the library reads no environment. Also: `fields.parse_milestones(cell, in_order=True)` reads a numbered list only when it runs 1, 2, 3 from the start, and `harness.sample_label_args(row)` reads the run flags of a row's sample label without importing the repository's evaluation. See [Keep a metric's value before and after a piece of work](docs/guides/measure-before-and-after.md). Additive, so the next release is a minor bump.
+
+See [Versioning](docs/explanation/versioning.md) for how a release is numbered and what each section names.
 
 ## 0.2.0
 

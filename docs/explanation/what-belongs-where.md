@@ -22,6 +22,7 @@ words and the code still describes something a website, a data pipeline or a cou
 | Startup failure on a cycle or an unmet need, naming the chain | Domain logic: scoring, selection of a model tier, risk rules, storage, search |
 | The cascade (explicit name, selections, default) and late binding through `esoi.runtime` | The decision of which arm is best for its domain, as a metric with real cases |
 | Packaging a pruned selection (a snapshot for an installed copy) | Adapters to its own products and services |
+| Reading a repository's records for a task: the solution it serves, its next milestone and its metric; reading a metric's value; keeping the value before and after a piece of work | Which workers, tools and briefs an application hands the work to, and the words it asks of them |
 | Checks over records and declarations that any adopter could run | Checks whose subject is its own domain (for example, vendor names in its core code) |
 
 ## Examples

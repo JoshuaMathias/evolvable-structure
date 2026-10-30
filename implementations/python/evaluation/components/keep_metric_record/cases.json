@@ -1,0 +1,1422 @@
+[
+ {
+  "id": "MRC-001",
+  "kind": "milestone",
+  "area": "numbered items in order",
+  "description": "numbered items in order",
+  "args": {
+   "cell": "1. First thing: 100%. 2. Second thing. 3. Third."
+  },
+  "expect": {
+   "eq": {
+    "number": 1,
+    "text": "First thing: 100%.",
+    "target": 1.0
+   }
+  }
+ },
+ {
+  "id": "MRC-002",
+  "kind": "milestone",
+  "area": "a number inside a sentence never splits one",
+  "description": "a number inside a sentence never splits one",
+  "args": {
+   "cell": "1. Reach it on 2026-10-19. 2 of them stay open. 2. Later."
+  },
+  "expect": {
+   "eq": {
+    "number": 1,
+    "text": "Reach it on 2026-10-19. 2 of them stay open.",
+    "target": null
+   }
+  }
+ },
+ {
+  "id": "MRC-003",
+  "kind": "milestone",
+  "area": "an unnumbered cell is one milestone",
+  "description": "an unnumbered cell is one milestone",
+  "args": {
+   "cell": "Reach the target of 0.8."
+  },
+  "expect": {
+   "eq": {
+    "number": 1,
+    "target": 0.8
+   }
+  }
+ },
+ {
+  "id": "MRC-004",
+  "kind": "milestone",
+  "area": "an empty cell has none",
+  "description": "an empty cell has none",
+  "args": {
+   "cell": "   "
+  },
+  "expect": {
+   "eq": {
+    "number": 0,
+    "text": ""
+   }
+  }
+ },
+ {
+  "id": "MRC-005",
+  "kind": "milestone",
+  "area": "archived milestones are skipped",
+  "description": "archived milestones are skipped",
+  "args": {
+   "cell": "1. Archived: an old goal. 2. (archived) another. 3. The real next one at 50%. 4. After."
+  },
+  "expect": {
+   "eq": {
+    "number": 3,
+    "text": "The real next one at 50%.",
+    "target": 0.5
+   }
+  }
+ },
+ {
+  "id": "MRC-006",
+  "kind": "milestone",
+  "area": "met milestones are skipped",
+  "description": "met milestones are skipped",
+  "args": {
+   "cell": "1. Done: 100%. [met: 2026-10-26] 2. Next one at 40%."
+  },
+  "expect": {
+   "eq": {
+    "number": 2,
+    "text": "Next one at 40%.",
+    "target": 0.4
+   }
+  }
+ },
+ {
+  "id": "MRC-007",
+  "kind": "milestone",
+  "area": "all archived or met leaves none",
+  "description": "all archived or met leaves none",
+  "args": {
+   "cell": "1. Archived: only one. 2. Done. [met]"
+  },
+  "expect": {
+   "eq": {
+    "number": 0
+   }
+  }
+ },
+ {
+  "id": "MRC-008",
+  "kind": "milestone",
+  "area": "two numbers make no target",
+  "description": "two numbers make no target",
+  "args": {
+   "cell": "1. Recorded for 3, then 10, then 30 runs."
+  },
+  "expect": {
+   "eq": {
+    "number": 1,
+    "target": null
+   }
+  }
+ },
+ {
+  "id": "MRC-009",
+  "kind": "milestone",
+  "area": "a percent is a fraction and a decimal stays",
+  "description": "a percent is a fraction and a decimal stays",
+  "args": {
+   "cell": "1. Latency under 2.5 seconds."
+  },
+  "expect": {
+   "eq": {
+    "number": 1,
+    "target": 2.5
+   }
+  }
+ },
+ {
+  "id": "MRC-010",
+  "kind": "slice",
+  "area": "a clear request gets its solution, metric and milestone",
+  "description": "a clear request gets its solution, metric and milestone",
+  "args": {
+   "request": "make the greeting function greet a person by name in the standard form"
+  },
+  "expect": {
+   "eq": {
+    "solution_id": "greet-a-person",
+    "metric_id": "greeting-pass-rate",
+    "milestone_number": 1
+   }
+  }
+ },
+ {
+  "id": "MRC-011",
+  "kind": "slice",
+  "area": "archived milestones are skipped in the repository too",
+  "description": "archived milestones are skipped in the repository too",
+  "args": {
+   "request": "make the greeting function greet a person by name in the standard form",
+   "setup": {
+    "milestones": "1. Archived: done. 2. Greetings keep the name: 50%."
+   }
+  },
+  "expect": {
+   "eq": {
+    "solution_id": "greet-a-person",
+    "milestone_number": 2
+   }
+  }
+ },
+ {
+  "id": "MRC-012",
+  "kind": "slice",
+  "area": "an unrelated request gets no slice",
+  "description": "an unrelated request gets no slice",
+  "args": {
+   "request": "write a poem about the sea"
+  },
+  "expect": {
+   "eq": {
+    "solution_id": ""
+   }
+  }
+ },
+ {
+  "id": "MRC-013",
+  "kind": "slice",
+  "area": "an empty request gets no slice",
+  "description": "an empty request gets no slice",
+  "args": {
+   "request": ""
+  },
+  "expect": {
+   "eq": {
+    "solution_id": ""
+   }
+  }
+ },
+ {
+  "id": "MRC-014",
+  "kind": "slice",
+  "area": "a folder with no records gets no slice",
+  "description": "a folder with no records gets no slice",
+  "args": {
+   "request": "make the greeting function greet a person by name in the standard form",
+   "folder": "bare"
+  },
+  "expect": {
+   "eq": {
+    "solution_id": ""
+   }
+  }
+ },
+ {
+  "id": "MRC-015",
+  "kind": "slice",
+  "area": "no folder gets no slice",
+  "description": "no folder gets no slice",
+  "args": {
+   "request": "make the greeting function greet a person by name in the standard form",
+   "folder": "none"
+  },
+  "expect": {
+   "eq": {
+    "solution_id": ""
+   }
+  }
+ },
+ {
+  "id": "MRC-016",
+  "kind": "slice",
+  "area": "two candidate solutions and no sure chooser get no slice",
+  "description": "two candidate solutions and no sure chooser get no slice",
+  "args": {
+   "request": "make the greeting function greet a person by name in the standard form",
+   "chooser": "two_solutions"
+  },
+  "expect": {
+   "eq": {
+    "solution_id": ""
+   }
+  }
+ },
+ {
+  "id": "MRC-017",
+  "kind": "slice",
+  "area": "a sure chooser settles on its best solution",
+  "description": "a sure chooser settles on its best solution",
+  "args": {
+   "request": "make the greeting function greet a person by name in the standard form",
+   "chooser": "sure_first"
+  },
+  "expect": {
+   "eq": {
+    "solution_id": "greet-a-person"
+   }
+  }
+ },
+ {
+  "id": "MRC-018",
+  "kind": "slice",
+  "area": "a chooser that raises gets no slice",
+  "description": "a chooser that raises gets no slice",
+  "args": {
+   "request": "make the greeting function greet a person by name in the standard form",
+   "chooser": "raises"
+  },
+  "expect": {
+   "eq": {
+    "solution_id": ""
+   }
+  }
+ },
+ {
+  "id": "MRC-019",
+  "kind": "reading",
+  "area": "the first meter with a number wins",
+  "description": "the first meter with a number wins",
+  "args": {
+   "meters": [
+    {
+     "name": "a",
+     "value": null
+    },
+    {
+     "name": "b",
+     "value": 0.4
+    },
+    {
+     "name": "c",
+     "value": 0.9
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "value": 0.4,
+    "meter": "b"
+   }
+  }
+ },
+ {
+  "id": "MRC-020",
+  "kind": "reading",
+  "area": "no number is an empty reading",
+  "description": "no number is an empty reading",
+  "args": {
+   "meters": [
+    {
+     "name": "a",
+     "value": null
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "value": null,
+    "meter": "",
+    "note": ""
+   }
+  }
+ },
+ {
+  "id": "MRC-021",
+  "kind": "reading",
+  "area": "a meter that serves only before is not asked after",
+  "description": "a meter that serves only before is not asked after",
+  "args": {
+   "meters": [
+    {
+     "name": "row",
+     "value": 1.0,
+     "serves": [
+      "before"
+     ]
+    },
+    {
+     "name": "arm",
+     "value": 0.4
+    }
+   ],
+   "when": "after"
+  },
+  "expect": {
+   "eq": {
+    "value": 0.4,
+    "meter": "arm"
+   }
+  }
+ },
+ {
+  "id": "MRC-022",
+  "kind": "reading",
+  "area": "no meter for the moment is an empty reading with no note",
+  "description": "no meter for the moment is an empty reading with no note",
+  "args": {
+   "meters": [
+    {
+     "name": "row",
+     "value": 1.0,
+     "serves": [
+      "before"
+     ]
+    }
+   ],
+   "when": "after"
+  },
+  "expect": {
+   "eq": {
+    "value": null,
+    "note": ""
+   }
+  }
+ },
+ {
+  "id": "MRC-023",
+  "kind": "reading",
+  "area": "a meter that raises gives way to the next",
+  "description": "a meter that raises gives way to the next",
+  "args": {
+   "meters": [
+    {
+     "name": "boom",
+     "raises": true
+    },
+    {
+     "name": "fine",
+     "value": 0.2
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "value": 0.2,
+    "meter": "fine"
+   }
+  }
+ },
+ {
+  "id": "MRC-024",
+  "kind": "reading",
+  "area": "a cheap meter is never announced",
+  "description": "a cheap meter is never announced",
+  "args": {
+   "meters": [
+    {
+     "name": "cheap",
+     "value": 0.4
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "announced": 0,
+    "value": 0.4
+   }
+  }
+ },
+ {
+  "id": "MRC-025",
+  "kind": "reading",
+  "area": "a slow meter is announced once",
+  "description": "a slow meter is announced once",
+  "args": {
+   "meters": [
+    {
+     "name": "cheap",
+     "value": null
+    },
+    {
+     "name": "slow",
+     "value": null,
+     "cheap": false
+    },
+    {
+     "name": "slower",
+     "value": 0.7,
+     "cheap": false
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "announced": 1,
+    "value": 0.7
+   }
+  }
+ },
+ {
+  "id": "MRC-026",
+  "kind": "reading",
+  "area": "a meter that hangs is left behind at the budget",
+  "description": "a meter that hangs is left behind at the budget",
+  "args": {
+   "meters": [
+    {
+     "name": "stuck",
+     "hang": true,
+     "value": 0.5,
+     "cheap": false
+    }
+   ],
+   "budget": 0.2
+  },
+  "expect": {
+   "eq": {
+    "value": null,
+    "note": "stuck did not finish within 0.2s"
+   }
+  }
+ },
+ {
+  "id": "MRC-027",
+  "kind": "reading",
+  "area": "the budget is shared by every meter",
+  "description": "the budget is shared by every meter",
+  "args": {
+   "meters": [
+    {
+     "name": "first",
+     "hang": true,
+     "value": null,
+     "cheap": false
+    },
+    {
+     "name": "second",
+     "value": 0.9
+    }
+   ],
+   "budget": 0.2
+  },
+  "expect": {
+   "eq": {
+    "value": null,
+    "note": "first did not finish within 0.2s"
+   }
+  }
+ },
+ {
+  "id": "MRC-028",
+  "kind": "arm",
+  "area": "a recorded row that is current is read",
+  "description": "a recorded row that is current is read",
+  "args": {
+   "meter": "recorded_row"
+  },
+  "expect": {
+   "eq": {
+    "value": 1.0
+   }
+  }
+ },
+ {
+  "id": "MRC-029",
+  "kind": "arm",
+  "area": "a row recorded on other cases is no reading",
+  "description": "a row recorded on other cases is no reading",
+  "args": {
+   "meter": "recorded_row",
+   "setup": {
+    "other_cases": true
+   }
+  },
+  "expect": {
+   "eq": {
+    "value": null
+   }
+  }
+ },
+ {
+  "id": "MRC-030",
+  "kind": "arm",
+  "area": "a repository with no recorded run gives no reading",
+  "description": "a repository with no recorded run gives no reading",
+  "args": {
+   "meter": "recorded_row",
+   "setup": {
+    "no_row": true
+   }
+  },
+  "expect": {
+   "eq": {
+    "value": null
+   }
+  }
+ },
+ {
+  "id": "MRC-031",
+  "kind": "arm",
+  "area": "an offline arm is run and its score read",
+  "description": "an offline arm is run and its score read",
+  "args": {
+   "meter": "offline_arm"
+  },
+  "expect": {
+   "eq": {
+    "value": 1.0
+   }
+  }
+ },
+ {
+  "id": "MRC-032",
+  "kind": "arm",
+  "area": "the arm is run with a budget of no model calls",
+  "description": "the arm is run with a budget of no model calls",
+  "args": {
+   "meter": "offline_arm",
+   "spy": true
+  },
+  "expect": {
+   "eq": {
+    "value": 0.5,
+    "spawned": 1,
+    "argv": [
+     "--impl",
+     "live",
+     "--max-calls",
+     "0"
+    ]
+   }
+  }
+ },
+ {
+  "id": "MRC-033",
+  "kind": "arm",
+  "area": "no credential reaches the arm",
+  "description": "no credential reaches the arm",
+  "args": {
+   "meter": "offline_arm",
+   "spy": true,
+   "environ": {
+    "PATH": "/usr/bin",
+    "OPENAI_API_KEY": "k",
+    "SOME_SERVICE_TOKEN": "t"
+   }
+  },
+  "expect": {
+   "eq": {
+    "leaked": [],
+    "spawned": 1
+   }
+  }
+ },
+ {
+  "id": "MRC-034",
+  "kind": "arm",
+  "area": "an arm listed as paid is not run",
+  "description": "an arm listed as paid is not run",
+  "args": {
+   "meter": "offline_arm",
+   "spy": true,
+   "setup": {
+    "paid_listed": true
+   }
+  },
+  "expect": {
+   "eq": {
+    "value": null,
+    "spawned": 0
+   }
+  }
+ },
+ {
+  "id": "MRC-035",
+  "kind": "arm",
+  "area": "an arm that declares itself paid is not run",
+  "description": "an arm that declares itself paid is not run",
+  "args": {
+   "meter": "offline_arm",
+   "spy": true,
+   "setup": {
+    "declared_paid": true
+   }
+  },
+  "expect": {
+   "eq": {
+    "value": null,
+    "spawned": 0
+   }
+  }
+ },
+ {
+  "id": "MRC-036",
+  "kind": "arm",
+  "area": "an arm whose last run called a model is not run",
+  "description": "an arm whose last run called a model is not run",
+  "args": {
+   "meter": "offline_arm",
+   "spy": true,
+   "setup": {
+    "model_called": true
+   }
+  },
+  "expect": {
+   "eq": {
+    "value": null,
+    "spawned": 0
+   }
+  }
+ },
+ {
+  "id": "MRC-037",
+  "kind": "arm",
+  "area": "an arm with no recorded run is not run",
+  "description": "an arm with no recorded run is not run",
+  "args": {
+   "meter": "offline_arm",
+   "spy": true,
+   "setup": {
+    "no_row": true
+   }
+  },
+  "expect": {
+   "eq": {
+    "value": null,
+    "spawned": 0
+   }
+  }
+ },
+ {
+  "id": "MRC-038",
+  "kind": "arm",
+  "area": "a slow arm is stopped at the limit",
+  "description": "a slow arm is stopped at the limit",
+  "args": {
+   "meter": "offline_arm",
+   "setup": {
+    "slow_arm": true
+   },
+   "timeout": 1.5
+  },
+  "expect": {
+   "eq": {
+    "value": null
+   },
+   "at_most": {
+    "seconds": 12
+   }
+  }
+ },
+ {
+  "id": "MRC-039",
+  "kind": "result",
+  "area": "numbers are accepted",
+  "description": "numbers are accepted",
+  "args": {
+   "source": "recorded",
+   "before": 0.5,
+   "after": 0.75
+  },
+  "expect": {
+   "eq": {
+    "error": ""
+   }
+  }
+ },
+ {
+  "id": "MRC-040",
+  "kind": "result",
+  "area": "ints are accepted",
+  "description": "ints are accepted",
+  "args": {
+   "source": "recorded",
+   "before": 2,
+   "after": 3
+  },
+  "expect": {
+   "eq": {
+    "error": ""
+   }
+  }
+ },
+ {
+  "id": "MRC-041",
+  "kind": "result",
+  "area": "a string a model typed is rejected, not converted",
+  "description": "a string a model typed is rejected, not converted",
+  "args": {
+   "source": "recorded",
+   "before": "0.8"
+  },
+  "expect": {
+   "eq": {
+    "error": "ValueError"
+   }
+  }
+ },
+ {
+  "id": "MRC-042",
+  "kind": "result",
+  "area": "a percent in a string is rejected",
+  "description": "a percent in a string is rejected",
+  "args": {
+   "source": "recorded",
+   "after": "80%"
+  },
+  "expect": {
+   "eq": {
+    "error": "ValueError"
+   }
+  }
+ },
+ {
+  "id": "MRC-043",
+  "kind": "result",
+  "area": "a bool is not a number",
+  "description": "a bool is not a number",
+  "args": {
+   "source": "recorded",
+   "after": true
+  },
+  "expect": {
+   "eq": {
+    "error": "ValueError"
+   }
+  }
+ },
+ {
+  "id": "MRC-044",
+  "kind": "result",
+  "area": "nan is not a number",
+  "description": "nan is not a number",
+  "args": {
+   "source": "recorded",
+   "nan": true
+  },
+  "expect": {
+   "eq": {
+    "error": "ValueError"
+   }
+  }
+ },
+ {
+  "id": "MRC-045",
+  "kind": "result",
+  "area": "a result needs a value unless it is not applicable",
+  "description": "a result needs a value unless it is not applicable",
+  "args": {
+   "source": "measured"
+  },
+  "expect": {
+   "eq": {
+    "error": "ValueError"
+   }
+  }
+ },
+ {
+  "id": "MRC-046",
+  "kind": "result",
+  "area": "a source outside the three is rejected",
+  "description": "a source outside the three is rejected",
+  "args": {
+   "source": "guessed",
+   "before": 1
+  },
+  "expect": {
+   "eq": {
+    "error": "ValueError"
+   }
+  }
+ },
+ {
+  "id": "MRC-047",
+  "kind": "result",
+  "area": "not applicable with a reason is accepted",
+  "description": "not applicable with a reason is accepted",
+  "args": {
+   "source": "not_applicable",
+   "reason": "A draft."
+  },
+  "expect": {
+   "eq": {
+    "error": ""
+   }
+  }
+ },
+ {
+  "id": "MRC-048",
+  "kind": "result",
+  "area": "not applicable needs a reason",
+  "description": "not applicable needs a reason",
+  "args": {
+   "source": "not_applicable"
+  },
+  "expect": {
+   "eq": {
+    "error": "ValueError"
+   }
+  }
+ },
+ {
+  "id": "MRC-049",
+  "kind": "result",
+  "area": "not applicable carries no values",
+  "description": "not applicable carries no values",
+  "args": {
+   "source": "not_applicable",
+   "reason": "A draft.",
+   "before": 1
+  },
+  "expect": {
+   "eq": {
+    "error": "ValueError"
+   }
+  }
+ },
+ {
+  "id": "MRC-050",
+  "kind": "reconcile",
+  "area": "a measured before and the later after become one row",
+  "description": "a measured before and the later after become one row",
+  "args": {
+   "rows": [
+    {
+     "source": "measured",
+     "before": 0.5,
+     "ts": 1.0
+    },
+    {
+     "source": "measured",
+     "after": 0.75,
+     "ts": 2.0
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "sources": [
+     "measured"
+    ],
+    "values": [
+     [
+      0.5,
+      0.75
+     ]
+    ],
+    "disagrees": [
+     false
+    ]
+   }
+  }
+ },
+ {
+  "id": "MRC-051",
+  "kind": "reconcile",
+  "area": "measured and recorded stay two rows and a difference flags both",
+  "description": "measured and recorded stay two rows and a difference flags both",
+  "args": {
+   "rows": [
+    {
+     "source": "measured",
+     "before": 0.5,
+     "after": 0.75
+    },
+    {
+     "source": "recorded",
+     "before": 0.5,
+     "after": 0.9
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "sources": [
+     "measured",
+     "recorded"
+    ],
+    "disagrees": [
+     true,
+     true
+    ],
+    "values": [
+     [
+      0.5,
+      0.75
+     ],
+     [
+      0.5,
+      0.9
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "id": "MRC-052",
+  "kind": "reconcile",
+  "area": "a measured value rounded to the recorded decimals agrees",
+  "description": "a measured value rounded to the recorded decimals agrees",
+  "args": {
+   "rows": [
+    {
+     "source": "measured",
+     "before": 0.38,
+     "after": 0.91
+    },
+    {
+     "source": "recorded",
+     "before": 0.4,
+     "after": 0.9
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "disagrees": [
+     false,
+     false
+    ]
+   }
+  }
+ },
+ {
+  "id": "MRC-053",
+  "kind": "reconcile",
+  "area": "a gap the recorded precision shows is a difference",
+  "description": "a gap the recorded precision shows is a difference",
+  "args": {
+   "rows": [
+    {
+     "source": "measured",
+     "after": 0.3000001
+    },
+    {
+     "source": "recorded",
+     "after": 0.3000002
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "disagrees": [
+     true,
+     true
+    ]
+   }
+  }
+ },
+ {
+  "id": "MRC-054",
+  "kind": "reconcile",
+  "area": "an unshared end is not a disagreement",
+  "description": "an unshared end is not a disagreement",
+  "args": {
+   "rows": [
+    {
+     "source": "measured",
+     "before": 0.5,
+     "after": 0.75
+    },
+    {
+     "source": "recorded",
+     "before": 0.5
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "disagrees": [
+     false,
+     false
+    ]
+   }
+  }
+ },
+ {
+  "id": "MRC-055",
+  "kind": "reconcile",
+  "area": "not applicable is dropped once any row holds a number",
+  "description": "not applicable is dropped once any row holds a number",
+  "args": {
+   "rows": [
+    {
+     "source": "measured",
+     "after": 1.0
+    },
+    {
+     "source": "not_applicable",
+     "reason": "A draft."
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "sources": [
+     "measured"
+    ]
+   }
+  }
+ },
+ {
+  "id": "MRC-056",
+  "kind": "reconcile",
+  "area": "not applicable alone still shows",
+  "description": "not applicable alone still shows",
+  "args": {
+   "rows": [
+    {
+     "source": "not_applicable",
+     "reason": "A draft."
+    },
+    {
+     "source": "not_applicable",
+     "reason": "A draft."
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "sources": [
+     "not_applicable"
+    ],
+    "line": "Metric: not applicable (A draft.)"
+   }
+  }
+ },
+ {
+  "id": "MRC-057",
+  "kind": "reconcile",
+  "area": "the payload is capped by the limit",
+  "description": "the payload is capped by the limit",
+  "args": {
+   "rows": [
+    {
+     "source": "recorded",
+     "metric_id": "m0",
+     "after": 1.0
+    },
+    {
+     "source": "recorded",
+     "metric_id": "m1",
+     "after": 1.0
+    },
+    {
+     "source": "recorded",
+     "metric_id": "m2",
+     "after": 1.0
+    },
+    {
+     "source": "recorded",
+     "metric_id": "m3",
+     "after": 1.0
+    },
+    {
+     "source": "recorded",
+     "metric_id": "m4",
+     "after": 1.0
+    }
+   ],
+   "limit": 2
+  },
+  "expect": {
+   "eq": {
+    "sources": [
+     "recorded",
+     "recorded"
+    ]
+   }
+  }
+ },
+ {
+  "id": "MRC-058",
+  "kind": "reconcile",
+  "area": "the plain line is written from the rows",
+  "description": "the plain line is written from the rows",
+  "args": {
+   "rows": [
+    {
+     "source": "measured",
+     "name": "Pass rate",
+     "before": 0.5,
+     "after": 0.75
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "line": "Metric: Pass rate 0.5 -> 0.75 (measured)"
+   }
+  }
+ },
+ {
+  "id": "MRC-059",
+  "kind": "iteration",
+  "area": "the program reads before and after and writes both itself",
+  "description": "the program reads before and after and writes both itself",
+  "args": {
+   "request": "make the greeting function greet a person by name in the standard form",
+   "meters": [
+    {
+     "name": "fixed",
+     "values": [
+      0.5,
+      0.75
+     ],
+     "cheap": false
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "rows": [
+     [
+      "measured",
+      0.5,
+      0.75
+     ]
+    ],
+    "block": true,
+    "reads": [
+     2
+    ]
+   }
+  }
+ },
+ {
+  "id": "MRC-060",
+  "kind": "iteration",
+  "area": "the worker's own row stands beside the measured one",
+  "description": "the worker's own row stands beside the measured one",
+  "args": {
+   "request": "make the greeting function greet a person by name in the standard form",
+   "meters": [
+    {
+     "name": "fixed",
+     "values": [
+      0.5,
+      0.75
+     ],
+     "cheap": false
+    }
+   ],
+   "worker": [
+    {
+     "source": "recorded",
+     "metric_id": "greeting-pass-rate",
+     "before": 0.5,
+     "after": 0.5
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "rows": [
+     [
+      "measured",
+      0.5,
+      0.75
+     ],
+     [
+      "recorded",
+      0.5,
+      0.5
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "id": "MRC-061",
+  "kind": "iteration",
+  "area": "without measuring the brief gets the slice and nothing is read",
+  "description": "without measuring the brief gets the slice and nothing is read",
+  "args": {
+   "request": "make the greeting function greet a person by name in the standard form",
+   "meters": [
+    {
+     "name": "fixed",
+     "values": [
+      0.5,
+      0.75
+     ],
+     "cheap": false
+    }
+   ],
+   "measures": false
+  },
+  "expect": {
+   "eq": {
+    "rows": [],
+    "block": true,
+    "reads": [
+     0
+    ]
+   }
+  }
+ },
+ {
+  "id": "MRC-062",
+  "kind": "iteration",
+  "area": "with no source nothing is added",
+  "description": "with no source nothing is added",
+  "args": {
+   "request": "make the greeting function greet a person by name in the standard form",
+   "meters": [
+    {
+     "name": "fixed",
+     "values": [
+      0.5,
+      0.75
+     ],
+     "cheap": false
+    }
+   ],
+   "source": false
+  },
+  "expect": {
+   "eq": {
+    "rows": [],
+    "block": false,
+    "reads": [
+     0
+    ]
+   }
+  }
+ },
+ {
+  "id": "MRC-063",
+  "kind": "iteration",
+  "area": "an unclear request gets no slice and no reading",
+  "description": "an unclear request gets no slice and no reading",
+  "args": {
+   "request": "write a poem about the sea",
+   "meters": [
+    {
+     "name": "fixed",
+     "values": [
+      0.5,
+      0.75
+     ],
+     "cheap": false
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "rows": [],
+    "block": false,
+    "reads": [
+     0
+    ]
+   }
+  }
+ },
+ {
+  "id": "MRC-064",
+  "kind": "iteration",
+  "area": "a folder with no records pays nothing",
+  "description": "a folder with no records pays nothing",
+  "args": {
+   "request": "make the greeting function greet a person by name in the standard form",
+   "meters": [
+    {
+     "name": "fixed",
+     "values": [
+      0.5,
+      0.75
+     ],
+     "cheap": false
+    }
+   ],
+   "folder": "bare"
+  },
+  "expect": {
+   "eq": {
+    "rows": [],
+    "block": false,
+    "reads": [
+     0
+    ]
+   }
+  }
+ },
+ {
+  "id": "MRC-065",
+  "kind": "iteration",
+  "area": "work that did not happen is not measured after",
+  "description": "work that did not happen is not measured after",
+  "args": {
+   "request": "make the greeting function greet a person by name in the standard form",
+   "meters": [
+    {
+     "name": "fixed",
+     "values": [
+      0.5,
+      0.75
+     ],
+     "cheap": false
+    }
+   ],
+   "did_work": false
+  },
+  "expect": {
+   "eq": {
+    "rows": [
+     [
+      "measured",
+      0.5,
+      null
+     ]
+    ],
+    "reads": [
+     1
+    ]
+   }
+  }
+ },
+ {
+  "id": "MRC-066",
+  "kind": "iteration",
+  "area": "no meter for the reading after invents no after",
+  "description": "no meter for the reading after invents no after",
+  "args": {
+   "request": "make the greeting function greet a person by name in the standard form",
+   "meters": [
+    {
+     "name": "row",
+     "values": [
+      1.0
+     ],
+     "serves": [
+      "before"
+     ]
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "rows": [
+     [
+      "measured",
+      1.0,
+      null
+     ]
+    ]
+   }
+  }
+ },
+ {
+  "id": "MRC-067",
+  "kind": "iteration",
+  "area": "a meter with no reading writes no row",
+  "description": "a meter with no reading writes no row",
+  "args": {
+   "request": "make the greeting function greet a person by name in the standard form",
+   "meters": [
+    {
+     "name": "none",
+     "value": null
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "rows": []
+   }
+  }
+ }
+]

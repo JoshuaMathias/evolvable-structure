@@ -346,3 +346,9 @@ def test_the_harness_runs_an_implementation_the_code_declares_without_a_wrapper_
         runtime.forget("greet-a-person")
         runtime.PROJECTS.clear()
         forget_modules("greet_a_person", "demo")
+
+
+def test_a_sample_label_names_its_run_flags_without_the_repositorys_evaluation():
+    assert harness.sample_label_args({"sample": "only:A,B"}) == ["--only", "A,B"]
+    assert harness.sample_label_args({"sample": "sample:3"}) == ["--sample", "3"]
+    assert harness.sample_label_args({"sample": ""}) == [] and harness.sample_label_args({}) == [] and harness.sample_label_args(None) == []

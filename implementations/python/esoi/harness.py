@@ -189,6 +189,17 @@ def sample_label(args: argparse.Namespace, cases: List[dict], whole: int) -> str
     return f"sample:{args.sample}"
 
 
+def sample_label_args(row: Optional[Dict[str, str]]) -> List[str]:
+    """The ``esoi run`` flags a row's ``sample`` label names (``only:`` or ``sample:``), read from the label alone, else ``[]``.
+    It imports nothing from the repository's evaluation, so a reader that must not run its code can use it."""
+    label = ((row or {}).get("sample") or "").strip()
+    if label.startswith("only:"):
+        return ["--only", label[len("only:"):]]
+    if label.startswith("sample:"):
+        return ["--sample", label[len("sample:"):]]
+    return []
+
+
 def sample_args(config: Config, component: str, row: Optional[Dict[str, str]]) -> List[str]:
     """The ``esoi run`` flags that reproduce the sample a recorded row was scored on (``[]`` for the full set). A row
     recorded before the ``sample`` column that scored fewer cases than the set has is read as ``--sample`` of that size,
@@ -196,11 +207,8 @@ def sample_args(config: Config, component: str, row: Optional[Dict[str, str]]) -
     reading holds only while the case file is unchanged; on other cases the old count says nothing, so the full set runs."""
     if not row:
         return []
-    label = (row.get("sample") or "").strip()
-    if label.startswith("only:"):
-        return ["--only", label[len("only:"):]]
-    if label.startswith("sample:"):
-        return ["--sample", label[len("sample:"):]]
+    if labelled := sample_label_args(row):
+        return labelled
     if (row.get("cases_sha") or "") != cases_digest(component, config.evaluation):
         return []   # a legacy count on other cases says nothing about a sample: the full set
     try:

@@ -58,3 +58,11 @@ def test_milestones_carry_whether_they_are_met():
     assert fields.format_milestones(got) == cell
     assert fields.parse_milestones("") == [] and fields.parse_milestones("Just one")[0]["met"] is False
     assert fields.parse_milestones("1. a [met]")[0] == {"text": "a", "met": True, "met_on": ""}
+
+
+def test_in_order_reads_a_numbered_list_only_when_it_runs_from_one_in_sequence():
+    assert [m["text"] for m in fields.parse_milestones("1. a 2. b 3. c", in_order=True)] == ["a", "b", "c"]
+    assert [m["text"] for m in fields.parse_milestones("1. a 3. b", in_order=True)] == ["a 3. b"]
+    assert [m["text"] for m in fields.parse_milestones("1. a 3. b")] == ["a", "b"]   # the default reads any number as a mark
+    assert [m["text"] for m in fields.parse_milestones("Intro. 1. a 2. b", in_order=True)] == ["Intro. 1. a 2. b"]
+    assert [m["text"] for m in fields.parse_milestones("2. a 3. b", in_order=True)] == ["2. a 3. b"]

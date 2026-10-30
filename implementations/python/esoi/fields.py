@@ -84,14 +84,24 @@ MET = re.compile(r"\s*\[met(?::\s*([^\]]*?))?\s*\]\s*$", re.I)
 NUMBERED = re.compile(r"(?:(?<=^)|(?<=\s))(\d+)\.\s+(?=\S)")
 
 
-def parse_milestones(cell: Optional[str]) -> List[Dict[str, object]]:
+def parse_milestones(cell: Optional[str], in_order: bool = False) -> List[Dict[str, object]]:
     """The milestones of a ``milestones`` cell, in order, as ``[{"text": str, "met": bool, "met_on": str}]`` (``met_on`` is
     empty when unmet or when no date was written). A cell with no numbers is one milestone; an empty cell is none. The
-    text never includes the number or the marker, so cells written before the marker existed parse as all unmet."""
+    text never includes the number or the marker, so cells written before the marker existed parse as all unmet.
+
+    ``in_order`` reads a numbered list only when the cell starts with ``1.`` and the numbers run 1, 2, 3 in order, so a number
+    inside a sentence ("on 2026-10-19. 2 of them") never splits a milestone; any other cell is one milestone."""
     text = (cell or "").strip()
     if not text:
         return []
     marks = list(NUMBERED.finditer(text))
+    if in_order:
+        expect, kept = 1, []
+        for mark in marks:
+            if int(mark.group(1)) == expect:
+                kept.append(mark)
+                expect += 1
+        marks = kept if kept and kept[0].start() == 0 else []
     parts = [text[m.end():(marks[i + 1].start() if i + 1 < len(marks) else len(text))] for i, m in enumerate(marks)] if marks else [text]
     out: List[Dict[str, object]] = []
     for part in parts:
