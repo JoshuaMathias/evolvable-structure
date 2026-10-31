@@ -98,3 +98,32 @@ public [real=no | when=others measured it] > offline [sample=full | real=no | ga
 
 It needs `real=no`, its `when=` text is free, it needs no gate, and it holds no results. `esoi cascade` reads it as satisfied for an
 implementation when evidence rows exist for it and the best grade is C or better. It never replaces our own first-stage result.
+
+## 4. Skip runs whose answer is already public
+
+If a component's cases reproduce a public benchmark, say which one in a technical file beside the cases,
+`evaluation/<component>/benchmark.txt` (the first line that is not blank or a `#` comment), or in the configuration:
+
+```toml
+[evidence.benchmarks]
+rank_documents = "bench-1"
+```
+
+The name is matched, ignoring case, underscores, hyphens and spaces, with the `comparator` column of the evidence. When an
+independent row (not vendor-reported, not run by the owner) exists for the arm's candidate on that benchmark, `esoi run` prints
+it and refuses:
+
+```
+public result: fast-retriever pass_rate = 0.71 fraction on bench-1 (independent_benchmark, https://example.org/a, checked 2026-10-30)
+esoi run: fast-retriever is not run: a public result already exists ... pass --differs "harness: ..." (or prompt, settings, corpus, metric), or --force "reason"
+```
+
+Run it only to learn what differs from the public number, and say what:
+
+```bash
+esoi run rank_documents --impl fast-retriever --record --differs "harness: our tool set and a longer context"
+```
+
+`--differs` must start with `harness`, `prompt`, `settings`, `corpus` or `metric`. `--force "reason"` overrides any refusal. Either
+is recorded in the row's `details`. `esoi run --stale` re-records an arm already run and does not ask again. A component with no
+declared benchmark is never refused.

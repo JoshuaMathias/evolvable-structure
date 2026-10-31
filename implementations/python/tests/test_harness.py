@@ -251,7 +251,8 @@ def test_an_arm_listed_in_paid_arms_or_recorded_with_model_calls_is_paid(repo):
     assert sum("SKIPPED" in line for line in lines) == 2 and not any(": run" in line for line in lines)
     lines.clear()
     harness.rerun_stale(cfg, lines.append, include_paid=True)
-    assert sum(": run and recorded" in line for line in lines) == 2
+    assert sum(": run and recorded" in line for line in lines) == 1   # the other is capped by the arm that passed every case
+    assert sum("SKIPPED, not worth running" in line for line in lines) == 1
 
 
 def test_a_sampled_run_records_its_sample_and_a_full_run_leaves_it_blank(tmp_path):

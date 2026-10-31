@@ -19,6 +19,7 @@ rules-measurement,tools,implementations/python/esoi/rules/measurement.py,"The ru
 rules-generated,tools,implementations/python/esoi/rules/generated.py,"The rules about generated files, the tracker and the records.",structure-rules;review-tracker;template-sync;readable-records
 check-runner,tools,implementations/python/esoi/check.py,Running every rule over a repository and reporting problems.,structure-check;readable-records
 harness,tools,implementations/python/esoi/harness.py;implementations/python/esoi/hermetic.py,Running one implementation over a component's cases and recording the result.,measurement-harness
+run-guards,tools,implementations/python/esoi/run_guards.py,"Refusing an esoi run that cannot inform a decision: a perfect arm already caps it, or a public result already exists.",measurement-harness
 tracker,tools,implementations/python/esoi/tracker.py;implementations/python/esoi/sheets.py,Building the review tracker tabs and syncing them with a sheet.,review-tracker
 consumer,tools,implementations/python/esoi/consumer.py,Checking a consuming repository's integration registry.,consumer-check
 hygiene,tools,implementations/python/esoi/hygiene.py,Scanning a public repository for secrets and private data.,structure-check

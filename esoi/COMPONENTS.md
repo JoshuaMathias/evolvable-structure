@@ -25,6 +25,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `rules-generated` | tools | The rules about generated files, the tracker and the records. | structure-rules, review-tracker, template-sync, readable-records |
 | `check-runner` | tools | Running every rule over a repository and reporting problems. | structure-check, readable-records |
 | `harness` | tools | Running one implementation over a component's cases and recording the result. | measurement-harness |
+| `run-guards` | tools | Refusing an esoi run that cannot inform a decision: a perfect arm already caps it, or a public result already exists. | measurement-harness |
 | `tracker` | tools | Building the review tracker tabs and syncing them with a sheet. | review-tracker |
 | `consumer` | tools | Checking a consuming repository's integration registry. | consumer-check |
 | `hygiene` | tools | Scanning a public repository for secrets and private data. | structure-check |

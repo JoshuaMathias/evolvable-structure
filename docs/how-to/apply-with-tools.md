@@ -84,7 +84,7 @@ esoi check --strict                       # every recorded result is current
 recorded before the measured code changed is flagged by `esoi check --strict`, waive one as `S20 <solution>:<implementation>`),
 on the sample the selected arm's latest row used (`--full` runs the whole set), so a re-record stays comparable; a rival
 recorded on another sample is not stale, it is not comparable, and is re-run too. It never runs an arm that may spend money: one that declares `PAID = True`, is listed in `paid_arms`, or whose last run called a
-model (unless it declares `SIMULATED = True`, a deterministic stand-in that counts calls and spends nothing). Those are listed as skipped with the command to run them; opt in with `--include <component>/<impl>` or `--include-paid`.
+model (unless it declares `SIMULATED = True`, a deterministic stand-in that counts calls and spends nothing). Those are listed as skipped with the command to run them; opt in with `--include <component>/<impl>` or `--include-paid`. An arm included with `--include-paid` is still skipped, with the reason, when another arm already passed every case on the same cases and sample at no higher cost (or, with a balanced score, when it cannot win on cost or time either); naming it with `--include` runs it.
 Code the measurement depends on may sit in a sibling repository: name it in `code_paths` (`../sibling/pkg`) and the results log
 records that repository's commit in a `code_shas` column. Give `prices` in the configuration and a model run's `cost_usd` is
 computed from its tokens; with no price it is left blank, never `0`.
@@ -109,7 +109,7 @@ tells you whether they are stale; a new field appears as a missing column in you
 |---|---|
 | `esoi check [--strict] [--write-docs]` | Runs every rule; `--strict` also rejects results recorded on uncommitted code |
 | `esoi rules` | Lists the rules |
-| `esoi run <component> --impl <name> [--record]` | Runs and records one implementation (`--sample N`, `--only IDS`, `--max-calls N` for staged, budgeted runs) |
+| `esoi run <component> --impl <name> [--record]` | Runs and records one implementation (`--sample N`, `--only IDS`, `--max-calls N` for staged, budgeted runs). Refuses a run that cannot inform a decision unless `--differs \"harness: ...\"` or `--force \"reason\"` ([why](../explanation/when-metrics-are-run.md), [how to declare the public benchmark](use-public-evidence.md#4-skip-runs-whose-answer-is-already-public)) |
 | `esoi run --stale [--full] [--include-paid \| --include C/I]` | Re-runs and records every selected implementation, and the rivals beside it, whose result is stale; paid arms are skipped unless included |
 | `esoi leaderboard [--strict]` | Ranks implementations and prints a verdict per solution |
 | `esoi tracker build\|check` | Builds the review sheet tabs |

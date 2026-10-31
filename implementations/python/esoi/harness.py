@@ -43,7 +43,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from . import balance, circumstances, leaderboard, variants
+from . import balance, circumstances, leaderboard, run_guards, variants
 from .config import Config
 from .assemble import check_name
 from .leaderboard import cases_digest, is_partial
@@ -443,8 +443,37 @@ def append_row(target: Path, row: Dict[str, Any], with_code_shas: bool) -> None:
         writer.writerow(row)
 
 
+def check_guards(config: Config, component: str, impl: str, sample: str, args: argparse.Namespace,
+                 say: Callable[[str], None]) -> List[str]:
+    """Refuse (``RunError``) a run that cannot inform a decision, unless it says why it runs anyway; the notes to record in
+    ``details`` are returned. The ceiling guard and the public-first guard are in ``esoi.run_guards``."""
+    try:
+        forced = run_guards.force_reason(args.force)
+        differs = run_guards.check_differs(args.differs) if args.differs is not None else ""
+        latest = leaderboard.latest_results(config.results_path).get(component, {}).get(impl)
+        paid = paid_reason(config, component, variants.base_of(impl), latest)
+        capped = run_guards.ceiling_reason(config, component, impl, sample, paid, stale_reason)
+        public, lines = run_guards.public_reason(config, component, impl)
+    except ValueError as exc:
+        raise RunError(str(exc)) from exc
+    notes: List[str] = []
+    for line in lines:
+        say(f"public result: {line}")
+    if capped and not forced:
+        raise RunError(f"{impl} is not run: {capped}")
+    if capped:
+        notes.append(f"forced past ceiling: {forced}")
+    if public and not (differs or forced):
+        raise RunError(f"{impl} is not run: {public}")
+    if public and differs:
+        notes.append(f"differs from public: {differs}")
+    elif public:
+        notes.append(f"forced past public result: {forced}")
+    return notes
+
+
 def run_component(component: str, scorer: Callable, argv: List[str], config: Config,
-                  say: Callable[[str], None] = print) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+                  say: Callable[[str], None] = print, guards: bool = True) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     """Drive one implementation over a component's cases; print each case; optionally record. Returns (summary, rows)."""
     ap = argparse.ArgumentParser(prog=f"esoi run {component}", description=f"Evaluate the {component} component on its own.")
     ap.add_argument("--impl", required=True, help="implementation name (impls/<name>.py) or module:build")
@@ -454,6 +483,10 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     ap.add_argument("--max-calls", type=int, default=None, help="abort when model calls exceed this")
     ap.add_argument("--out", default=None, help="results json path (default: a temporary folder)")
     ap.add_argument("--record", action="store_true", help="append the summary to the results log")
+    ap.add_argument("--force", default=None, metavar="REASON",
+                    help="run although a guard refuses (a perfect arm already caps this one, or a public result exists); the reason is recorded in details")
+    ap.add_argument("--differs", default=None, metavar="WHAT",
+                    help='run although a public result exists, saying what differs: "harness: ...", "prompt: ...", "settings", "corpus" or "metric"')
     args = ap.parse_args(argv)
     cases = load_cases(component, config)
     whole = len(cases)
@@ -476,6 +509,7 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     say(f"{component}: {len(cases)} case(s), impl {args.impl}, model-call budget {budget}: "
         f"{', '.join(str(c['id']) for c in cases[:12])}{' ...' if len(cases) > 12 else ''}")
     impl = args.impl if ":" in args.impl else variants.canonical(args.impl)   # one spelling of a variant in every record
+    notes = check_guards(config, component, impl, sample, args, say) if guards else []
     meter = CallMeter(args.max_calls)
     fn = load_impl(impl, component, config)(meter)
     rows: List[Dict[str, Any]] = []
@@ -514,6 +548,8 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
         headline = score.aggregate(rows)
         say(f"{component}: {headline}")
         summary["details"] = details_text(headline)
+    if notes:
+        summary["details"] = run_guards.note_details(summary.get("details", ""), notes)
     if args.out:
         out = Path(args.out)
         out.parent.mkdir(parents=True, exist_ok=True)
@@ -751,6 +787,7 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
     latest = leaderboard.latest_results(config.results_path, whole=True)   # staleness is judged on the newest whole run, not an only: row
     selected_arms = {first_arm(config, r.get("metric_command", "")) for r in load(config).solutions}
     skipped: List[str] = []
+    skipped_ceiling: List[str] = []
     failed = 0
     target: Dict[str, List[str]] = {}   # component -> run flags of its selected arm's sample
     for comp, impl in stale_arms(config):
@@ -773,11 +810,17 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
             say(f"{comp}/{impl}: stale, {why}; SKIPPED because it may spend money ({paid})")
             skipped.append(f"{comp}/{impl}")
             continue
+        named = f"{comp}/{impl}" in (include or [])   # a person named this arm: that is the decision the guard asks for
+        capped = "" if named else run_guards.ceiling_reason(config, comp, impl, run_guards.sample_of(flags), paid, stale_reason)
+        if capped:
+            say(f"{comp}/{impl}: stale, {why}; SKIPPED, not worth running: {capped}")
+            skipped_ceiling.append(f"{comp}/{impl}")
+            continue
         say(f"{comp}/{impl}: stale, {why}")
         score = importlib.import_module(f"{comp}.score")
         try:
             run_component(comp, score.score_case, ["--impl", impl] + flags + (["--record"] if record else []), config,
-                          lambda text: None)
+                          lambda text: None, guards=False)
         except RunError as exc:   # an arm that cannot start (an unknown variant key, a bad circumstance) fails once, loudly
             failed += 1
             say(f"{comp}/{impl}: ERROR, {exc}")
@@ -799,7 +842,7 @@ def run_cli(argv: List[str], config: Config, say: Callable[[str], None] = print)
                            include=include, full="--full" in argv)
     components = discover_components(config)
     if not argv or argv[0] not in components:
-        say("usage: esoi run <component> --impl <name> [--only IDS] [--sample N] [--max-calls N] [--record]  |  esoi run --stale [--full] [--include-paid | --include COMPONENT/IMPL]")
+        say("usage: esoi run <component> --impl <name> [--only IDS] [--sample N] [--max-calls N] [--record] [--differs WHAT] [--force REASON]  |  esoi run --stale [--full] [--include-paid | --include COMPONENT/IMPL]")
         say("components: " + (", ".join(components) or "none found under " + config.evaluation_dir))
         return 2
     score = importlib.import_module(f"{argv[0]}.score")

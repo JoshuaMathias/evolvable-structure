@@ -62,6 +62,25 @@ change, or a suspected regression. Do not run it because it is Tuesday. Work up 
 3. **Set a call budget** the run cannot exceed; the run stops when it reaches it.
 4. **Run the full set** only if a decision still depends on it after the staged runs.
 
+### Do not run what cannot inform a decision
+
+Two cases are known in advance to teach nothing, so the tools refuse them (`esoi.run_guards`), with the remedy in the same line.
+
+- **A perfect arm already caps it.** If another arm of the same solution passed every case on the same cases and the same
+  sample, and the result is current, an arm that may spend money cannot score higher on accuracy. A metric that is pass or fail
+  only (ties broken by cost) refuses it unless its recorded cost per case is known and lower. A metric that weighs cost and
+  time (`[balance.<component>]`) refuses it only when its recorded cost and seconds per case are both known and neither is lower,
+  because a cheaper or faster arm can still win the balanced score; an unknown cost or time is never read as a loss. An arm that
+  cannot spend money is never refused, since running it is free. `esoi run --stale` skips such an arm and says so (an arm named
+  with `--include` is a person's decision and runs). `--force "reason"` runs it anyway.
+- **The result is already public.** A number that an independent source published for the same candidate on the same benchmark
+  need not be measured again to be known. A component declares its public benchmark, and when the project's evidence has an
+  independent row for the arm on it, the run is refused and the public value is printed. A run is worth its cost only where
+  something differs from what is known: the implementation or method, or the metric. So the run states what differs
+  (`--differs "harness: ..."`, or `prompt`, `settings`, `corpus`, `metric`), or `--force "reason"`.
+
+Every override is recorded in the row's `details`, so a later reader sees why a run that looked redundant was made.
+
 ### Someone approves spend
 
 A paid run is approved by the person or role that bears its cost, before it starts, against the estimate. A run that stays
