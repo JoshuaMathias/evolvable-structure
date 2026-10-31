@@ -32,12 +32,12 @@ from .tables import ids
 OVERRIDES_FILE = "overrides.csv"
 UNCONFIRMED = "unconfirmed:"
 REASON_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
-KINDS = ("explicit", "selections", "environ", "default")
+KINDS = ("explicit", "selections", "environ", "lock", "default")
 
 
 @dataclass(frozen=True)
 class Layer:
-    """One layer of the cascade for one solution. ``kind`` is explicit, selections, environ or default; ``scope`` is the package
+    """One layer of the cascade for one solution. ``kind`` is explicit, selections, environ, lock or default; ``scope`` is the package
     whose default it is ('' for the caller's layers); ``when`` is the circumstance condition of a conditional entry; ``skipped``
     says why a conditional entry did not apply ('' when it did); ``inherited`` marks a parent's default."""
     layer: str
@@ -66,7 +66,8 @@ class Explanation:
     def overrides_parent(self) -> bool:
         """Whether the winner is a caller's or child's choice of an arm other than the parent's default."""
         won = self.winner
-        return bool(won and self.parent_default and not won.inherited and variants.base_of(won.name) != self.parent_default)
+        return bool(won and self.parent_default and not won.inherited and won.kind != "lock"
+                    and variants.base_of(won.name) != self.parent_default)
 
     def lines(self) -> List[str]:
         """A readable report: the winner first, then every layer with its value, source, condition and reasons."""

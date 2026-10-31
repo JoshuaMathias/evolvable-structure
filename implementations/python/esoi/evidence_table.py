@@ -76,11 +76,14 @@ def rate_label(row: Row) -> str:
 
 
 def verdict_label(d: "leaderboard.Decision") -> str:
-    standing = ({"rival": "better than the selected arm", "incumbent": "behind the selected arm", "tie": "not shown better than the selected arm"}
-                if d.basis == "significance" else {"rival": "ahead of the selected arm", "incumbent": "behind the selected arm", "tie": "equal to the selected arm"})[d.outcome]
-    if d.outcome == "rival" and d.switch and d.basis == "significance":
+    tested = d.basis == "significance"
+    standing = {"rival": "better than the selected arm", "incumbent": "behind the selected arm", "tie": "not shown better than the selected arm"}[d.outcome] \
+        if tested else {"rival": "ahead of the selected arm", "incumbent": "behind the selected arm", "tie": "equal to the selected arm"}[d.outcome]
+    if d.outcome == "rival" and d.switch and d.significant:
         standing = "beats the selected arm"
-    if d.basis == "best guess":
+    elif d.outcome == "rival" and d.switch:
+        standing = "leads the selected arm (best guess, not yet significant)"
+    if not tested:
         number = "point estimates only, no per-case rows for both arms"
     else:
         number = f"Holm-adjusted p = {d.p:.3g}" + ("" if "Fisher" in d.text else f", {d.disagree} of {d.shared} cases disagree")

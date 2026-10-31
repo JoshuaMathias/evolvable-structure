@@ -22,9 +22,10 @@ def test_higher_pass_rate_wins_and_ties_break_on_cost():
     assert ranked == ["b", "c", "a"]
 
 
-def test_a_challenger_must_beat_the_selected_outside_the_margin():
+def test_the_highest_result_is_the_challenger_significant_or_not_and_equal_keeps_the_selected_arm():
     assert [r["impl"] for r in lb.challengers(rows(row("a", 5), row("b", 10)), "a")] == ["b"]
-    assert lb.challengers(rows(row("a", 5), row("b", 6)), "a") == []   # a gap of one case in ten is not shown
+    assert [r["impl"] for r in lb.challengers(rows(row("a", 5), row("b", 6)), "a")] == ["b"]   # a gap of one case in ten is a best guess, still ahead
+    assert lb.challengers(rows(row("a", 5), row("b", 6)), "a", policy=lb.Policy(require_significance=True)) == []
     assert lb.challengers(rows(row("a", 5), row("b", 5)), "a") == []
     assert lb.challengers(rows(row("a", 5), row("b", 9, sha="y")), "a") == []   # other cases are no evidence
 
@@ -33,6 +34,8 @@ def test_verdicts():
     assert lb.verdict(rows(row("a", 10), row("b", 5)), "a")[0] == "WIN"
     assert lb.verdict(rows(row("a", 6, cost=1.0), row("b", 6, cost=1.05)), "a")[0] == "TIE"
     assert lb.verdict(rows(row("a", 5), row("b", 10)), "a")[0] == "LOSS"
+    assert lb.verdict(rows(row("a", 5), row("b", 6)), "a")[0] == "LOSS"
+    assert lb.verdict(rows(row("a", 5), row("b", 6)), "a", policy=lb.Policy(require_significance=True))[0] == "TIE"
     assert lb.verdict(rows(row("a", 6)), "a")[0] == "UNMEASURED"
     assert lb.verdict(rows(row("b", 6)), "a")[0] == "UNMEASURED"
 
@@ -225,16 +228,25 @@ def test_a_significant_paired_gain_replaces_the_selected_arm():
     assert found.basis == "significance" and found.p == pytest.approx(1 / 4096) and found.switch
 
 
-def test_a_gain_chance_could_explain_keeps_the_selected_arm_and_says_how_to_settle_it():
-    data, log = arms([True] * 21 + [False] * 9, [True] * 17 + [False] * 13)   # a alone passes 4, b alone none: one-sided p = 1/16 for a
-    assert lb.decisions(data, "a", per_case=log)[0].outcome == "tie"
+def test_a_lead_chance_could_explain_still_wins_by_default_and_says_it_is_a_best_guess():
+    data, log = arms([True] * 21 + [False] * 9, [True] * 17 + [False] * 13)   # a alone passes 4, b alone none: a leads
+    found = lb.decisions(data, "a", per_case=log)[0]
+    assert found.outcome == "incumbent" and not found.significant and "best guess, not yet significant" in found.text
     data, log = arms([True] * 17 + [False] * 13, [True] * 21 + [False] * 9)   # b alone passes 4: p = 0.0625, above 0.05
     label, detail = lb.verdict(data, "a", per_case=log)
+    assert label == "LOSS" and "best guess, not yet significant" in detail and "p=0.0625" in detail and "4 of 30 cases disagree" in detail
+    assert [r["impl"] for r in lb.challengers(data, "a", per_case=log)] == ["b"]
+
+
+def test_require_significance_keeps_the_selected_arm_until_the_lead_is_significant():
+    data, log = arms([True] * 17 + [False] * 13, [True] * 21 + [False] * 9)
+    strict = lb.Policy(require_significance=True)
+    label, detail = lb.verdict(data, "a", per_case=log, policy=strict)
     assert label == "TIE" and "is not shown better than a (p=0.0625, 4 of 30 cases disagree); more cases would settle it" in detail
-    assert lb.challengers(data, "a", per_case=log) == []
+    assert lb.challengers(data, "a", per_case=log, policy=strict) == []
 
 
-def test_the_selected_arm_is_a_win_only_when_it_is_shown_better():
+def test_the_selected_arm_is_a_win_when_it_is_ahead_and_says_if_shown():
     data, log = arms([True] * 30 + [False] * 10, [True] * 18 + [False] * 22)
     label, detail = lb.verdict(data, "a", per_case=log)
     assert label == "WIN" and "a is better than b" in detail
@@ -245,7 +257,7 @@ def test_equal_arms_are_a_tie_whatever_they_cost():
     data = rows(row("a", 15, 30, cost=1.0), row("b", 15, 30, cost=0.1))
     log = per_case("a", same) + per_case("b", same)
     label, detail = lb.verdict(data, "a", per_case=log)
-    assert label == "TIE" and "p=1" in detail and "0 of 30 cases disagree" in detail   # cost counts only inside the metric
+    assert label == "TIE" and "exactly equal" in detail   # cost counts only inside the metric; equal keeps the incumbent
 
 
 def test_holm_adjusts_across_the_rivals_of_the_selected_arm():
@@ -255,14 +267,16 @@ def test_holm_adjusts_across_the_rivals_of_the_selected_arm():
     data = rows(row("a", 0, 40), row("b", 5, 40), row("c", 5, 40))
     log = per_case("a", a) + per_case("b", b) + per_case("c", c)
     found = {d.rival: d for d in lb.decisions(data, "a", per_case=log)}
-    assert found["b"].p == pytest.approx(2 / 32) and found["b"].outcome == "tie"   # 0.031 alone, 0.0625 after Holm over two rivals
+    assert found["b"].p == pytest.approx(2 / 32) and not found["b"].significant   # 0.031 alone, 0.0625 after Holm over two rivals
+    assert found["b"].outcome == "rival" and found["b"].switch   # still ahead, so it wins as a best guess
+    assert lb.decisions(data, "a", per_case=log, policy=lb.Policy(require_significance=True))[0].outcome == "tie"
     lone = rows(row("a", 0, 40), row("b", 5, 40))
-    assert lb.decisions(lone, "a", per_case=per_case("a", a) + per_case("b", b))[0].outcome == "rival"
+    assert lb.decisions(lone, "a", per_case=per_case("a", a) + per_case("b", b))[0].significant
 
 
 def test_a_per_case_log_from_another_run_is_not_used():
     data, log = arms([True] * 30, [True] * 29 + [False])
-    data["b"]["passed"] = "30"   # the results row no longer matches the logged outcomes
+    data["b"]["passed"] = "28"   # the results row no longer matches the logged outcomes
     assert lb.case_outcomes(log, data["b"]) is None
     found = lb.decisions(data, "a", per_case=log)[0]   # without matching per-case rows the pass counts still allow Fisher's exact test
     assert found.basis == "significance" and "Fisher" in found.text
@@ -284,19 +298,20 @@ def test_aggregate_pass_counts_on_the_same_cases_get_fishers_exact_test():
     found = lb.decisions(data, "a")[0]
     assert found.basis == "significance" and found.outcome == "rival" and "exact Fisher test" in found.text and found.switch
     assert found.p == pytest.approx(stats.fisher_exact_greater(22, 40, 10, 40))
-    assert lb.verdict(rows(row("a", 20, 40), row("b", 24, 40)), "a")[0] == "TIE"
-    assert "not shown better" in lb.verdict(rows(row("a", 20, 40), row("b", 24, 40)), "a")[1]
+    label, detail = lb.verdict(rows(row("a", 20, 40), row("b", 24, 40)), "a")
+    assert label == "LOSS" and "best guess, not yet significant" in detail   # ahead by 4 of 40, not significant: still the best guess
+    assert lb.verdict(rows(row("a", 20, 40), row("b", 24, 40)), "a", policy=lb.Policy(require_significance=True))[0] == "TIE"
     assert lb.decisions(rows(row("a", 20, 40), row("b", 24, 40, sha="")), "a") == []   # an unverified row is no comparison
 
 
-def test_a_best_guess_is_for_figures_a_test_cannot_use_and_switches_only_if_allowed():
+def test_a_best_guess_is_for_figures_a_test_cannot_use_and_stays_only_if_significance_is_required():
     data = rows(row("a", 5, balanced="0.50"), row("b", 6, balanced="0.60"))   # an aggregate balanced score has no case counts to test
     label, detail = lb.verdict(data, "a")
     assert label == "LOSS" and "best guess" in detail and "allow a test" in detail
     assert lb.challengers(data, "a") != []
-    off = lb.Policy(best_guess_switch=False)
+    off = lb.Policy(require_significance=True)
     label, detail = lb.verdict(data, "a", policy=off)
-    assert label == "TIE" and "switching on a best guess is off" in detail and lb.challengers(data, "a", policy=off) == []
+    assert label == "TIE" and "requires significance" in detail and lb.challengers(data, "a", policy=off) == []
     assert lb.verdict(rows(row("a", 6, balanced="0.60"), row("b", 5, balanced="0.50")), "a")[0] == "WIN"
     label, detail = lb.verdict(rows(row("a", 6, cost=1.0, balanced="0.6"), row("b", 6, cost=0.1, balanced="0.6")), "a")
     assert label == "TIE" and "exactly equal" in detail   # equal estimates keep the incumbent, whatever the cost
@@ -316,18 +331,24 @@ def test_policy_only_gets_stricter_and_a_solution_overrides_the_project(tmp_path
     t = lb.policy_for(cfg, "t", "c", [])
     assert (t.alpha, t.min_cases) == (0.05, 0)   # looser than the library default is read as the default
     assert lb.policy_for(Config(root=tmp_path), "s", "c", []) == lb.Policy()
-    assert lb.policy_for(cfg, "s", "c", []).best_guess_switch and not lb.policy_for(cfg, "s", "c", per_case("a", [True])).best_guess_switch
-    forbid = Config(root=tmp_path, switching={"s": {"best_guess_switch": False}})
-    assert not lb.policy_for(forbid, "s", "c", []).best_guess_switch
-    allow = Config(root=tmp_path, switching={"s": {"best_guess_switch": True}})
-    assert not lb.policy_for(allow, "s", "c", per_case("a", [True])).best_guess_switch   # true cannot loosen the default
+    assert not s.require_significance
+    strict = Config(root=tmp_path, switching={"s": {"require_significance": True}, "t": {"best_guess_switch": False}, "u": {"best_guess_switch": True}})
+    assert lb.policy_for(strict, "s").require_significance and lb.policy_for(strict, "s").source("require_significance") == "solution"
+    assert lb.policy_for(strict, "t").require_significance   # the deprecated alias of require_significance = true
+    assert not lb.policy_for(strict, "u").require_significance   # true cannot be looser than the default
 
 
-def test_a_stricter_alpha_or_a_minimum_of_cases_keeps_the_selected_arm_and_names_the_requirement(tmp_path):
+def test_with_require_significance_a_stricter_alpha_or_minimum_of_cases_keeps_the_selected_arm_and_names_the_requirement(tmp_path):
     data, log = arms([True] * 20 + [False] * 20, [True] * 20 + [False] * 8 + [True] * 12)   # p = 1/4096
-    strict = Config(root=tmp_path, switching={"s": {"alpha": 0.0001}})
+    strict = Config(root=tmp_path, switching={"s": {"alpha": 0.0001, "require_significance": True}})
     label, detail = lb.verdict(data, "a", per_case=log, policy=lb.policy_for(strict, "s", "c", log))
     assert label == "TIE" and "significant at alpha 0.05 but the solution requires alpha 0.0001" in detail
-    few = Config(root=tmp_path, switching={"min_cases": 50})
+    few = Config(root=tmp_path, switching={"min_cases": 50, "require_significance": True})
     label, detail = lb.verdict(data, "a", per_case=log, policy=lb.policy_for(few, "s", "c", log))
     assert label == "TIE" and "the project requires at least 50 shared cases and there are 40" in detail
+
+
+def test_alpha_and_min_cases_alone_only_change_what_counts_as_significant(tmp_path):
+    data, log = arms([True] * 20 + [False] * 20, [True] * 20 + [False] * 8 + [True] * 12)
+    found = lb.decisions(data, "a", per_case=log, policy=lb.Policy(alpha=0.0001))[0]
+    assert found.switch and not found.significant and "best guess, not yet significant" in found.text

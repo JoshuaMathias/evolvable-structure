@@ -94,10 +94,10 @@ leaderboard compares it on model calls. Free is never inferred from a missing pr
 ## 4. Promote
 
 ```bash
-esoi select --promote           # only the solutions a rival is significantly better than
+esoi select --promote           # the solutions a rival leads on the metric (the verdict says if the lead is significant)
 ```
 
-When a rival is significantly better than the selected implementation on the same cases, `esoi select --promote` either switches
+When a rival has a higher result than the selected implementation on the same cases (and a policy of `require_significance` is not set, in which case only a significant lead counts), `esoi select --promote` either switches
 the solution's `selected`, the metric's command and the evidence in `selected_by` (the dates of the runs, the commit, the
 cases hash, the pass counts), or prints that exact proposal for a person. Which it does is the solution's `promotion` cell:
 `automatic` lets the metric decide; empty or anything else asks a person. It never promotes on a row without a `cases_sha`, on

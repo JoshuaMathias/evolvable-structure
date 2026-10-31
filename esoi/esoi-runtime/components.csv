@@ -6,3 +6,4 @@ assemble,core,implementations/python/esoi/assemble.py,unconfirmed: for Joshua to
 requirements,core,implementations/python/esoi/requirements.py;implementations/python/esoi/installer.py,Declaring what an implementation needs from its environment and checking it.,assemble-by-name
 hierarchy,core,implementations/python/esoi/hierarchy.py,unconfirmed: for Joshua to confirm.,assemble-by-name
 eval-assemble-by-name,evaluation,implementations/python/evaluation/components/assemble_by_name/**,unconfirmed: for Joshua to confirm.,assemble-by-name
+lock,core,implementations/python/esoi/lock.py,unconfirmed: for Joshua to confirm.,assemble-by-name

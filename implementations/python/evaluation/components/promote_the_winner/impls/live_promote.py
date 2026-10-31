@@ -19,7 +19,7 @@ def world(root, args):
                                        '"b": "collections:OrderedDict"}}}\n')
         selection = "table.py:SELECTION"
     config = Config(root=root, results="results.csv", structure_dir="specs", evaluation_dir="evaluation/components",
-                    selection=selection)
+                    selection=selection, switching=args.get("switching", {}))
     selected = args["selected"]
     command = f"esoi run mini --impl {args.get('arm', selected.split('/')[-1].removesuffix('.py').split(':')[-1])}"
     (root / "specs").mkdir()

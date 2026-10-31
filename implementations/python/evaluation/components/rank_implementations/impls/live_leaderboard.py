@@ -12,7 +12,7 @@ from esoi import leaderboard
 def rank(args):
     rows = {r["impl"]: dict(date="d", **r) for r in args["rows"]}
     return {"ranked": [r["impl"] for r in leaderboard.rank(rows)],
-            "beats": [r["impl"] for r in leaderboard.challengers(rows, args["selected"], policy=leaderboard.Policy(best_guess_switch=args.get("best_guess_switch", True)))],
+            "beats": [r["impl"] for r in leaderboard.challengers(rows, args["selected"], policy=leaderboard.Policy(require_significance=args.get("require_significance", False)))],
             "unverified": [i for i, r in rows.items() if leaderboard.unverified(r)]}
 
 
@@ -28,7 +28,7 @@ def verdict(args):
         per_case = [{"component": name, "impl": impl, "cases_sha": rows[impl].get("cases_sha", ""), "sample": rows[impl].get("sample", ""),
                      "case_id": f"k{i}", "ok": "1" if ok else "0"} for impl, found in (args.get("outcomes") or {}).items()
                     for i, ok in enumerate(found)]
-        policy = leaderboard.Policy(alpha=args.get("alpha", leaderboard.ALPHA), best_guess_switch=args.get("best_guess_switch", True))
+        policy = leaderboard.Policy(alpha=args.get("alpha", leaderboard.ALPHA), require_significance=args.get("require_significance", False))
         label, detail = leaderboard.verdict(rows, args["selected"], config.evaluation, history, per_case, policy)
         return {"verdict": label, "text": detail,
                 "arms": {i: leaderboard.arm_kind(r, config.evaluation) for i, r in rows.items()}}

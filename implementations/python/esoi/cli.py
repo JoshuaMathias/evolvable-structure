@@ -25,6 +25,7 @@
     esoi hygiene [--staged] [--history]    scan for secrets, machine paths and real addresses
     esoi requirements [--package P | --scope S] [--solution ID] [--check] [--json] [--env-template FILE] [--install-script FILE]   what the implementations need from their environment
     esoi install [--package P | --scope S] [--solution ID ...] [--assembly] [--yes]   install only what the solutions in use need (dry run without --yes)
+    esoi lock [--package P | --scope S] [--file esoi.lock.json] [--update [--safe|--latest]] [--diff] [--status] [--solution ID ...] [--json]   pin the selected implementations; see and take newer ones on your schedule
     esoi docs check|wiki [--out DIR] [--repo-url URL] [--push WIKI_GIT_URL]   the four-category docs standard; generate the wiki from docs/
     esoi sheet-sync sync|push|pull|check   two-way sync of the tracker with a Google Sheet (esoi[sheets])
 
@@ -168,6 +169,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--project", default=".", help="the project folder; isolated environments go under <project>/.esoi/venvs")
     p.add_argument("--yes", action="store_true", help="actually run the plan (pip in the current environment, and the files inside the package)")
     p.add_argument("--json", action="store_true")
+    p = sub.add_parser("lock", help="pin the selected implementations per solution, see what a newer release would change, update on your schedule")
+    p.add_argument("--package", default=None, help="an importable package whose assembler() (or ASSEMBLER) gives the solutions to lock")
+    p.add_argument("--scope", default=None, help="the scope (the package's top-level name) to lock; default: the configured package")
+    p.add_argument("--file", default="esoi.lock.json", help="the lock file (default: esoi.lock.json)")
+    p.add_argument("--solution", action="append", help="only this solution id (repeatable)")
+    mode = p.add_mutually_exclusive_group()
+    mode.add_argument("--update", action="store_true", help="move the lock to the latest selections, printing each change with its evidence")
+    mode.add_argument("--diff", action="store_true", help="show what --update would change, with the requirement changes; changes nothing")
+    mode.add_argument("--status", action="store_true", help="the plan for an agent: exit 0 up to date, 3 safe updates, 4 blocked by requirements, 2 error")
+    p.add_argument("--safe", action="store_true", help="with --update, move only solutions whose new closure adds no unmet requirement")
+    p.add_argument("--latest", action="store_true", help="with --update, move everything even when the lock file says update = safe")
+    p.add_argument("--policy", choices=["latest", "safe"], default=None, help="when writing, record this update policy in the lock file")
+    p.add_argument("--json", action="store_true")
     p = sub.add_parser("docs", help="the four-category docs standard, and the wiki generated from it")
     p.add_argument("action", choices=["check", "wiki"])
     p.add_argument("--root", default=".")
@@ -208,6 +222,74 @@ def closure_for(config, args: argparse.Namespace, environ):
                if where == scope and (not solutions or sid in solutions)
                for name, target in sorted(entry.implementations.items()) if not isinstance(target, str)]
     return None, members, None
+
+
+def lock_command(config, args: argparse.Namespace) -> int:
+    """``esoi lock``: write the lock, or with --update / --diff / --status move it, show what would change, or give an agent the plan.
+    Exit codes: 0 done (--status: up to date), 2 error, and for --status only 3 (safe updates available) and 4 (blocked by requirements)."""
+    import importlib
+    import json
+    import os
+    from . import lock
+    from .assemble import AssemblyConfig
+    try:
+        name = args.package or args.scope or config.package
+        if not name:
+            raise ValueError("name a package with --package (or --scope), or set `package` in the configuration")
+        module = importlib.import_module(name)
+        found = getattr(module, "assembler", None) or getattr(module, "ASSEMBLER", None)
+        assembler = found() if callable(found) else found
+        if assembler is None:
+            raise ValueError(f"{name} has no assembler() or ASSEMBLER")
+        cfg = AssemblyConfig(consumer_environ=dict(os.environ))
+        solutions = tuple(args.solution or ())
+        package = args.package or ""
+        if args.status:
+            code, plan = lock.status(assembler, args.file, cfg, solutions, package=package, file=args.file)
+            if args.json:
+                print(json.dumps(plan, indent=1))
+            else:
+                print(f"lock {args.file}: {plan['state']}")
+                for item in plan["updates"]:
+                    change = lock.Change(item["solution"], item["old_arm"], item["new_arm"], item["verdict"], item["p"], item["evidence"],
+                                         item["requirements_added"], item["requirements_removed"])
+                    print("\n".join(change.lines()))
+                    if item["blocked"]:
+                        for step in item["steps"]:
+                            print(f"    {step['order']}. {step['action']}: {step.get('command') or step['detail']}" + (" (ask a person)" if step["human"] else ""))
+                if plan.get("apply_safe"):
+                    print(f"apply every safe update: {plan['apply_safe']}")
+            return code
+        if args.diff:
+            changes = lock.diff(assembler, args.file, cfg, solutions)
+            if args.json:
+                print(json.dumps({"schema": lock.STATUS_SCHEMA, "changes": [c.to_dict() for c in changes]}, indent=1))
+            elif not changes:
+                print("the lock is up to date: the latest selections equal the locked ones")
+            for change in changes:
+                print("\n".join(change.lines()))
+            return 0
+        if args.update:
+            safe = True if args.safe else False if args.latest else None
+            result = lock.update(assembler, args.file, cfg, solutions, safe)
+            for change in result.moved:
+                print("moved " + "\n".join(change.lines()))
+            for change in result.blocked:
+                print("left locked " + "\n".join(change.lines()))
+                for step in lock.steps_for(change, package, args.file):
+                    print(f"    {step['order']}. {step['action']}: {step.get('command') or step['detail']}")
+            if not result.moved and not result.blocked:
+                print("the lock is up to date")
+            return 0
+        data = lock.write(assembler, args.file, cfg, solutions, args.policy)
+        print(f"wrote {args.file}: {len(data['solutions'])} solutions")
+        for sid, entry in data["solutions"].items():
+            p = f", p={entry['p']:.3g}" if entry.get("p") is not None else ""
+            print(f"  {sid}: {entry['arm']} ({entry.get('verdict') or 'no verdict'}{p})")
+        return 0
+    except (ValueError, ImportError, AttributeError, RuntimeError, OSError) as exc:
+        print(f"esoi: {exc}", file=sys.stderr)
+        return 2
 
 
 def requirements_command(config, args: argparse.Namespace) -> int:
@@ -505,6 +587,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         return requirements_command(config, args)
     if args.cmd == "install":
         return install_command(config, args)
+    if args.cmd == "lock":
+        return lock_command(config, args)
     if args.cmd == "spec":
         return spec_command(config, args)
     if args.cmd == "check":

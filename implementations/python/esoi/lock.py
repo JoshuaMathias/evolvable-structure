@@ -1,0 +1,372 @@
+"""Pin the selected implementations, see what a newer release would change, and move on your schedule.
+
+By default a consumer follows the latest selections: when the metric picks a better implementation and a new release ships it,
+the consumer gets it. That is the point of ESOI, and it is the default. A consumer with production end users can instead record
+the selections it runs with in a lock file and decide when to move::
+
+    from esoi import lock
+
+    lock.write(assembler, "esoi.lock.json")                      # record the current selection of every solution
+    changes = lock.diff(assembler, "esoi.lock.json")             # what would change, with evidence and requirement changes
+    lock.update(assembler, "esoi.lock.json", safe=True)          # move only what adds no unmet requirement
+    parts.assemble(AssemblyConfig(lock="esoi.lock.json"))        # build with the locked arms
+
+The lock is a layer between the consumer's own selections and the package defaults (``AssemblyConfig.lock``, shown as ``lock``
+by ``explain``). It holds, per solution, the selected arm with the scope that chose it, the verdict and p-value of the evidence
+at that time, and the requirements of the arm's closure (``esoi.requirements``); and the version of each package in the chain.
+A locked arm that the package no longer lists raises ``LockError`` naming the remedy.
+
+``diff`` reports, per solution whose latest selection differs from the lock, the old arm, the new arm, the verdict and p, and the
+requirement changes between the two closures (variables and API keys, python packages, binaries, services, downloads), each
+added requirement with whether the current environment already meets it (no values are ever printed). ``update`` moves the lock
+to the latest selections; with ``safe=True`` (or ``"update": "safe"`` in the lock file) it moves only the solutions whose new
+closure adds no unmet requirement and leaves the rest locked. ``status`` is the plan an AI agent acts on: stable exit codes and a
+versioned JSON listing each blocked update, its unmet requirements, the remedy steps in order and the one command that applies
+it once they are resolved.
+
+Standard library and ``esoi`` only. No variable's value ever appears in anything this module returns.
+"""
+from __future__ import annotations
+
+import importlib.metadata
+import json
+import os
+from dataclasses import dataclass, field, replace
+from pathlib import Path
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+
+from . import requirements as req
+from .assemble import Assembler, AssemblyConfig, LockError
+
+__all__ = ["LockError", "Change", "Result", "SCHEMA", "STATUS_SCHEMA", "DEFAULT_FILE", "write", "update", "diff", "status", "read",
+           "latest", "locked_arm", "records_evidence", "EXIT_CURRENT", "EXIT_ERROR", "EXIT_SAFE", "EXIT_BLOCKED"]
+
+SCHEMA = "esoi.lock/1"
+STATUS_SCHEMA = "esoi.lock.status/1"
+DEFAULT_FILE = "esoi.lock.json"
+POLICIES = ("latest", "safe")
+EXIT_CURRENT, EXIT_ERROR, EXIT_SAFE, EXIT_BLOCKED = 0, 2, 3, 4   # esoi lock --status
+
+
+# reading
+
+CACHE: Dict[Tuple[str, int, int], Dict[str, Any]] = {}
+
+
+def read(source: Any) -> Dict[str, Any]:
+    """The lock as a dict, from a path or a mapping. Raises ``LockError`` for a file that is missing, unreadable or of another schema."""
+    if isinstance(source, Mapping):
+        found: Any = dict(source)
+        where = "the lock mapping"
+    else:
+        path = Path(source)
+        where = str(path)
+        try:
+            stat = path.stat()
+        except OSError as error:
+            raise LockError(f"the lock {where} cannot be read ({error}); remedy: esoi lock --file {where} writes it") from error
+        key = (str(path.resolve()), stat.st_mtime_ns, stat.st_size)
+        if key in CACHE:
+            return CACHE[key]
+        try:
+            found = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as error:
+            raise LockError(f"the lock {where} cannot be read ({error}); remedy: restore it from version control, or esoi lock --file {where} writes a new one") from error
+    if not isinstance(found, dict) or not str(found.get("schema", "")).startswith("esoi.lock/") or not isinstance(found.get("solutions"), dict):
+        raise LockError(f"{where} is not an esoi lock (schema {SCHEMA!r} with a solutions table); remedy: esoi lock writes one")
+    if str(found["schema"]) != SCHEMA:
+        raise LockError(f"{where} has schema {found['schema']!r}, this esoi reads {SCHEMA!r}; remedy: esoi lock --update rewrites it")
+    for sid, entry in found["solutions"].items():
+        if not isinstance(entry, dict) or not str(entry.get("arm", "")).strip():
+            raise LockError(f"{where}: solution {sid!r} names no arm; remedy: esoi lock --update --solution {sid}")
+    if not isinstance(source, Mapping):
+        CACHE[key] = found
+    return found
+
+
+def locked_arm(assembler: Assembler, source: Any, solution_id: str) -> Optional[Tuple[str, str]]:
+    """``(arm, where)`` the lock names for a solution, or ``None`` when it is not locked. Used by the assembler's cascade."""
+    found = read(source)
+    entry = found["solutions"].get(solution_id)
+    return (str(entry["arm"]).strip().lower(), "the lock mapping" if isinstance(source, Mapping) else str(source)) if entry else None
+
+
+# evidence
+
+def records_evidence(config: Any, loaded: Any = None) -> Dict[str, Dict[str, Any]]:
+    """``{solution_id: {"verdict", "detail", "p"}}`` from the records and the results log of ``config`` (an ``esoi.config.Config``):
+    the leaderboard's verdict on each evaluated solution's selected arm, and the smallest Holm-adjusted p-value that the selected
+    arm is better than a rival (``None`` when no test was possible). Solutions with no results are left out."""
+    from . import leaderboard, registry as registry_module
+    loaded = loaded or registry_module.load(config)
+    if not config.results_path.is_file():
+        return {}
+    history = leaderboard.all_results(config.results_path)
+    results = {comp: {impl: rows[-1] for impl, rows in impls.items()} for comp, impls in history.items()}
+    per_case = leaderboard.per_case_rows(config)
+    solutions = loaded.every_solution()
+    verdicts = leaderboard.solution_verdicts(config, solutions, results, history, loaded, per_case)
+    out: Dict[str, Dict[str, Any]] = {}
+    for row in solutions:
+        sid = row.get("solution_id", "")
+        found = verdicts.get(sid)
+        if not found or not found["component"]:
+            continue
+        component, impl = leaderboard.first_arm(config, row.get("metric_command", ""))
+        rows = results.get(component, {})
+        decided = leaderboard.decisions(rows, impl, config.evaluation, history.get(component), per_case,
+                                        leaderboard.policy_for(config, sid, component, per_case)) if impl in rows else []
+        ps = [d.p_incumbent for d in decided if d.p_incumbent is not None]
+        out[sid] = {"verdict": found["verdict"], "detail": found["detail"], "p": round(min(ps), 6) if ps else None}
+    return out
+
+
+# the latest selections
+
+@dataclass
+class Selected:
+    """The latest selection of one solution: the record the lock stores, and the requirement entries it came from."""
+    record: Dict[str, Any]
+    entries: List[req.Entry] = field(default_factory=list)
+
+
+def neutral(config: Optional[AssemblyConfig]) -> AssemblyConfig:
+    """The configuration with only the package defaults left: no lock, no consumer names, selections or environ choices."""
+    return replace(config or AssemblyConfig(), lock=None, names={}, selections={}, selection_environ={}, reasons={})
+
+
+def requirement_record(entry: req.Entry) -> Dict[str, Any]:
+    item = entry.requirement
+    return {"id": ":".join(req.identity(item)), "kind": item.kind, "label": item.label, "required": bool(item.required)}
+
+
+def package_versions(assembler: Assembler) -> Dict[str, str]:
+    out = {}
+    for one in assembler.chain():
+        try:
+            out[one.scope] = importlib.metadata.version(one.scope)
+        except importlib.metadata.PackageNotFoundError:
+            out[one.scope] = "unversioned"
+    return out
+
+
+def latest(assembler: Assembler, config: Optional[AssemblyConfig] = None, solutions: Sequence[str] = ()) -> Dict[str, Selected]:
+    """The selection each solution would have now with no lock and no consumer choices, with the evidence of the scope that chose
+    it and the requirements of the arm's closure. A solution with no default arm (the consumer supplies it) is left out."""
+    base = neutral(config)
+    assembler.prepare()
+    chain = [one.scope for one in assembler.chain()]
+    wanted = list(solutions or base.solutions or assembler.visible())
+    out: Dict[str, Selected] = {}
+    for sid in wanted:
+        assembler.check_solution(sid)
+        winner = assembler.layers(sid, None, base).winner
+        if winner is None:
+            continue
+        holder = next((one for one in assembler.chain() if one.scope == winner.scope), assembler)
+        found = dict(holder.packaged().evidence.get(sid, {}))
+        entries = req.gather(req.members_pairs(assembler.closure(base, None, (sid,))))
+        out[sid] = Selected({"arm": winner.name, "scope": winner.scope or assembler.scope, "chain": chain,
+                             "verdict": found.get("verdict", ""), "p": found.get("p"),
+                             "evidence": found.get("detail") or f"the default of {winner.scope or assembler.scope} ({winner.source}); no results recorded for it",
+                             "requirements": [requirement_record(e) for e in entries]}, entries)
+    return out
+
+
+def dump(path: Any, data: Mapping[str, Any]) -> None:
+    Path(path).write_text(json.dumps(data, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    CACHE.clear()
+
+
+def write(assembler: Assembler, path: Any = DEFAULT_FILE, config: Optional[AssemblyConfig] = None, solutions: Sequence[str] = (),
+          update_policy: Optional[str] = None) -> Dict[str, Any]:
+    """Record the current selection of every solution (or of ``solutions``) in ``path`` and return what was written. An existing
+    lock's ``update`` policy is kept unless ``update_policy`` (``"latest"`` or ``"safe"``) is given."""
+    chosen = latest(assembler, config, solutions)
+    policy = update_policy
+    if policy is None and Path(path).is_file():
+        try:
+            policy = read(path).get("update")
+        except LockError:
+            policy = None
+    if policy not in (None, *POLICIES):
+        raise LockError(f"update policy {policy!r} is not one of {', '.join(POLICIES)}")
+    data: Dict[str, Any] = {"schema": SCHEMA, "scope": assembler.scope, "packages": package_versions(assembler),
+                            "solutions": {sid: item.record for sid, item in sorted(chosen.items())}}
+    if policy:
+        data["update"] = policy
+    dump(path, data)
+    return data
+
+
+# what would change
+
+@dataclass
+class Change:
+    """One solution whose latest selection differs from the lock. ``added`` and ``removed`` are the requirement changes between the
+    two closures; each added one carries ``status`` (met, unmet or unknown in the current environment) and the ``remedy``."""
+    solution: str
+    old_arm: str
+    new_arm: str
+    verdict: str = ""
+    p: Optional[float] = None
+    evidence: str = ""
+    added: List[Dict[str, Any]] = field(default_factory=list)
+    removed: List[Dict[str, Any]] = field(default_factory=list)
+
+    @property
+    def unmet(self) -> List[Dict[str, Any]]:
+        return [a for a in self.added if a.get("failing")]
+
+    @property
+    def safe(self) -> bool:
+        """Whether the new closure adds no unmet requirement."""
+        return not self.unmet
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"solution": self.solution, "old_arm": self.old_arm, "new_arm": self.new_arm, "verdict": self.verdict, "p": self.p,
+                "evidence": self.evidence, "safe": self.safe, "requirements_added": self.added, "requirements_removed": self.removed}
+
+    def lines(self) -> List[str]:
+        move = f"{self.old_arm or '(not locked)'} -> {self.new_arm or '(no longer selected)'}"
+        p = f", p={self.p:.3g}" if self.p is not None else ""
+        out = [f"{self.solution}: {move}  [{self.verdict or 'no verdict'}{p}]" + ("" if self.safe else "  BLOCKED by unmet requirements")]
+        if self.evidence:
+            out.append(f"    evidence: {self.evidence}")
+        for a in self.added:
+            out.append(f"    + {a['label']}{'' if a['required'] else ' (optional)'}: {a['status']}" + (f"; {a['remedy']}" if a.get("remedy") and a["status"] != req.MET else ""))
+        for r in self.removed:
+            out.append(f"    - {r['label']}")
+        return out
+
+
+def environment(config: Optional[AssemblyConfig], environ: Optional[Mapping[str, str]]) -> Dict[str, str]:
+    if environ is not None:
+        return dict(environ)
+    given = dict(config.consumer_environ) if config is not None and config.consumer_environ else {}
+    return given or dict(os.environ)
+
+
+def diff(assembler: Assembler, source: Any, config: Optional[AssemblyConfig] = None, solutions: Sequence[str] = (),
+         environ: Optional[Mapping[str, str]] = None) -> List[Change]:
+    """The solutions whose latest selection differs from the lock, in solution order. A solution the lock lacks has no old arm;
+    one the package no longer selects has no new arm. Requirement changes compare the lock's recorded closure with the new one."""
+    data = read(source)
+    now = latest(assembler, config, solutions)
+    env = environment(config, environ)
+    out: List[Change] = []
+    for sid in sorted(set(data["solutions"]) | set(now)):
+        if solutions and sid not in solutions:
+            continue
+        old, new = data["solutions"].get(sid), now.get(sid)
+        if old and new and old["arm"] == new.record["arm"]:
+            continue
+        known = {r["id"]: r for r in (old or {}).get("requirements", [])}
+        checks = req.check(new.entries, env) if new else []
+        added = []
+        for entry, one in zip(new.entries if new else [], checks):
+            rec = requirement_record(entry)
+            if rec["id"] not in known:
+                added.append({**rec, "status": one.status, "remedy": one.remedy, "failing": one.failing,
+                              "used_by": list(entry.used_by), "secret": bool(getattr(entry.requirement, "secret", False)) or entry.requirement.kind == "api"})
+        fresh = {requirement_record(e)["id"] for e in (new.entries if new else [])}
+        removed = [r for rid, r in known.items() if rid not in fresh]
+        record = new.record if new else {}
+        out.append(Change(sid, (old or {}).get("arm", ""), record.get("arm", ""), record.get("verdict", ""), record.get("p"),
+                          record.get("evidence", ""), added, removed))
+    return out
+
+
+@dataclass
+class Result:
+    """What ``update`` did: the changes it applied, the ones it left locked because they add an unmet requirement, and the lock."""
+    moved: List[Change]
+    blocked: List[Change]
+    data: Dict[str, Any]
+
+
+def update(assembler: Assembler, path: Any = DEFAULT_FILE, config: Optional[AssemblyConfig] = None, solutions: Sequence[str] = (),
+           safe: Optional[bool] = None, environ: Optional[Mapping[str, str]] = None) -> Result:
+    """Move the lock to the latest selections (every solution, or ``solutions``). ``safe=True`` moves only the solutions whose new
+    closure adds no unmet requirement and leaves the rest locked (they are in ``blocked`` with their remedies); ``safe=None`` follows
+    the lock file's ``"update"`` policy (``"latest"`` when it has none)."""
+    data = read(path)
+    changes = diff(assembler, path, config, solutions, environ)
+    policy_safe = data.get("update") == "safe" if safe is None else safe
+    moved = [c for c in changes if c.safe or not policy_safe]
+    blocked = [c for c in changes if c not in moved]
+    if moved:
+        now = latest(assembler, config, [c.solution for c in moved if c.new_arm])
+        table = dict(data["solutions"])
+        for change in moved:
+            if change.new_arm:
+                table[change.solution] = now[change.solution].record
+            else:
+                table.pop(change.solution, None)
+        data = {**data, "solutions": dict(sorted(table.items())), "packages": package_versions(assembler)}
+        dump(path, data)
+    return Result(moved, blocked, data)
+
+
+# the plan an AI agent acts on
+
+def command(base: str, package: str, file: str, solution: str = "") -> str:
+    """An ``esoi lock`` command line that names the same package and lock file as the caller."""
+    return " ".join(x for x in (base, f"--package {package}" if package else "", f"--file {file}" if file != DEFAULT_FILE else "",
+                                f"--solution {solution}" if solution else "") if x)
+
+
+def steps_for(change: Change, package: str, file: str) -> List[Dict[str, Any]]:
+    """The ordered remedy steps for one update: install what is missing, start services, set variables (asking a person for a key),
+    apply the update, then verify."""
+    unmet = change.unmet
+    steps: List[Dict[str, Any]] = []
+    if any(a["kind"] == "python" for a in unmet):
+        install = "esoi install" + (f" --package {package}" if package else "") + f" --solution {change.solution} --yes"
+        steps.append({"action": "install-packages", "command": install, "human": False,
+                      "detail": "; ".join(a["remedy"] for a in unmet if a["kind"] == "python" and a["remedy"])})
+    for a in unmet:
+        if a["kind"] == "binary":
+            steps.append({"action": "install-binary", "command": None, "human": False, "detail": a["remedy"] or a["label"]})
+    for a in unmet:
+        if a["kind"] == "service":
+            steps.append({"action": "start-service", "command": None, "human": False, "detail": a["remedy"] or a["label"]})
+    for a in unmet:
+        if a["kind"] in ("env", "api"):
+            steps.append({"action": "set-environment", "command": None, "human": bool(a.get("secret")), "requirement": a["id"],
+                          "detail": a["remedy"] or a["label"],
+                          "note": "a key is a person's to obtain: ask them, using the signup link in the detail" if a.get("secret") else ""})
+    for a in unmet:
+        if a["kind"] not in ("python", "binary", "service", "env", "api"):
+            steps.append({"action": "resolve", "command": None, "human": False, "detail": a["remedy"] or a["label"]})
+    steps.append({"action": "apply", "command": command("esoi lock --update", package, file, change.solution), "human": False,
+                  "detail": f"move {change.solution} from {change.old_arm or 'unlocked'} to {change.new_arm or 'unselected'}"})
+    steps.append({"action": "verify", "command": "esoi requirements --check" + (f" --package {package}" if package else "") +
+                  f" --solution {change.solution}", "human": False, "detail": "then run the consumer's own tests"})
+    for number, step in enumerate(steps, 1):
+        step["order"] = number
+    return steps
+
+
+def status(assembler: Assembler, source: Any, config: Optional[AssemblyConfig] = None, solutions: Sequence[str] = (),
+           environ: Optional[Mapping[str, str]] = None, package: str = "", file: str = DEFAULT_FILE) -> Tuple[int, Dict[str, Any]]:
+    """``(exit code, plan)``. Exit 0: up to date. 3: updates are available and every one is safe. 4: updates are available and at
+    least one is blocked by an unmet requirement. The plan (schema ``esoi.lock.status/1``) lists every update, its requirement
+    changes, and for a blocked one the unmet requirements, the remedy steps in order and the single command that applies it."""
+    changes = diff(assembler, source, config, solutions, environ)
+    updates = []
+    for change in changes:
+        item = change.to_dict()
+        item["blocked"] = not change.safe
+        item["unmet"] = [{"id": a["id"], "label": a["label"], "kind": a["kind"], "remedy": a["remedy"]} for a in change.unmet]
+        item["steps"] = steps_for(change, package, file)
+        item["apply"] = command("esoi lock --update", package, file, change.solution)
+        updates.append(item)
+    blocked = any(u["blocked"] for u in updates)
+    code = EXIT_BLOCKED if blocked else EXIT_SAFE if updates else EXIT_CURRENT
+    state = "blocked" if blocked else "safe-updates" if updates else "up-to-date"
+    plan = {"schema": STATUS_SCHEMA, "lock": str(source) if not isinstance(source, Mapping) else "mapping", "state": state, "exit": code,
+            "updates": updates}
+    if any(not u["blocked"] for u in updates):
+        plan["apply_safe"] = command("esoi lock --update --safe", package, file)
+    return code, plan

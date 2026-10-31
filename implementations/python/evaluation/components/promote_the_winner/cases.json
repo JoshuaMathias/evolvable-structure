@@ -97,8 +97,8 @@
  {
   "id": "PRM-004",
   "kind": "decide",
-  "area": "a rival inside the noise of a sampled run promotes nothing",
-  "description": "a rival inside the noise of a sampled run promotes nothing",
+  "area": "a rival ahead on a sampled run, not yet significant, is promoted as the best guess by default",
+  "description": "a rival ahead on a sampled run, not yet significant, is promoted as the best guess by default",
   "args": {
    "rows": [
     {
@@ -123,9 +123,11 @@
   },
   "expect": {
    "eq": {
-    "status": "none"
+    "status": "promote",
+    "winner": "b"
    }
-  }
+  },
+  "note": "Changed 2026-10-31: the owner refined the rule so the highest result wins by default even without significance (9/10 against 8/10 is p well above 0.05); the old expectation of no promotion now needs require_significance, see PRM-017."
  },
  {
   "id": "PRM-005",
@@ -520,5 +522,44 @@
    }
   },
   "note": "Rows scaled from 5/10 vs 9/10 to 50/100 vs 90/100: the owner's rule needs a statistically significant gain (Fisher's exact, alpha 0.05) and 9/10 vs 5/10 is p=0.09, so the old rows no longer clear it."
+ },
+ {
+  "id": "PRM-017",
+  "kind": "decide",
+  "area": "a rival ahead but not significant promotes nothing when the solution requires significance",
+  "description": "a rival ahead but not significant promotes nothing when the solution requires significance",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 8,
+     "cases": 10,
+     "cases_sha": "x",
+     "model_calls": 3,
+     "model": "m"
+    },
+    {
+     "impl": "b",
+     "passed": 9,
+     "cases": 10,
+     "cases_sha": "x",
+     "model_calls": 3,
+     "model": "m"
+    }
+   ],
+   "selected": "a",
+   "promotion": "automatic",
+   "switching": {
+    "mini-solution": {
+     "require_significance": true
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "status": "none"
+   }
+  },
+  "note": "Added 2026-10-31: the stricter opt-in policy keeps the old behaviour for solutions with production end users."
  }
 ]

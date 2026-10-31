@@ -710,7 +710,7 @@
    "rule": "S10",
    "contains": "beat the selected"
   },
-  "note": "Results scaled from 2 cases to 40: under the owner's rule (Fisher's exact on aggregates, alpha 0.05) 1 of 2 vs 2 of 2 is not a significant gain, so a verdict of LOSS or a beaten-selected report needs 20/40 vs 40/40."
+  "note": "Results scaled from 2 cases to 40: under the owner's rule (Fisher's exact on aggregates, alpha 0.05) 1 of 2 vs 2 of 2 is not a significant gain, so a verdict of LOSS or a beaten-selected report needs 20/40 vs 40/40. Reviewed 2026-10-31: the rule is now highest result wins by default, significant or not, so these scaled rows still give the same outcome; the scaling is kept so the case also holds under require_significance."
  },
  {
   "id": "CTS-031",

@@ -1599,7 +1599,7 @@
  {
   "id": "RNK-044",
   "kind": "verdict",
-  "area": "a gain chance could explain keeps the selected arm and says how to settle it",
+  "area": "a lead chance could explain still wins by default and says it is a best guess",
   "args": {
    "rows": [
     {
@@ -1687,12 +1687,16 @@
   },
   "expect": {
    "eq": {
-    "verdict": "TIE"
+    "verdict": "LOSS"
    },
    "contains": [
-    "is not shown better than a (p=0.0625, 4 of 30 cases disagree); more cases would settle it"
+    "best guess, not yet significant",
+    "p=0.0625",
+    "4 of 30 cases disagree",
+    "more cases would settle it"
    ]
-  }
+  },
+  "note": "Changed 2026-10-31: the highest result wins by default; the verdict states the lead is not yet significant. The old TIE is kept as RNK-051 under require_significance."
  },
  {
   "id": "RNK-045",
@@ -1733,7 +1737,7 @@
  {
   "id": "RNK-046",
   "kind": "verdict",
-  "area": "a best guess does not switch when the solution forbids it (a balanced aggregate has no case counts to test)",
+  "area": "a best guess on a balanced aggregate switches by default (no case counts to test)",
   "args": {
    "rows": [
     {
@@ -1754,17 +1758,18 @@
     }
    ],
    "selected": "a",
-   "outcomes": {},
-   "best_guess_switch": false
+   "outcomes": {}
   },
   "expect": {
    "eq": {
-    "verdict": "TIE"
+    "verdict": "LOSS"
    },
    "contains": [
-    "switching on a best guess is off"
+    "best guess, not yet significant",
+    "allow a test"
    ]
-  }
+  },
+  "note": "Changed 2026-10-31: the highest point estimate wins by default; best_guess_switch=false is now require_significance (see RNK-052)."
  },
  {
   "id": "RNK-047",
@@ -1804,7 +1809,7 @@
  {
   "id": "RNK-048",
   "kind": "verdict",
-  "area": "a stricter alpha for a solution needs a stronger gain",
+  "area": "a stricter alpha alone only changes what is called significant: the higher arm still wins",
   "args": {
    "rows": [
     {
@@ -1893,9 +1898,13 @@
   },
   "expect": {
    "eq": {
-    "verdict": "TIE"
-   }
-  }
+    "verdict": "LOSS"
+   },
+   "contains": [
+    "best guess, not yet significant"
+   ]
+  },
+  "note": "Changed 2026-10-31: alpha is a stricter-policy key; without require_significance the higher arm wins and the verdict says its lead is not yet significant at that alpha."
  },
  {
   "id": "RNK-049",
@@ -1933,7 +1942,7 @@
  {
   "id": "RNK-050",
   "kind": "verdict",
-  "area": "a count gap Fisher's test cannot separate keeps the selected arm",
+  "area": "a count gap Fisher's test cannot separate still wins by default as a best guess",
   "args": {
    "rows": [
     {
@@ -1955,12 +1964,283 @@
   },
   "expect": {
    "eq": {
+    "verdict": "LOSS"
+   },
+   "contains": [
+    "best guess, not yet significant",
+    "more cases would settle it"
+   ]
+  },
+  "note": "Changed 2026-10-31: the highest result wins by default; the old TIE is kept as RNK-054 under require_significance."
+ },
+ {
+  "id": "RNK-051",
+  "kind": "verdict",
+  "area": "with require_significance a lead chance could explain keeps the selected arm and says how to settle it",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 17,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 21,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "outcomes": {
+    "a": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "b": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "require_significance": true
+  },
+  "expect": {
+   "eq": {
+    "verdict": "TIE"
+   },
+   "contains": [
+    "is not shown better than a (p=0.0625, 4 of 30 cases disagree); more cases would settle it"
+   ]
+  },
+  "note": "Added 2026-10-31: the opt-in stricter policy keeps the former significance-required behaviour."
+ },
+ {
+  "id": "RNK-052",
+  "kind": "verdict",
+  "area": "with require_significance a best guess does not switch (a balanced aggregate has no case counts to test)",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 15,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "balanced": 0.5
+    },
+    {
+     "impl": "b",
+     "passed": 20,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x",
+     "balanced": 0.8
+    }
+   ],
+   "selected": "a",
+   "outcomes": {},
+   "require_significance": true
+  },
+  "expect": {
+   "eq": {
+    "verdict": "TIE"
+   },
+   "contains": [
+    "requires significance"
+   ]
+  },
+  "note": "Added 2026-10-31: replaces best_guess_switch=false."
+ },
+ {
+  "id": "RNK-053",
+  "kind": "verdict",
+  "area": "a stricter alpha with require_significance needs a stronger gain",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 12,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 24,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "outcomes": {
+    "a": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "b": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "alpha": 0.0001,
+   "require_significance": true
+  },
+  "expect": {
+   "eq": {
+    "verdict": "TIE"
+   }
+  },
+  "note": "Added 2026-10-31: the former behaviour under the opt-in policy."
+ },
+ {
+  "id": "RNK-054",
+  "kind": "verdict",
+  "area": "a count gap Fisher's test cannot separate keeps the selected arm under require_significance",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 20,
+     "cases": 40,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 24,
+     "cases": 40,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "require_significance": true
+  },
+  "expect": {
+   "eq": {
     "verdict": "TIE"
    },
    "contains": [
     "not shown better",
     "more cases would settle it"
    ]
-  }
+  },
+  "note": "Added 2026-10-31."
  }
 ]

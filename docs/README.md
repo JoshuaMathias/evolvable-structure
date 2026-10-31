@@ -29,6 +29,8 @@ Steps for a task you already know you want to do.
 - [Declare what an implementation needs from its environment](how-to/declare-environment-needs.md): variables, API keys, packages, binaries, services; generate the `.env` template and install script.
 - [Install only what your solutions need](how-to/install-only-what-you-need.md): the closure, the plan, the resolution ladder, coherence in CI.
 - [Build on another package's defaults and say why you differ](how-to/hierarchical-defaults.md): a parent's defaults, one `explain`, reasons for each override, rule S35.
+- [Pin selections for production and update on your schedule](how-to/pin-selections-for-production.md): when pip pinning is enough, when a lock helps, `esoi lock` and its diff.
+- [Keep a consumer current with an AI agent](how-to/keep-a-consumer-current-with-an-ai-agent.md): run `esoi lock --status` on a schedule, resolve blockers, apply, verify.
 - [Keep a metric's value before and after a piece of work](how-to/measure-before-and-after.md): find the slice of the specification, read the metric twice, keep the rows.
 - [Measure an implementation per circumstance](how-to/measure-per-circumstance.md): circumstances, variants, slice rows, and how to read a slice verdict as a proposal.
 - [Generate the wiki from the docs](how-to/generate-the-wiki.md): check the four categories and publish a wiki that cannot drift.
@@ -70,6 +72,7 @@ Why it is built this way. Start with the idea, then the pieces.
 Facts to look up.
 
 - [Requirements: every kind, its fields, and the commands](reference/requirements.md): includes `esoi install`.
+- [The lock: file, API, command line and exit codes](reference/lock.md): `esoi lock`, `esoi.lock`, the status plan.
 - [Docs commands](reference/docs-commands.md): `esoi docs check` and `esoi docs wiki`.
 - [All templates](reference/templates/README.md): what each one is for.
 - [Problem](reference/templates/problem.md), [Ideal](reference/templates/ideal.md), [Solution](reference/templates/solution.md),

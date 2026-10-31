@@ -25,59 +25,75 @@ good from naive.
 A solution none of whose metrics has a command that records a run (`esoi run <component> --impl <name>`) is a specification: defined, with alternatives, but not measured
 yet. That is derived from the missing run and never declared. Its next step is a milestone, a value of its metric.
 
-## Who beats whom: a significant gain on the metric
+## Who beats whom: the highest result wins, and the verdict says how sure we are
 
 The authoritative metric decides, and it is responsible for everything that matters to the solution. If cost, speed or simplicity
-matter, they belong inside the metric (a balanced score with written weights is one way), not in a separate rule here. The
-library adds exactly one requirement: a switch needs a gain that is statistically significant.
+matter, they belong inside the metric (a balanced score with written weights is one way), not in a separate rule here.
+
+The library's rule is one sentence: **the arm with the highest result on the authoritative metric at the latest comparable stage
+wins and is selected, significant or not.** A new solution with no end users yet should still use the best thing it has, and so
+should a solution whose lead is measured at a cheap stage because the costly stages have not been reached. Exactly equal results
+keep the selected arm. What changes with the evidence is the wording of the verdict, never the choice:
+
+- **Significant lead.** "b is better than a (exact McNemar test, Holm-adjusted p=0.004, 12 of 40 cases disagree)".
+- **Best guess.** "best guess, not yet significant: b leads a (b 0.7 against a 0.55; exact McNemar test, Holm-adjusted p=0.0625,
+  4 of 30 cases disagree); more cases would settle it".
 
 When both arms have per-case results on the same cases (`esoi run --record` keeps them in `per_case.csv`), the leaderboard asks
 the question a scientist would:
 
 1. **Look only at the cases where the two arms differ.** A case both handle the same way says nothing about which is better.
-2. **Does the challenger win those cases more often than a fair coin would?** For pass or fail per case this is the exact paired
+2. **Does the leader win those cases more often than a fair coin would?** For pass or fail per case this is the exact paired
    McNemar test. For a metric that is a score per case (the balanced score), it is the exact sign test on the paired scores. The
    test is one-sided: the question is only "is the challenger better?". With several rivals, Holm's correction raises the
-   p-values so that looking at many rivals does not manufacture a winner. The default significance level is 0.05.
+   p-values so that looking at many rivals does not manufacture a significant lead. The default significance level is 0.05.
 3. **Only totals?** If per-case rows are missing but both arms have pass counts on the same cases and sample, Fisher's exact
    one-sided test on the two totals is used instead. It is weaker than the paired test (it cannot use the fact that both arms
    saw the same cases), so it needs a bigger gap, but it is still a test. The verdict names the test it used.
-4. **A significant gain switches. Anything else keeps the selected arm.** The verdict then says, for example, "b is not shown
-   better than a (p=0.0625, 4 of 30 cases disagree); more cases would settle it". The way forward is more cases (the next
-   cascade stage), never a margin.
+4. **No test possible?** A figure with no case counts (a balanced score recorded as one number, a public figure, one judgement) is
+   compared on the point estimate and labelled a best guess.
 
 Every pass rate is shown with its 95% Wilson interval, which shows how little a small sample says.
 
-### Best guess
+### Size the highest stage so a difference can reach significance
 
-A best guess is only for what cannot be tested: a figure with no case counts (a balanced score recorded as one number, a public
-figure, one judgement), or a choice with no selected arm yet. Then the point estimates of the metric are compared and the verdict
-says "best guess". A best guess may switch the selection only while the solution has never had per-case results (after that, it
-should be tested). Exactly equal estimates keep the selected arm. When nothing is selected yet, the best point estimate is chosen
-and labelled a best guess; if the top estimates are exactly equal, nothing is selected.
+A best guess turns into evidence by measuring more cases, never by a margin. So size the highest cascade stage so that a meaningful
+difference between arms could be significant there. The library invents no power threshold: the verdict's p and its count of
+disagreeing cases show when a stage cannot settle it. If a stage keeps returning "4 of 30 cases disagree", the stage is too small
+for the differences that matter, and the next stage should be larger. A solution whose highest stage always reads "best guess"
+is telling you its metric cannot yet separate its arms. For a new solution that is fine: it uses the leader meanwhile.
 
-### Stricter requirements, optional
+### Stricter policy for production, optional
 
-The library asks for nothing beyond significance, and a project or a solution may ask for more, never less. In `esoi.toml`, a
-`[switching]` table sets the project's requirements and a `[switching.<solution id>]` table sets one solution's, which overrides
-the project:
+A solution with production end users may not want to move on a best guess. In `esoi.toml`, a `[switching]` table sets the project's
+policy and a `[switching.<solution id>]` table sets one solution's, which overrides the project:
 
 ```
 [switching]
-alpha = 0.01            # a lower significance level
-min_cases = 30          # shared cases needed before a gain can switch
+alpha = 0.01                  # what counts as significant (a lower level than 0.05)
 [switching.my-solution]
-require_stage = "whole" # a cascade stage the winner must have a result at (checked when promoting)
-best_guess_switch = false
+require_significance = true   # the selected arm stays until a rival is significantly better
+min_cases = 30                # shared cases needed before a lead can count as significant
+require_stage = "whole"       # a cascade stage the winner must have a result at (checked when promoting)
 ```
 
-A value that would be looser than the library default is read as the default. The verdict names the requirement that kept the
-selected arm, for example "it is significant at alpha 0.05 but the solution requires alpha 0.01".
+`require_significance = true` is the opt-in: with it, a lead that is not significant is a TIE and the verdict says so ("b is not
+shown better than a (p=0.0625, 4 of 30 cases disagree); more cases would settle it"). `alpha` and `min_cases` set what counts as
+significant, so by themselves they only change the wording of a verdict; with `require_significance` they decide whether the
+selected arm stays. A value looser than the library default is read as the default. The verdict names the requirement that kept the
+selected arm, for example "it is significant at alpha 0.05 but the solution requires alpha 0.01". `best_guess_switch = false` from
+earlier versions is still read, as an alias of `require_significance = true`; it is deprecated.
+
+A slice verdict for one circumstance (see [measure per circumstance](../how-to/measure-per-circumstance.md)) always requires
+significance, because an add-on must show its marginal value over the baseline.
 
 `esoi select --promote` follows the same verdict. `esoi evidence-table --file README.md` writes a table of every arm (interval,
 cost per passing case and seconds for information, the verdict and its p-value) between two marker lines
 (`<!-- esoi:evidence-table:begin -->` and `<!-- esoi:evidence-table:end -->`), with what others measured beside it and never
 added to it. The mathematics is in `esoi/stats.py`, standard library only.
+
+Whether a consumer takes a new selection the day it ships is the consumer's choice, not the library's: see
+[pin selections for production and update on your schedule](../how-to/pin-selections-for-production.md).
 
 ## Verdicts
 
@@ -85,9 +101,9 @@ For a selected implementation, comparing it with its rivals on the same cases gi
 
 | Verdict | Meaning |
 |---|---|
-| WIN | It is shown (or, as a best guess, estimated) better than every rival |
-| TIE | No rival is shown better; the selection stays, and the verdict says what would settle it |
-| LOSS | A rival is significantly better (or, as an allowed best guess, estimated better); adopt it or write down why not |
+| WIN | It has the highest result; the verdict says whether the lead is significant or a best guess |
+| TIE | Exactly equal to a rival, or the policy requires significance and no lead is significant; the selection stays, and the verdict says what would settle it |
+| LOSS | A rival has a higher result (significant, or a best guess); adopt it or write down why not |
 | UNMEASURED | No rival was measured on the same cases |
 
 ## Adopting the winner

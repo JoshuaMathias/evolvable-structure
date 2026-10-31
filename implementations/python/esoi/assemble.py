@@ -33,7 +33,8 @@ Under an Assembler the records come from one place: the folder ``records`` names
 for in a parent folder), else the snapshot beside the package. The deployment table, the selection table of an
 ``esoi.toml``, ``override()`` and the process environment are not consulted; ``sys.path`` is not changed; a load error is raised.
 The cascade is: explicit name, the consumer's selections, ``AssemblyConfig.selection_environ`` (the only environment
-``esoi`` is given, and only the variable of this scope and solution), then the package default.
+``esoi`` is given, and only the variable of this scope and solution), ``AssemblyConfig.lock`` (a lock file or mapping written by
+``esoi lock``, see ``esoi.lock``; no lock means the latest selections), then the package default.
 
 A package that builds on another gives ``Assembler(..., parent=other)``. The cascade then ends with the child's own default,
 then the parent's (then the parent's parent's), so the child states only what differs and every solution of the parent is
@@ -72,7 +73,7 @@ from .fields import parse_tags
 from .select import default_name
 from .tables import ids, read_csv, read_header, write_csv
 
-__all__ = ["Assembler", "Assembly", "AssemblyConfig", "AssemblyError", "CONSUMER_PROVIDED", "NAME_PATTERN", "check_name",
+__all__ = ["Assembler", "Assembly", "AssemblyConfig", "AssemblyError", "LockError", "CONSUMER_PROVIDED", "NAME_PATTERN", "check_name",
            "cycle_of", "problems"]
 
 NAME_PATTERN = "^[a-z0-9][a-z0-9_-]*$"
@@ -83,6 +84,11 @@ log = logging.getLogger("esoi.assemble")
 
 class AssemblyError(ValueError):
     """An assembly error. The message names the solution id, scope, layer, the available names and a remedy."""
+
+
+class LockError(AssemblyError):
+    """A lock that cannot be used: unreadable, of another schema, or naming an arm that no longer exists. The message names the
+    solution, the locked arm, the lock and the remedy (``esoi lock --update --solution <id>``)."""
 
 
 def check_name(name: Any, what: str = "name") -> str:
@@ -110,6 +116,9 @@ class AssemblyConfig:
     declares ``ENVIRON = {option: variable name or tuple of names}`` has those options filled from it, unless ``options`` gives
     them; ``ENVIRON_REQUIRED`` names the declared options without which it cannot be built (a tuple entry: any one of them) (it then stays pending, naming the
     variables). Only variable names appear in reasons and ``pending``, never values.
+    ``lock`` is a path to an ``esoi.lock.json`` or the mapping it holds (``esoi.lock``): it names the arm to keep per solution
+    and sits between ``selection_environ`` and the package defaults, so a consumer who locked is not moved by a new release
+    until the lock is updated. Leave it ``None`` to follow the latest selections (the default).
     ``reasons`` is ``{solution_id: [record id or "unconfirmed: text", ...]}`` for the ``selections`` of the same solution: why
     it differs from a parent's default (shown by ``explain``, recorded in the ``Choice``).
     """
@@ -121,6 +130,7 @@ class AssemblyConfig:
     reasons: Mapping[str, Sequence[str]] = field(default_factory=dict)
     circumstances: Mapping[str, Any] = field(default_factory=dict)
     consumer_environ: Mapping[str, str] = field(default_factory=dict)
+    lock: Any = None
 
 
 ENVIRON_ATTRIBUTE = "ENVIRON"                    # on an arm: {option name: variable name, or a tuple of variable names}
@@ -328,6 +338,7 @@ class Packaged:
     modules: Mapping[Tuple[str, str], str]
     source: str
     reasons: Mapping[str, Tuple[str, ...]] = field(default_factory=dict)   # from overrides.csv: why a default differs from a parent's
+    evidence: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)   # {solution_id: {verdict, detail, p}}: why the default was chosen
 
 
 @dataclass(frozen=True)
@@ -408,10 +419,11 @@ class Assembler:
             data = json.loads(path.read_text(encoding="utf-8"))
             defaults = {sid: runtime.key(entry.get("default", "")) for sid, entry in data.items() if entry.get("default")}
             modules = {(sid, runtime.key(n)): str(m) for sid, entry in data.items() for n, m in entry.get("modules", {}).items()}
+            evidence = {sid: entry["evidence"] for sid, entry in data.items() if isinstance(entry.get("evidence"), dict)}
         except (OSError, ValueError, AttributeError) as error:
             raise AssemblyError(f"the snapshot {path} cannot be read ({error}); remedy: regenerate it with esoi select --snapshot")\
                 from error
-        return Packaged(defaults, modules, "the packaged snapshot")
+        return Packaged(defaults, modules, "the packaged snapshot", evidence=evidence)
 
     def read_records(self, root: Path) -> Packaged:
         """The records of the folder ``root`` (its ``esoi.toml`` directly: no search upward, no selection table run)."""
@@ -432,7 +444,12 @@ class Assembler:
                     modules[(sid, runtime.key(name))] = runtime.module_for(project, where)
         except Exception as error:
             raise AssemblyError(f"the records in {root} cannot be loaded ({type(error).__name__}: {error})") from error
-        return Packaged(defaults, modules, "the records", hierarchy.read_overrides(cfg))
+        try:
+            from . import lock as lock_module
+            evidence = lock_module.records_evidence(cfg, loaded)
+        except Exception:
+            evidence = {}   # no results to judge by: the lock then records the default without a verdict
+        return Packaged(defaults, modules, "the records", hierarchy.read_overrides(cfg), evidence)
 
     def metric_order(self, solution_id: str, selected: str = "") -> Tuple[List[str], Optional[float], str]:
         """``(arm names best first, lead, note)`` for a seat, from the scope's own leaderboard when it has records and results:
@@ -466,7 +483,7 @@ class Assembler:
             found = leaderboard.decisions({by_key[selected]: results[by_key[selected]], **rivals}, by_key[selected], cfg.evaluation,
                                           None, leaderboard.per_case_rows(cfg))
             runner_up = next((d for d in found if runtime.key(d.rival) == known[0 if known[0] != selected else 1]), None)
-            lead = 1.0 if runner_up is not None and runner_up.outcome == "incumbent" and runner_up.basis == "significance" else 0.0
+            lead = 1.0 if runner_up is not None and runner_up.outcome == "incumbent" and runner_up.significant else 0.0
         return best_first, lead, f"{solution_id}: arms ranked by the leaderboard in {cfg.results}"
 
     def owned(self, target: Any) -> bool:
@@ -580,7 +597,7 @@ class Assembler:
 
     def layers(self, solution_id: str, name: Optional[str], cfg: AssemblyConfig) -> hierarchy.Explanation:
         """Every layer that names an arm for the solution, highest priority first: explicit name, consumer selections,
-        selection environ, this scope's default, then each parent's default. A name that is not listed raises; a conditional
+        selection environ, the lock, this scope's default, then each parent's default. A name that is not listed raises; a conditional
         entry whose condition does not hold stays in the list, marked skipped."""
         available = self.names(solution_id)
         variable = runtime.env_name(solution_id, self.scope)
@@ -605,6 +622,16 @@ class Assembler:
                                         f"under a name you own with register()")
                 found.append(hierarchy.Layer(layer, base, source, kind, "", ",".join(f"{k}={v}" for k, v in sorted(conditions.items())),
                                              why, hierarchy.met(conditions, cfg.circumstances)))
+        if cfg.lock is not None:
+            from . import lock as lock_module
+            locked = lock_module.locked_arm(self, cfg.lock, solution_id)
+            if locked:
+                arm, where = locked
+                if arm not in available:
+                    raise LockError(f"the lock {where} names {arm!r} for {solution_id!r}, which scope {self.scope!r} no longer lists; "
+                                    f"available: {', '.join(available) or 'none'}; remedy: esoi lock --update --solution {solution_id} "
+                                    f"(moves the lock to the latest selection), or install the release that still has {arm!r}")
+                found.append(hierarchy.Layer("lock", arm, where, "lock"))
         for one in self.chain():
             packaged = one.packaged()
             default = packaged.defaults.get(solution_id, "")
@@ -651,7 +678,7 @@ class Assembler:
         picked = self.pick(solution_id, name, config or AssemblyConfig())
         if picked is None:
             raise AssemblyError(f"{solution_id!r} in scope {self.scope!r}: no layer names an implementation (explicit name, consumer "
-                                f"selections, selection environ, package default); available: {', '.join(self.names(solution_id)) or 'none'}; "
+                                f"selections, selection environ, lock, package default); available: {', '.join(self.names(solution_id)) or 'none'}; "
                                 f"remedy: name one, or provide your own object")
         return picked
 

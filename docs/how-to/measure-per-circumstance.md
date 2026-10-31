@@ -67,12 +67,12 @@ print([row for row in rows if row[0] == "alt@cut=5"])
 # [('alt@cut=5', 'full', '3/8'), ('alt@cut=5', 'slice:big', '3/3'), ('alt@cut=5', 'slice:small', '0/5')]
 ```
 
-On the full set `live` (5/8) is not shown different from `alt@cut=5` (3/8), and the slice rows stay out of that verdict (so does a run of named cases
+On the full set `live` (5/8) is ahead of `alt@cut=5` (3/8), a best guess that is not yet significant, and the slice rows stay out of that verdict (so does a run of named cases
 recorded with `--only`; an arm recorded only on named cases is listed as `not comparable: named cases only`, never skipped).
 
 ## Reading a slice verdict
 
-`leaderboard.slice_verdicts` judges one arm against the others inside each circumstance, with the same rules as the board.
+`leaderboard.slice_verdicts` judges one arm against the others inside each circumstance, with the board's tests but always with `require_significance`: an add-on has to show its marginal value, so a mere lead in a slice never beats the baseline.
 
 ```python
 from esoi import leaderboard

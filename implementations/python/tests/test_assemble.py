@@ -665,7 +665,7 @@ def test_r13_the_public_api_is_explicit():
     namespace = {}
     exec("from esoi.assemble import *", namespace)
     exported = {name for name in namespace if name != "__builtins__"}
-    assert exported == set(assemble.__all__) == {"Assembler", "Assembly", "AssemblyConfig", "AssemblyError", "CONSUMER_PROVIDED",
+    assert exported == set(assemble.__all__) == {"Assembler", "Assembly", "AssemblyConfig", "AssemblyError", "LockError", "CONSUMER_PROVIDED",
                                                   "NAME_PATTERN", "check_name", "cycle_of", "problems"}
 
 

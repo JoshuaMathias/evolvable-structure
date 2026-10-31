@@ -26,17 +26,20 @@ Verdicts: WIN (it is shown, or guessed, better than every rival), TIE (no rival 
 LOSS (a rival should replace it), UNMEASURED (no rival was compared).
 
 The rule is pragmatic and statistical. The authoritative metric is the pass rate, or the balanced score when the component sets
-``[balance.<component>]`` (so cost and speed count only through the metric, with its own weights). A rival replaces the selected
-arm when its improvement on shared cases is statistically significant: a one-sided exact paired test (McNemar for pass or fail
-per case, an exact sign test on the paired per-case balanced scores), Holm-adjusted across the rivals, at ``alpha`` 0.05. When it
-is not significant the selected arm stays and the verdict says "not shown better (p=..., k of n cases disagree); more cases would
-settle it": the way forward is more cases (the next cascade stage), never a margin. Without per-case rows, aggregate pass counts on the same cases and sample get Fisher's exact one-sided test. Where no test is
-possible (a balanced aggregate, a figure with no case count, one judgement) the point estimates are compared and the result is
-labelled a "best guess"; it switches only if the solution allows it, and exactly equal estimates keep the selected arm. The library specifies nothing else: cost, speed and dependencies enter only through the authoritative metric, which is
-responsible for them. A project (``[switching]``) or a solution (``[switching.<solution id>]``, which overrides the project) may only
-make the rule stricter: a lower ``alpha``, ``min_cases`` shared cases, a cascade stage that must have been reached
-(``require_stage``), or ``best_guess_switch = false``; the verdict names the requirement that applied. Best-guess switching is on by
-default only while the component has never had per-case rows. An unmeasured selected arm leaves the best point estimate as a best guess.
+``[balance.<component>]`` (so cost and speed count only through the metric, with its own weights). By default the arm with the
+highest result on the authoritative metric at the latest comparable stage wins and is selected, significant or not: a new solution
+with no end users yet, or a lead at a cascade stage that is not the highest, should still use the best it has. The verdict states
+whether the lead is significant (a one-sided exact paired test: McNemar for pass or fail per case, an exact sign test on the paired
+per-case balanced scores, Holm-adjusted across the rivals, at ``alpha`` 0.05; with the test, p and the disagreeing cases named) or
+"best guess, not yet significant". Without per-case rows, aggregate pass counts on the same cases and sample get Fisher's exact
+one-sided test; where no test is possible (a balanced aggregate, a figure with no case count) the lead is a best guess on the point
+estimate. Exactly equal estimates keep the selected arm. The way to turn a best guess into evidence is more cases (size the highest
+cascade stage so a meaningful difference can reach significance), never a margin. The library specifies nothing else: cost, speed and
+dependencies enter only through the authoritative metric, which is responsible for them. A project (``[switching]``) or a solution
+(``[switching.<solution id>]``, which overrides the project) may opt into a stricter policy: ``require_significance = true`` (the
+selected arm stays until a rival is significantly better, for solutions with production end users), a lower ``alpha``, ``min_cases``
+shared cases, and a cascade stage that must have been reached (``require_stage``). ``best_guess_switch = false`` is a deprecated
+alias of ``require_significance = true``. The verdict names the requirement that applied.
 
 Functions that look at implementation files take ``eval_dir`` (the folder of component folders); without it they
 rank rows only.
@@ -142,11 +145,13 @@ def slice_verdicts(component: str, incumbent: str, slices: Dict[str, Dict[str, D
                    eval_dir: Optional[Path] = None) -> List[Tuple[str, str, str]]:
     """``(circumstance id, verdict label, detail)`` of ``incumbent`` in each circumstance the component has slice rows for
     (``slice_results``). A slice verdict is a PROPOSAL read by a person: nothing is selected by it. Name the incumbent the
-    marginal-value rule names (the no-add-on baseline arm, to which a tie goes), not the arm that is selected."""
+    marginal-value rule names (the no-add-on baseline arm, to which a tie goes), not the arm that is selected. An add-on must show
+    its marginal value, so a slice is judged with ``require_significance``."""
     out = []
     for cid, group in sorted(slices.get(component, {}).items()):
         history = {impl: [as_whole(r) for r in found] for impl, found in group.items()}
-        out.append((cid, *verdict({impl: found[-1] for impl, found in history.items()}, incumbent, eval_dir, history)))
+        out.append((cid, *verdict({impl: found[-1] for impl, found in history.items()}, incumbent, eval_dir, history,
+                                  policy=Policy(require_significance=True))))
     return out
 
 
@@ -349,42 +354,44 @@ def per_case_rows(config: Config, every: bool = False) -> List[Row]:
 
 @dataclass(frozen=True)
 class Policy:
-    """How one solution is judged. The library's rule is the default: a rival replaces the selected arm when it is significantly better
-    on the authoritative metric (one-sided paired test, ``alpha`` 0.05, Holm across rivals). A project or a solution may only make that
-    stricter: a lower ``alpha``, a minimum number of shared cases (``min_cases``), a cascade stage that must have been reached
-    (``require_stage``, applied when promoting), or no switching on a best guess (``best_guess_switch`` false). ``origin`` says which
-    level (``project`` or ``solution``) set each requirement, so a verdict can name it."""
+    """How one solution is judged. The default: a rival with a higher result on the authoritative metric replaces the selected arm,
+    and the verdict says whether that lead is significant (one-sided paired test, ``alpha`` 0.05, Holm across rivals) or a best guess.
+    A project or a solution may opt into a stricter policy: ``require_significance`` (the selected arm stays until a rival is
+    significantly better), a lower ``alpha``, a minimum number of shared cases (``min_cases``) and a cascade stage that must have been
+    reached (``require_stage``, applied when promoting). ``origin`` says which level (``project`` or ``solution``) set each
+    requirement, so a verdict can name it."""
     alpha: float = ALPHA
     min_cases: int = 0
     require_stage: str = ""
-    best_guess_switch: bool = True
+    require_significance: bool = False
     origin: Tuple[Tuple[str, str], ...] = ()
 
     def source(self, key: str) -> str:
         return dict(self.origin).get(key, "configuration")
 
 
-STRICTER_KEYS = ("alpha", "min_cases", "require_stage", "best_guess_switch")
+STRICTER_KEYS = ("alpha", "min_cases", "require_stage", "require_significance", "best_guess_switch")
 
 
-def policy_for(config: Config, solution_id: str, component: str, per_case: Optional[List[Row]]) -> Policy:
+def policy_for(config: Config, solution_id: str, component: str = "", per_case: Optional[List[Row]] = None) -> Policy:
     """The solution's policy from ``[switching]`` (the project) and ``[switching.<solution id>]`` (the solution, which overrides the
-    project) in the configuration. Only stricter requirements count: an ``alpha`` above 0.05 is read as 0.05, a negative ``min_cases``
-    as none, and ``best_guess_switch = true`` cannot loosen the default, which is on only while the component has never had per-case
-    rows."""
+    project) in the configuration. Only stricter requirements count: an ``alpha`` above 0.05 is read as 0.05 and a negative
+    ``min_cases`` as none. ``best_guess_switch = false`` is a deprecated alias of ``require_significance = true``; ``true`` changes
+    nothing. ``component`` and ``per_case`` are accepted for older callers and unused."""
     table = getattr(config, "switching", {}) or {}
     project = {k: v for k, v in table.items() if k in STRICTER_KEYS}
     solution = table.get(solution_id, {}) if isinstance(table.get(solution_id), dict) else {}
     chosen, origin = {}, []
     for level, found in (("project", project), ("solution", solution)):
         for key, value in found.items():
+            if key == "best_guess_switch":
+                key, value = "require_significance", not bool(value)
             if key in STRICTER_KEYS:
                 chosen[key] = value
                 origin.append((key, level))
-    has_cases = any(r.get("component") == component for r in per_case or [])
     return Policy(alpha=min(float(chosen.get("alpha", ALPHA)), ALPHA), min_cases=max(int(chosen.get("min_cases", 0)), 0),
                   require_stage=str(chosen.get("require_stage", "")),
-                  best_guess_switch=bool(chosen.get("best_guess_switch", True)) and not has_cases, origin=tuple(origin))
+                  require_significance=bool(chosen.get("require_significance", False)), origin=tuple(origin))
 
 
 def policies(config: Config, registry: Registry, per_case: Optional[List[Row]]) -> Dict[str, Policy]:
@@ -474,9 +481,10 @@ def best_guess(rows: Rows, eval_dir: Optional[Path] = None) -> Tuple[Optional[st
 
 @dataclass
 class Decision:
-    """How one rival stands against the selected arm. ``outcome``: ``rival`` (shown, or guessed, better), ``incumbent`` (the selected
-    arm is better) or ``tie`` (not shown better; the selected arm stays). ``basis`` is ``significance`` (a one-sided exact test on
-    shared cases) or ``best guess`` (point estimates only). ``switch`` says whether a ``rival`` outcome may replace the selected arm."""
+    """How one rival stands against the selected arm. ``outcome``: ``rival`` (higher on the metric), ``incumbent`` (the selected
+    arm is higher) or ``tie`` (exactly equal, or the policy requires significance and there is none; the selected arm stays).
+    ``basis`` is ``significance`` (a one-sided exact test on shared cases was possible) or ``best guess`` (point estimates only).
+    ``significant`` says whether the test passed. ``switch`` says whether a ``rival`` outcome replaces the selected arm."""
     rival: str
     outcome: str
     basis: str
@@ -487,6 +495,8 @@ class Decision:
     disagree: int = 0                  # cases where the two differ
     shared: int = 0
     switch: bool = False
+    significant: bool = False          # the lead (or deficit) passed the one-sided test at the policy's alpha
+    p_incumbent: Optional[float] = None   # Holm-adjusted one-sided p that the selected arm is better than this rival
 
     @property
     def rule(self) -> str:
@@ -526,12 +536,13 @@ def decisions(rows: Rows, selected: str, eval_dir: Optional[Path] = None, histor
               per_case: Optional[List[Row]] = None, policy: Optional[Policy] = None) -> List[Decision]:
     """One ``Decision`` per rival scored on the same cases as ``selected``, on the solution's authoritative metric.
 
-    The test is one-sided and exact, and a rival replaces the selected arm only when its Holm-adjusted p-value (across the rivals) is
-    below ``policy.alpha`` (default 0.05). With per-case rows for both arms the test is paired (McNemar for pass or fail per case, a
+    The test is one-sided and exact and says whether a lead is significant: its Holm-adjusted p-value (across the rivals) is below
+    ``policy.alpha`` (default 0.05). With per-case rows for both arms the test is paired (McNemar for pass or fail per case, a
     sign test on per-case balanced scores). With only aggregate pass counts on the same cases and sample it is Fisher's exact test on
     the 2 by 2 table of passed and failed cases. Otherwise (a balanced aggregate, a figure with no case count) the point estimates are
-    compared and labelled a best guess, which replaces the selected arm only if ``policy.best_guess_switch`` allows; exactly equal
-    estimates keep the selected arm. Not significant: the selected arm stays and the detail says so."""
+    compared and labelled a best guess. A higher rival replaces the selected arm by default, its text saying whether the lead is
+    significant or "best guess, not yet significant"; with ``policy.require_significance`` only a significant lead replaces it.
+    Exactly equal estimates keep the selected arm."""
     policy = policy or Policy()
     pairs = rival_pairs(rows, selected, eval_dir, history)[0]
     tested = []   # (own, rival, p rival better, p selected better, cases that differ, shared, test name, how the evidence reads)
@@ -555,36 +566,51 @@ def decisions(rows: Rows, selected: str, eval_dir: Optional[Path] = None, histor
     out: List[Decision] = []
     for own, rival, raw, _, differ, shared, test, counted in tested:
         name = rival["impl"]
-        if raw is None:
-            mine, theirs = estimate(own), estimate(rival)
-            note = (f"best guess: {name} {pass_rate(rival):.3g} against {selected} {pass_rate(own):.3g} on the point estimate; "
-                    "no case counts or per-case rows allow a test")
+        mine, theirs = estimate(own), estimate(rival)
+        figures = f"{name} {pass_rate(rival):.3g} against {selected} {pass_rate(own):.3g}"
+        if raw is None:   # no test is possible: the point estimates decide, labelled a best guess
+            note = f"best guess, not yet significant: {figures} on the point estimate; no case counts or per-case rows allow a test"
             if theirs > mine:
-                if policy.best_guess_switch:
-                    out.append(Decision(name, "rival", "best guess", note, own, rival, switch=True))
+                if policy.require_significance:
+                    out.append(Decision(name, "rival", "best guess", note + f"; the {policy.source('require_significance')} requires significance, so {selected} stays", own, rival))
                 else:
-                    out.append(Decision(name, "rival", "best guess", note + f"; switching on a best guess is off, so {selected} stays", own, rival))
+                    out.append(Decision(name, "rival", "best guess", note, own, rival, switch=True))
             elif mine > theirs:
                 out.append(Decision(name, "incumbent", "best guess", note, own, rival))
             else:
                 out.append(Decision(name, "tie", "best guess", note + f"; exactly equal, so {selected} stays", own, rival))
             continue
         p, q = next(better), next(worse)
-        keep = f"{name} is not shown better than {selected} (p={p:.3g}, {counted}); more cases would settle it"
         args = (own, rival, p, differ, shared)
-        if shared < policy.min_cases:
-            out.append(Decision(name, "tie", "significance", f"{keep}: the {policy.source('min_cases')} requires at least {policy.min_cases} "
-                                f"shared cases and there are {shared}", *args))
-        elif p < policy.alpha:
+        mark = len(out)
+        enough = shared >= policy.min_cases
+        if theirs > mine and p < policy.alpha and enough:
             out.append(Decision(name, "rival", "significance", f"{name} is better than {selected} ({test}, Holm-adjusted p={p:.3g}, {counted})",
-                                *args, switch=True))
-        elif p < ALPHA:
-            out.append(Decision(name, "tie", "significance", f"{keep}: it is significant at alpha {ALPHA:g} but the "
-                                f"{policy.source('alpha')} requires alpha {policy.alpha:g}", *args))
+                                *args, switch=True, significant=True))
+        elif theirs > mine:
+            lead = f"{name} leads {selected} ({figures}; {test}, Holm-adjusted p={p:.3g}, {counted})"
+            if not policy.require_significance:
+                why = f"; {policy.source('min_cases')} asks for {policy.min_cases} shared cases and there are {shared}" if not enough else ""
+                out.append(Decision(name, "rival", "significance", f"best guess, not yet significant: {lead}; more cases would settle it{why}",
+                                    *args, switch=True))
+            else:
+                if not enough:
+                    reason = f"the {policy.source('min_cases')} requires at least {policy.min_cases} shared cases and there are {shared}"
+                elif p < ALPHA:
+                    reason = f"it is significant at alpha {ALPHA:g} but the {policy.source('alpha')} requires alpha {policy.alpha:g}"
+                else:
+                    reason = f"the {policy.source('require_significance')} requires a significant lead"
+                out.append(Decision(name, "tie", "significance", f"{name} is not shown better than {selected} (p={p:.3g}, {counted}); more cases "
+                                    f"would settle it: {reason}, so {selected} stays", *args))
         elif q < policy.alpha:
-            out.append(Decision(name, "incumbent", "significance", f"{selected} is better than {name} ({test}, Holm-adjusted p={q:.3g}, {counted})", *args))
+            out.append(Decision(name, "incumbent", "significance", f"{selected} is better than {name} ({test}, Holm-adjusted p={q:.3g}, {counted})",
+                                *args, significant=True))
+        elif mine > theirs:
+            out.append(Decision(name, "incumbent", "significance", f"{selected} leads {name} ({figures}; best guess, not yet significant, {test}, "
+                                f"Holm-adjusted p={q:.3g}, {counted})", *args))
         else:
-            out.append(Decision(name, "tie", "significance", f"{keep} ({test})", *args))
+            out.append(Decision(name, "tie", "significance", f"{name} is exactly equal to {selected} on the metric ({figures}), so {selected} stays", *args))
+        out[mark].p_incumbent = q
     return out
 
 

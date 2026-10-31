@@ -514,10 +514,18 @@ def load_declared(config: Any, solution_id: str) -> Dict[str, Any]:
 
 def snapshot(config: Any) -> Dict[str, Any]:
     """``{solution_id: {"default": name, "modules": {name: dotted module}}}`` from the records, for a package that ships
-    without them (``esoi select --snapshot``)."""
+    without them (``esoi select --snapshot``). When the results log can judge the solution, its entry also carries
+    ``evidence`` (``verdict``, ``detail``, ``p``), which ``esoi lock`` records beside the arm it locks."""
     project = load_project(config.root)
     out: Dict[str, Any] = {}
     for sid, name in sorted(project.paths if project else {}):
         entry = out.setdefault(sid, {"default": project.defaults.get(sid, ""), "modules": {}})
         entry["modules"][name] = module_for(project, project.paths[(sid, name)])
+    try:
+        from . import lock as lock_module
+        for sid, found in lock_module.records_evidence(config).items():
+            if sid in out:
+                out[sid]["evidence"] = found
+    except Exception:
+        pass   # a snapshot without evidence is still a snapshot
     return out
