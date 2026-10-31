@@ -107,7 +107,7 @@ class AssemblyConfig:
     such entries): it then applies only when every ``key=value`` holds in ``circumstances``, the caller's own mapping.
     ``consumer_environ`` is a mapping the consumer hands over (usually its own process environment, passed explicitly): an arm that
     declares ``ENVIRON = {option: variable name or tuple of names}`` has those options filled from it, unless ``options`` gives
-    them; ``ENVIRON_REQUIRED`` names the declared options without which it cannot be built (it then stays pending, naming the
+    them; ``ENVIRON_REQUIRED`` names the declared options without which it cannot be built (a tuple entry: any one of them) (it then stays pending, naming the
     variables). Only variable names appear in reasons and ``pending``, never values.
     ``reasons`` is ``{solution_id: [record id or "unconfirmed: text", ...]}`` for the ``selections`` of the same solution: why
     it differs from a parent's default (shown by ``explain``, recorded in the ``Choice``).
@@ -142,11 +142,18 @@ def environ_fill(target: Any, options: Mapping[str, Any], environ: Mapping[str, 
             if option not in options and any(str(environ.get(v) or "").strip() for v in names)}
 
 
-def environ_lacking(target: Any, options: Mapping[str, Any], environ: Mapping[str, str]) -> Dict[str, Tuple[str, ...]]:
-    """The required declared options that neither ``options`` nor the passed mapping supplies, with the variable names to set."""
+def environ_lacking(target: Any, options: Mapping[str, Any], environ: Mapping[str, str]) -> Dict[Tuple[str, ...], Tuple[str, ...]]:
+    """The required declared options that neither ``options`` nor the passed mapping supplies, with the variable names to set.
+    An entry of ``ENVIRON_REQUIRED`` is an option name, or a tuple of option names of which any one suffices; the key of the
+    result is that tuple of option names."""
     declared, filled = environ_declared(target), environ_fill(target, options, environ)
-    return {option: declared[option] for option in getattr(target, ENVIRON_REQUIRED_ATTRIBUTE, ())
-            if option in declared and option not in options and option not in filled}
+    out: Dict[Tuple[str, ...], Tuple[str, ...]] = {}
+    for entry in getattr(target, ENVIRON_REQUIRED_ATTRIBUTE, ()):
+        group = (entry,) if isinstance(entry, str) else tuple(entry)
+        if any(option in options or option in filled for option in group):
+            continue
+        out[group] = tuple(dict.fromkeys(v for option in group for v in declared.get(option, ())))
+    return out
 
 
 def builder_of(target: Any) -> Any:
@@ -771,8 +778,8 @@ class Assembler:
                     lacking = environ_lacking(target, config.options.get(sid, {}), config.consumer_environ)
                     unmet = [need for need in needs.values() if not check(need)]
                     if lacking:
-                        found[sid] = (f"{sid} ({picked.name}): set " + "; ".join(f"{' or '.join(names)} (option {option!r})"
-                                      for option, names in lacking.items()) + f" in consumer_environ=, or pass options={{{sid!r}: {{...}}}}")
+                        found[sid] = (f"{sid} ({picked.name}): set " + "; ".join(f"{' or '.join(names)} (option {' or '.join(repr(o) for o in group)})"
+                                      for group, names in lacking.items()) + f" in the environ mapping you pass, or pass options={{{sid!r}: {{...}}}}")
                     elif missing:
                         found[sid] = f"{sid} ({picked.name}): pass options={{{sid!r}: {{{', '.join(repr(m) + ': ...' for m in missing)}}}}}"
                     elif unmet:

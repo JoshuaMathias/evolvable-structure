@@ -750,6 +750,14 @@ def keyed(secret_default=None):
                 "region": "REGION_NAME"}, "ENVIRON_REQUIRED": ("token",)})
 
 
+def either():
+    """An arm that needs a token or an endpoint, either one."""
+    def init(self, token=None, url=None):
+        self.token, self.url = token, url
+    return type("Either", (), {"__init__": init, "find": lambda self, key: key, "ENVIRON": {"token": "T_NAME", "url": "U_NAME"},
+                "ENVIRON_REQUIRED": (("token", "url"),)})
+
+
 def test_environ_fills_declared_options_and_explicit_options_win(toy):
     parts = toy[0]
     parts.register(INDEX, "keyed", keyed())
@@ -771,3 +779,12 @@ def test_a_required_option_missing_from_environ_stays_pending_naming_the_variabl
     assert system.pending[INDEX] == ("toy-index (keyed): set PRIMARY_TOKEN or BACKUP_TOKEN (option 'token') in consumer_environ=, "
                                      "or pass options={'toy-index': {...}}")
     assert INDEX not in system.solutions()
+
+
+def test_any_one_of_a_group_of_required_options_is_enough(toy):
+    parts = toy[0]
+    parts.register(INDEX, "either", either())
+    cfg = AssemblyConfig(selections={INDEX: "either"})
+    assert parts.assemble_defaults(cfg).pending[INDEX] == ("toy-index (either): set T_NAME or U_NAME (option 'token' or 'url') "
+                                                           "in the environ mapping you pass, or pass options={'toy-index': {...}}")
+    assert parts.assemble_defaults(AssemblyConfig(selections={INDEX: "either"}, consumer_environ={"U_NAME": "http://x"}))[INDEX].url == "http://x"
