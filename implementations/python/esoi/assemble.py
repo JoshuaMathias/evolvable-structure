@@ -204,8 +204,11 @@ class Assembly:
     """The built objects of one consumer, frozen. ``assembly[solution_id]`` is the object; ``reasons`` has one line per
     solution; ``choice`` and ``implementation`` return what was chosen and loaded when ``assemble`` ran."""
 
-    def __init__(self, assembler: "Assembler", config: AssemblyConfig, built: Mapping[str, Tuple[Any, str, Any, Any]]):
-        """``built`` is ``{solution_id: (object, reason line, Choice or None, implementation or None)}`` in build order."""
+    def __init__(self, assembler: "Assembler", config: AssemblyConfig, built: Mapping[str, Tuple[Any, str, Any, Any]],
+                 pending: Optional[Mapping[str, str]] = None):
+        """``built`` is ``{solution_id: (object, reason line, Choice or None, implementation or None)}`` in build order.
+        ``pending`` is ``{solution_id: one line saying what the consumer must pass}`` for a solution ``assemble_defaults`` skipped."""
+        self.pending = MappingProxyType(dict(pending or {}))
         self.assembler = assembler
         self.config = config
         self.objects = MappingProxyType({sid: item[0] for sid, item in built.items()})
@@ -592,6 +595,64 @@ class Assembler:
         """Every solution of the scope that some layer names an arm for. A layer that names a broken one raises."""
         self.prepare()
         return [sid for scope, sid in sorted(runtime.REGISTRY) if scope == self.scope and self.pick(sid, None, config) is not None]
+
+    def pending_needs(self, config: AssemblyConfig, provided: Mapping[str, Any]) -> Dict[str, str]:
+        """``{solution_id: one line}`` for each solution of the scope that cannot be built from defaults alone: no layer names an
+        arm, the arm cannot be loaded, it needs a constructor argument that is not a solution (pass it in ``options``), or it needs
+        a solution that is itself pending. A name a layer supplies that is unknown still raises: that is the caller's mistake."""
+        self.prepare()
+        found: Dict[str, str] = {}
+        state: Dict[str, bool] = {}
+
+        def check(sid: str) -> bool:
+            if sid in state:
+                return state[sid]
+            state[sid] = True   # a cycle is left for assemble to name
+            if sid in provided:
+                return True
+            picked = self.pick(sid, None, config)
+            if picked is None:
+                available = ", ".join(self.names(sid))
+                found[sid] = (f"{sid}: no selected arm; pass arms={{{sid!r}: <one of {available}>}}" if available
+                              else f"{sid}: no arm yet; pass provided={{{sid!r}: <your object>}}")
+            else:
+                try:
+                    target = self.load(sid, picked.name)
+                    needs = self.needs_of(target)
+                except Exception as error:
+                    found[sid] = f"{sid} ({picked.name}): cannot be loaded ({error}); install what it needs or pass provided={{{sid!r}: ...}}"
+                else:
+                    builder = builder_of(target)
+                    options = config.options.get(sid, {})
+                    missing = [name for name, par in (inspect.signature(builder).parameters.items() if builder is not None else [])
+                               if name != "self" and name not in needs and name not in options and par.default is par.empty
+                               and par.kind not in (par.VAR_POSITIONAL, par.VAR_KEYWORD)]
+                    unmet = [need for need in needs.values() if not check(need)]
+                    if missing:
+                        found[sid] = f"{sid} ({picked.name}): pass options={{{sid!r}: {{{', '.join(repr(m) + ': ...' for m in missing)}}}}}"
+                    elif unmet:
+                        found[sid] = f"{sid} ({picked.name}): needs {', '.join(unmet)}; see those lines"
+            state[sid] = sid not in found
+            return state[sid]
+
+        for scope, sid in sorted(runtime.REGISTRY):
+            if scope == self.scope:
+                check(sid)
+        return found
+
+    def assemble_defaults(self, config: Optional[AssemblyConfig] = None, provided: Optional[Mapping[str, Any]] = None) -> Assembly:
+        """Build every solution of the scope that its chosen arm (explicit name, selections, then the package default) can build
+        with what was passed, and report the rest in ``Assembly.pending`` instead of raising. With no arguments this is the
+        zero-configuration call; a consumer passes only what differs: ``names``/``selections`` for an arm, ``options`` for its
+        arguments, ``provided`` for objects it owns."""
+        cfg = config or AssemblyConfig()
+        given = dict(provided or {})
+        self.prepare()
+        pending = self.pending_needs(cfg, given)
+        wanted = tuple(sid for scope, sid in sorted(runtime.REGISTRY) if scope == self.scope and sid not in pending)
+        built = self.assemble(AssemblyConfig(wanted, cfg.names, cfg.selections, cfg.options, cfg.selection_environ), given)
+        return Assembly(built.assembler, built.config, {sid: (built.objects[sid], built.reason_by_solution[sid], built.choices.get(sid),
+                                                           built.implementations.get(sid)) for sid in built.objects}, pending)
 
     def assemble(self, config: Optional[AssemblyConfig] = None, provided: Optional[Mapping[str, Any]] = None) -> Assembly:
         """Build the solutions a consumer uses, in dependency order, once. A provided object wins for its solution; otherwise

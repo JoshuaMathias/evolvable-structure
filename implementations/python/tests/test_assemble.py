@@ -703,3 +703,38 @@ def test_r8_the_example_in_the_module_docstring_runs(tmp_path):
 
 def test_r8_every_python_block_of_the_guide_runs(tmp_path):
     assemble_fixture.run_guide(tmp_path)
+
+
+# defaults for everything, reported not raised
+
+def test_assemble_defaults_builds_what_it_can_and_reports_the_rest(toy):
+    parts, consumer = toy[:2]
+    system = parts.assemble_defaults()
+    assert system.solutions() == [STORE] and "layer: esoitoy default" in system.reason_by_solution[STORE]
+    assert system.pending[INDEX].startswith("toy-index: no arm yet; pass provided=")
+    assert system.pending[REPORT].startswith("toy-report: no arm yet")
+
+
+def test_assemble_defaults_names_the_options_and_needs_an_override_must_supply(toy):
+    parts, consumer = toy[:2]
+    parts.register(INDEX, "acme-index", consumer.StoreIndex)
+    parts.register(REPORT, "acme-report", consumer.IndexReport)
+    cfg = AssemblyConfig(selections={INDEX: "acme-index", REPORT: "acme-report"})
+    system = parts.assemble_defaults(cfg)
+    assert system.solutions() == [STORE, INDEX, REPORT] and INDEX not in system.pending and REPORT not in system.pending
+    parts.register(STORE, "acme-needs", consumer.ReportNeedsStore)
+    parts.register(INDEX, "acme-sized", type("Sized", (), {"__init__": lambda self, size: None, "find": lambda self, key: key}))
+    system = parts.assemble_defaults(AssemblyConfig(selections={INDEX: "acme-sized", REPORT: "acme-report"}))
+    assert system.pending[INDEX] == "toy-index (acme-sized): pass options={'toy-index': {'size': ...}}"
+    assert system.pending[REPORT] == "toy-report (acme-report): needs toy-index; see those lines"
+    assert system.solutions() == [STORE]
+    with pytest.raises(AssemblyError, match="unknown implementation"):
+        parts.assemble_defaults(AssemblyConfig(selections={STORE: "nope"}))
+
+
+def test_assemble_defaults_takes_provided_objects_and_options(toy):
+    parts, consumer = toy[:2]
+    parts.register(INDEX, "acme-index", consumer.StoreIndex)
+    mine = consumer.Mine()
+    system = parts.assemble_defaults(AssemblyConfig(selections={INDEX: "acme-index"}, options={INDEX: {"prefix": "p-"}}), {STORE: mine})
+    assert system[STORE] is mine and system[INDEX].prefix == "p-" and INDEX not in system.pending
