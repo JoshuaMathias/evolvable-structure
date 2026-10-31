@@ -126,6 +126,8 @@ def run(ctx: Context) -> List[str]:
                 bad.append(f"S16 {comp}/{impl}: latest results row has no cases_sha (re-run with --record, "
                            "or add a waiver saying why it cannot be re-run)")
 
+    per_case = leaderboard.per_case_rows(config)
+    counters = leaderboard.dependency_counters(config, ctx.registry)
     for r in ctx.solutions:
         arms = ctx.harness_arms(r.get("metric_command", ""))
         if not arms:
@@ -136,7 +138,7 @@ def run(ctx: Context) -> List[str]:
             if not ctx.waived("S10", f"{r['solution_id']}:unmeasured"):
                 bad.append(f"S10 {r['solution_id']}: selected {sel} has no row in the results log (run with --record)")
             continue
-        better = [x["impl"] for x in leaderboard.challengers(rows, sel, evaluation, ctx.history.get(comp))]
+        better = [x["impl"] for x in leaderboard.challengers(rows, sel, evaluation, ctx.history.get(comp), per_case, counters.get(comp))]
         if better and not ctx.waived("S10", f"{r['solution_id']}:{','.join(sorted(better))}"):
             bad.append(f"S10 {r['solution_id']}: {', '.join(better)} beat the selected {sel} in the results log; "
                        "adopt the winner or add a waiver naming the pending decision")

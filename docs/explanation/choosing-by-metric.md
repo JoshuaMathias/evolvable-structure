@@ -25,6 +25,28 @@ good from naive.
 A solution none of whose metrics has a command that records a run (`esoi run <component> --impl <name>`) is a specification: defined, with alternatives, but not measured
 yet. That is derived from the missing run and never declared. Its next step is a milestone, a value of its metric.
 
+## Who beats whom: the statistical rule
+
+A pass rate from a few dozen cases is a measurement with an error bar, so a gap between two arms can be luck. When both arms
+have per-case results on the same cases (`esoi run --record` keeps them in `per_case.csv`), the leaderboard asks the question
+a scientist would:
+
+1. **Look only at the cases where the two arms disagree.** A case both pass or both miss says nothing about which is better.
+2. **Does one arm win those cases more often than a fair coin would?** The exact paired McNemar test answers with a p-value.
+   A challenger beats the selected arm only when it passes more cases and p is below 0.05. With several rivals, Holm's
+   correction raises the p-values so that looking at many rivals does not manufacture a winner.
+3. **If neither leads, quality is a tie.** The tie goes to the arm whose cost per passing case is lower by more than 20%, then
+   to the arm with fewer dependencies (the solutions its implementation uses, plus a declared `extra_dependencies` count
+   where a project keeps that column). If that is not known, the selected arm stays and the output says so.
+4. **Fewer than 30 shared cases is early.** The result may set a default, and it is labelled early.
+
+Every pass rate is shown with its 95% Wilson interval, which stays honest for small counts. The output of `esoi leaderboard`
+names the rule that decided each verdict. Without per-case rows for both arms the older fixed pass margin and spend tolerance
+decide (and `noise.json` still applies), and the output says that too. `esoi select --promote` follows the same verdict.
+`esoi evidence-table --file README.md` writes a table of every arm, its interval, cost, seconds, verdict and p-value between two
+marker lines (`<!-- esoi:evidence-table:begin -->` and `<!-- esoi:evidence-table:end -->`), with what others measured beside
+it and never added to it. The mathematics is in `esoi/stats.py`, standard library only.
+
 ## Verdicts
 
 For a selected implementation, comparing it with its rivals on the same cases gives one of four verdicts.

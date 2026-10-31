@@ -34,6 +34,14 @@ a known cost of 0.0, is not a sampled run, and is compared on model calls: a cal
 calls figure only, never against dollars or tokens, so a known $0 baseline is not called cheaper than an arm whose
 cost is merely unknown.
 
+Two rules decide. When both arms have per-case rows on the same cases (``per_case.csv``, written by ``esoi run --record``),
+the statistical rule decides (``esoi.stats``): a challenger beats the selected arm only when it passes more cases and the
+exact paired McNemar test on the cases where the two disagree, Holm-adjusted across the rivals of the solution, gives
+p below 0.05. Otherwise quality is a tie, broken by cost per passing case lower by more than 20%, then by fewer
+dependencies (``uses_solution_ids`` and a declared ``extra_dependencies`` count); when that is not known the incumbent
+stays. Without per-case rows for both arms the older rule above (fixed pass margin and spend tolerance, ``noise.json``)
+decides. The detail of every verdict says which rule decided. A comparison on fewer than 30 shared cases is labelled early.
+
 Functions that look at implementation files take ``eval_dir`` (the folder of component folders); without it they
 rank rows only.
 """
@@ -43,12 +51,15 @@ import csv
 import hashlib
 import json
 import re
+from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
 
+from . import stats
 from .config import Config
 from .registry import Registry, first_arm, harness_arms
+from .tables import ids
 from .variants import base_of
 
 Row = Dict[str, str]
@@ -370,22 +381,201 @@ def stale_rivals(config: Config, component: str, rows: Rows, selected: str,
     return [(r["impl"], why) for _, r in pairs if (why := stale(config, component, r, True))]
 
 
+COST_LEAD = 0.20   # a cost per passing case lower by more than this share breaks a tie on quality
+
+Dependencies = Callable[[str], Optional[int]]
+
+
+PER_CASE_KEY = ("component", "impl", "cases_sha", "sample", "case_id")
+
+
+def per_case_rows(config: Config, every: bool = False) -> List[Row]:
+    """The per-case log (``esoi run --record`` writes it; empty when the project has none yet): the newest row of each (arm,
+    cases, sample, case) or, with ``every``, every row in file order. A repeated header line (two recorders creating the
+    file together) is not a row."""
+    path = config.root / config.per_case
+    if not path.is_file():
+        return []
+    with open(path, newline="", encoding="utf-8") as fh:
+        rows = [r for r in csv.DictReader(fh) if r.get("component") != "component"]
+    return rows if every else list({tuple(r.get(k) or "" for k in PER_CASE_KEY): r for r in rows}.values())
+
+
+def dependency_counter(registry: Registry, solution_id: str) -> Dependencies:
+    """``impl name -> number of dependencies`` for the implementations of a solution: the solutions it uses
+    (``uses_solution_ids``) plus a declared ``extra_dependencies`` count where the project keeps that column. ``None`` when the
+    implementation has no record, so the tie-break says it does not know instead of guessing."""
+    records = [r for r in registry.implementations if r.get("solution_id") == solution_id]
+
+    def count(impl: str) -> Optional[int]:
+        record = next((r for r in records if r.get("implementation_id", "").split(":", 1)[-1] == impl or r.get("name") == impl), None)
+        if record is None or "uses_solution_ids" not in record:
+            return None
+        try:
+            extra = int(float(record.get("extra_dependencies") or 0))
+        except ValueError:
+            return None
+        return len(ids(record.get("uses_solution_ids", ""))) + extra
+    return count
+
+
+def dependency_counters(config: Config, registry: Registry) -> Dict[str, Dependencies]:
+    """``{component: dependency counter}`` for every evaluated solution."""
+    out: Dict[str, Dependencies] = {}
+    for row in registry.solutions:
+        component, _ = first_arm(config, row.get("metric_command", ""))
+        if component:
+            out.setdefault(component, dependency_counter(registry, row["solution_id"]))
+    return out
+
+
+def case_outcomes(per_case: Optional[List[Row]], row: Row) -> Optional[Dict[str, bool]]:
+    """``{case id: passed}`` of the run a results row summarises, or ``None`` when the per-case log does not hold exactly that
+    run (no rows, another count, or another pass total: the log keeps the newest run of a sample, the row may be older)."""
+    if not per_case or unverified(row):
+        return None
+    sample = (row.get("sample") or "").strip()
+    found = {r["case_id"]: stats.passed(r.get("ok")) for r in per_case
+             if r.get("component") == row.get("component") and r.get("impl") == row.get("impl")
+             and r.get("cases_sha") == row.get("cases_sha") and (r.get("sample") or "").strip() == sample}
+    try:
+        total, passed = int(float(row.get("cases") or 0)), int(float(row.get("passed") or 0))
+    except ValueError:
+        return None
+    return found if found and len(found) == total and sum(found.values()) == passed else None
+
+
+def passes(row: Row) -> int:
+    try:
+        return int(float(row.get("passed") or 0))
+    except ValueError:
+        return 0
+
+
+def cost_per_passing(row: Row) -> Optional[Tuple[str, float]]:
+    """``(unit, amount)`` per passing case: dollars when the cost is recorded, else model calls; ``None`` with no passing case."""
+    if passes(row) <= 0:
+        return None
+    if cost_known(row):
+        return "usd", float(row["cost_usd"]) / passes(row)
+    calls = float(row.get("model_calls") or 0)
+    return ("calls", calls / passes(row)) if calls > 0 else None
+
+
+def much_cheaper_per_passing(row: Row, other: Row) -> bool:
+    """True when ``row`` costs more than ``COST_LEAD`` less per passing case than ``other``, in the same unit."""
+    mine, theirs = cost_per_passing(row), cost_per_passing(other)
+    return bool(mine and theirs and mine[0] == theirs[0] and theirs[1] > 0 and mine[1] < theirs[1] * (1 - COST_LEAD))
+
+
+@dataclass
+class Decision:
+    """How one rival stands against the selected arm. ``outcome``: ``rival`` (it beats the selected arm), ``incumbent`` (the
+    selected arm beats it) or ``tie`` (nothing separates them; the selected arm stays). ``rule`` names what decided."""
+    rival: str
+    outcome: str
+    rule: str
+    text: str
+    own: Row
+    other: Row
+    paired: Optional[stats.Paired] = None
+    adjusted: Optional[float] = None
+
+    @property
+    def early(self) -> bool:
+        shared = self.paired.cases if self.paired else int(float(self.own.get("cases") or 0))
+        return shared < stats.EARLY_BELOW
+
+
+def tie_break(selected: str, own: Row, rival_name: str, other: Row, dependencies: Optional[Dependencies]) -> Tuple[str, str, str]:
+    """``(outcome, rule, text)`` for two arms tied on quality: cost per passing case lower by more than 20%, then fewer
+    dependencies, else the selected arm stays."""
+    if much_cheaper_per_passing(other, own):
+        return "rival", "tie on quality, then cost per passing case", f"{rival_name} costs more than 20% less per passing case"
+    if much_cheaper_per_passing(own, other):
+        return "incumbent", "tie on quality, then cost per passing case", f"{selected} costs more than 20% less per passing case"
+    mine = dependencies(selected) if dependencies else None
+    theirs = dependencies(rival_name) if dependencies else None
+    if mine is None or theirs is None:
+        return "tie", "tie on quality, cost within 20%", ("dependency information is not available, so the selected arm stays")
+    if theirs < mine:
+        return "rival", "tie on quality, then fewer dependencies", f"{rival_name} has {theirs} dependencies, {selected} has {mine}"
+    if mine < theirs:
+        return "incumbent", "tie on quality, then fewer dependencies", f"{selected} has {mine} dependencies, {rival_name} has {theirs}"
+    return "tie", "tie on quality, cost and dependencies", f"cost is within 20% and both have {mine} dependencies, so the selected arm stays"
+
+
+def decisions(rows: Rows, selected: str, eval_dir: Optional[Path] = None, history: Optional[Dict[str, List[Row]]] = None,
+              per_case: Optional[List[Row]] = None, dependencies: Optional[Dependencies] = None) -> List[Decision]:
+    """One ``Decision`` per rival scored on the same cases as ``selected``. A rival with per-case rows for both arms is judged
+    by the paired exact test (Holm-adjusted across those rivals) and the tie-break; any other rival by the older pass margin
+    and spend tolerance."""
+    pairs = rival_pairs(rows, selected, eval_dir, history)[0]
+    prepared = []
+    for own, rival in pairs:
+        a, b = case_outcomes(per_case, own), case_outcomes(per_case, rival)
+        prepared.append((own, rival, stats.paired_counts(a, b) if a is not None and b is not None and a.keys() == b.keys() else None))
+    adjusted = iter(stats.holm([p.p_value for _, _, p in prepared if p is not None]))
+    out: List[Decision] = []
+    for own, rival, paired in prepared:
+        name = rival["impl"]
+        if paired is None:
+            if clearly_higher(rival, own, eval_dir) or (not clearly_higher(own, rival, eval_dir) and cheaper_without_passing_less(rival, own, eval_dir)):
+                out.append(Decision(name, "rival", "pass-rate margin", "decided by the fixed pass margin and spend tolerance", own, rival))
+            elif clearly_higher(own, rival, eval_dir) or cheaper_without_passing_less(own, rival, eval_dir):
+                out.append(Decision(name, "incumbent", "pass-rate margin", "decided by the fixed pass margin and spend tolerance", own, rival))
+            else:
+                out.append(Decision(name, "tie", "pass-rate margin", "inside the fixed pass margin and spend tolerance", own, rival))
+            continue
+        p = next(adjusted)
+        sentence = stats.describe(paired, selected, name, p if len(prepared) > 1 else None)
+        if p < stats.ALPHA and paired.only_a != paired.only_b:
+            winner = "incumbent" if paired.only_a > paired.only_b else "rival"
+            out.append(Decision(name, winner, "paired McNemar test", sentence, own, rival, paired, p))
+            continue
+        outcome, rule, why = tie_break(selected, own, name, rival, dependencies)
+        out.append(Decision(name, outcome, rule, f"{sentence} Quality is a tie: {why}.", own, rival, paired, p))
+    return out
+
+
 def challengers(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
-                history: Optional[Dict[str, List[Row]]] = None) -> List[Row]:
-    """Rival rows that beat the selected one on the same cases and sample: a pass rate higher by more than the margin,
-    or inside it at clearly lower spend without passing less. A rival on other cases is skipped, and an ablation or
-    validity arm is never a challenger."""
-    better = []
-    for cur, r in rival_pairs(rows, selected, eval_dir, history)[0]:
-        if clearly_higher(r, cur, eval_dir) or (not clearly_higher(cur, r, eval_dir)
-                                                 and cheaper_without_passing_less(r, cur, eval_dir)):
-            better.append(r)
-    return better
+                history: Optional[Dict[str, List[Row]]] = None, per_case: Optional[List[Row]] = None,
+                dependencies: Optional[Dependencies] = None) -> List[Row]:
+    """Rival rows that beat the selected one on the same cases and sample (see ``decisions`` for the rule). A rival on other
+    cases is skipped, and an ablation or validity arm is never a challenger."""
+    return [d.other for d in decisions(rows, selected, eval_dir, history, per_case, dependencies) if d.outcome == "rival"]
+
+
+def explain_decisions(found: List[Decision]) -> str:
+    """Each rival's deciding rule and reason in plain words, with an early label when a comparison has fewer than 30 shared cases."""
+    text = " ".join(f"[{d.rival}: {d.rule}] {d.text}" for d in found)
+    return text + (" Early result: fewer than 30 shared cases." if any(d.early and (d.paired is None) for d in found) else "")
 
 
 def verdict(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
-            history: Optional[Dict[str, List[Row]]] = None) -> Tuple[str, str]:
-    """How the selected implementation stands against the other measured ones, as ``(label, detail)``."""
+            history: Optional[Dict[str, List[Row]]] = None, per_case: Optional[List[Row]] = None,
+            dependencies: Optional[Dependencies] = None) -> Tuple[str, str]:
+    """How the selected implementation stands against the other measured ones, as ``(label, detail)``. The detail says which
+    rule decided: the paired test and tie-break where per-case rows exist for both arms, else the older margin."""
+    found = decisions(rows, selected, eval_dir, history, per_case, dependencies)
+    if not any(d.paired is not None for d in found):
+        label, detail = margin_verdict(rows, selected, eval_dir, history)
+        if label == "UNMEASURED":
+            return label, detail
+        return label, (f"{detail} (rule: fixed pass margin and spend tolerance, because per-case rows are missing for one or both arms"
+                       + ("; early result, fewer than 30 shared cases)" if any(d.early for d in found) else ")"))
+    if any(d.outcome == "rival" for d in found):
+        label, lead = "LOSS", "beaten by " + ", ".join(sorted(d.rival for d in found if d.outcome == "rival")) + ". "
+    elif all(d.outcome == "incumbent" for d in found):
+        label, lead = "WIN", ""
+    else:
+        label, lead = "TIE", "no rival beats it and the metric does not separate it from " + ", ".join(sorted(d.rival for d in found if d.outcome == "tie")) + ". "
+    return label, lead + explain_decisions(found)
+
+
+def margin_verdict(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
+                   history: Optional[Dict[str, List[Row]]] = None) -> Tuple[str, str]:
+    """The older verdict: a fixed pass margin and spend tolerance, used when per-case rows are missing."""
     if rows.get(selected) is None:
         return "UNMEASURED", "the selected implementation has no recorded row"
     pairs, unmatched = rival_pairs(rows, selected, eval_dir, history)
@@ -394,7 +584,7 @@ def verdict(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
             return "UNMEASURED", ("no rival was measured on the same cases and sample as the selected "
                                   f"implementation: {'; '.join(f'{i} {why}' for i, why in unmatched)}")
         return "UNMEASURED", "no rival implementation was measured on the same cases"
-    beaten_by = [r["impl"] for r in challengers(rows, selected, eval_dir, history)]
+    beaten_by = [r["impl"] for r in challengers(rows, selected, eval_dir, history)]  # no per-case rows here: the margin rule
     if beaten_by:
         return "LOSS", "beaten by " + ", ".join(sorted(beaten_by))
     tied = []
@@ -427,12 +617,15 @@ def verdict(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
 
 
 def solution_verdicts(config: Config, solutions: List[Row], results: Optional[Dict[str, Rows]] = None,
-                      history: Optional[Dict[str, Dict[str, List[Row]]]] = None) -> Dict[str, Dict[str, str]]:
+                      history: Optional[Dict[str, Dict[str, List[Row]]]] = None, registry: Optional[Registry] = None,
+                      per_case: Optional[List[Row]] = None) -> Dict[str, Dict[str, str]]:
     """{solution_id: {"verdict", "detail", "component", "selected_by"}} for every solution, judged on the
     first harness arm of its ``metric_command`` (the primary metric; later arms are listed on the board)."""
     if results is None:
         history = all_results(config.results_path)
         results = {comp: {impl: rows[-1] for impl, rows in impls.items()} for comp, impls in history.items()}
+    per_case = per_case_rows(config) if per_case is None else per_case
+    counters = dependency_counters(config, registry) if registry is not None else {}
     out = {}
     for row in solutions:
         comp, impl = first_arm(config, row.get("metric_command", ""))
@@ -440,7 +633,7 @@ def solution_verdicts(config: Config, solutions: List[Row], results: Optional[Di
             out[row["solution_id"]] = dict(verdict="UNMEASURED", detail="no harness metric", component="",
                                            selected_by=row.get("selected_by", ""))
             continue
-        label, detail = verdict(results.get(comp, {}), impl, config.evaluation, (history or {}).get(comp))
+        label, detail = verdict(results.get(comp, {}), impl, config.evaluation, (history or {}).get(comp), per_case, counters.get(comp))
         out[row["solution_id"]] = dict(verdict=label, detail=detail, component=comp,
                                        selected_by=row.get("selected_by", ""))
     return out
@@ -476,13 +669,15 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
     history = all_results(config.results_path)
     results = {comp: {impl: rows[-1] for impl, rows in impls.items()} for comp, impls in history.items()}
     selected = selected_impls(config, registry.solutions)
+    per_case = per_case_rows(config)
+    counters = dependency_counters(config, registry)
     flagged = 0
     apart = {c: rows for c, rows in results.items() if invariant_reason(c, config.evaluation)}
     for component, rows in sorted(results.items()):
         if component in apart:
             continue
         sel = selected.get(component)
-        label, detail = verdict(rows, sel, config.evaluation, history[component]) if sel else ("UNMEASURED", "no selected implementation")
+        label, detail = verdict(rows, sel, config.evaluation, history[component], per_case, counters.get(component)) if sel else ("UNMEASURED", "no selected implementation")
         say(f"{component} (selected: {sel or 'none recorded'}) {label}: {detail}")
         for line in format_rows(rows, sel, config.evaluation):
             say(line)
@@ -494,7 +689,7 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
             flagged += 1 if strict else 0
             say(f"  ? {impl} is not comparable with {sel}: {why}; re-run both on the same sample "
                 "(`esoi run --stale` re-runs a rival on the selected arm's sample)")
-        for r in (challengers(rows, sel, config.evaluation, history[component]) if sel else []):
+        for r in (challengers(rows, sel, config.evaluation, history[component], per_case, counters.get(component)) if sel else []):
             flagged += 1
             say(f"  ! {r['impl']} beats the selected {sel}: decide whether to adopt it "
                 "(update the solution's `selected` and the live default together)")
@@ -504,7 +699,7 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
                 "before trusting the verdict")
     say("\nBy solution (WIN = the metric chose it; TIE = kept for the reason in selected_by, the metric did not "
         "separate it; UNMEASURED = no rival was compared)")
-    for sid, v in sorted(solution_verdicts(config, registry.solutions, results, history).items()):
+    for sid, v in sorted(solution_verdicts(config, registry.solutions, results, history, registry, per_case).items()):
         reason = f"  kept because: {v['selected_by']}" if v["verdict"] == "TIE" else ""
         say(f"  {v['verdict']:<10} {sid}: {v['detail']}{reason}")
     if apart:

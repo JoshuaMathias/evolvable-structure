@@ -43,7 +43,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from . import balance, circumstances, variants
+from . import balance, circumstances, leaderboard, variants
 from .config import Config
 from .assemble import check_name
 from .leaderboard import cases_digest, is_partial
@@ -519,18 +519,13 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
 
 PER_CASE_COLUMNS = ["component", "impl", "cases_sha", "circumstances_sha", "sample", "case_id", "heldout", "ok", "calls",
                     "tokens_in", "tokens_out", "seconds", "circumstances"]
-PER_CASE_KEY = ("component", "impl", "cases_sha", "sample", "case_id")
+PER_CASE_KEY = leaderboard.PER_CASE_KEY
 
 
 def read_per_case(config: Config, every: bool = False) -> List[Dict[str, str]]:
-    """The per-case log, the newest row of each (arm, cases, sample, case) or, with ``every``, every row in file order; a
-    repeated header line (two recorders creating the file together) is not a row."""
-    path = config.root / config.per_case
-    if not path.is_file():
-        return []
-    with open(path, newline="", encoding="utf-8") as fh:
-        rows = [r for r in csv.DictReader(fh) if r.get("component") != "component"]
-    return rows if every else list({tuple(r.get(k) or "" for k in PER_CASE_KEY): r for r in rows}.values())
+    """The per-case log, the newest row of each (arm, cases, sample, case) or, with ``every``, every row in file order
+    (``leaderboard.per_case_rows``, which the leaderboard's paired test also reads)."""
+    return leaderboard.per_case_rows(config, every)
 
 
 def write_per_case(config: Config, new: List[Dict[str, str]]) -> None:
@@ -564,15 +559,15 @@ def write_per_case(config: Config, new: List[Dict[str, str]]) -> None:
 def record_slices(config: Config, component: str, circs: List[circumstances.Circumstance], summary: Dict[str, Any],
                   cases: List[dict], rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """The derived rows of a recorded run, one per circumstance it satisfies and has cases in (``slice:<id>``, or
-    ``sample:N/slice:<id>``), appended to the results log, and the run's per-case log. Nothing is written for a component with
-    no circumstances. A slice costs no model call: it is a sum over the cases the run already scored."""
-    if not circs:
-        return []
+    ``sample:N/slice:<id>``), appended to the results log, and the run's per-case log (written for every recorded run, because
+    the leaderboard's paired test needs each case's outcome; a component with no circumstances gets no derived rows). A slice costs no model call: it is a sum over the cases the run already scored."""
     key = dict(component=component, impl=summary["impl"], cases_sha=cases_digest(component, config.evaluation),
-               circumstances_sha=circumstances.digest(circs), sample=summary["sample"])
+               circumstances_sha=circumstances.digest(circs) if circs else "", sample=summary["sample"])
     write_per_case(config, [dict(key, case_id=str(c["id"]), heldout="yes" if c.get("heldout") else "", ok="1" if r["ok"] else "0",
                                  calls=r["calls"], tokens_in=r["tokens_in"], tokens_out=r["tokens_out"], seconds=r["seconds"],
                                  circumstances=";".join(circumstances.case_circumstances(circs, c))) for c, r in zip(cases, rows)])
+    if not circs:
+        return []   # no circumstances: no derived slice rows, but the per-case outcomes still support the paired test
     total = (summary["tokens_in"] + summary["tokens_out"]) or 0
     written = []
     for cid, found in circumstances.slices(circs, cases, circumstances.run_context(summary.get("model"), summary["impl"])).items():

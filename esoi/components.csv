@@ -67,3 +67,5 @@ spec_search,core,implementations/python/esoi/spec_search.py,The spec search solu
 eval-spec_search,evaluation,implementations/python/evaluation/components/spec_search/**,Cases and scorer for spec-search.,spec-search
 evidence,tools,implementations/python/esoi/evidence.py,unconfirmed: for Joshua to confirm.,public-evidence
 eval-public_evidence,evaluation,implementations/python/evaluation/components/public_evidence/**,unconfirmed: for Joshua to confirm.,public-evidence
+stats,core,implementations/python/esoi/stats.py,"Wilson interval, exact paired McNemar test and Holm correction for choosing by metric.",leaderboard
+evidence-table,tools,implementations/python/esoi/evidence_table.py,"Markdown table of every evaluated solution's arms with intervals, verdicts and public evidence, written between markers.",leaderboard

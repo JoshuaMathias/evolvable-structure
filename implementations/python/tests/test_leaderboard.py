@@ -211,3 +211,101 @@ def test_a_variant_row_finds_the_arm_kind_of_its_base(tmp_path):
     impls.mkdir(parents=True)
     (impls / "guard.py").write_text('"""BASELINE: nothing added."""\n')
     assert lb.arm_kind(row("guard@harness=native", 1), tmp_path) == "baseline"
+
+
+# ---- the statistical rule: paired McNemar, Holm, cost and dependency tie-breaks
+
+def per_case(impl, outcomes, sha="x", component="c", sample=""):
+    return [{"component": component, "impl": impl, "cases_sha": sha, "sample": sample, "case_id": f"k{i}", "ok": "1" if ok else "0"}
+            for i, ok in enumerate(outcomes)]
+
+
+def arms(a_ok, b_ok, a_cost=0.0, b_cost=0.0):
+    data = rows(row("a", sum(a_ok), len(a_ok), cost=a_cost), row("b", sum(b_ok), len(b_ok), cost=b_cost))
+    return data, per_case("a", a_ok) + per_case("b", b_ok)
+
+
+def test_a_significant_paired_lead_beats_the_selected_arm():
+    data, log = arms([True] * 20 + [False] * 20, [True] * 20 + [False] * 8 + [True] * 12 + [False] * 0)
+    # b passes 12 cases a misses, a misses none of b's: p = 2/4096
+    label, detail = lb.verdict(data, "a", per_case=log)
+    assert label == "LOSS" and "paired McNemar test" in detail and "beaten by b" in detail
+    assert [r["impl"] for r in lb.challengers(data, "a", per_case=log)] == ["b"]
+
+
+def test_a_gap_that_chance_explains_is_a_tie_even_where_the_old_margin_would_call_it():
+    a = [True] * 21 + [False] * 9
+    b = [True] * 17 + [False] * 4 + [False] * 9                 # a passes 4 that b misses, b none: p = 0.125
+    data, log = arms(a, b)
+    assert lb.verdict(data, "a", per_case=log)[0] == "TIE"   # a passes more but not significantly, costs equal, no dependency info
+    assert "dependency information is not available" in lb.verdict(data, "a", per_case=log)[1]
+    assert lb.verdict(data, "a")[0] == "WIN"   # without per-case rows the old exact-count rule calls the same data a win
+
+
+def test_without_per_case_rows_the_old_margin_decides_and_says_so():
+    label, detail = lb.verdict(rows(row("a", 5), row("b", 6)), "a")
+    assert label == "LOSS"
+    assert "fixed pass margin" in lb.verdict(rows(row("a", 6), row("b", 5)), "a")[1]
+
+
+def test_a_tie_on_quality_goes_to_the_rival_that_costs_over_twenty_percent_less_per_passing_case():
+    same = [True] * 15 + [False] * 15
+    data, log = arms(same, same, a_cost=1.0, b_cost=0.7)
+    label, detail = lb.verdict(data, "a", per_case=log)
+    assert label == "LOSS" and "cost per passing case" in detail
+    data, log = arms(same, same, a_cost=1.0, b_cost=0.85)   # only 15% cheaper: not enough
+    assert lb.verdict(data, "a", per_case=log)[0] == "TIE"
+    data, log = arms(same, same, a_cost=0.7, b_cost=1.0)
+    assert lb.verdict(data, "a", per_case=log)[0] == "WIN"
+
+
+def test_equal_cost_falls_to_fewer_dependencies_and_the_incumbent_stays_on_equal_or_unknown():
+    same = [True] * 15 + [False] * 15
+    data, log = arms(same, same)
+    counts = {"a": 3, "b": 1}
+    assert lb.verdict(data, "a", per_case=log, dependencies=counts.get)[0] == "LOSS"
+    assert lb.verdict(data, "a", per_case=log, dependencies={"a": 1, "b": 3}.get)[0] == "WIN"
+    assert lb.verdict(data, "a", per_case=log, dependencies={"a": 2, "b": 2}.get)[0] == "TIE"
+    assert lb.verdict(data, "a", per_case=log, dependencies={"a": 2}.get)[0] == "TIE"   # unknown for b: say so, keep the incumbent
+
+
+def test_fewer_than_thirty_shared_cases_is_labelled_early():
+    data, log = arms([True] * 5 + [False] * 5, [True] * 5 + [False] * 5)
+    assert "Early result" in lb.verdict(data, "a", per_case=log)[1]
+    assert "early" in lb.verdict(rows(row("a", 6), row("b", 5)), "a")[1]
+    big, log = arms([True] * 40, [True] * 40)
+    assert "Early" not in lb.verdict(big, "a", per_case=log)[1]
+
+
+def test_holm_adjusts_across_the_rivals_of_the_selected_arm():
+    a = [True] * 30 + [False] * 10
+    b = list(a)                                                       # b matches a exactly: a tie
+    c = [True] * 22 + [False] * 8 + [False] * 10                      # a passes 8 c misses
+    data = rows(row("a", 30, 40), row("b", 30, 40), row("c", 22, 40))
+    log = per_case("a", a) + per_case("b", b) + per_case("c", c)
+    found = {d.rival: d for d in lb.decisions(data, "a", per_case=log)}
+    assert found["c"].outcome == "incumbent" and found["c"].adjusted is not None
+    assert found["c"].adjusted >= found["c"].paired.p_value
+
+
+def test_a_per_case_log_from_another_run_is_not_used():
+    data, log = arms([True] * 30, [True] * 29 + [False])
+    data["b"]["passed"] = "30"   # the results row no longer matches the logged outcomes
+    assert lb.case_outcomes(log, data["b"]) is None
+    assert "fixed pass margin" in lb.verdict(data, "a", per_case=log)[1]
+
+
+def test_noise_json_still_decides_the_fallback(tmp_path):
+    (tmp_path / "c").mkdir()
+    (tmp_path / "c" / "noise.json").write_text('{"pass_margin": 0.5, "spend_tolerance": 0.4}')
+    sampled = rows(row("a", 5, model_calls="3"), row("b", 9, model_calls="3"))
+    assert lb.verdict(sampled, "a", tmp_path)[0] == "TIE"
+
+
+def test_dependency_counter_reads_uses_and_the_declared_extra_count():
+    registry = Registry(implementations=[
+        {"implementation_id": "s:a", "solution_id": "s", "uses_solution_ids": "x;y"},
+        {"implementation_id": "s:b", "solution_id": "s", "uses_solution_ids": "", "extra_dependencies": "2"},
+        {"implementation_id": "s:c", "solution_id": "s"}])
+    count = lb.dependency_counter(registry, "s")
+    assert (count("a"), count("b"), count("c"), count("zzz")) == (2, 2, None, None)

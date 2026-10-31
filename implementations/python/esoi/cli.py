@@ -11,6 +11,7 @@
     esoi leaderboard [--strict]            rank the implementations of every evaluated solution
     esoi select SOLUTION [--name NAME]     show which implementation runs now, and which layer of the cascade chose it
     esoi cascade [SOLUTION] [--strict]     a metric's cascading conditionals: each stage's results, the chosen implementation, what to run next
+    esoi evidence-table [--file F]         Markdown table of arms, Wilson intervals, paired verdicts; written between markers in F
     esoi evidence [list|grade|rank|table]  public evidence others measured, graded A to D; complementary, never a result row
     esoi select --promote [SOLUTION]       switch `selected` to the rival that clearly wins on the solution's own metric
     esoi select --snapshot FILE            write the defaults and modules for a package shipped without the records
@@ -90,6 +91,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--dimension", default="", help="only this dimension")
     p.add_argument("--weights", default="", help="rank: dimension=weight pairs, such as quality=2,cost=1 (default: every dimension present, equal)")
     p.add_argument("--file", default="", help="read this evidence CSV instead of the configured one")
+    p = sub.add_parser("evidence-table", help="a Markdown table of every evaluated solution's arms with Wilson intervals and verdicts")
+    p.add_argument("--file", default="", help="write the table between the marker lines of this file instead of printing it")
+    p.add_argument("--begin", default=None, help="the line that opens the block (default: <!-- esoi:evidence-table:begin -->)")
+    p.add_argument("--end", default=None, help="the line that closes the block (default: <!-- esoi:evidence-table:end -->)")
+    p.add_argument("--solution", default="", help="only this solution")
     p = sub.add_parser("tracker", help="the review tracker")
     p.add_argument("action", choices=["build", "check"])
     p = sub.add_parser("consumer", help="check a consuming repository")
@@ -420,6 +426,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.cmd == "evidence":
         from . import evidence
         return evidence.run_cli(config, args.action, args.candidate, args.dimension, args.weights, args.file)
+    if args.cmd == "evidence-table":
+        from . import evidence_table
+        return evidence_table.run_cli(config, args.file, args.begin or evidence_table.BEGIN, args.end or evidence_table.END, args.solution)
     if args.cmd == "tracker":
         from . import registry, tracker
         loaded = registry.load(config)

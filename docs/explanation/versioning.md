@@ -27,7 +27,7 @@ adds structure. An adopter that does nothing sees only these:
 - **One optional record file.** `circumstances.csv` is read when it exists, in any intent folder. It is not one of the five
   template entities, and every cell is an id, a link or a condition a machine reads, so it carries no prose field. A prose field
   on a circumstance (a `description`) is not added by the library: the owner of the specification proposes and approves fields,
-  as for any field (rule R7). A repository without the file records exactly what it did before.
+  as for any field (rule R7). A repository without the file gets no slice rows (it does get `per_case.csv`, which the leaderboard's paired test reads).
 - **The results log.** A recorded run of a component that has circumstances also appends derived rows whose `sample` is
   `slice:<id>`, and writes `per_case.csv` beside the log. Both are excluded from the staleness test of the measured code; the
   table's hash is part of it, so editing `circumstances.csv` makes the derived rows stale until `esoi run --stale` derives them

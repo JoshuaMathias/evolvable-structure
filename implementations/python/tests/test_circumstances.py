@@ -221,12 +221,14 @@ def test_run_stale_judges_the_newest_whole_run_not_a_recorded_only_row(repo):
     assert harness.stale_arms(cfg)[0] == ("greet_a_person", "live")
 
 
-def test_a_repository_without_circumstances_records_exactly_what_it_did_before(repo):
+def test_a_repository_without_circumstances_gets_no_slice_rows_but_does_get_per_case_outcomes(repo):
     cfg, score = scenario(repo, circs="")
     old = cfg.results_path.read_text()
     record(cfg, score, "live")
     record(cfg, score, "alt@cut=5")
-    assert not (repo / cfg.per_case).exists() and circumstances.load(cfg) == []
+    assert circumstances.load(cfg) == []
+    per_case = list(csv.DictReader((repo / cfg.per_case).open()))   # the outcomes the leaderboard's paired test reads
+    assert per_case and {r["circumstances_sha"] for r in per_case} == {""} and {r["circumstances"] for r in per_case} == {""}
     rows = list(csv.DictReader(cfg.results_path.open()))
     assert set(rows[0]) <= set(harness.RESULT_COLUMNS)   # no column of the circumstances feature
     assert len(rows) == len(old.splitlines()) + 1 and not any(r["sample"] for r in rows)   # one row per run, no slice rows

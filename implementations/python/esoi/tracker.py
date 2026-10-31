@@ -132,7 +132,7 @@ def build(config: Config, registry: Registry, template=None) -> Dict[str, List[R
     table = selection_table(config)
     results = {(c, i): row for c, rows in leaderboard.latest_results(config.results_path).items() for i, row in rows.items()}
     every = registry.every_solution()
-    verdicts = leaderboard.solution_verdicts(config, registry.solutions)
+    verdicts = leaderboard.solution_verdicts(config, registry.solutions, registry=registry)
     impl_records = {r["implementation_id"]: r for r in registry.implementations}
     metric_by_id = {m["metric_id"]: m for m in registry.metrics}
     sol_by_id = {s["solution_id"]: s for s in every}
