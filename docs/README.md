@@ -24,6 +24,7 @@ a team process, a personal schedule.
 - [When to create a sub-intent](explanation/when-to-create-a-sub-intent.md)
 - [The local ESOI index](explanation/local-index.md): where ESOI is applied on a machine.
 - [Finding the specifications a new use case needs](explanation/finding-specifications.md): the specification index, tiers, and what a system on top adds.
+- [One search for records and items, written once](explanation/one-search-for-records-and-items.md): the stages around the index (fusion, a gate, one judge call), with the vector search and judge supplied by the caller. How: [Search records and items together](guides/search-specs-and-items.md).
 - [Choosing by metric](explanation/choosing-by-metric.md)
 - [A metric must be meaningfully real](explanation/metrics-must-be-real.md): no scripted stand-ins; creative and limited measures are fine, fake ones are not (rule S31).
 - [The first stage needs no model](explanation/first-stage-needs-no-model.md): guidance for a metric's cascading conditionals: start with a free stage that proves the scorer.

@@ -33,6 +33,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 - `prob-rules-unjustified`: A rule is kept in code with no record of the mistake that justified it or of what it has caught since, so nobody can tell whether it still earns its place or why its limit has its value.
 - `prob-intent-specs-not-found-for-new-input`: A new use case or input arrives, and nobody (human or AI) can tell which of a project's problems, ideals, solutions, implementations and metrics apply without reading all of them. The specifications exist, but finding the relevant few is left to whoever happens to remember them.
 - `prob-metric-measures-a-stand-in`: A metric scores a scripted judge, a mocked model or a canned answer instead of the real thing, so its number measures the plumbing around the thing and not the thing. A perfect scripted judge passes everything, and a decision built on the number is backed by nothing.
+- `prob-spec-search`: A system that finds a repository's records for a request, or finds them together with its own notes or documents, rebuilds the same stages inside its own code: lexical scoring, a semantic search, rank fusion, a confidence gate, one judging call and the way a ranked record brings its links. The copy in one product cannot be reused or improved by the next.
 
 ## Ideals
 
@@ -58,6 +59,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 - `ideal-readable-intent`, Readable intent: Anyone opening an intent's folder learns what it is for, and what it contains, from a page the records themselves produce.
 - `ideal-rules-earn-their-place`, Rules earn their place: Every rule can say which mistake it prevents, and is removed when it stops catching any.
 - `ideal-right-spec-at-the-right-time`, Right specification at the right time: For any new use case or input, the relevant specifications are found by looking at a small, cheap description first and reading in full only what was chosen.
+- `ideal-spec-search`, One search, written once: The stages of finding the specifications a request concerns are written once, in the library, and a product supplies only its vector search and its judge.
 
 ## Solutions
 
@@ -92,6 +94,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 | `promote-the-winner` | Promote the winner | margin-promotion | Promotion correctness |
 | `spec-index` | Specification index | weighted-tfidf | Specification recall at k |
 | `keep-metric-record` | keep-metric-record | library-modules | unconfirmed: for Joshua to confirm. |
+| `spec-search` | Spec search | lexical-vector-gated | Spec search correctness |
 
 ## Implementations
 
@@ -157,6 +160,8 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 | `spec-index:weighted-tfidf` | Field-weighted TF-IDF over the index | implementations/python/esoi/spec_index.py |  |
 | `spec-index:term-overlap` | Plain term overlap | implementations/python/esoi/spec_index.py |  |
 | `keep-metric-record:library-modules` | unconfirmed: for Joshua to confirm. | implementations/python/esoi/iteration.py |  |
+| `spec-search:lexical-only` | Lexical only | implementations/python/esoi/spec_search.py |  |
+| `spec-search:lexical-vector-gated` | Lexical vector gated | implementations/python/esoi/spec_search.py |  |
 
 ## Metrics
 
@@ -188,3 +193,4 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 - `metric-promotion-correctness`, Promotion correctness: `esoi run promote_the_winner --impl live_promote`
 - `metric-spec-index-recall`, Specification recall at k: `esoi run spec_index --impl weighted_tfidf; esoi run spec_index --impl term_overlap`
 - `metric-keep-metric-record`, unconfirmed: for Joshua to confirm.: `esoi run keep_metric_record --impl live_record`
+- `metric-spec-search`, Spec search correctness: `esoi run spec_search --impl gated; esoi run spec_search --impl lexical_only`

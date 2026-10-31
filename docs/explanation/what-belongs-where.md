@@ -24,6 +24,7 @@ words and the code still describes something a website, a data pipeline or a cou
 | Packaging a pruned selection (a snapshot for an installed copy) | Adapters to its own products and services |
 | Reading a repository's records for a task: the solution it serves, its next milestone and its metric; reading a metric's value; keeping the value before and after a piece of work | Which workers, tools and briefs an application hands the work to, and the words it asks of them |
 | Circumstances as conditions on case fields and on a run, derived slice rows, a per-case log and `name@key=value` variants | Which circumstances exist, their thresholds and the case fields that carry them |
+| The stages of searching records and items: lexical scores, rank fusion, a confidence gate, batching a judge, links, the cue that no solution serves a problem (`esoi.spec_search`) | The vector search, the embedding model and the judging prompt and model, passed in as functions |
 | Checks over records and declarations that any adopter could run | Checks whose subject is its own domain (for example, vendor names in its core code) |
 
 ## Examples

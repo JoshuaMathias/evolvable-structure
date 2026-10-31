@@ -68,6 +68,8 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `metric-record` | tools | unconfirmed: for Joshua to confirm. | keep-metric-record |
 | `eval-keep-metric-record` | evaluation | unconfirmed: for Joshua to confirm. | keep-metric-record |
 | `circumstances` | core | unconfirmed: for Joshua to confirm. | leaderboard, runtime-selection |
+| `spec_search` | core | The spec search solution's interface and implementations. | spec-search |
+| `eval-spec_search` | evaluation | Cases and scorer for spec-search. | spec-search |
 | `selection` | core | Resolving an implementation of a solution from a selection table. | runtime-selection |
 | `eval-select-an-implementation` | evaluation | Cases for resolving a selection. | runtime-selection |
 | `runtime` | core | Declarations in code and the cascade that picks the implementation a call runs. | runtime-selection |

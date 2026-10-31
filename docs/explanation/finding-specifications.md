@@ -14,9 +14,11 @@ Finding the right few records out of many is a natural-language problem, and a g
 3. **Choose finally** with a model that reads one-line descriptions of the candidates, often in parallel batches.
 4. **Read in full** only what was chosen.
 
-ESOI does stage 1 and the data model that makes stages 3 and 4 cheap, using the standard library only. Stages 2 and 3 are
-AI infrastructure; they belong to a system built on ESOI (an agent runner that
-selects context is one, and reads this index). Putting a vector store here would make every adopter carry one.
+ESOI does stage 1 and the data model that makes stages 3 and 4 cheap, using the standard library only. The orchestration of
+stages 2 and 3 (fusing the lists, a confidence gate, one judging call, links) is general and is in `esoi.spec_search`; see
+[One search for records and items](one-search-for-records-and-items.md). The vector store, the embedding and the model call
+are AI infrastructure and stay with the system built on ESOI (an agent runner that selects context is one), which injects
+them. Putting a vector store here would make every adopter carry one.
 
 ## The specification index
 

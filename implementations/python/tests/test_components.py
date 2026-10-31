@@ -20,7 +20,7 @@ LIVE = {"check_the_structure": "live_checker", "own_every_file": "live_checker",
         "measure_implementations": "live_harness", "rank_implementations": "live_leaderboard",
         "review_tracker": "live_tracker", "check_a_consumer": "live_consumer_check", "know_stale_results": "live_checker",
         "sync_the_skill": "live_skill", "index_projects": "live_index", "specify_from_code": "live_declarations",
-        "readable_records": "live_readme", "promote_the_winner": "live_promote", "assemble_by_name": "live_assembler", "keep_metric_record": "live_record", "behave_by_esoi": "reference_good", "judge_esoi_behaviour": "regex_only"}
+        "readable_records": "live_readme", "promote_the_winner": "live_promote", "assemble_by_name": "live_assembler", "keep_metric_record": "live_record", "behave_by_esoi": "reference_good", "judge_esoi_behaviour": "regex_only", "spec_search": "gated"}
 # Graded accuracy metrics: no pass-every-case bar, no broken/ baseline; the selected arm must beat the naive arm instead.
 GRADED = {"spec_index": ("weighted_tfidf", "term_overlap")}
 

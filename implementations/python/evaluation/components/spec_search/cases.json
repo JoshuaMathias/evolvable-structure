@@ -1,0 +1,102 @@
+[
+ {
+  "id": "SSR-001",
+  "kind": "find",
+  "area": "top 5 holds prob-winner-not-adopted",
+  "description": "a plain-words request finds prob-winner-not-adopted in the ranked keys",
+  "args": {
+   "query": "a rival implementation beats the selected one and nobody switches the default",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-winner-not-adopted"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SSR-002",
+  "kind": "find",
+  "area": "top 5 holds prob-selection-default-kept-twice",
+  "description": "a plain-words request finds prob-selection-default-kept-twice in the ranked keys",
+  "args": {
+   "query": "we keep the same default in the selection table and in the records",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "prob-selection-default-kept-twice"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SSR-003",
+  "kind": "find",
+  "area": "top 5 holds card:runbook",
+  "description": "a plain-words request finds card:runbook in the ranked keys",
+  "args": {
+   "query": "nightly invoice batch queue restart runbook",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "card:runbook"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SSR-004",
+  "kind": "find",
+  "area": "top 5 holds card:keys",
+  "description": "a plain-words request finds card:keys in the ranked keys",
+  "args": {
+   "query": "how often do we rotate the backup encryption keys",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "card:keys"
+    ]
+   }
+  }
+ },
+ {
+  "id": "SSR-005",
+  "kind": "find",
+  "area": "nothing credible",
+  "description": "a request about nothing in the records returns nothing",
+  "args": {
+   "query": "zebra quokka marmalade",
+   "k": 5
+  },
+  "expect": {
+   "eq": {
+    "ids": []
+   }
+  }
+ },
+ {
+  "id": "SSR-006",
+  "kind": "find",
+  "area": "one list across sources",
+  "description": "an item of another source and a record compete in one ranking",
+  "args": {
+   "query": "nightly invoice batch queue runbook",
+   "k": 5
+  },
+  "expect": {
+   "has": {
+    "ids": [
+     "card:runbook"
+    ]
+   }
+  }
+ }
+]
