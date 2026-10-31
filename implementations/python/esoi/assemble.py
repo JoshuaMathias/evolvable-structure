@@ -853,6 +853,14 @@ class Assembler:
                 if extra:
                     raise AssemblyError(f"{sid} ({picked.name}) has no option(s) {', '.join(extra)}; its parameters: "
                                         f"{', '.join(p for p in params if p != 'self' and p not in kwargs) or 'none'}")
+                missing = [name for name, par in params.items()
+                           if name != "self" and name not in kwargs and name not in options and par.default is par.empty
+                           and par.kind not in (par.VAR_POSITIONAL, par.VAR_KEYWORD)]
+                if missing:
+                    chain_text = " -> ".join([p for p, a in chain] + [sid])
+                    raise AssemblyError(f"{sid} ({picked.name}) needs option(s) {', '.join(missing)} (chain: {chain_text}); remedy: "
+                                        f"pass options={{{sid!r}: {{{', '.join(repr(m) + ': ...' for m in missing)}}}}} or "
+                                        f"provided={{{sid!r}: ...}}")
                 obj = target(**kwargs, **options)
             else:
                 obj = target

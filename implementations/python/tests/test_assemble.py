@@ -732,6 +732,16 @@ def test_assemble_defaults_names_the_options_and_needs_an_override_must_supply(t
         parts.assemble_defaults(AssemblyConfig(selections={STORE: "nope"}))
 
 
+def test_strict_assembly_names_a_missing_required_option_and_its_remedy(toy):
+    parts, consumer = toy[:2]
+    parts.register(INDEX, "acme-sized", type("Sized", (), {"__init__": lambda self, size: None, "find": lambda self, key: key}))
+    parts.register(REPORT, "acme-report", consumer.IndexReport)
+    config = AssemblyConfig(solutions=(REPORT,), selections={INDEX: "acme-sized", REPORT: "acme-report"})
+    with pytest.raises(AssemblyError, match=r"toy-index \(acme-sized\) needs option\(s\) size \(chain: toy-report -> toy-index\); "
+                                            r"remedy: pass options=\{'toy-index': \{'size': \.\.\.\}\}"):
+        parts.assemble(config)
+
+
 def test_assemble_defaults_takes_provided_objects_and_options(toy):
     parts, consumer = toy[:2]
     parts.register(INDEX, "acme-index", consumer.StoreIndex)
