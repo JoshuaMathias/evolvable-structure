@@ -101,8 +101,8 @@ the specification. They add it to the template in `SKILL.md`, or approve it for 
 solutions = ["promotion"]          # each key is a records file; each entry a column its owner approved
 ```
 
-For example `promotion` (`automatic` lets `esoi select --promote` switch the selected implementation when a rival clearly
-wins on the solution's own metric; empty means a person applies the printed proposal) is such a column, and so is
+For example `promotion` (`automatic` lets `esoi select --promote` switch the selected implementation when a rival is
+significantly better on the solution's own metric; empty means a person applies the printed proposal) is such a column, and so is
 `selected_by` (where `select --promote` stores its evidence when the column is approved; otherwise it prints the evidence).
 The code under `code_paths` is read (not imported) for
 `@solution`, `@implementation` and `register` declarations (rule S30; `esoi records sync` writes the missing rows).

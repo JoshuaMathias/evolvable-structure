@@ -13,7 +13,7 @@ paid stage has to buy its price in accuracy, and the metric says by how much. St
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 DEFAULT_WEIGHTS = {"accuracy": 0.7, "cost": 0.15, "time": 0.15}
 
@@ -50,3 +50,15 @@ def balanced(passed: int, cases: int, cost_usd: Any, seconds: float, table: Opti
              + w["time"] * clamp(1 - per_time / cfg["seconds_per_case"]))
     return {"accuracy": round(accuracy, 4), "cost_per_case": round(per_cost, 6), "seconds_per_case": round(per_time, 2),
             "balanced": round(score, 4)}
+
+
+def case_scores(oks: Sequence[bool], costs: Sequence[float], seconds: Sequence[float], table: Optional[Mapping[str, Any]]) -> List[float]:
+    """The balanced score of each case on its own (accuracy 0 or 1, that case's share of the cost and its own seconds, against the
+    same budgets and weights as ``balanced``), or ``[]`` when the component sets no balance. These are the per-case numbers the
+    leaderboard's exact sign test compares when a solution's authoritative metric is the balanced score."""
+    cfg = settings(table)
+    if cfg is None:
+        return []
+    w = cfg["weights"]
+    return [round(w["accuracy"] * (1.0 if ok else 0.0) + w["cost"] * clamp(1 - cost / cfg["cost_per_case_usd"])
+                  + w["time"] * clamp(1 - sec / cfg["seconds_per_case"]), 6) for ok, cost, sec in zip(oks, costs, seconds)]

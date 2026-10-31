@@ -9,7 +9,6 @@ evaluation/components/<component>/
   interface.py    the one function every implementation exposes (a docstring is enough)
   impls/<name>.py build(meter) -> fn          one file per alternative; drives the real code
   broken/<name>.py                            the naive baseline the cases of a single-implementation solution must fail
-  noise.json      optional {"pass_margin": 0.15, "spend_tolerance": 0.2} for a sampled comparison
 ```
 
 Run one with `esoi run <component> --impl <name>`; add `--record` to append a row to the results log, `--only ID,ID` to run

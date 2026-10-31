@@ -1,8 +1,8 @@
 """Promote the implementation that the solution's own metric says is best.
 
 ``esoi select --promote`` reads the leaderboard's verdict for every evaluated solution. Where a rival clearly beats the
-selected implementation (the same cases, the same sample, by the rule of ``leaderboard.decisions``: the paired exact test and
-tie-break where per-case rows exist for both arms, else the pass margin), it either
+selected implementation (the same cases, the same sample, by the rule of ``leaderboard.decisions``: a significant one-sided paired
+test where per-case rows exist for both arms, else a best guess where the solution allows it), it either
 
 * switches the solution's ``selected`` in the records to the winner, points the metric's command at it, and writes the
   evidence into ``selected_by`` where the project has that approved column, else prints it (the date of each results row,
@@ -72,11 +72,11 @@ def evidence(own: Row, rival: Row, current: str, winner: str, today: str, why: s
             f"run {own.get('date', '')} at {own.get('git_sha', '')}" + (f"; rule: {why}" if why else ""))
 
 
-def cascade_evidence(own: Row, rival: Row, current: str, winner: str, today: str) -> str:
+def cascade_evidence(own: Row, rival: Row, current: str, winner: str, today: str, why: str = "") -> str:
     return (f"promoted {today} by esoi select --promote on the solution's metric cascade: {winner} is chosen over {current} by the "
             f"latest stage run; at their latest shared stage (cases_sha {rival.get('cases_sha', '')}) {winner} "
             f"{rival.get('passed', '')}/{rival.get('cases', '')} run {rival.get('date', '')} at {rival.get('git_sha', '')}; "
-            f"{current} {own.get('passed', '')}/{own.get('cases', '')} run {own.get('date', '')} at {own.get('git_sha', '')}")
+            f"{current} {own.get('passed', '')}/{own.get('cases', '')} run {own.get('date', '')} at {own.get('git_sha', '')}" + (f"; rule: {why}" if why else ""))
 
 
 def switch_command(config: Config, command: str, current: str, winner: str) -> str:
@@ -118,23 +118,22 @@ def first_choice(config: Config, registry: Registry, solution: Row, component: s
         if not rows:
             proposal.reason = "no counting result yet (run `esoi run` on committed code)"
             return proposal
+    winner_name, why_guess = leaderboard.best_guess(rows, config.evaluation)
     reference = max(rows.values(), key=lambda r: (int(float(r.get("cases") or 0)), r.get("date") or "", r["impl"]))
     ranked = leaderboard.rank({impl: r for impl, r in rows.items() if leaderboard.comparable(r, reference)})
-    leader = ranked[0]
-    held = {impl: r for impl, r in rows.items() if impl != leader["impl"]}
-    level = [leader["impl"]] + [r["impl"] for r in ranked[1:] if not leaderboard.clearly_higher(leader, r, config.evaluation)]
     where = stage.name if stage else "the results log"
-    if len(level) > 1:
-        proposal.reason = (f"a tie at {where}: " + ", ".join(f"{r['impl']} {r.get('passed', '')}/{r.get('cases', '')}" for r in ranked
-                           if r["impl"] in level) + "; the metric cannot break it, so no arm is selected")
+    if winner_name is None:   # exactly equal estimates, or nothing to choose from: the metric cannot break it
+        proposal.reason = (f"a tie at {where}: " + ", ".join(f"{r['impl']} {r.get('passed', '')}/{r.get('cases', '')}" for r in ranked)
+                           + "; the metric cannot break it (best guess on the point estimate), so no arm is selected")
         return proposal
+    leader = rows[winner_name]
     if stage is not None and not cascade.gate_met(stage, leader, None, config.evaluation)[0]:
         proposal.reason = f"{leader['impl']} leads at {where} but does not meet that stage's gate"
         return proposal
     proposal.winner, proposal.status = leader["impl"], "propose"
     proposal.selected = new_selected(config, registry, solution, component, "", proposal.winner)
     others = ", ".join(f"{r['impl']} {r.get('passed', '')}/{r.get('cases', '')}" for r in ranked[1:]) or "no other arm has a result"
-    proposal.selected_by = (f"selected {today} by esoi select --promote on the solution's metric: {proposal.winner} "
+    proposal.selected_by = (f"selected {today} by esoi select --promote as a best guess (no incumbent to test against) on the solution's metric: {proposal.winner} "
                             f"{leader.get('passed', '')}/{leader.get('cases', '')} at {where} (cases_sha {leader.get('cases_sha', '')}, "
                             f"run {leader.get('date', '')} at {leader.get('git_sha', '')}); {others}")
     proposal.edits = [f"solutions.csv {sid}: selected '' -> {proposal.selected!r}", f"evidence: {proposal.selected_by}"]
@@ -152,13 +151,32 @@ def first_choice(config: Config, registry: Registry, solution: Row, component: s
     return proposal
 
 
+def stage_missing(config: Config, registry: Registry, solution: Row, component: str, arms: Dict[str, List[Row]], stale: Callable,
+                  winner: str, need: str, origin: str) -> str:
+    """Why a switch to ``winner`` waits for the cascade stage ``need`` that the project or solution requires, or ``""`` when the
+    winner has a counting result at that stage or a later one."""
+    from .tables import ids
+    by_id = {m.get("metric_id", ""): m for m in registry.metrics}
+    for metric_id in ids(solution.get("metric_ids", "")):
+        found, errors = cascade.parse(by_id.get(metric_id, {}).get("cascading_conditionals", ""))
+        if found and not errors:
+            names = [st.name for st in found]
+            if need not in names:
+                return f"the {origin} requires stage {need}, which the metric's cascading conditionals do not list"
+            standing = cascade.standings(found, arms, None, lambda row: stale(config, component, row, True), config.evaluation)
+            if winner in standing and any(i >= names.index(need) for i in standing[winner].rows):
+                return ""
+            return f"the {origin} requires a result at stage {need} before switching, and {winner} has none yet; run it there"
+    return f"the {origin} requires stage {need}, but the solution's metric has no cascading conditionals"
+
+
 def propose(config: Config, registry: Registry, today: Optional[str] = None,
             stale: Callable = stale_reason) -> List[Proposal]:
     """A proposal for each evaluated solution a rival clearly beats, in record order."""
     today = today or datetime.date.today().isoformat()
     history = leaderboard.all_results(config.results_path)
     per_case = leaderboard.per_case_rows(config)
-    counters = leaderboard.dependency_counters(config, registry)
+    chosen = leaderboard.policies(config, registry, per_case)
     metrics = {m.get("metric_id", ""): m for m in registry.metrics}
     out: List[Proposal] = []
     try:
@@ -180,8 +198,12 @@ def propose(config: Config, registry: Registry, today: Optional[str] = None,
             winner, pair = via
             if winner is None:
                 continue
+            if pair is not None:   # a cascade names the leader at its latest stage; switching still takes a shown (or allowed guessed) gain
+                shown = leaderboard.decisions({current: pair[0], winner: pair[1]}, current, config.evaluation, None, per_case, chosen.get(component))
+                if not any(d.outcome == "rival" and d.switch for d in shown):
+                    continue
         else:
-            beaten = leaderboard.challengers(rows, current, config.evaluation, arms, per_case, counters.get(component))
+            beaten = leaderboard.challengers(rows, current, config.evaluation, arms, per_case, chosen.get(component))
             if not beaten:
                 continue
             winner = leaderboard.rank({r["impl"]: r for r in beaten})[0]["impl"]
@@ -199,6 +221,12 @@ def propose(config: Config, registry: Registry, today: Optional[str] = None,
         if why:
             proposal.reason = f"a result does not count ({why}); re-run `esoi run --stale` on committed code"
             continue
+        need = (chosen.get(component) or leaderboard.Policy()).require_stage
+        waits = stage_missing(config, registry, solution, component, arms, stale, winner, need,
+                              chosen[component].source("require_stage")) if need else ""
+        if waits:
+            proposal.reason = waits
+            continue
         if (table.get(sid) or {}).get("default"):
             proposal.reason = ("its selection table entry holds its own default; delete that `default` so the records' "
                                "`selected` is the only copy, then promote")
@@ -210,10 +238,10 @@ def propose(config: Config, registry: Registry, today: Optional[str] = None,
         linked = [metrics[m] for m in ids(solution.get("metric_ids", "")) if m in metrics]
         target = next((m for m in linked if switch_command(config, m.get("command", ""), current, winner)), None)
         proposal.selected = selected
-        decided = next((d for d in leaderboard.decisions(rows, current, config.evaluation, arms, per_case, counters.get(component))
+        decided = next((d for d in leaderboard.decisions(rows, current, config.evaluation, arms, per_case, chosen.get(component))
                         if d.rival == winner), None)
-        proposal.selected_by = (cascade_evidence(own, rival, current, winner, today) if via is not None else
-                                evidence(own, rival, current, winner, today, f"{decided.rule}: {decided.text}" if decided else ""))
+        reason = f"{decided.rule}: {decided.text}" if decided else ""
+        proposal.selected_by = (cascade_evidence if via is not None else evidence)(own, rival, current, winner, today, reason)
         proposal.edits = [f"solutions.csv {sid}: selected {solution.get('selected', '')!r} -> {selected!r}",
                           f"evidence: {proposal.selected_by}"]
         if target is not None:

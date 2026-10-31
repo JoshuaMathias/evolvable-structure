@@ -25,27 +25,55 @@ good from naive.
 A solution none of whose metrics has a command that records a run (`esoi run <component> --impl <name>`) is a specification: defined, with alternatives, but not measured
 yet. That is derived from the missing run and never declared. Its next step is a milestone, a value of its metric.
 
-## Who beats whom: the statistical rule
+## Who beats whom: a significant gain on the metric
 
-A pass rate from a few dozen cases is a measurement with an error bar, so a gap between two arms can be luck. When both arms
-have per-case results on the same cases (`esoi run --record` keeps them in `per_case.csv`), the leaderboard asks the question
-a scientist would:
+The authoritative metric decides, and it is responsible for everything that matters to the solution. If cost, speed or simplicity
+matter, they belong inside the metric (a balanced score with written weights is one way), not in a separate rule here. The
+library adds exactly one requirement: a switch needs a gain that is statistically significant.
 
-1. **Look only at the cases where the two arms disagree.** A case both pass or both miss says nothing about which is better.
-2. **Does one arm win those cases more often than a fair coin would?** The exact paired McNemar test answers with a p-value.
-   A challenger beats the selected arm only when it passes more cases and p is below 0.05. With several rivals, Holm's
-   correction raises the p-values so that looking at many rivals does not manufacture a winner.
-3. **If neither leads, quality is a tie.** The tie goes to the arm whose cost per passing case is lower by more than 20%, then
-   to the arm with fewer dependencies (the solutions its implementation uses, plus a declared `extra_dependencies` count
-   where a project keeps that column). If that is not known, the selected arm stays and the output says so.
-4. **Fewer than 30 shared cases is early.** The result may set a default, and it is labelled early.
+When both arms have per-case results on the same cases (`esoi run --record` keeps them in `per_case.csv`), the leaderboard asks
+the question a scientist would:
 
-Every pass rate is shown with its 95% Wilson interval, which stays honest for small counts. The output of `esoi leaderboard`
-names the rule that decided each verdict. Without per-case rows for both arms the older fixed pass margin and spend tolerance
-decide (and `noise.json` still applies), and the output says that too. `esoi select --promote` follows the same verdict.
-`esoi evidence-table --file README.md` writes a table of every arm, its interval, cost, seconds, verdict and p-value between two
-marker lines (`<!-- esoi:evidence-table:begin -->` and `<!-- esoi:evidence-table:end -->`), with what others measured beside
-it and never added to it. The mathematics is in `esoi/stats.py`, standard library only.
+1. **Look only at the cases where the two arms differ.** A case both handle the same way says nothing about which is better.
+2. **Does the challenger win those cases more often than a fair coin would?** For pass or fail per case this is the exact paired
+   McNemar test. For a metric that is a score per case (the balanced score), it is the exact sign test on the paired scores. The
+   test is one-sided: the question is only "is the challenger better?". With several rivals, Holm's correction raises the
+   p-values so that looking at many rivals does not manufacture a winner. The default significance level is 0.05.
+3. **A significant gain switches. Anything else keeps the selected arm.** The verdict then says, for example, "b is not shown
+   better than a (p=0.0625, 4 of 30 cases disagree); more cases would settle it". The way forward is more cases (the next
+   cascade stage), never a margin.
+
+Every pass rate is shown with its 95% Wilson interval, which shows how little a small sample says.
+
+### Best guess
+
+Sometimes no test is possible: a single aggregate number, a public figure, one judgement. Then the point estimates of the
+metric are compared and the verdict says "best guess". A best guess may switch the selection only while the solution has never
+had per-case results (after that, it should be tested). Exactly equal estimates keep the selected arm. When nothing is selected
+yet, the best point estimate is chosen and labelled a best guess; if the top estimates are exactly equal, nothing is selected.
+
+### Stricter requirements, optional
+
+The library asks for nothing beyond significance, and a project or a solution may ask for more, never less. In `esoi.toml`, a
+`[switching]` table sets the project's requirements and a `[switching.<solution id>]` table sets one solution's, which overrides
+the project:
+
+```
+[switching]
+alpha = 0.01            # a lower significance level
+min_cases = 30          # shared cases needed before a gain can switch
+[switching.my-solution]
+require_stage = "whole" # a cascade stage the winner must have a result at (checked when promoting)
+best_guess_switch = false
+```
+
+A value that would be looser than the library default is read as the default. The verdict names the requirement that kept the
+selected arm, for example "it is significant at alpha 0.05 but the solution requires alpha 0.01".
+
+`esoi select --promote` follows the same verdict. `esoi evidence-table --file README.md` writes a table of every arm (interval,
+cost per passing case and seconds for information, the verdict and its p-value) between two marker lines
+(`<!-- esoi:evidence-table:begin -->` and `<!-- esoi:evidence-table:end -->`), with what others measured beside it and never
+added to it. The mathematics is in `esoi/stats.py`, standard library only.
 
 ## Verdicts
 
@@ -53,9 +81,9 @@ For a selected implementation, comparing it with its rivals on the same cases gi
 
 | Verdict | Meaning |
 |---|---|
-| WIN | It beats every rival, by pass rate or by clearly lower spend at the same pass rate |
-| TIE | A rival is inside the noise; the selection is kept for a stated reason, not decided by the number |
-| LOSS | A rival beats it; adopt the rival or write down why not |
+| WIN | It is shown (or, as a best guess, estimated) better than every rival |
+| TIE | No rival is shown better; the selection stays, and the verdict says what would settle it |
+| LOSS | A rival is significantly better (or, as an allowed best guess, estimated better); adopt it or write down why not |
 | UNMEASURED | No rival was measured on the same cases |
 
 ## Adopting the winner
@@ -64,12 +92,6 @@ A LOSS is a decision, and `esoi select --promote` makes it from the evidence: it
 command and the reason, or prints exactly that for a person, by the solution's `promotion` cell. It only acts on rows with a
 `cases_sha`, scored on the same cases and sample, whose results are current. See
 [declare, call, measure, promote](graceful-selection.md).
-
-## Noise
-
-Runs that call a model move between repeats of the same code, so a small gap between two of them is noise. Use exact
-counts when nothing was sampled, and a pass-rate margin and a spend tolerance when something was. State the margin where
-the comparison is made rather than reading differences into it.
 
 ## Stand-ins
 

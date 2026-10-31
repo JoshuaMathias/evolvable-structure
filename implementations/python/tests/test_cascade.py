@@ -73,7 +73,7 @@ def test_the_competitive_gate_compares_with_the_selected_implementation():
     history = {"sel": [row("sel", 10), row("sel", 9, 10, "sample:10", 3)], "new": [row("new", 10), row("new", 3, 10, "sample:10", 3)]}
     standing = cascade.standings(s, history, TODAY, fresh)
     index, why = cascade.next_stage(s, standing["new"], standing["sel"])
-    assert index is None and "sel clearly beats it" in why
+    assert index is None and "sel has a better result at this stage" in why
 
 
 def test_a_result_expires_when_it_is_stale_or_older_than_the_stage_allows():

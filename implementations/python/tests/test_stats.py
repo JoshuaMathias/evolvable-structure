@@ -44,17 +44,24 @@ def test_paired_counts_and_the_sentence():
     b = rows([True] * 20 + [False] * 10 + [True] * 0 + [False] * 3)
     result = stats.paired_counts(a, b)
     assert (result.both, result.only_a, result.only_b, result.neither) == (20, 10, 0, 3)
-    assert result.p_value == pytest.approx(2 / 1024) and result.cases == 33 and not result.early
+    assert result.p_value == pytest.approx(2 / 1024) and result.cases == 33
     text = stats.describe(result, "new", "old")
     assert "new passed 10 that old missed" in text and "larger than chance" in text and "Early" not in text
 
 
-def test_a_small_pairing_is_early_and_a_small_gap_is_not_called_a_difference():
+def test_a_tied_pairing_is_not_called_a_difference_and_a_small_gap_is_chance():
     result = stats.paired_counts(rows([True, True, False, True]), rows([True, False, True, True]))
-    assert result.early and (result.only_a, result.only_b) == (1, 1)
-    assert "no difference" in stats.describe(result) and "Early result" in stats.describe(result)
+    assert (result.only_a, result.only_b) == (1, 1) and "no difference" in stats.describe(result)
     three = stats.paired_counts(rows([True] * 3 + [False]), rows([False] * 4))
     assert "common by chance" in stats.describe(three)
+
+
+def test_the_one_sided_sign_test_is_the_binomial_tail():
+    assert stats.sign_test_greater(10, 2) == pytest.approx(79 / 4096)   # P(X >= 10 of 12), half the two-sided value
+    assert stats.sign_test_greater(2, 10) > 0.98
+    assert stats.sign_test_greater(5, 0) == pytest.approx(1 / 32) and stats.sign_test_greater(0, 5) == 1.0
+    assert stats.sign_test_greater(0, 0) == 1.0
+    assert stats.sign_test_greater(10, 2) * 2 == pytest.approx(stats.mcnemar_exact(10, 2))
 
 
 def test_only_shared_cases_count_and_the_rest_are_reported():

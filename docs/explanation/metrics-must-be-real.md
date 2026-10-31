@@ -21,7 +21,7 @@ another).
 - **Plumbing still gets tested.** A scripted judge is the right tool for a unit test of batching, retries or error handling.
   Keep it in the tests, not in the metric.
 - **Cost and noise are part of the record.** A real run costs tokens and moves a little between repeats; the results log
-  records both, and a small margin between two real runs is noise.
+  records both, and a small gap between two real runs is not evidence until a test says so.
 
 ## What `esoi check` does about it (S31)
 

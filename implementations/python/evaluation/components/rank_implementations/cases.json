@@ -82,7 +82,7 @@
  {
   "id": "RNK-003",
   "kind": "rank",
-  "area": "winner",
+  "area": "tie",
   "args": {
    "rows": [
     {
@@ -108,9 +108,7 @@
      "b",
      "a"
     ],
-    "beats": [
-     "b"
-    ],
+    "beats": [],
     "unverified": []
    }
   }
@@ -429,7 +427,7 @@
   "expect": {
    "contains": [
     "selected: a",
-    "! b beats the selected a"
+    "! b should replace the selected a"
    ],
    "eq": {
     "exit": 1,
@@ -771,7 +769,7 @@
  {
   "id": "RNK-022",
   "kind": "verdict",
-  "area": "equal pass rate at clearly lower spend is a win",
+  "area": "equal pass rate at lower spend is a tie: cost counts only inside the metric",
   "args": {
    "rows": [
     {
@@ -793,7 +791,7 @@
   },
   "expect": {
    "eq": {
-    "verdict": "WIN"
+    "verdict": "TIE"
    }
   }
  },
@@ -829,7 +827,7 @@
  {
   "id": "RNK-024",
   "kind": "verdict",
-  "area": "equal pass rate with a clearly cheaper rival is a loss",
+  "area": "equal pass rate with a cheaper rival is a tie: cost counts only inside the metric",
   "args": {
    "rows": [
     {
@@ -851,7 +849,7 @@
   },
   "expect": {
    "eq": {
-    "verdict": "LOSS"
+    "verdict": "TIE"
    }
   }
  },
@@ -1342,7 +1340,7 @@
  {
   "id": "RNK-039",
   "kind": "verdict",
-  "area": "two simulated arms are compared on model calls: fewer calls at the same pass rate wins",
+  "area": "two simulated arms with equal pass rates are a tie whatever their calls",
   "args": {
    "rows": [
     {
@@ -1374,7 +1372,7 @@
   },
   "expect": {
    "eq": {
-    "verdict": "LOSS"
+    "verdict": "TIE"
    }
   }
  },
@@ -1420,7 +1418,7 @@
  {
   "id": "RNK-041",
   "kind": "verdict",
-  "area": "a model run that reports tokens is still dearer than a free baseline",
+  "area": "equal pass rates are a tie whatever the tokens",
   "args": {
    "rows": [
     {
@@ -1452,7 +1450,7 @@
   },
   "expect": {
    "eq": {
-    "verdict": "LOSS"
+    "verdict": "TIE"
    }
   }
  },
@@ -1497,6 +1495,400 @@
    "contains": [
     "mini (selected: a) TIE"
    ]
+  }
+ },
+ {
+  "id": "RNK-043",
+  "kind": "verdict",
+  "area": "a significant paired gain replaces the selected arm",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 12,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 24,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "outcomes": {
+    "a": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "b": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  "expect": {
+   "eq": {
+    "verdict": "LOSS"
+   },
+   "contains": [
+    "b is better than a",
+    "12 of 30 cases disagree"
+   ]
+  }
+ },
+ {
+  "id": "RNK-044",
+  "kind": "verdict",
+  "area": "a gain chance could explain keeps the selected arm and says how to settle it",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 17,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 21,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "outcomes": {
+    "a": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "b": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  "expect": {
+   "eq": {
+    "verdict": "TIE"
+   },
+   "contains": [
+    "is not shown better than a (p=0.0625, 4 of 30 cases disagree); more cases would settle it"
+   ]
+  }
+ },
+ {
+  "id": "RNK-045",
+  "kind": "verdict",
+  "area": "without per-case rows the point estimates are a best guess",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 15,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 20,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "outcomes": {}
+  },
+  "expect": {
+   "eq": {
+    "verdict": "LOSS"
+   },
+   "contains": [
+    "best guess",
+    "significance cannot be tested"
+   ]
+  }
+ },
+ {
+  "id": "RNK-046",
+  "kind": "verdict",
+  "area": "a best guess does not switch when the solution forbids it",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 15,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 20,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "outcomes": {},
+   "best_guess_switch": false
+  },
+  "expect": {
+   "eq": {
+    "verdict": "TIE"
+   },
+   "contains": [
+    "switching on a best guess is off"
+   ]
+  }
+ },
+ {
+  "id": "RNK-047",
+  "kind": "verdict",
+  "area": "exactly equal estimates keep the selected arm",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 15,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 15,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "outcomes": {}
+  },
+  "expect": {
+   "eq": {
+    "verdict": "TIE"
+   },
+   "contains": [
+    "exactly equal"
+   ]
+  }
+ },
+ {
+  "id": "RNK-048",
+  "kind": "verdict",
+  "area": "a stricter alpha for a solution needs a stronger gain",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 12,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 24,
+     "cases": 30,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a",
+   "outcomes": {
+    "a": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "b": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "alpha": 0.0001
+  },
+  "expect": {
+   "eq": {
+    "verdict": "TIE"
+   }
   }
  }
 ]

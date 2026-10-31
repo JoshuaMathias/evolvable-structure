@@ -10,7 +10,7 @@ the condition for moving on, joined by `` | ``::
   exact label such as ``sample:10``, or omitted for any. ``real``: ``yes`` when the run calls a model, ``no`` when it does
   not (a simulated model counts as no). A row belongs to the first stage it matches.
 * ``gate``: what a result must show before the next stage is worth running: ``all-pass`` (every case passed) or
-  ``competitive`` (the selected implementation does not clearly beat it at this stage). ``min-pass-rate`` (a fraction)
+  ``competitive`` (the selected implementation does not have a strictly better result at this stage). ``min-pass-rate`` (a fraction)
   adds a floor. Every stage but the last needs a gate or a floor, since nothing else says when to move on.
 * A stage named ``public`` (with ``real=no``; ``when`` is free text) stands for public evidence others measured
   (``esoi.evidence``). It claims no results row, is never the stage a choice rests on, needs no gate, and is satisfied for an
@@ -230,7 +230,7 @@ def decide(stages: List[Stage], standing: Dict[str, Standing], eval_dir: Optiona
             continue
         shared = [i for i in s.rows if i < latest and i in counting[leader].rows
                   and leaderboard.comparable(s.rows[i], counting[leader].rows[i])]
-        if shared and leaderboard.clearly_higher(s.rows[max(shared)], counting[leader].rows[max(shared)], eval_dir):
+        if shared and leaderboard.higher(s.rows[max(shared)], counting[leader].rows[max(shared)]):
             held[impl] = s.rows[max(shared)]
     winner = leaderboard.rank(held)[0]["impl"] if held else leader
     if held:
@@ -243,8 +243,8 @@ def gate_met(stage: Stage, row: Row, selected_row: Optional[Row], eval_dir: Opti
     """Whether a result at this stage earns the next stage, and if not, why."""
     if stage.gate == "all-pass" and leaderboard.pass_rate(row) < 1:
         return False, "not every case passed"
-    if stage.gate == "competitive" and selected_row is not None and leaderboard.clearly_higher(selected_row, row, eval_dir):
-        return False, f"{selected_row['impl']} clearly beats it at this stage"
+    if stage.gate == "competitive" and selected_row is not None and leaderboard.higher(selected_row, row):
+        return False, f"{selected_row['impl']} has a better result at this stage"
     if stage.min_pass_rate is not None and leaderboard.pass_rate(row) < stage.min_pass_rate:
         return False, f"its pass rate is below the stage's minimum of {stage.min_pass_rate:g}"
     return True, ""

@@ -76,14 +76,15 @@ def rate_label(row: Row) -> str:
 
 
 def verdict_label(d: "leaderboard.Decision") -> str:
-    standing = {"rival": "beats the selected arm", "incumbent": "behind the selected arm", "tie": "tie with the selected arm"}[d.outcome]
-    if d.paired is None:
-        number = "no per-case rows for both arms, so the fixed margin decided"
+    standing = ({"rival": "better than the selected arm", "incumbent": "behind the selected arm", "tie": "not shown better than the selected arm"}
+                if d.basis == "significance" else {"rival": "ahead of the selected arm", "incumbent": "behind the selected arm", "tie": "equal to the selected arm"})[d.outcome]
+    if d.outcome == "rival" and d.switch and d.basis == "significance":
+        standing = "beats the selected arm"
+    if d.basis == "best guess":
+        number = "point estimates only, no per-case rows for both arms"
     else:
-        shown = d.adjusted if d.adjusted is not None else d.paired.p_value
-        number = f"{'Holm-adjusted ' if shown != d.paired.p_value else ''}p = {shown:.3g}"
-    early = f"; early, {d.paired.cases if d.paired else d.own.get('cases')} shared cases" if d.early else ""
-    return f"{standing}: {d.rule}, {number}{early}"
+        number = f"Holm-adjusted p = {d.p:.3g}, {d.disagree} of {d.shared} cases disagree"
+    return f"{standing}: {d.rule}, {number}"
 
 
 def public_label(config: Config, registry: Registry, graded: Dict, solution_id: str, impl: str) -> str:
@@ -95,7 +96,7 @@ def public_label(config: Config, registry: Registry, graded: Dict, solution_id: 
 def table_rows(config: Config, registry: Registry, today: Optional[datetime.date] = None, solution: str = "") -> List[List[str]]:
     history = leaderboard.all_results(config.results_path)
     per_case = leaderboard.per_case_rows(config)
-    counters = leaderboard.dependency_counters(config, registry)
+    chosen = leaderboard.policies(config, registry, per_case)
     note = ""
     try:
         graded = evidence.estimates(evidence.load_for(config), today)
@@ -113,7 +114,7 @@ def table_rows(config: Config, registry: Registry, today: Optional[datetime.date
         apart = bool(leaderboard.invariant_reason(component, config.evaluation))
         ranked = selected in rows and not apart
         found = {d.rival: d for d in leaderboard.decisions(rows, selected, config.evaluation, history[component], per_case,
-                                                            counters.get(component))} if ranked else {}
+                                                            chosen.get(component))} if ranked else {}
         pairs = {r["impl"]: (own, r) for own, r in leaderboard.rival_pairs(rows, selected, config.evaluation, history[component])[0]} \
             if ranked else {}
         for impl in sorted(arms, key=lambda i: (i != selected, i)):
@@ -148,9 +149,9 @@ def evidence_table(config: Config, registry: Registry, today: Optional[datetime.
     lines += ["| " + " | ".join(cell(c) for c in row) + " |" for row in rows]
     lines.append("")
     lines.append("Pass rates carry the 95% Wilson interval. A verdict compares an arm with the selected arm on identical cases: it "
-                 "leads only when it passes more cases and the exact paired McNemar test (Holm-adjusted across rivals) gives p below "
-                 "0.05; otherwise quality is a tie, broken by cost per passing case lower by more than 20%, then by fewer dependencies. "
-                 "Fewer than 30 shared cases is an early result. Public evidence is what others measured, graded, and is never added "
+                 "leads only when a one-sided exact paired test (McNemar for pass or fail per case, a sign test on per-case scores, Holm-adjusted across rivals) gives p below "
+                 "0.05; otherwise the selected arm stays. Without per-case rows the point estimates are compared and labelled a best guess. "
+                 "The width of the interval shows how little a small sample says. Public evidence is what others measured, graded, and is never added "
                  "to these numbers.")
     return "\n".join(lines)
 

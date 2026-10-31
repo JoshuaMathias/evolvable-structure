@@ -2,8 +2,7 @@
 
 ``esoi leaderboard [--strict]`` reads ``results.csv`` (the latest row per component and implementation, written by
 ``esoi run --record``) and the registry (which implementation each solution selects). It prints a ranking per
-component and flags every challenger that beats the selected implementation: a pass rate higher by more than the
-stated margin, or a pass rate inside it at clearly lower spend. ``--strict`` exits 1 when one does, so a pipeline
+component and flags every challenger that should replace the selected implementation (see the rule below). ``--strict`` exits 1 when one does, so a pipeline
 can surface "a better implementation exists" without a human reading the implementations. The leaderboard only
 ranks; switching the live implementation stays a deliberate decision.
 
@@ -23,24 +22,21 @@ Only rows that scored a whole run decide the default verdict: a run of named cas
 circumstance (``slice:id``, see ``esoi.circumstances``) are partial, so recording one never changes which arm the default
 verdict favours. Slice rows are kept out of ``all_results`` and read with ``slice_results``; the same ``verdict`` judges them.
 
-Verdicts: WIN (it beats every rival on the same cases), TIE (a rival is inside the noise, so the selection is kept
-for a reason outside the number), LOSS (a rival beats it), UNMEASURED (no rival was compared). Noise: exact pass
-counts and a spend tolerance when no model was called; a pass-rate margin and a wider spend tolerance when one
-was, because sampled, model-judged runs move between re-runs. A component folder may carry ``noise.json`` such as
-``{"pass_margin": 0.15, "spend_tolerance": 0.2}`` (its own measured re-run swing).
+Verdicts: WIN (it is shown, or guessed, better than every rival), TIE (no rival is shown better, so the selection stays),
+LOSS (a rival should replace it), UNMEASURED (no rival was compared).
 
-An arm that meters a deterministic stand-in for a model (``SIMULATED = True``, recorded as model ``simulated``) has
-a known cost of 0.0, is not a sampled run, and is compared on model calls: a calls figure is set against another
-calls figure only, never against dollars or tokens, so a known $0 baseline is not called cheaper than an arm whose
-cost is merely unknown.
-
-Two rules decide. When both arms have per-case rows on the same cases (``per_case.csv``, written by ``esoi run --record``),
-the statistical rule decides (``esoi.stats``): a challenger beats the selected arm only when it passes more cases and the
-exact paired McNemar test on the cases where the two disagree, Holm-adjusted across the rivals of the solution, gives
-p below 0.05. Otherwise quality is a tie, broken by cost per passing case lower by more than 20%, then by fewer
-dependencies (``uses_solution_ids`` and a declared ``extra_dependencies`` count); when that is not known the incumbent
-stays. Without per-case rows for both arms the older rule above (fixed pass margin and spend tolerance, ``noise.json``)
-decides. The detail of every verdict says which rule decided. A comparison on fewer than 30 shared cases is labelled early.
+The rule is pragmatic and statistical. The authoritative metric is the pass rate, or the balanced score when the component sets
+``[balance.<component>]`` (so cost and speed count only through the metric, with its own weights). A rival replaces the selected
+arm when its improvement on shared cases is statistically significant: a one-sided exact paired test (McNemar for pass or fail
+per case, an exact sign test on the paired per-case balanced scores), Holm-adjusted across the rivals, at ``alpha`` 0.05. When it
+is not significant the selected arm stays and the verdict says "not shown better (p=..., k of n cases disagree); more cases would
+settle it": the way forward is more cases (the next cascade stage), never a margin. Where a test is not possible (no per-case rows
+for both arms: an aggregate, a public figure, one judgement) the point estimates are compared and the result is labelled a "best
+guess"; it switches only if the solution allows it, and exactly equal estimates keep the selected arm. The library specifies nothing else: cost, speed and dependencies enter only through the authoritative metric, which is
+responsible for them. A project (``[switching]``) or a solution (``[switching.<solution id>]``, which overrides the project) may only
+make the rule stricter: a lower ``alpha``, ``min_cases`` shared cases, a cascade stage that must have been reached
+(``require_stage``), or ``best_guess_switch = false``; the verdict names the requirement that applied. Best-guess switching is on by
+default only while the component has never had per-case rows. An unmeasured selected arm leaves the best point estimate as a best guess.
 
 Functions that look at implementation files take ``eval_dir`` (the folder of component folders); without it they
 rank rows only.
@@ -49,7 +45,6 @@ from __future__ import annotations
 
 import csv
 import hashlib
-import json
 import re
 from dataclasses import dataclass
 from fractions import Fraction
@@ -260,9 +255,6 @@ def is_ablation(row: Row, eval_dir: Optional[Path] = None) -> bool:
 
 
 SIMULATED = "simulated"
-COST_TIE_TOLERANCE = 0.10        # spend within 10% is a tie for deterministic runs: noise must not flip a selection
-SAMPLED_PASS_MARGIN = 0.10       # sampled, model-judged runs: pass rates within 10 percentage points are a tie
-SAMPLED_SPEND_TOLERANCE = 0.15   # and spend within 15% is a tie
 
 
 def is_simulated(row: Row) -> bool:
@@ -276,52 +268,10 @@ def is_sampled(row: Row) -> bool:
     return int(float(row.get("model_calls") or 0)) > 0 and not is_simulated(row)
 
 
-def noise(row: Row, other: Row, eval_dir: Optional[Path] = None) -> Tuple[float, float]:
-    """``(pass_margin, spend_tolerance)`` inside which two rows are a TIE (see the module docstring)."""
-    if not (is_sampled(row) or is_sampled(other)):
-        return 0.0, COST_TIE_TOLERANCE
-    margin, tolerance = SAMPLED_PASS_MARGIN, SAMPLED_SPEND_TOLERANCE
-    component = row.get("component") or other.get("component") or ""
-    if component and eval_dir is not None:
-        setting = Path(eval_dir) / component / "noise.json"
-        if setting.is_file():
-            found = json.loads(setting.read_text(encoding="utf-8"))
-            margin = float(found.get("pass_margin", margin))
-            tolerance = float(found.get("spend_tolerance", tolerance))
-    return margin, tolerance
-
-
-def spend(row: Row) -> Tuple[str, float]:
-    """What a run consumed: tokens when the run reports them (dollars swing with caching), else a recorded dollar cost
-    above zero, else the model calls it made (a simulated arm, or a run whose price was never known), else zero."""
-    tokens = float(row.get("tokens_in") or 0) + float(row.get("tokens_out") or 0)
-    if tokens > 0:
-        return "tokens", tokens
-    if cost_known(row) and float(row["cost_usd"]) > 0:
-        return "usd", float(row["cost_usd"])
-    calls = float(row.get("model_calls") or 0)
-    return ("calls", calls) if calls > 0 else ("usd", dollars(row))
-
-
-def clearly_cheaper(row: Row, other: Row, eval_dir: Optional[Path] = None) -> bool:
-    """True when ``row`` spent more than the spend tolerance less than ``other``, in the same unit."""
-    (unit, mine), (other_unit, theirs) = spend(row), spend(other)
-    if unit != other_unit:
-        if "calls" in (unit, other_unit):
-            return False   # calls are compared with calls only: an unknown or simulated cost is not more than a known $0
-        unit, (mine, theirs) = "usd", (dollars(row), dollars(other))
-    return mine < theirs * (1 - noise(row, other, eval_dir)[1])
-
-
-def clearly_higher(row: Row, other: Row, eval_dir: Optional[Path] = None) -> bool:
-    """True when ``row`` passes more than the pass margin above ``other``."""
-    return Fraction(pass_rate(row)).limit_denominator(10000) - Fraction(pass_rate(other)).limit_denominator(10000) \
-        > Fraction(noise(row, other, eval_dir)[0]).limit_denominator(10000)
-
-
-def cheaper_without_passing_less(row: Row, other: Row, eval_dir: Optional[Path] = None) -> bool:
-    """Spend settles a comparison only when the cheaper side passes at least as much."""
-    return pass_rate(row) >= pass_rate(other) and clearly_cheaper(row, other, eval_dir)
+def higher(row: Row, other: Row) -> bool:
+    """True when ``row`` has the strictly better point estimate on the authoritative metric. A screen for cascading stages, never a
+    reason to switch the selected arm (that takes ``decisions``)."""
+    return estimate(row) > estimate(other)
 
 
 def history_of(rows: Rows, history: Optional[Dict[str, List[Row]]] = None) -> Dict[str, List[Row]]:
@@ -381,12 +331,8 @@ def stale_rivals(config: Config, component: str, rows: Rows, selected: str,
     return [(r["impl"], why) for _, r in pairs if (why := stale(config, component, r, True))]
 
 
-COST_LEAD = 0.20   # a cost per passing case lower by more than this share breaks a tie on quality
-
-Dependencies = Callable[[str], Optional[int]]
-
-
 PER_CASE_KEY = ("component", "impl", "cases_sha", "sample", "case_id")
+ALPHA = stats.ALPHA
 
 
 def per_case_rows(config: Config, every: bool = False) -> List[Row]:
@@ -401,31 +347,53 @@ def per_case_rows(config: Config, every: bool = False) -> List[Row]:
     return rows if every else list({tuple(r.get(k) or "" for k in PER_CASE_KEY): r for r in rows}.values())
 
 
-def dependency_counter(registry: Registry, solution_id: str) -> Dependencies:
-    """``impl name -> number of dependencies`` for the implementations of a solution: the solutions it uses
-    (``uses_solution_ids``) plus a declared ``extra_dependencies`` count where the project keeps that column. ``None`` when the
-    implementation has no record, so the tie-break says it does not know instead of guessing."""
-    records = [r for r in registry.implementations if r.get("solution_id") == solution_id]
+@dataclass(frozen=True)
+class Policy:
+    """How one solution is judged. The library's rule is the default: a rival replaces the selected arm when it is significantly better
+    on the authoritative metric (one-sided paired test, ``alpha`` 0.05, Holm across rivals). A project or a solution may only make that
+    stricter: a lower ``alpha``, a minimum number of shared cases (``min_cases``), a cascade stage that must have been reached
+    (``require_stage``, applied when promoting), or no switching on a best guess (``best_guess_switch`` false). ``origin`` says which
+    level (``project`` or ``solution``) set each requirement, so a verdict can name it."""
+    alpha: float = ALPHA
+    min_cases: int = 0
+    require_stage: str = ""
+    best_guess_switch: bool = True
+    origin: Tuple[Tuple[str, str], ...] = ()
 
-    def count(impl: str) -> Optional[int]:
-        record = next((r for r in records if r.get("implementation_id", "").split(":", 1)[-1] == impl or r.get("name") == impl), None)
-        if record is None or "uses_solution_ids" not in record:
-            return None
-        try:
-            extra = int(float(record.get("extra_dependencies") or 0))
-        except ValueError:
-            return None
-        return len(ids(record.get("uses_solution_ids", ""))) + extra
-    return count
+    def source(self, key: str) -> str:
+        return dict(self.origin).get(key, "configuration")
 
 
-def dependency_counters(config: Config, registry: Registry) -> Dict[str, Dependencies]:
-    """``{component: dependency counter}`` for every evaluated solution."""
-    out: Dict[str, Dependencies] = {}
+STRICTER_KEYS = ("alpha", "min_cases", "require_stage", "best_guess_switch")
+
+
+def policy_for(config: Config, solution_id: str, component: str, per_case: Optional[List[Row]]) -> Policy:
+    """The solution's policy from ``[switching]`` (the project) and ``[switching.<solution id>]`` (the solution, which overrides the
+    project) in the configuration. Only stricter requirements count: an ``alpha`` above 0.05 is read as 0.05, a negative ``min_cases``
+    as none, and ``best_guess_switch = true`` cannot loosen the default, which is on only while the component has never had per-case
+    rows."""
+    table = getattr(config, "switching", {}) or {}
+    project = {k: v for k, v in table.items() if k in STRICTER_KEYS}
+    solution = table.get(solution_id, {}) if isinstance(table.get(solution_id), dict) else {}
+    chosen, origin = {}, []
+    for level, found in (("project", project), ("solution", solution)):
+        for key, value in found.items():
+            if key in STRICTER_KEYS:
+                chosen[key] = value
+                origin.append((key, level))
+    has_cases = any(r.get("component") == component for r in per_case or [])
+    return Policy(alpha=min(float(chosen.get("alpha", ALPHA)), ALPHA), min_cases=max(int(chosen.get("min_cases", 0)), 0),
+                  require_stage=str(chosen.get("require_stage", "")),
+                  best_guess_switch=bool(chosen.get("best_guess_switch", True)) and not has_cases, origin=tuple(origin))
+
+
+def policies(config: Config, registry: Registry, per_case: Optional[List[Row]]) -> Dict[str, Policy]:
+    """``{component: Policy}`` for every evaluated solution."""
+    out: Dict[str, Policy] = {}
     for row in registry.solutions:
         component, _ = first_arm(config, row.get("metric_command", ""))
         if component:
-            out.setdefault(component, dependency_counter(registry, row["solution_id"]))
+            out.setdefault(component, policy_for(config, row["solution_id"], component, per_case))
     return out
 
 
@@ -445,6 +413,23 @@ def case_outcomes(per_case: Optional[List[Row]], row: Row) -> Optional[Dict[str,
     return found if found and len(found) == total and sum(found.values()) == passed else None
 
 
+def case_numbers(per_case: Optional[List[Row]], row: Row) -> Optional[Dict[str, float]]:
+    """``{case id: balanced score of that case}`` for a run whose authoritative metric is the balanced score, or ``None`` when the
+    per-case log holds no complete set of scores for exactly that run."""
+    if case_outcomes(per_case, row) is None:
+        return None
+    sample = (row.get("sample") or "").strip()
+    found: Dict[str, float] = {}
+    for r in per_case or []:
+        if (r.get("component"), r.get("impl"), r.get("cases_sha"), (r.get("sample") or "").strip()) == \
+                (row.get("component"), row.get("impl"), row.get("cases_sha"), sample):
+            try:
+                found[r["case_id"]] = float(r.get("score") or "")
+            except ValueError:
+                return None
+    return found
+
+
 def passes(row: Row) -> int:
     try:
         return int(float(row.get("passed") or 0))
@@ -453,7 +438,8 @@ def passes(row: Row) -> int:
 
 
 def cost_per_passing(row: Row) -> Optional[Tuple[str, float]]:
-    """``(unit, amount)`` per passing case: dollars when the cost is recorded, else model calls; ``None`` with no passing case."""
+    """``(unit, amount)`` per passing case, shown beside a result: dollars when the cost is recorded, else model calls; ``None``
+    with no passing case. It informs a reader; it decides nothing (cost and speed count only inside the authoritative metric)."""
     if passes(row) <= 0:
         return None
     if cost_known(row):
@@ -462,158 +448,151 @@ def cost_per_passing(row: Row) -> Optional[Tuple[str, float]]:
     return ("calls", calls / passes(row)) if calls > 0 else None
 
 
-def much_cheaper_per_passing(row: Row, other: Row) -> bool:
-    """True when ``row`` costs more than ``COST_LEAD`` less per passing case than ``other``, in the same unit."""
-    mine, theirs = cost_per_passing(row), cost_per_passing(other)
-    return bool(mine and theirs and mine[0] == theirs[0] and theirs[1] > 0 and mine[1] < theirs[1] * (1 - COST_LEAD))
+def estimate(row: Row) -> Fraction:
+    """The point estimate on the authoritative metric: the balanced score when the run has one, else the pass rate."""
+    return Fraction(pass_rate(row)).limit_denominator(10000)
+
+
+def uses_balanced(own: Row, other: Row) -> bool:
+    return bool(str(own.get("balanced") or "").strip() and str(other.get("balanced") or "").strip())
+
+
+def best_guess(rows: Rows, eval_dir: Optional[Path] = None) -> Tuple[Optional[str], str]:
+    """``(arm, why)``: the arm with the best point estimate among arms scored on the same cases as the largest run, labelled a best
+    guess because no test was possible. Exactly equal leaders are a tie: ``(None, why)``, and nothing is selected."""
+    live = {i: r for i, r in rows.items() if not is_partial(r) and not is_ablation(r, eval_dir)}
+    if not live:
+        return None, "no arm has a result"
+    reference = max(live.values(), key=lambda r: (int(float(r.get("cases") or 0)), r.get("date") or "", r["impl"]))
+    ranked = rank({i: r for i, r in live.items() if comparable(r, reference)})
+    top = [r for r in ranked if estimate(r) == estimate(ranked[0])]
+    shown = ", ".join(f"{r['impl']} {pass_rate(r):.3g}" for r in ranked)
+    if len(top) > 1:
+        return None, f"best guess: a tie on the point estimate ({shown}); nothing is selected"
+    return ranked[0]["impl"], f"best guess on the point estimate ({shown}); no test was possible"
 
 
 @dataclass
 class Decision:
-    """How one rival stands against the selected arm. ``outcome``: ``rival`` (it beats the selected arm), ``incumbent`` (the
-    selected arm beats it) or ``tie`` (nothing separates them; the selected arm stays). ``rule`` names what decided."""
+    """How one rival stands against the selected arm. ``outcome``: ``rival`` (shown, or guessed, better), ``incumbent`` (the selected
+    arm is better) or ``tie`` (not shown better; the selected arm stays). ``basis`` is ``significance`` (a one-sided exact test on
+    shared cases) or ``best guess`` (point estimates only). ``switch`` says whether a ``rival`` outcome may replace the selected arm."""
     rival: str
     outcome: str
-    rule: str
+    basis: str
     text: str
     own: Row
     other: Row
-    paired: Optional[stats.Paired] = None
-    adjusted: Optional[float] = None
+    p: Optional[float] = None          # Holm-adjusted one-sided p that the rival is better
+    disagree: int = 0                  # cases where the two differ
+    shared: int = 0
+    switch: bool = False
 
     @property
-    def early(self) -> bool:
-        shared = self.paired.cases if self.paired else int(float(self.own.get("cases") or 0))
-        return shared < stats.EARLY_BELOW
+    def rule(self) -> str:
+        return "one-sided paired test" if self.basis == "significance" else "best guess"
 
 
-def tie_break(selected: str, own: Row, rival_name: str, other: Row, dependencies: Optional[Dependencies]) -> Tuple[str, str, str]:
-    """``(outcome, rule, text)`` for two arms tied on quality: cost per passing case lower by more than 20%, then fewer
-    dependencies, else the selected arm stays."""
-    if much_cheaper_per_passing(other, own):
-        return "rival", "tie on quality, then cost per passing case", f"{rival_name} costs more than 20% less per passing case"
-    if much_cheaper_per_passing(own, other):
-        return "incumbent", "tie on quality, then cost per passing case", f"{selected} costs more than 20% less per passing case"
-    mine = dependencies(selected) if dependencies else None
-    theirs = dependencies(rival_name) if dependencies else None
-    if mine is None or theirs is None:
-        return "tie", "tie on quality, cost within 20%", ("dependency information is not available, so the selected arm stays")
-    if theirs < mine:
-        return "rival", "tie on quality, then fewer dependencies", f"{rival_name} has {theirs} dependencies, {selected} has {mine}"
-    if mine < theirs:
-        return "incumbent", "tie on quality, then fewer dependencies", f"{selected} has {mine} dependencies, {rival_name} has {theirs}"
-    return "tie", "tie on quality, cost and dependencies", f"cost is within 20% and both have {mine} dependencies, so the selected arm stays"
+def disagreements(per_case: Optional[List[Row]], own: Row, rival: Row) -> Optional[Tuple[int, int, int, str]]:
+    """``(cases the rival is ahead on, cases the selected arm is ahead on, shared cases, test name)`` from per-case rows of exactly
+    these two runs, or ``None``. Pass or fail per case uses McNemar's exact test; a balanced-score metric compares the scores of
+    each case with the exact sign test (cases with equal scores are left out)."""
+    if uses_balanced(own, rival):
+        a, b = case_numbers(per_case, own), case_numbers(per_case, rival)
+        if a is None or b is None or a.keys() != b.keys():
+            return None
+        return (sum(round(b[c] - a[c], 9) > 0 for c in a), sum(round(b[c] - a[c], 9) < 0 for c in a), len(a), "exact sign test on per-case balanced scores")
+    a, b = case_outcomes(per_case, own), case_outcomes(per_case, rival)
+    if a is None or b is None or a.keys() != b.keys():
+        return None
+    return (sum(b[c] and not a[c] for c in a), sum(a[c] and not b[c] for c in a), len(a), "exact McNemar test")
 
 
 def decisions(rows: Rows, selected: str, eval_dir: Optional[Path] = None, history: Optional[Dict[str, List[Row]]] = None,
-              per_case: Optional[List[Row]] = None, dependencies: Optional[Dependencies] = None) -> List[Decision]:
-    """One ``Decision`` per rival scored on the same cases as ``selected``. A rival with per-case rows for both arms is judged
-    by the paired exact test (Holm-adjusted across those rivals) and the tie-break; any other rival by the older pass margin
-    and spend tolerance."""
+              per_case: Optional[List[Row]] = None, policy: Optional[Policy] = None) -> List[Decision]:
+    """One ``Decision`` per rival scored on the same cases as ``selected``, on the solution's authoritative metric.
+
+    A rival with per-case rows for both arms is tested, one-sided: it replaces the selected arm only when it is better by an exact
+    paired test whose p-value, Holm-adjusted across the rivals, is below ``policy.alpha``. Otherwise the selected arm is kept and the
+    detail says the rival is not shown better and how many cases disagree. A rival without per-case rows is compared on point
+    estimates and labelled a best guess; it replaces the selected arm only if ``policy.best_guess_switch`` allows, and exactly equal
+    estimates keep the selected arm."""
+    policy = policy or Policy()
     pairs = rival_pairs(rows, selected, eval_dir, history)[0]
-    prepared = []
-    for own, rival in pairs:
-        a, b = case_outcomes(per_case, own), case_outcomes(per_case, rival)
-        prepared.append((own, rival, stats.paired_counts(a, b) if a is not None and b is not None and a.keys() == b.keys() else None))
-    adjusted = iter(stats.holm([p.p_value for _, _, p in prepared if p is not None]))
+    tested = [(own, rival, disagreements(per_case, own, rival)) for own, rival in pairs]
+    better = iter(stats.holm([stats.sign_test_greater(d[0], d[1]) for _, _, d in tested if d is not None]))
+    worse = iter(stats.holm([stats.sign_test_greater(d[1], d[0]) for _, _, d in tested if d is not None]))
     out: List[Decision] = []
-    for own, rival, paired in prepared:
+    for own, rival, found in tested:
         name = rival["impl"]
-        if paired is None:
-            if clearly_higher(rival, own, eval_dir) or (not clearly_higher(own, rival, eval_dir) and cheaper_without_passing_less(rival, own, eval_dir)):
-                out.append(Decision(name, "rival", "pass-rate margin", "decided by the fixed pass margin and spend tolerance", own, rival))
-            elif clearly_higher(own, rival, eval_dir) or cheaper_without_passing_less(own, rival, eval_dir):
-                out.append(Decision(name, "incumbent", "pass-rate margin", "decided by the fixed pass margin and spend tolerance", own, rival))
+        if found is None:
+            mine, theirs = estimate(own), estimate(rival)
+            label = f"{name} {pass_rate(rival):.3g} against {selected} {pass_rate(own):.3g} on the point estimate"
+            note = "best guess: " + label + "; per-case rows are missing for one or both arms, so significance cannot be tested"
+            if theirs > mine:
+                if policy.best_guess_switch:
+                    out.append(Decision(name, "rival", "best guess", note, own, rival, switch=True))
+                else:
+                    out.append(Decision(name, "rival", "best guess", note + "; switching on a best guess is off for this solution, so "
+                                        f"{selected} stays", own, rival))
+            elif mine > theirs:
+                out.append(Decision(name, "incumbent", "best guess", note, own, rival))
             else:
-                out.append(Decision(name, "tie", "pass-rate margin", "inside the fixed pass margin and spend tolerance", own, rival))
+                out.append(Decision(name, "tie", "best guess", note + "; exactly equal, so " + f"{selected} stays", own, rival))
             continue
-        p = next(adjusted)
-        sentence = stats.describe(paired, selected, name, p if len(prepared) > 1 else None)
-        if p < stats.ALPHA and paired.only_a != paired.only_b:
-            winner = "incumbent" if paired.only_a > paired.only_b else "rival"
-            out.append(Decision(name, winner, "paired McNemar test", sentence, own, rival, paired, p))
-            continue
-        outcome, rule, why = tie_break(selected, own, name, rival, dependencies)
-        out.append(Decision(name, outcome, rule, f"{sentence} Quality is a tie: {why}.", own, rival, paired, p))
+        ahead, behind, shared, test = found
+        p, q = next(better), next(worse)
+        counted = f"{ahead + behind} of {shared} cases disagree"
+        keep = f"{name} is not shown better than {selected} (p={p:.3g}, {counted}); more cases would settle it"
+        if shared < policy.min_cases:
+            out.append(Decision(name, "tie", "significance", f"{keep}: the {policy.source('min_cases')} requires at least {policy.min_cases} "
+                                f"shared cases and there are {shared}", own, rival, p, ahead + behind, shared))
+        elif p < policy.alpha:
+            out.append(Decision(name, "rival", "significance",
+                                f"{name} is better than {selected} ({test}, Holm-adjusted p={p:.3g}, {counted})", own, rival,
+                                p, ahead + behind, shared, switch=True))
+        elif p < ALPHA:
+            out.append(Decision(name, "tie", "significance", f"{keep}: it is significant at alpha {ALPHA:g} but the "
+                                f"{policy.source('alpha')} requires alpha {policy.alpha:g}", own, rival, p, ahead + behind, shared))
+        elif q < policy.alpha:
+            out.append(Decision(name, "incumbent", "significance",
+                                f"{selected} is better than {name} ({test}, Holm-adjusted p={q:.3g}, {counted})", own, rival,
+                                p, ahead + behind, shared))
+        else:
+            out.append(Decision(name, "tie", "significance", keep, own, rival, p, ahead + behind, shared))
     return out
 
 
 def challengers(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
                 history: Optional[Dict[str, List[Row]]] = None, per_case: Optional[List[Row]] = None,
-                dependencies: Optional[Dependencies] = None) -> List[Row]:
-    """Rival rows that beat the selected one on the same cases and sample (see ``decisions`` for the rule). A rival on other
-    cases is skipped, and an ablation or validity arm is never a challenger."""
-    return [d.other for d in decisions(rows, selected, eval_dir, history, per_case, dependencies) if d.outcome == "rival"]
-
-
-def explain_decisions(found: List[Decision]) -> str:
-    """Each rival's deciding rule and reason in plain words, with an early label when a comparison has fewer than 30 shared cases."""
-    text = " ".join(f"[{d.rival}: {d.rule}] {d.text}" for d in found)
-    return text + (" Early result: fewer than 30 shared cases." if any(d.early and (d.paired is None) for d in found) else "")
+                policy: Optional[Policy] = None) -> List[Row]:
+    """Rival rows that should replace the selected arm (see ``decisions``). A rival on other cases is skipped, and an ablation or
+    validity arm is never a challenger."""
+    return [d.other for d in decisions(rows, selected, eval_dir, history, per_case, policy) if d.outcome == "rival" and d.switch]
 
 
 def verdict(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
             history: Optional[Dict[str, List[Row]]] = None, per_case: Optional[List[Row]] = None,
-            dependencies: Optional[Dependencies] = None) -> Tuple[str, str]:
-    """How the selected implementation stands against the other measured ones, as ``(label, detail)``. The detail says which
-    rule decided: the paired test and tie-break where per-case rows exist for both arms, else the older margin."""
-    found = decisions(rows, selected, eval_dir, history, per_case, dependencies)
-    if not any(d.paired is not None for d in found):
-        label, detail = margin_verdict(rows, selected, eval_dir, history)
-        if label == "UNMEASURED":
-            return label, detail
-        return label, (f"{detail} (rule: fixed pass margin and spend tolerance, because per-case rows are missing for one or both arms"
-                       + ("; early result, fewer than 30 shared cases)" if any(d.early for d in found) else ")"))
-    if any(d.outcome == "rival" for d in found):
-        label, lead = "LOSS", "beaten by " + ", ".join(sorted(d.rival for d in found if d.outcome == "rival")) + ". "
-    elif all(d.outcome == "incumbent" for d in found):
-        label, lead = "WIN", ""
-    else:
-        label, lead = "TIE", "no rival beats it and the metric does not separate it from " + ", ".join(sorted(d.rival for d in found if d.outcome == "tie")) + ". "
-    return label, lead + explain_decisions(found)
-
-
-def margin_verdict(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
-                   history: Optional[Dict[str, List[Row]]] = None) -> Tuple[str, str]:
-    """The older verdict: a fixed pass margin and spend tolerance, used when per-case rows are missing."""
+            policy: Optional[Policy] = None) -> Tuple[str, str]:
+    """How the selected implementation stands against the other measured ones, as ``(label, detail)``. LOSS: a rival should replace
+    it. WIN: it is shown, or guessed, better than every rival. TIE: no rival is shown better, so it stays. The detail says which
+    basis decided each rival: a significance test or a best guess."""
     if rows.get(selected) is None:
-        return "UNMEASURED", "the selected implementation has no recorded row"
+        guess, why = best_guess(rows, eval_dir)
+        return "UNMEASURED", "the selected implementation has no recorded row" + (f"; {why}" if len(rows) else "")
     pairs, unmatched = rival_pairs(rows, selected, eval_dir, history)
     if not pairs:
         if unmatched:
             return "UNMEASURED", ("no rival was measured on the same cases and sample as the selected "
                                   f"implementation: {'; '.join(f'{i} {why}' for i, why in unmatched)}")
         return "UNMEASURED", "no rival implementation was measured on the same cases"
-    beaten_by = [r["impl"] for r in challengers(rows, selected, eval_dir, history)]  # no per-case rows here: the margin rule
-    if beaten_by:
-        return "LOSS", "beaten by " + ", ".join(sorted(beaten_by))
-    tied = []
-    for cur, r in pairs:
-        if clearly_higher(cur, r, eval_dir) or cheaper_without_passing_less(cur, r, eval_dir):
-            continue
-        margin, tolerance = noise(cur, r, eval_dir)
-        tied.append((r["impl"], margin, tolerance))
-    if tied:
-        names = ", ".join(sorted(t[0] for t in tied))
-        margin, tolerance = max(t[1] for t in tied), max(t[2] for t in tied)
-        if margin:
-            return "TIE", (f"within the stated margin of {names}: pass rate inside {margin * 100:.0f} percentage "
-                           f"points and spend inside {tolerance * 100:.0f}% (sampled, model-judged runs move that "
-                           "much between re-runs), so the metric does not separate them")
-        return "TIE", (f"passes as many cases as {names} at spend within {tolerance * 100:.0f}% (or lower), so the "
-                       "metric does not separate them")
-    reasons = []
-    for cur, r in sorted(pairs, key=lambda pair: pair[1]["impl"]):
-        if clearly_higher(cur, r, eval_dir):
-            margin = noise(cur, r, eval_dir)[0]
-            reasons.append(f"passes more cases than {r['impl']}"
-                           + (f" by more than the {margin * 100:.0f} point margin" if margin else ""))
-        else:
-            (_, theirs), (_, ours) = spend(r), spend(cur)
-            saved = 1 - ours / theirs if theirs and spend(r)[0] == spend(cur)[0] else 0.0
-            reasons.append(f"same pass rate as {r['impl']} at {saved:.0%} lower spend" if saved
-                           else f"same pass rate as {r['impl']} at lower spend")
-    return "WIN", "; ".join(reasons)
+    found = decisions(rows, selected, eval_dir, history, per_case, policy)
+    text = "; ".join(d.text for d in sorted(found, key=lambda d: d.rival))
+    if any(d.outcome == "rival" and d.switch for d in found):
+        return "LOSS", "beaten by " + ", ".join(sorted(d.rival for d in found if d.outcome == "rival" and d.switch)) + ": " + text
+    if all(d.outcome == "incumbent" for d in found):
+        return "WIN", text
+    return "TIE", text
 
 
 def solution_verdicts(config: Config, solutions: List[Row], results: Optional[Dict[str, Rows]] = None,
@@ -625,7 +604,6 @@ def solution_verdicts(config: Config, solutions: List[Row], results: Optional[Di
         history = all_results(config.results_path)
         results = {comp: {impl: rows[-1] for impl, rows in impls.items()} for comp, impls in history.items()}
     per_case = per_case_rows(config) if per_case is None else per_case
-    counters = dependency_counters(config, registry) if registry is not None else {}
     out = {}
     for row in solutions:
         comp, impl = first_arm(config, row.get("metric_command", ""))
@@ -633,7 +611,8 @@ def solution_verdicts(config: Config, solutions: List[Row], results: Optional[Di
             out[row["solution_id"]] = dict(verdict="UNMEASURED", detail="no harness metric", component="",
                                            selected_by=row.get("selected_by", ""))
             continue
-        label, detail = verdict(results.get(comp, {}), impl, config.evaluation, (history or {}).get(comp), per_case, counters.get(comp))
+        label, detail = verdict(results.get(comp, {}), impl, config.evaluation, (history or {}).get(comp), per_case,
+                                policy_for(config, row["solution_id"], comp, per_case))
         out[row["solution_id"]] = dict(verdict=label, detail=detail, component=comp,
                                        selected_by=row.get("selected_by", ""))
     return out
@@ -670,14 +649,14 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
     results = {comp: {impl: rows[-1] for impl, rows in impls.items()} for comp, impls in history.items()}
     selected = selected_impls(config, registry.solutions)
     per_case = per_case_rows(config)
-    counters = dependency_counters(config, registry)
+    chosen = policies(config, registry, per_case)
     flagged = 0
     apart = {c: rows for c, rows in results.items() if invariant_reason(c, config.evaluation)}
     for component, rows in sorted(results.items()):
         if component in apart:
             continue
         sel = selected.get(component)
-        label, detail = verdict(rows, sel, config.evaluation, history[component], per_case, counters.get(component)) if sel else ("UNMEASURED", "no selected implementation")
+        label, detail = verdict(rows, sel, config.evaluation, history[component], per_case, chosen.get(component)) if sel else ("UNMEASURED", "no selected implementation: " + best_guess(rows, config.evaluation)[1])
         say(f"{component} (selected: {sel or 'none recorded'}) {label}: {detail}")
         for line in format_rows(rows, sel, config.evaluation):
             say(line)
@@ -689,16 +668,16 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
             flagged += 1 if strict else 0
             say(f"  ? {impl} is not comparable with {sel}: {why}; re-run both on the same sample "
                 "(`esoi run --stale` re-runs a rival on the selected arm's sample)")
-        for r in (challengers(rows, sel, config.evaluation, history[component], per_case, counters.get(component)) if sel else []):
+        for r in (challengers(rows, sel, config.evaluation, history[component], per_case, chosen.get(component)) if sel else []):
             flagged += 1
-            say(f"  ! {r['impl']} beats the selected {sel}: decide whether to adopt it "
+            say(f"  ! {r['impl']} should replace the selected {sel}: decide whether to adopt it "
                 "(update the solution's `selected` and the live default together)")
         for impl, why in (stale_rivals(config, component, rows, sel, stale, history[component]) if sel and stale else []):
             flagged += 1 if strict else 0
             say(f"  ~ {impl} is a rival the verdict on {sel} rests on, but {why}; re-run it on the current code "
                 "before trusting the verdict")
-    say("\nBy solution (WIN = the metric chose it; TIE = kept for the reason in selected_by, the metric did not "
-        "separate it; UNMEASURED = no rival was compared)")
+    say("\nBy solution (WIN = shown, or guessed, better than every rival; TIE = no rival is shown better, so it stays; "
+        "UNMEASURED = no rival was compared; a rival that should replace the selected arm is flagged with `!` above)")
     for sid, v in sorted(solution_verdicts(config, registry.solutions, results, history, registry, per_case).items()):
         reason = f"  kept because: {v['selected_by']}" if v["verdict"] == "TIE" else ""
         say(f"  {v['verdict']:<10} {sid}: {v['detail']}{reason}")

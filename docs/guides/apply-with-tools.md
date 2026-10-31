@@ -119,7 +119,7 @@ tells you whether they are stale; a new field appears as a missing column in you
 | `esoi consumer check` | Checks a repository that builds on a library |
 | `esoi hygiene [--history]` | Scans for secrets and private data before a public push (a folder that is not a git checkout is walked; `[hygiene.patterns]` adds your own secret shapes) |
 | `esoi select <solution>` | Shows which implementation runs and which layer of the cascade chose it |
-| `esoi select --promote [solution] [--dry-run]` | Switches `selected` to the rival that clearly wins on the solution's metric, or prints the proposal |
+| `esoi select --promote [solution] [--dry-run]` | Switches `selected` to the rival that is significantly better on the solution's metric, or prints the proposal |
 | `esoi select --snapshot FILE` | Writes the defaults and modules for a package shipped without the records |
 | `esoi records sync [--intent ID] [--dry-run]` | Writes the rows the code declares and the records lack |
 | `esoi new solution <id> [--intent ID]` | Writes the records, a code skeleton with the decorators and an evaluation folder for a new solution |

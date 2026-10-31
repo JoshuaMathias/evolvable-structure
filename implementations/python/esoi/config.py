@@ -89,6 +89,7 @@ class Config:
     skill: Dict[str, Any] = field(default_factory=dict)
     parent: Dict[str, Any] = field(default_factory=dict)   # [parent] records = "../hub" or snapshot = "..json": the package this one builds on (rule S35)
     records: Dict[str, Any] = field(default_factory=dict)   # [records] approved_fields: columns the specification's owner approved
+    switching: Dict[str, Any] = field(default_factory=dict)   # [switching] and [switching.<solution id>]: stricter requirements for switching (esoi.leaderboard.policy_for)
     evidence: Dict[str, Any] = field(default_factory=dict)   # [evidence] file = "path.csv" and [evidence.aliases] candidate = "implementation" (esoi.evidence)
     source: Optional[Path] = None
 

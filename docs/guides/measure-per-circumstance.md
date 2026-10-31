@@ -84,17 +84,16 @@ print([(cid, label) for cid, label, _ in verdicts])
 
 Read `big LOSS` as a PROPOSAL: in the big circumstance `alt@cut=5` passed 3 of 3 against 0 of 3. It is a lead for a person to
 act on, for example by measuring more cases of that kind. Nothing is selected by it, and a verdict on three cases is weak: the
-margin the board uses does not grow as the slice shrinks, so a person weighs the slice's size, its held-out cases and how many
+test sees only the slice's cases, so a person weighs the slice's size, its held-out cases and how many
 circumstances were looked at.
 
 ## The design rule for an add-on
 
 An add-on is only justified by measured marginal value over the baseline "none: provider-native plus the harness as is" in the
-circumstance it serves. The baseline is the incumbent and ties go to it, and the margin must scale with slice size.
+circumstance it serves. The baseline is the incumbent and ties go to it, and a gain must be significant on the slice's own cases.
 
 So pass the baseline arm as the incumbent to `slice_verdicts` (above, `live`): the add-on has to beat it inside the circumstance
-it serves, under the same `run_filter`, and a TIE is the baseline keeping its place. The scaling of the margin with slice size is
-not built.
+it serves, under the same `run_filter`, and a TIE is the baseline keeping its place.
 
 ## Designed, not built
 

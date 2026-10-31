@@ -518,7 +518,7 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
 
 
 PER_CASE_COLUMNS = ["component", "impl", "cases_sha", "circumstances_sha", "sample", "case_id", "heldout", "ok", "calls",
-                    "tokens_in", "tokens_out", "seconds", "circumstances"]
+                    "tokens_in", "tokens_out", "seconds", "circumstances", "score"]
 PER_CASE_KEY = leaderboard.PER_CASE_KEY
 
 
@@ -556,6 +556,24 @@ def write_per_case(config: Config, new: List[Dict[str, str]]) -> None:
         os.replace(temporary, path)
 
 
+def case_balanced_scores(config: Config, component: str, summary: Dict[str, Any], rows: List[Dict[str, Any]]) -> List[float]:
+    """The balanced score of each case of a run (``balance.case_scores``): the run's cost shared out by tokens (by model calls, else
+    equally, when no tokens were counted). Empty when the component sets no balance or the price is unknown, as for the run's own
+    balanced score."""
+    cost = run_cost(config, summary, summary.get("model"))
+    table = config.balance.get(component)
+    if table is None or cost == "" or cost is None or not rows:
+        return []
+    for field_name in ("tokens_in", "calls"):
+        weights = [float(r.get(field_name) or 0) + (float(r.get("tokens_out") or 0) if field_name == "tokens_in" else 0) for r in rows]
+        if sum(weights) > 0:
+            break
+    else:
+        weights = [1.0] * len(rows)
+    share = [float(cost) * w / sum(weights) for w in weights]
+    return balance.case_scores([bool(r["ok"]) for r in rows], share, [float(r["seconds"]) for r in rows], table)
+
+
 def record_slices(config: Config, component: str, circs: List[circumstances.Circumstance], summary: Dict[str, Any],
                   cases: List[dict], rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """The derived rows of a recorded run, one per circumstance it satisfies and has cases in (``slice:<id>``, or
@@ -563,9 +581,11 @@ def record_slices(config: Config, component: str, circs: List[circumstances.Circ
     the leaderboard's paired test needs each case's outcome; a component with no circumstances gets no derived rows). A slice costs no model call: it is a sum over the cases the run already scored."""
     key = dict(component=component, impl=summary["impl"], cases_sha=cases_digest(component, config.evaluation),
                circumstances_sha=circumstances.digest(circs) if circs else "", sample=summary["sample"])
+    scores = case_balanced_scores(config, component, summary, rows)
     write_per_case(config, [dict(key, case_id=str(c["id"]), heldout="yes" if c.get("heldout") else "", ok="1" if r["ok"] else "0",
                                  calls=r["calls"], tokens_in=r["tokens_in"], tokens_out=r["tokens_out"], seconds=r["seconds"],
-                                 circumstances=";".join(circumstances.case_circumstances(circs, c))) for c, r in zip(cases, rows)])
+                                 circumstances=";".join(circumstances.case_circumstances(circs, c)),
+                                 score=scores[i] if scores else "") for i, (c, r) in enumerate(zip(cases, rows))])
     if not circs:
         return []   # no circumstances: no derived slice rows, but the per-case outcomes still support the paired test
     total = (summary["tokens_in"] + summary["tokens_out"]) or 0

@@ -13,7 +13,7 @@
     esoi cascade [SOLUTION] [--strict]     a metric's cascading conditionals: each stage's results, the chosen implementation, what to run next
     esoi evidence-table [--file F]         Markdown table of arms, Wilson intervals, paired verdicts; written between markers in F
     esoi evidence [list|grade|rank|table]  public evidence others measured, graded A to D; complementary, never a result row
-    esoi select --promote [SOLUTION]       switch `selected` to the rival that clearly wins on the solution's own metric
+    esoi select --promote [SOLUTION]       switch `selected` to the rival shown better on the solution's own metric
     esoi select --snapshot FILE            write the defaults and modules for a package shipped without the records
     esoi tracker build|check               build or verify the review tracker tabs
     esoi consumer check --registry CSV     check a consuming repository's integration registry

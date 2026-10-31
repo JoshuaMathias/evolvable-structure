@@ -7,6 +7,8 @@ Three standard tools, each small enough to check by hand:
 * ``mcnemar_exact(only_a, only_b)``: the exact two-sided McNemar test for two arms scored on the same cases. Only the cases
   where they disagree carry information; under "neither arm is better" each disagreement goes either way with probability one
   half, so the p-value is a binomial tail on the disagreements.
+* ``sign_test_greater(wins, losses)``: the exact one-sided sign test, the question the leaderboard asks ("is this arm better?").
+  McNemar's test for pass or fail per case and the sign test on paired per-case score differences are the same binomial tail.
 * ``holm(p_values)``: Holm's correction, which keeps the chance of any false lead below the stated level when one arm is
   compared with several rivals.
 
@@ -22,7 +24,6 @@ from statistics import NormalDist
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union
 
 ALPHA = 0.05
-EARLY_BELOW = 30   # fewer shared cases than this is an early result
 
 
 def wilson_interval(passed: int, cases: int, confidence: float = 0.95) -> Tuple[float, float]:
@@ -51,6 +52,18 @@ def mcnemar_exact(only_a: int, only_b: int) -> float:
         return 1.0
     tail = sum(comb(n, i) for i in range(min(only_a, only_b) + 1))
     return float(min(Fraction(1), Fraction(2 * tail, 2 ** n)))
+
+
+def sign_test_greater(wins: int, losses: int) -> float:
+    """Exact one-sided p-value that the arm with ``wins`` cases ahead is better than the one with ``losses`` cases ahead:
+    the chance of at least ``wins`` heads in ``wins + losses`` fair coin flips. Cases that tie are left out by the caller; with
+    no disagreement at all the answer is 1."""
+    if wins < 0 or losses < 0:
+        raise ValueError("counts cannot be negative")
+    n = wins + losses
+    if n == 0:
+        return 1.0
+    return float(Fraction(sum(comb(n, i) for i in range(wins, n + 1)), 2 ** n))
 
 
 def holm(p_values: List[float]) -> List[float]:
@@ -89,8 +102,12 @@ class Paired:
         return self.both + self.only_b
 
     @property
-    def early(self) -> bool:
-        return self.cases < EARLY_BELOW
+    def p_a_better(self) -> float:
+        return sign_test_greater(self.only_a, self.only_b)
+
+    @property
+    def p_b_better(self) -> float:
+        return sign_test_greater(self.only_b, self.only_a)
 
 
 def passed(value: Any) -> bool:
@@ -131,5 +148,4 @@ def describe(result: Paired, name_a: str = "A", name_b: str = "B", adjusted: Opt
         better, worse = (name_a, name_b) if result.only_a > result.only_b else (name_b, name_a)
         verdict = (f"{better} passed more cases than {worse}, and that gap is larger than chance would explain" if p < alpha
                    else f"{better} passed more cases than {worse}, but a gap this size is common by chance")
-    early = f" Early result: fewer than {EARLY_BELOW} shared cases." if result.early else ""
-    return f"{head}; exact McNemar {label} = {p:.3g}: {verdict}.{early}"
+    return f"{head}; exact McNemar {label} = {p:.3g}: {verdict}."
