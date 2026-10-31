@@ -352,3 +352,11 @@ def test_a_sample_label_names_its_run_flags_without_the_repositorys_evaluation()
     assert harness.sample_label_args({"sample": "only:A,B"}) == ["--only", "A,B"]
     assert harness.sample_label_args({"sample": "sample:3"}) == ["--sample", "3"]
     assert harness.sample_label_args({"sample": ""}) == [] and harness.sample_label_args({}) == [] and harness.sample_label_args(None) == []
+
+
+def test_an_aggregate_headline_becomes_the_recorded_details_cell():
+    from esoi.harness import details_text
+    assert details_text({"ndcg_at_10": 0.31, "recall_at_10": 0.15}) == "ndcg_at_10=0.31; recall_at_10=0.15"
+    assert details_text("12 of 20 exact\n matches") == "12 of 20 exact matches"
+    assert details_text(None) == ""
+    assert len(details_text("x" * 500)) == 300 and details_text("x" * 500).endswith("...")

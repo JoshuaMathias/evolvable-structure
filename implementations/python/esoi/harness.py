@@ -1,7 +1,7 @@
 """Run one implementation of a solution over that solution's cases, and record the result with its provenance.
 
 A component is a folder under the evaluation directory with a ``score.py`` (``score_case(fn, case)``, optionally
-``aggregate(rows)`` for a headline and ``load_cases()`` when the cases live elsewhere), ``cases.json`` (or
+``aggregate(rows)`` for a headline, recorded as the row's ``details``, and ``load_cases()`` when the cases live elsewhere), ``cases.json`` (or
 ``cases.csv``) and ``impls/<name>.py`` exposing ``build(meter) -> fn``. The harness never imports a solution by
 name, so a new implementation is one new function; ``--impl module:build`` also accepts one that lives outside
 the repository. ``esoi run <component> --impl <name>`` drives it:
@@ -502,7 +502,9 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
             f"{summary['seconds_per_case']}s/case (weights and budgets: [balance.{component}] in the configuration)")
     score = importlib.import_module(f"{component}.score")
     if hasattr(score, "aggregate"):
-        say(f"{component}: {score.aggregate(rows)}")
+        headline = score.aggregate(rows)
+        say(f"{component}: {headline}")
+        summary["details"] = details_text(headline)
     if args.out:
         out = Path(args.out)
         out.parent.mkdir(parents=True, exist_ok=True)
@@ -515,6 +517,17 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
             for part in record_slices(config, component, circs, summary, cases, rows):
                 say(f"recorded {part['sample']}: {part['passed']}/{part['cases']} (derived from this run)")
     return summary, rows
+
+
+def details_text(headline: Any, limit: int = 300) -> str:
+    """The recorded ``details`` cell for a component's ``aggregate(rows)``: a mapping becomes ``key=value`` pairs joined by
+    ``; `` (secondary numbers such as nDCG next to the pass count), anything else its text; clipped to ``limit``."""
+    if isinstance(headline, dict):
+        text = "; ".join(f"{key}={value}" for key, value in headline.items())
+    else:
+        text = "" if headline is None else str(headline)
+    text = " ".join(text.split())
+    return text if len(text) <= limit else text[:limit - 3] + "..."
 
 
 PER_CASE_COLUMNS = ["component", "impl", "cases_sha", "circumstances_sha", "sample", "case_id", "heldout", "ok", "calls",
