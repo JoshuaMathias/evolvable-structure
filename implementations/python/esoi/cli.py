@@ -78,6 +78,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("solution", nargs="?", default=None)
     p.add_argument("--name", default=None, help="per-call choice to explain (the `using=` layer)")
     p.add_argument("--promote", action="store_true", help="switch `selected` to the rival that wins on the solution's metric")
+    p.add_argument("--apply", action="store_true", help="promote: apply the proposals of solutions whose `promotion` is not automatic (a person ran this)")
     p.add_argument("--dry-run", action="store_true", help="promote: print what would change without writing it")
     p.add_argument("--snapshot", default=None, metavar="FILE", help="write the defaults and modules as JSON for a package without the records")
     p = sub.add_parser("cascade", help="the stages of a costly metric, what each implementation reached, and what to run next")
@@ -231,7 +232,7 @@ def select_command(config, args: argparse.Namespace) -> int:
     from .select import Selector
     if args.promote:
         from . import promote
-        return promote.run_cli(config, args.solution or "", args.dry_run)
+        return promote.run_cli(config, args.solution or "", args.dry_run, args.apply)
     if args.snapshot:
         Path(args.snapshot).write_text(json.dumps(runtime.snapshot(config), indent=1, sort_keys=True) + "\n", encoding="utf-8")
         print(f"wrote {args.snapshot}")

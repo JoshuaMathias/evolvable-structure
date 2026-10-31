@@ -177,3 +177,38 @@ def test_promotion_follows_the_cascade_when_the_metric_has_one(cfg):
         r.update(passed="2", dev="2/2") if r["impl"] == "live" else r.update(passed="1", dev="1/2")
     tables.write_csv(cfg.results_path, header, results)
     assert promote.propose(cfg, registry.load(cfg), stale=lambda c, comp, row, strict: "") == []
+
+
+def clear_selected(cfg):
+    path = cfg.structure / "solutions.csv"
+    rows, cols = tables.read_csv(path), tables.read_header(path)
+    for r in rows:
+        if r["solution_id"] == "greet-a-person":
+            r["selected"] = ""
+    tables.write_csv(path, cols, rows)
+
+
+def test_an_empty_selected_gets_its_first_choice_from_the_metric_and_a_tie_names_the_arms(cfg):
+    from esoi import promote, registry
+    set_cascade(cfg, "whole [sample=full | real=no | gate=all-pass]")
+    clear_selected(cfg)
+    results, header = tables.read_csv(cfg.results_path), tables.read_header(cfg.results_path)
+    for r in results:   # one arm passes every case, the others one
+        r.update(passed="2", dev="2/2") if r["impl"] == "shout" else r.update(passed="1", dev="1/2")
+    tables.write_csv(cfg.results_path, header, results)
+    fresh_rows = lambda c, comp, row, strict: ""
+    [proposal] = promote.propose(cfg, registry.load(cfg), stale=fresh_rows)
+    assert (proposal.status, proposal.winner, proposal.selected) == ("propose", "shout", "shout")
+    assert "selected" in proposal.selected_by and "shout 2/2" in proposal.selected_by
+    for r in results:   # every arm passes every case: a tie, which the metric cannot break
+        r.update(passed="2", dev="2/2")
+    tables.write_csv(cfg.results_path, header, results)
+    [tied] = promote.propose(cfg, registry.load(cfg), stale=fresh_rows)
+    assert tied.status == "blocked" and "a tie at whole" in tied.reason and "shout 2/2" in tied.reason
+    for r in results:   # one arm only
+        if r["impl"] != "shout":
+            r["impl"] = "other"
+    only = [r for r in results if r["impl"] == "shout"][:1]
+    tables.write_csv(cfg.results_path, header, only)
+    [single] = promote.propose(cfg, registry.load(cfg), stale=fresh_rows)
+    assert single.status == "propose" and single.winner == "shout"
