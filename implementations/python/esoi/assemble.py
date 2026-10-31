@@ -35,6 +35,13 @@ for in a parent folder), else the snapshot beside the package. The deployment ta
 The cascade is: explicit name, the consumer's selections, ``AssemblyConfig.selection_environ`` (the only environment
 ``esoi`` is given, and only the variable of this scope and solution), then the package default.
 
+A package that builds on another gives ``Assembler(..., parent=other)``. The cascade then ends with the child's own default,
+then the parent's (then the parent's parent's), so the child states only what differs and every solution of the parent is
+visible to it; a name must be one the solution lists in the child or a parent. A layer value may be ``name@key=value`` or a
+list of them: a condition on ``AssemblyConfig.circumstances``, the first entry that applies winning. ``reasons`` says why a
+selection differs from a parent's default, and ``explain`` lists every layer of one solution with the winner named
+(``esoi.hierarchy``; the guide is docs/guides/hierarchical-defaults.md).
+
 It never imports a consumer: the consumer constructs the ``Assembler`` and passes it what it owns. Standard library and ``esoi``
 only. ``Assembly`` is frozen: choices and implementations are fixed when ``assemble`` returns, nothing resolves later.
 ``Assembler.choice`` and ``Assembler.resolve`` are lookups made when they are called.
@@ -51,12 +58,13 @@ import logging
 import re
 import threading
 import typing
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple
 
 from . import config as config_module
+from . import hierarchy
 from . import registry as registry_module
 from . import runtime
 from .fields import parse_tags
@@ -95,12 +103,18 @@ class AssemblyConfig:
     this object, never process-wide). ``options`` are the non-solution constructor arguments per solution id.
     ``selection_environ`` is the only environment ``esoi`` ever sees: a consumer that wants an
     ``ESOI_SELECT_<SCOPE>_<SOLUTION_ID>`` choice puts exactly that variable here, and nothing else is accepted.
+    A name in ``names``, ``selections`` or ``selection_environ`` may be ``name@key=value,...`` (or, in the first two, a list of
+    such entries): it then applies only when every ``key=value`` holds in ``circumstances``, the caller's own mapping.
+    ``reasons`` is ``{solution_id: [record id or "unconfirmed: text", ...]}`` for the ``selections`` of the same solution: why
+    it differs from a parent's default (shown by ``explain``, recorded in the ``Choice``).
     """
     solutions: Tuple[str, ...] = ()
     names: Mapping[str, str] = field(default_factory=dict)
     selections: Mapping[str, str] = field(default_factory=dict)
     options: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
     selection_environ: Mapping[str, str] = field(default_factory=dict)
+    reasons: Mapping[str, Sequence[str]] = field(default_factory=dict)
+    circumstances: Mapping[str, Any] = field(default_factory=dict)
 
 
 def builder_of(target: Any) -> Any:
@@ -244,6 +258,10 @@ class Assembly:
         except KeyError:
             raise AssemblyError(f"{solution_id!r} has no recorded choice: it was not assembled, or it was provided") from None
 
+    def explain(self, solution_id: str) -> hierarchy.Explanation:
+        """Every layer that names an arm for the solution, under the configuration this assembly was built with."""
+        return self.assembler.explain(solution_id, config=self.config)
+
     def implementation(self, solution_id: str) -> Any:
         """The implementation class or function the solution's object was built from (not instantiated again)."""
         try:
@@ -259,6 +277,7 @@ class Packaged:
     defaults: Mapping[str, str]
     modules: Mapping[Tuple[str, str], str]
     source: str
+    reasons: Mapping[str, Tuple[str, ...]] = field(default_factory=dict)   # from overrides.csv: why a default differs from a parent's
 
 
 @dataclass(frozen=True)
@@ -269,12 +288,14 @@ class Assembler:
     (the safe-loading boundary). ``modules`` are the dotted modules of the package that declare its solutions and arms:
     ``prepare`` imports exactly these, once, before any name is checked. ``records`` is the folder holding the package's
     ``esoi.toml`` (development in a checkout); leave it out and the package default comes from ``esoi_selection.json`` in
-    ``package_dir``, as an installed copy has it. Neither is ever searched for in a parent folder.
+    ``package_dir``, as an installed copy has it. Neither is ever searched for in a parent folder. ``parent`` is the Assembler
+    of the package this one builds on: its solutions, names and defaults are inherited (see the module docstring).
     """
     scope: str
     package_dir: Path
     modules: Tuple[str, ...] = ()
     records: Optional[Path] = None
+    parent: Optional["Assembler"] = None
     lock: Any = field(default_factory=threading.RLock, init=False, repr=False, compare=False)
     memo: Dict[str, Any] = field(default_factory=dict, init=False, repr=False, compare=False)
     sealed: Dict[Tuple[str, str], Any] = field(default_factory=dict, init=False, repr=False, compare=False)
@@ -361,7 +382,7 @@ class Assembler:
                     modules[(sid, runtime.key(name))] = runtime.module_for(project, where)
         except Exception as error:
             raise AssemblyError(f"the records in {root} cannot be loaded ({type(error).__name__}: {error})") from error
-        return Packaged(defaults, modules, "the records")
+        return Packaged(defaults, modules, "the records", hierarchy.read_overrides(cfg))
 
     def owned(self, target: Any) -> bool:
         """Whether a declared target is defined in the package itself (its ``__init__`` included)."""
@@ -380,6 +401,8 @@ class Assembler:
 
     def prepare(self) -> None:
         """Import the package's declaring modules once: after this the scope knows its solution ids and the arms it declares."""
+        if self.parent is not None:
+            self.parent.prepare()
         with self.lock:
             if self.memo.get("prepared"):
                 return
@@ -390,69 +413,151 @@ class Assembler:
 
     # names and the cascade
 
+    def chain(self) -> List["Assembler"]:
+        """This assembler, then its parent, then the parent's parent: nearest first."""
+        return [self] + (self.parent.chain() if self.parent is not None else [])
+
+    def visible(self) -> List[str]:
+        """Every solution id the scope or a parent declares."""
+        self.prepare()
+        return sorted({sid for one in self.chain() for scope, sid in runtime.REGISTRY if scope == one.scope})
+
     def known_solution(self, solution_id: str) -> bool:
         self.prepare()
-        return any(scope == self.scope and sid == solution_id for scope, sid in runtime.REGISTRY)
+        return any(scope == one.scope and sid == solution_id for one in self.chain() for scope, sid in runtime.REGISTRY)
 
     def check_solution(self, solution_id: str) -> str:
         check_name(solution_id, "solution id")
         if not self.known_solution(solution_id):
-            known = sorted(sid for scope, sid in runtime.REGISTRY if scope == self.scope)
-            raise AssemblyError(f"unknown solution {solution_id!r} in scope {self.scope!r}; available: {', '.join(known) or 'none'}")
+            raise AssemblyError(f"unknown solution {solution_id!r} in scope {self.scope!r}; available: {', '.join(self.visible()) or 'none'}")
         return solution_id
 
-    def names(self, solution_id: str) -> List[str]:
-        """Every implementation name that can be chosen for a solution: declared in code, recorded, or in the snapshot."""
-        self.check_solution(solution_id)
+    def own_names(self, solution_id: str) -> List[str]:
+        """The names this scope alone lists for a solution: declared in code, recorded, or in its snapshot."""
         entry = runtime.REGISTRY.get((self.scope, solution_id))
         found = set(entry.implementations) if entry else set()
         return sorted(found | {n for sid, n in self.packaged().modules if sid == solution_id})
 
+    def names(self, solution_id: str) -> List[str]:
+        """Every implementation name that can be chosen for a solution, in this scope or a parent."""
+        self.check_solution(solution_id)
+        return sorted({n for one in self.chain() for n in one.own_names(solution_id)})
+
+    def holder(self, solution_id: str, name: str) -> "Assembler":
+        """The nearest assembler of the chain that lists the name for the solution (this one when none does)."""
+        return next((one for one in self.chain() if name in one.own_names(solution_id)), self)
+
     def declared(self, solution_id: str) -> List[str]:
-        """Names the package itself declares for a solution: its records and snapshot, and code in its own modules (its
-        ``__init__`` included)."""
-        self.prepare()
-        self.seal()
-        found = {n for sid, n in self.packaged().modules if sid == solution_id}
-        return sorted(found | {n for sid, n in self.sealed if sid == solution_id})
+        """Names the package itself (and its parents) declare for a solution: records and snapshots, and code in their own
+        modules (an ``__init__`` included)."""
+        found: Set[str] = set()
+        for one in self.chain():
+            one.prepare()
+            one.seal()
+            found |= {n for sid, n in one.packaged().modules if sid == solution_id} | {n for sid, n in one.sealed if sid == solution_id}
+        return sorted(found)
 
     def module_for(self, solution_id: str, name: str) -> str:
-        """The dotted module the package's own records or snapshot name for an arm ('' when none)."""
-        return self.packaged().modules.get((solution_id, name), "")
+        """The dotted module the package's own records or snapshot (or a parent's) name for an arm ('' when none)."""
+        return next((m for one in self.chain() if (m := one.packaged().modules.get((solution_id, name), ""))), "")
 
     def selection_environ(self, config: Optional[AssemblyConfig]) -> Dict[str, str]:
         """The environment ``esoi`` is allowed to see: the config field, validated. Never the process environment. Only the
-        variable of this scope and a known solution is accepted, and its value must be a name."""
+        variable of this scope and a known solution (its own or a parent's) is accepted, and its value must be a name, or
+        ``name@key=value`` (a condition on the circumstances)."""
         self.prepare()
-        allowed = {runtime.env_name(sid, self.scope) for scope, sid in runtime.REGISTRY if scope == self.scope}
+        allowed = {runtime.env_name(sid, self.scope) for sid in self.visible()}
         found = {}
         for variable, value in dict((config or AssemblyConfig()).selection_environ).items():
             if variable not in allowed:
                 raise AssemblyError(f"selection_environ may not set {variable}: only {runtime.ENV_PREFIX}<SCOPE>_<SOLUTION_ID> of "
                                     f"scope {self.scope!r} is read (allowed: {', '.join(sorted(allowed)) or 'none'})")
             if value:
-                found[variable] = check_name(str(value), f"selection_environ {variable}")
+                try:
+                    text, base, _ = hierarchy.entries(str(value))[0]
+                except ValueError as error:
+                    raise AssemblyError(f"selection_environ {variable}: {error}") from error
+                check_name(base, f"selection_environ {variable}")
+                found[variable] = text
         return found
 
-    def pick(self, solution_id: str, name: Optional[str], cfg: AssemblyConfig) -> Optional[runtime.Choice]:
-        """The first layer that names an arm, checked against the names that can be chosen; None when no layer names one."""
+    def reasons_for(self, solution_id: str, cfg: AssemblyConfig) -> Tuple[str, ...]:
+        """The validated reasons a consumer gave for its selection of the solution (none when it gave none)."""
+        if solution_id not in cfg.reasons:
+            return ()
+        if solution_id not in cfg.selections:
+            raise AssemblyError(f"reasons are given for {solution_id!r} but selections names no arm for it; reasons say why a "
+                                "selection differs from the default")
+        try:
+            return hierarchy.check_reasons(cfg.reasons[solution_id], f"reasons for {solution_id!r}")
+        except ValueError as error:
+            raise AssemblyError(str(error)) from error
+
+    def layers(self, solution_id: str, name: Optional[str], cfg: AssemblyConfig) -> hierarchy.Explanation:
+        """Every layer that names an arm for the solution, highest priority first: explicit name, consumer selections,
+        selection environ, this scope's default, then each parent's default. A name that is not listed raises; a conditional
+        entry whose condition does not hold stays in the list, marked skipped."""
         available = self.names(solution_id)
         variable = runtime.env_name(solution_id, self.scope)
-        for layer, named in (("explicit name", name or cfg.names.get(solution_id)),
-                             ("consumer selections", cfg.selections.get(solution_id)),
-                             ("selection environ", self.selection_environ(cfg).get(variable))):
-            if named:
-                check_name(named, f"{layer} for {solution_id!r}")
-                if named not in available:
-                    raise AssemblyError(f"unknown implementation {named!r} for {solution_id!r} in scope {self.scope!r} (layer: {layer}); "
+        found: List[hierarchy.Layer] = []
+        for layer, kind, given, why, source in (("explicit name", "explicit", name or cfg.names.get(solution_id), (), ""),
+                                                ("consumer selections", "selections", cfg.selections.get(solution_id),
+                                                 self.reasons_for(solution_id, cfg), ""),
+                                                ("selection environ", "environ", self.selection_environ(cfg).get(variable), (), variable)):
+            if not given:
+                continue
+            if not isinstance(given, (str, list, tuple)):
+                check_name(given, f"{layer} for {solution_id!r}")
+            try:
+                parsed = hierarchy.entries(given)
+            except ValueError as error:
+                raise AssemblyError(f"{layer} for {solution_id!r}: {error}") from error
+            for _, base, conditions in parsed:
+                check_name(base, f"{layer} for {solution_id!r}")
+                if base not in available:
+                    raise AssemblyError(f"unknown implementation {base!r} for {solution_id!r} in scope {self.scope!r} (layer: {layer}); "
                                         f"available: {', '.join(available) or 'none'}; remedy: use one of them, or register your own "
                                         f"under a name you own with register()")
-                return runtime.Choice(named, layer, variable if layer == "selection environ" else "")
-        default = self.packaged().defaults.get(solution_id, "")
-        if default and default not in available:
-            raise AssemblyError(f"the default {default!r} of {solution_id!r} in scope {self.scope!r} (from {self.packaged().source}) is "
-                                f"not an implementation that can be chosen; available: {', '.join(available) or 'none'}")
-        return runtime.Choice(default, f"{self.scope} default", self.packaged().source) if default else None
+                found.append(hierarchy.Layer(layer, base, source, kind, "", ",".join(f"{k}={v}" for k, v in sorted(conditions.items())),
+                                             why, hierarchy.met(conditions, cfg.circumstances)))
+        for one in self.chain():
+            packaged = one.packaged()
+            default = packaged.defaults.get(solution_id, "")
+            if default:
+                broken = "" if default in available else (
+                    f"error: the default {default!r} of {solution_id!r} in scope {one.scope!r} (from {packaged.source}) is "
+                    f"not an implementation that can be chosen; available: {', '.join(available) or 'none'}")
+                found.append(hierarchy.Layer(f"{one.scope} default", default, packaged.source, "default", one.scope, "",
+                                             tuple(packaged.reasons.get(solution_id, ())), broken, one is not self))
+        parent_default = next((layer.name for layer in found if layer.inherited), "")
+        return hierarchy.Explanation(solution_id, tuple(found), parent_default)
+
+    def pick(self, solution_id: str, name: Optional[str], cfg: AssemblyConfig) -> Optional[runtime.Choice]:
+        """The first layer that names an arm and applies, checked against the names that can be chosen; None when no layer does."""
+        for layer in self.layers(solution_id, name, cfg).layers:
+            if layer.skipped.startswith("error: "):
+                raise AssemblyError(layer.skipped[len("error: "):])
+            if not layer.skipped:
+                return runtime.Choice(layer.name, layer.layer, layer.source, layer.reasons, layer.when)
+        return None
+
+    def explain(self, solution_id: str, name: Optional[str] = None, config: Optional[AssemblyConfig] = None) -> hierarchy.Explanation:
+        """One report across this scope and its parents: every layer with its value, source, condition and reasons, and the
+        winner named (``str()`` of it prints the lines). The winner is what ``choice`` returns."""
+        self.check_solution(solution_id)
+        return self.layers(solution_id, name, config or AssemblyConfig())
+
+    def overrides(self, config: Optional[AssemblyConfig] = None) -> List[hierarchy.Override]:
+        """Each solution whose chosen arm differs from a parent's default, with the reasons recorded for it. Empty with no
+        parent. ``justified`` is true when a reason is the id of a record, which an ``unconfirmed:`` marker is not."""
+        cfg = config or AssemblyConfig()
+        found = []
+        for sid in self.visible():
+            explained = self.layers(sid, None, cfg)
+            won = explained.winner
+            if explained.overrides_parent and won is not None:
+                found.append(hierarchy.Override(sid, won.name, explained.parent_default, won.layer, won.reasons))
+        return found
 
     def choice(self, solution_id: str, name: Optional[str] = None, config: Optional[AssemblyConfig] = None) -> runtime.Choice:
         """Which arm a solution would use now and which layer decided it (looked up when called). A name a layer supplies
@@ -470,9 +575,12 @@ class Assembler:
         arm the package declared is refused if something else was registered over it behind ``register``'s back."""
         self.check_solution(solution_id)
         check_name(picked, f"implementation name for {solution_id!r}")
+        holder = self.holder(solution_id, picked)
+        if holder is not self:
+            return holder.load(solution_id, picked)
         with self.lock:
             entry = runtime.REGISTRY.get((self.scope, solution_id))
-            module = self.module_for(solution_id, picked)
+            module = self.packaged().modules.get((solution_id, picked), "")
             if module and (entry is None or picked not in entry.implementations):
                 self.import_arm(module)
                 self.seal()
@@ -521,9 +629,10 @@ class Assembler:
     def solution_of(self, protocol: Any) -> Optional[str]:
         """The solution id a Protocol was declared for in this scope, or None."""
         self.prepare()
-        for (scope, sid), entry in runtime.REGISTRY.items():
-            if scope == self.scope and entry.interface is protocol:
-                return sid
+        for one in self.chain():
+            for (scope, sid), entry in runtime.REGISTRY.items():
+                if scope == one.scope and entry.interface is protocol:
+                    return sid
         return None
 
     def needs_of(self, target: Any) -> Dict[str, str]:
@@ -581,8 +690,8 @@ class Assembler:
         """A provided object must have every method and attribute the solution's Protocol names (presence by name, not
         signatures). When the solution has no Protocol to check against, that is an error: say so rather than accept."""
         self.check_solution(solution_id)
-        entry = runtime.REGISTRY.get((self.scope, solution_id))
-        protocol = entry.interface if entry is not None else None
+        protocol = next((e.interface for one in self.chain() if (e := runtime.REGISTRY.get((one.scope, solution_id))) is not None
+                         and e.interface is not None), None)
         if not (inspect.isclass(protocol) and getattr(protocol, "_is_protocol", False)):
             raise AssemblyError(f"cannot check the object provided for {solution_id!r}: the solution declares no Protocol class; "
                                 "remedy: declare it with @solution on a typing.Protocol class")
@@ -594,7 +703,7 @@ class Assembler:
     def with_a_default(self, config: AssemblyConfig) -> List[str]:
         """Every solution of the scope that some layer names an arm for. A layer that names a broken one raises."""
         self.prepare()
-        return [sid for scope, sid in sorted(runtime.REGISTRY) if scope == self.scope and self.pick(sid, None, config) is not None]
+        return [sid for sid in self.visible() if self.pick(sid, None, config) is not None]
 
     def pending_needs(self, config: AssemblyConfig, provided: Mapping[str, Any]) -> Dict[str, str]:
         """``{solution_id: one line}`` for each solution of the scope that cannot be built from defaults alone: no layer names an
@@ -635,9 +744,8 @@ class Assembler:
             state[sid] = sid not in found
             return state[sid]
 
-        for scope, sid in sorted(runtime.REGISTRY):
-            if scope == self.scope:
-                check(sid)
+        for sid in self.visible():
+            check(sid)
         return found
 
     def assemble_defaults(self, config: Optional[AssemblyConfig] = None, provided: Optional[Mapping[str, Any]] = None) -> Assembly:
@@ -649,8 +757,8 @@ class Assembler:
         given = dict(provided or {})
         self.prepare()
         pending = self.pending_needs(cfg, given)
-        wanted = tuple(sid for scope, sid in sorted(runtime.REGISTRY) if scope == self.scope and sid not in pending)
-        built = self.assemble(AssemblyConfig(wanted, cfg.names, cfg.selections, cfg.options, cfg.selection_environ), given)
+        wanted = tuple(sid for sid in self.visible() if sid not in pending)
+        built = self.assemble(replace(cfg, solutions=wanted), given)
         return Assembly(built.assembler, built.config, {sid: (built.objects[sid], built.reason_by_solution[sid], built.choices.get(sid),
                                                            built.implementations.get(sid)) for sid in built.objects}, pending)
 
@@ -662,6 +770,8 @@ class Assembler:
         given = dict(provided or {})
         self.prepare()
         self.selection_environ(cfg)
+        for sid in cfg.reasons:
+            self.reasons_for(sid, cfg)
         for sid, obj in given.items():
             self.check_provided(sid, obj)
         built: Dict[str, Tuple[Any, str, Any, Any]] = {}
@@ -702,7 +812,7 @@ class Assembler:
             else:
                 obj = target
             reason = (f"{sid} -> {picked.name} (layer: {picked.layer}, package version {package_version(target)}, "
-                      f"config hash {config_hash(options)})")
+                      f"config hash {config_hash(options)}{', reasons: ' + '; '.join(picked.reasons) if picked.reasons else ''})")
             built[sid] = (obj, reason, picked, target)
             return obj
 

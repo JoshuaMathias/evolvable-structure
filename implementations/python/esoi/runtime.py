@@ -87,6 +87,8 @@ class Choice:
     name: str
     layer: str
     source: str = ""
+    reasons: Tuple[str, ...] = ()   # why a consumer chose this arm (record ids, or an unconfirmed marker); set by esoi.assemble
+    when: str = ""   # the circumstance condition of a conditional entry (``name@key=value``) that applied; set by esoi.assemble
 
 
 @dataclass

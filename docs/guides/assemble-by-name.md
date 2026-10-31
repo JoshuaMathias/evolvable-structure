@@ -111,3 +111,9 @@ It reads no environment: the only environment `esoi` sees is `AssemblyConfig.sel
 not import your application, install anything, or choose the best arm; the metric does that (`esoi select --promote`).
 What belongs in `esoi` and what stays in your application is in
 [What belongs where](../explanation/what-belongs-where.md).
+
+## Build on another package's defaults
+
+A package that builds on another gives `Assembler(..., parent=other)`; the cascade then ends in the child's default and the parent's, a
+choice that differs can carry `reasons`, and `explain` shows every layer. See
+[Build on another package's defaults and say why you differ](hierarchical-defaults.md).

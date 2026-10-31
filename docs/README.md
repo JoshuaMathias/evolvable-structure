@@ -56,6 +56,8 @@ a team process, a personal schedule.
 - [Migrate to intents](guides/migrate-to-intents.md): from the two-level overall layout.
 - [Install the skill](guides/install-the-skill.md): give an AI agent the principles.
 - [Assemble the parts of a program by name](guides/assemble-by-name.md): resolve, build in dependency order, fail early.
+- [Build on another package's defaults and say why you differ](guides/hierarchical-defaults.md): a parent's defaults, one `explain`, reasons for each override, rule S35.
+- [Override only what differs, and say why](explanation/override-only-what-differs.md): why defaults are hierarchical and an override cites its own records.
 - [Keep a metric's value before and after a piece of work](guides/measure-before-and-after.md): find the slice of the specification, read the metric twice, keep the rows.
 - [Measure an implementation per circumstance](guides/measure-per-circumstance.md): circumstances, variants, slice rows, and how to read a slice verdict as a proposal.
 
