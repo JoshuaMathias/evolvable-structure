@@ -168,13 +168,13 @@ def test_promotion_follows_the_cascade_when_the_metric_has_one(cfg):
     set_cascade(cfg, "whole [sample=full | real=no]")
     results, header = tables.read_csv(cfg.results_path), tables.read_header(cfg.results_path)
     for r in results:   # the baseline passes every case and the live arm one
-        r.update(passed="2", dev="2/2") if r["impl"] == "shout" else r.update(passed="1", dev="1/2")
+        r.update(cases="40", passed="40", dev="40/40") if r["impl"] == "shout" else r.update(cases="40", passed="20", dev="20/40")
     tables.write_csv(cfg.results_path, header, results)
     [proposal] = promote.propose(cfg, registry.load(cfg), stale=lambda c, comp, row, strict: "")
     assert (proposal.winner, proposal.current) == ("shout", "live")
     assert "metric cascade" in proposal.selected_by and "latest stage run" in proposal.selected_by
     for r in results:   # the live arm passes every case: the cascade keeps it
-        r.update(passed="2", dev="2/2") if r["impl"] == "live" else r.update(passed="1", dev="1/2")
+        r.update(cases="40", passed="40", dev="40/40") if r["impl"] == "live" else r.update(cases="40", passed="20", dev="20/40")
     tables.write_csv(cfg.results_path, header, results)
     assert promote.propose(cfg, registry.load(cfg), stale=lambda c, comp, row, strict: "") == []
 

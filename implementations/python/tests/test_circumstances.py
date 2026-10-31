@@ -137,11 +137,11 @@ def test_a_recorded_run_adds_a_row_per_circumstance_and_a_per_case_log_and_the_d
     assert next(r for r in per_case if r["impl"] == "live" and r["case_id"] == "c7")["circumstances"] == "big"
     history = leaderboard.all_results(cfg.results_path)["greet_a_person"]
     assert all(not leaderboard.slice_id(r) for rows in history.values() for r in rows)   # slices stay out of the default board
-    assert leaderboard.verdict({i: h[-1] for i, h in history.items()}, "live", history=history)[0] == "WIN"
+    assert leaderboard.verdict({i: h[-1] for i, h in history.items()}, "live", history=history)[0] == "TIE"   # 5/8 against 3/8: not shown
     record(cfg, score, "live", "--only", "c6,c7,c8")   # a named-case run records no slice and cannot decide the verdict
     assert len(harness.read_per_case(cfg)) == 16
     assert [v[:2] for v in leaderboard.slice_verdicts("greet_a_person", "live", leaderboard.slice_results(cfg.results_path))] == [
-        ("big", "LOSS"), ("small", "WIN")]   # alt beats live in the big slice: a proposal for a person, nothing is selected
+        ("big", "TIE"), ("small", "WIN")]   # 3 of 3 against 0 of 3 is p = 0.05, not shown: a lead for a person, nothing is selected
 
 
 def test_the_per_case_log_merges_by_key_prunes_old_cases_and_never_leaves_a_temporary_file(repo):

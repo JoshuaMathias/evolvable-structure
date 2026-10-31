@@ -83,7 +83,7 @@ def verdict_label(d: "leaderboard.Decision") -> str:
     if d.basis == "best guess":
         number = "point estimates only, no per-case rows for both arms"
     else:
-        number = f"Holm-adjusted p = {d.p:.3g}, {d.disagree} of {d.shared} cases disagree"
+        number = f"Holm-adjusted p = {d.p:.3g}" + ("" if "Fisher" in d.text else f", {d.disagree} of {d.shared} cases disagree")
     return f"{standing}: {d.rule}, {number}"
 
 
@@ -150,7 +150,7 @@ def evidence_table(config: Config, registry: Registry, today: Optional[datetime.
     lines.append("")
     lines.append("Pass rates carry the 95% Wilson interval. A verdict compares an arm with the selected arm on identical cases: it "
                  "leads only when a one-sided exact paired test (McNemar for pass or fail per case, a sign test on per-case scores, Holm-adjusted across rivals) gives p below "
-                 "0.05; otherwise the selected arm stays. Without per-case rows the point estimates are compared and labelled a best guess. "
+                 "0.05; otherwise the selected arm stays. Without per-case rows, pass counts get Fisher's exact test; a figure with no case counts is compared on point estimates and labelled a best guess. "
                  "The width of the interval shows how little a small sample says. Public evidence is what others measured, graded, and is never added "
                  "to these numbers.")
     return "\n".join(lines)

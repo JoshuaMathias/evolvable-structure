@@ -39,7 +39,10 @@ the question a scientist would:
    McNemar test. For a metric that is a score per case (the balanced score), it is the exact sign test on the paired scores. The
    test is one-sided: the question is only "is the challenger better?". With several rivals, Holm's correction raises the
    p-values so that looking at many rivals does not manufacture a winner. The default significance level is 0.05.
-3. **A significant gain switches. Anything else keeps the selected arm.** The verdict then says, for example, "b is not shown
+3. **Only totals?** If per-case rows are missing but both arms have pass counts on the same cases and sample, Fisher's exact
+   one-sided test on the two totals is used instead. It is weaker than the paired test (it cannot use the fact that both arms
+   saw the same cases), so it needs a bigger gap, but it is still a test. The verdict names the test it used.
+4. **A significant gain switches. Anything else keeps the selected arm.** The verdict then says, for example, "b is not shown
    better than a (p=0.0625, 4 of 30 cases disagree); more cases would settle it". The way forward is more cases (the next
    cascade stage), never a margin.
 
@@ -47,10 +50,11 @@ Every pass rate is shown with its 95% Wilson interval, which shows how little a 
 
 ### Best guess
 
-Sometimes no test is possible: a single aggregate number, a public figure, one judgement. Then the point estimates of the
-metric are compared and the verdict says "best guess". A best guess may switch the selection only while the solution has never
-had per-case results (after that, it should be tested). Exactly equal estimates keep the selected arm. When nothing is selected
-yet, the best point estimate is chosen and labelled a best guess; if the top estimates are exactly equal, nothing is selected.
+A best guess is only for what cannot be tested: a figure with no case counts (a balanced score recorded as one number, a public
+figure, one judgement), or a choice with no selected arm yet. Then the point estimates of the metric are compared and the verdict
+says "best guess". A best guess may switch the selection only while the solution has never had per-case results (after that, it
+should be tested). Exactly equal estimates keep the selected arm. When nothing is selected yet, the best point estimate is chosen
+and labelled a best guess; if the top estimates are exactly equal, nothing is selected.
 
 ### Stricter requirements, optional
 

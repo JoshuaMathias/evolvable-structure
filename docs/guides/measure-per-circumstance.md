@@ -67,7 +67,7 @@ print([row for row in rows if row[0] == "alt@cut=5"])
 # [('alt@cut=5', 'full', '3/8'), ('alt@cut=5', 'slice:big', '3/3'), ('alt@cut=5', 'slice:small', '0/5')]
 ```
 
-On the full set `live` (5/8) beats `alt@cut=5` (3/8), and the slice rows stay out of that verdict (so does a run of named cases
+On the full set `live` (5/8) is not shown different from `alt@cut=5` (3/8), and the slice rows stay out of that verdict (so does a run of named cases
 recorded with `--only`; an arm recorded only on named cases is listed as `not comparable: named cases only`, never skipped).
 
 ## Reading a slice verdict
@@ -79,13 +79,13 @@ from esoi import leaderboard
 
 verdicts = leaderboard.slice_verdicts("greet_a_person", "live", leaderboard.slice_results(config.results_path))
 print([(cid, label) for cid, label, _ in verdicts])
-# [('big', 'LOSS'), ('small', 'WIN')]
+# [('big', 'TIE'), ('small', 'WIN')]
 ```
 
-Read `big LOSS` as a PROPOSAL: in the big circumstance `alt@cut=5` passed 3 of 3 against 0 of 3. It is a lead for a person to
-act on, for example by measuring more cases of that kind. Nothing is selected by it, and a verdict on three cases is weak: the
-test sees only the slice's cases, so a person weighs the slice's size, its held-out cases and how many
-circumstances were looked at.
+Read `big TIE` as a lead, not a result: in the big circumstance `alt@cut=5` passed 3 of 3 against 0 of 3, which an exact test
+puts at p = 0.05, not below it, so `live` stays and the verdict says more cases would settle it. A slice verdict is a PROPOSAL for a
+person, nothing is selected by it, and the test sees only the slice's cases, so a person weighs the slice's size, its held-out cases
+and how many circumstances were looked at.
 
 ## The design rule for an add-on
 

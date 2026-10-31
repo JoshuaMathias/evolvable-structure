@@ -2,6 +2,7 @@
 import pytest
 
 from esoi import leaderboard as lb
+from esoi import stats
 from esoi.config import Config
 from esoi.registry import Registry
 
@@ -22,15 +23,16 @@ def test_higher_pass_rate_wins_and_ties_break_on_cost():
 
 
 def test_a_challenger_must_beat_the_selected_outside_the_margin():
-    assert [r["impl"] for r in lb.challengers(rows(row("a", 5), row("b", 6)), "a")] == ["b"]
+    assert [r["impl"] for r in lb.challengers(rows(row("a", 5), row("b", 10)), "a")] == ["b"]
+    assert lb.challengers(rows(row("a", 5), row("b", 6)), "a") == []   # a gap of one case in ten is not shown
     assert lb.challengers(rows(row("a", 5), row("b", 5)), "a") == []
     assert lb.challengers(rows(row("a", 5), row("b", 9, sha="y")), "a") == []   # other cases are no evidence
 
 
 def test_verdicts():
-    assert lb.verdict(rows(row("a", 6), row("b", 5)), "a")[0] == "WIN"
+    assert lb.verdict(rows(row("a", 10), row("b", 5)), "a")[0] == "WIN"
     assert lb.verdict(rows(row("a", 6, cost=1.0), row("b", 6, cost=1.05)), "a")[0] == "TIE"
-    assert lb.verdict(rows(row("a", 5), row("b", 6)), "a")[0] == "LOSS"
+    assert lb.verdict(rows(row("a", 5), row("b", 10)), "a")[0] == "LOSS"
     assert lb.verdict(rows(row("a", 6)), "a")[0] == "UNMEASURED"
     assert lb.verdict(rows(row("b", 6)), "a")[0] == "UNMEASURED"
 
@@ -71,7 +73,7 @@ def test_the_board_prints_a_verdict_and_strict_fails_on_a_challenger(tmp_path):
     (tmp_path / "evaluation" / "components").mkdir(parents=True)
     (tmp_path / "evaluation" / "components" / "results.csv").write_text(
         "date,component,impl,cases,passed,heldout,model_calls,tokens_in,tokens_out,cost_usd,cases_sha\n"
-        "2026-01-01,mini,a,10,5,0/0,0,0,0,0.0,x\n2026-01-01,mini,b,10,8,0/0,0,0,0,0.0,x\n")
+        "2026-01-01,mini,a,10,5,0/0,0,0,0,0.0,x\n2026-01-01,mini,b,10,10,0/0,0,0,0,0.0,x\n")
     registry = Registry(solutions=[{"solution_id": "s", "selected": "a", "selected_by": "hand",
                                     "metric_command": "esoi run mini --impl a"}])
     lines = []
@@ -169,7 +171,7 @@ def test_the_board_names_the_mismatch_and_strict_reports_it(tmp_path):
 
 def test_a_recorded_only_run_does_not_decide_the_default_verdict():
     """Hazard: `esoi run --only ids --record` once made the slice the newest key both arms share, so it decided the verdict."""
-    full_a, full_b = row("a", 8, cases=10, date="2026-01-01"), row("b", 5, cases=10, date="2026-01-01")
+    full_a, full_b = row("a", 10, cases=10, date="2026-01-01"), row("b", 5, cases=10, date="2026-01-01")
     only_a = row("a", 0, cases=2, sample="only:X,Y", date="2026-02-01")
     only_b = row("b", 2, cases=2, sample="only:X,Y", date="2026-02-01")
     hist = history(full_a, full_b, only_a, only_b)
@@ -262,7 +264,8 @@ def test_a_per_case_log_from_another_run_is_not_used():
     data, log = arms([True] * 30, [True] * 29 + [False])
     data["b"]["passed"] = "30"   # the results row no longer matches the logged outcomes
     assert lb.case_outcomes(log, data["b"]) is None
-    assert lb.decisions(data, "a", per_case=log)[0].basis == "best guess"
+    found = lb.decisions(data, "a", per_case=log)[0]   # without matching per-case rows the pass counts still allow Fisher's exact test
+    assert found.basis == "significance" and "Fisher" in found.text
 
 
 def test_a_balanced_metric_is_tested_with_an_exact_sign_test_on_per_case_scores():
@@ -276,16 +279,26 @@ def test_a_balanced_metric_is_tested_with_an_exact_sign_test_on_per_case_scores(
     assert nothing.basis == "best guess"
 
 
-def test_a_best_guess_compares_point_estimates_and_switches_only_if_allowed():
-    data = rows(row("a", 5), row("b", 6))
+def test_aggregate_pass_counts_on_the_same_cases_get_fishers_exact_test():
+    data = rows(row("a", 10, 40), row("b", 22, 40))
+    found = lb.decisions(data, "a")[0]
+    assert found.basis == "significance" and found.outcome == "rival" and "exact Fisher test" in found.text and found.switch
+    assert found.p == pytest.approx(stats.fisher_exact_greater(22, 40, 10, 40))
+    assert lb.verdict(rows(row("a", 20, 40), row("b", 24, 40)), "a")[0] == "TIE"
+    assert "not shown better" in lb.verdict(rows(row("a", 20, 40), row("b", 24, 40)), "a")[1]
+    assert lb.decisions(rows(row("a", 20, 40), row("b", 24, 40, sha="")), "a") == []   # an unverified row is no comparison
+
+
+def test_a_best_guess_is_for_figures_a_test_cannot_use_and_switches_only_if_allowed():
+    data = rows(row("a", 5, balanced="0.50"), row("b", 6, balanced="0.60"))   # an aggregate balanced score has no case counts to test
     label, detail = lb.verdict(data, "a")
-    assert label == "LOSS" and "best guess" in detail and "significance cannot be tested" in detail
+    assert label == "LOSS" and "best guess" in detail and "allow a test" in detail
     assert lb.challengers(data, "a") != []
     off = lb.Policy(best_guess_switch=False)
     label, detail = lb.verdict(data, "a", policy=off)
     assert label == "TIE" and "switching on a best guess is off" in detail and lb.challengers(data, "a", policy=off) == []
-    assert lb.verdict(rows(row("a", 6), row("b", 5)), "a")[0] == "WIN"
-    label, detail = lb.verdict(rows(row("a", 6, cost=1.0), row("b", 6, cost=0.1)), "a")
+    assert lb.verdict(rows(row("a", 6, balanced="0.60"), row("b", 5, balanced="0.50")), "a")[0] == "WIN"
+    label, detail = lb.verdict(rows(row("a", 6, cost=1.0, balanced="0.6"), row("b", 6, cost=0.1, balanced="0.6")), "a")
     assert label == "TIE" and "exactly equal" in detail   # equal estimates keep the incumbent, whatever the cost
 
 

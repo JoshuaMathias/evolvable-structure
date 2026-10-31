@@ -147,7 +147,7 @@ def test_promote_proposes_or_applies_by_the_solutions_policy(repo, capsys):
     results = repo / "evaluation" / "components" / "results.csv"
     rows, cols = tables.read_csv(results), tables.read_header(results)
     for row in rows:   # the baseline now passes every case and the live arm one: a clear loss
-        row.update(passed="2", dev="2/2") if row["impl"] == "shout" else row.update(passed="1", dev="1/2")
+        row.update(cases="40", passed="40", dev="40/40") if row["impl"] == "shout" else row.update(cases="40", passed="20", dev="20/40")
     tables.write_csv(results, cols, rows)
     assert run(repo, "select", "--promote") == 1
     out = capsys.readouterr().out

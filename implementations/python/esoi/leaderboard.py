@@ -30,9 +30,9 @@ The rule is pragmatic and statistical. The authoritative metric is the pass rate
 arm when its improvement on shared cases is statistically significant: a one-sided exact paired test (McNemar for pass or fail
 per case, an exact sign test on the paired per-case balanced scores), Holm-adjusted across the rivals, at ``alpha`` 0.05. When it
 is not significant the selected arm stays and the verdict says "not shown better (p=..., k of n cases disagree); more cases would
-settle it": the way forward is more cases (the next cascade stage), never a margin. Where a test is not possible (no per-case rows
-for both arms: an aggregate, a public figure, one judgement) the point estimates are compared and the result is labelled a "best
-guess"; it switches only if the solution allows it, and exactly equal estimates keep the selected arm. The library specifies nothing else: cost, speed and dependencies enter only through the authoritative metric, which is
+settle it": the way forward is more cases (the next cascade stage), never a margin. Without per-case rows, aggregate pass counts on the same cases and sample get Fisher's exact one-sided test. Where no test is
+possible (a balanced aggregate, a figure with no case count, one judgement) the point estimates are compared and the result is
+labelled a "best guess"; it switches only if the solution allows it, and exactly equal estimates keep the selected arm. The library specifies nothing else: cost, speed and dependencies enter only through the authoritative metric, which is
 responsible for them. A project (``[switching]``) or a solution (``[switching.<solution id>]``, which overrides the project) may only
 make the rule stricter: a lower ``alpha``, ``min_cases`` shared cases, a cascade stage that must have been reached
 (``require_stage``), or ``best_guess_switch = false``; the verdict names the requirement that applied. Best-guess switching is on by
@@ -490,7 +490,9 @@ class Decision:
 
     @property
     def rule(self) -> str:
-        return "one-sided paired test" if self.basis == "significance" else "best guess"
+        if self.basis != "significance":
+            return "best guess"
+        return "one-sided exact Fisher test" if "Fisher" in self.text else "one-sided paired test"
 
 
 def disagreements(per_case: Optional[List[Row]], own: Row, rival: Row) -> Optional[Tuple[int, int, int, str]]:
@@ -508,58 +510,81 @@ def disagreements(per_case: Optional[List[Row]], own: Row, rival: Row) -> Option
     return (sum(b[c] and not a[c] for c in a), sum(a[c] and not b[c] for c in a), len(a), "exact McNemar test")
 
 
+def aggregate_counts(own: Row, rival: Row) -> Optional[Tuple[int, int, int, int]]:
+    """``(rival passed, rival cases, selected passed, selected cases)`` when both rows are verified runs of the same cases and sample
+    with pass counts and the metric is the pass rate: enough for an unpaired exact test when no per-case rows exist."""
+    if unverified(own) or unverified(rival) or uses_balanced(own, rival) or str(own.get("balanced") or rival.get("balanced") or "").strip():
+        return None
+    try:
+        counts = (int(float(rival["passed"])), int(float(rival["cases"])), int(float(own["passed"])), int(float(own["cases"])))
+    except (KeyError, ValueError):
+        return None
+    return counts if counts[1] > 0 and counts[3] > 0 and 0 <= counts[0] <= counts[1] and 0 <= counts[2] <= counts[3] else None
+
+
 def decisions(rows: Rows, selected: str, eval_dir: Optional[Path] = None, history: Optional[Dict[str, List[Row]]] = None,
               per_case: Optional[List[Row]] = None, policy: Optional[Policy] = None) -> List[Decision]:
     """One ``Decision`` per rival scored on the same cases as ``selected``, on the solution's authoritative metric.
 
-    A rival with per-case rows for both arms is tested, one-sided: it replaces the selected arm only when it is better by an exact
-    paired test whose p-value, Holm-adjusted across the rivals, is below ``policy.alpha``. Otherwise the selected arm is kept and the
-    detail says the rival is not shown better and how many cases disagree. A rival without per-case rows is compared on point
-    estimates and labelled a best guess; it replaces the selected arm only if ``policy.best_guess_switch`` allows, and exactly equal
-    estimates keep the selected arm."""
+    The test is one-sided and exact, and a rival replaces the selected arm only when its Holm-adjusted p-value (across the rivals) is
+    below ``policy.alpha`` (default 0.05). With per-case rows for both arms the test is paired (McNemar for pass or fail per case, a
+    sign test on per-case balanced scores). With only aggregate pass counts on the same cases and sample it is Fisher's exact test on
+    the 2 by 2 table of passed and failed cases. Otherwise (a balanced aggregate, a figure with no case count) the point estimates are
+    compared and labelled a best guess, which replaces the selected arm only if ``policy.best_guess_switch`` allows; exactly equal
+    estimates keep the selected arm. Not significant: the selected arm stays and the detail says so."""
     policy = policy or Policy()
     pairs = rival_pairs(rows, selected, eval_dir, history)[0]
-    tested = [(own, rival, disagreements(per_case, own, rival)) for own, rival in pairs]
-    better = iter(stats.holm([stats.sign_test_greater(d[0], d[1]) for _, _, d in tested if d is not None]))
-    worse = iter(stats.holm([stats.sign_test_greater(d[1], d[0]) for _, _, d in tested if d is not None]))
-    out: List[Decision] = []
-    for own, rival, found in tested:
+    tested = []   # (own, rival, p rival better, p selected better, cases that differ, shared, test name, how the evidence reads)
+    for own, rival in pairs:
         name = rival["impl"]
-        if found is None:
+        found = disagreements(per_case, own, rival)
+        if found is not None:
+            ahead, behind, shared, test = found
+            tested.append((own, rival, stats.sign_test_greater(ahead, behind), stats.sign_test_greater(behind, ahead), ahead + behind, shared,
+                           test, f"{ahead + behind} of {shared} cases disagree"))
+            continue
+        agg = aggregate_counts(own, rival)
+        if agg is not None:
+            xr, nr, xo, no = agg
+            tested.append((own, rival, stats.fisher_exact_greater(xr, nr, xo, no), stats.fisher_exact_greater(xo, no, xr, nr), 0, min(nr, no),
+                           "exact Fisher test on the pass counts (no per-case rows)", f"{name} passed {xr} of {nr}, {selected} {xo} of {no}"))
+        else:
+            tested.append((own, rival, None, None, 0, 0, "", ""))
+    better = iter(stats.holm([t[2] for t in tested if t[2] is not None]))
+    worse = iter(stats.holm([t[3] for t in tested if t[3] is not None]))
+    out: List[Decision] = []
+    for own, rival, raw, _, differ, shared, test, counted in tested:
+        name = rival["impl"]
+        if raw is None:
             mine, theirs = estimate(own), estimate(rival)
-            label = f"{name} {pass_rate(rival):.3g} against {selected} {pass_rate(own):.3g} on the point estimate"
-            note = "best guess: " + label + "; per-case rows are missing for one or both arms, so significance cannot be tested"
+            note = (f"best guess: {name} {pass_rate(rival):.3g} against {selected} {pass_rate(own):.3g} on the point estimate; "
+                    "no case counts or per-case rows allow a test")
             if theirs > mine:
                 if policy.best_guess_switch:
                     out.append(Decision(name, "rival", "best guess", note, own, rival, switch=True))
                 else:
-                    out.append(Decision(name, "rival", "best guess", note + "; switching on a best guess is off for this solution, so "
-                                        f"{selected} stays", own, rival))
+                    out.append(Decision(name, "rival", "best guess", note + f"; switching on a best guess is off, so {selected} stays", own, rival))
             elif mine > theirs:
                 out.append(Decision(name, "incumbent", "best guess", note, own, rival))
             else:
-                out.append(Decision(name, "tie", "best guess", note + "; exactly equal, so " + f"{selected} stays", own, rival))
+                out.append(Decision(name, "tie", "best guess", note + f"; exactly equal, so {selected} stays", own, rival))
             continue
-        ahead, behind, shared, test = found
         p, q = next(better), next(worse)
-        counted = f"{ahead + behind} of {shared} cases disagree"
         keep = f"{name} is not shown better than {selected} (p={p:.3g}, {counted}); more cases would settle it"
+        args = (own, rival, p, differ, shared)
         if shared < policy.min_cases:
             out.append(Decision(name, "tie", "significance", f"{keep}: the {policy.source('min_cases')} requires at least {policy.min_cases} "
-                                f"shared cases and there are {shared}", own, rival, p, ahead + behind, shared))
+                                f"shared cases and there are {shared}", *args))
         elif p < policy.alpha:
-            out.append(Decision(name, "rival", "significance",
-                                f"{name} is better than {selected} ({test}, Holm-adjusted p={p:.3g}, {counted})", own, rival,
-                                p, ahead + behind, shared, switch=True))
+            out.append(Decision(name, "rival", "significance", f"{name} is better than {selected} ({test}, Holm-adjusted p={p:.3g}, {counted})",
+                                *args, switch=True))
         elif p < ALPHA:
             out.append(Decision(name, "tie", "significance", f"{keep}: it is significant at alpha {ALPHA:g} but the "
-                                f"{policy.source('alpha')} requires alpha {policy.alpha:g}", own, rival, p, ahead + behind, shared))
+                                f"{policy.source('alpha')} requires alpha {policy.alpha:g}", *args))
         elif q < policy.alpha:
-            out.append(Decision(name, "incumbent", "significance",
-                                f"{selected} is better than {name} ({test}, Holm-adjusted p={q:.3g}, {counted})", own, rival,
-                                p, ahead + behind, shared))
+            out.append(Decision(name, "incumbent", "significance", f"{selected} is better than {name} ({test}, Holm-adjusted p={q:.3g}, {counted})", *args))
         else:
-            out.append(Decision(name, "tie", "significance", keep, own, rival, p, ahead + behind, shared))
+            out.append(Decision(name, "tie", "significance", f"{keep} ({test})", *args))
     return out
 
 

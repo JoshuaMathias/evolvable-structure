@@ -67,3 +67,12 @@ def test_the_one_sided_sign_test_is_the_binomial_tail():
 def test_only_shared_cases_count_and_the_rest_are_reported():
     result = stats.paired_counts({"a": True, "b": True, "x": True}, {"a": False, "b": True, "y": False})
     assert result.cases == 2 and result.skipped == 2 and result.only_a == 1
+
+
+def test_fishers_exact_test_on_two_pass_counts():
+    # 3 of 3 against 0 of 3: only one table has the first arm holding all three passes, 1 of C(6,3) = 20
+    assert stats.fisher_exact_greater(3, 3, 0, 3) == pytest.approx(1 / 20)
+    assert stats.fisher_exact_greater(0, 3, 3, 3) == 1.0 and stats.fisher_exact_greater(5, 10, 5, 10) > 0.5
+    assert stats.fisher_exact_greater(8, 10, 2, 10) == pytest.approx(0.0115, abs=1e-4)
+    with pytest.raises(ValueError):
+        stats.fisher_exact_greater(4, 3, 0, 3)

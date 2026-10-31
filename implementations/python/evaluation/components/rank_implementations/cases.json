@@ -7,15 +7,15 @@
    "rows": [
     {
      "impl": "b",
-     "passed": 6,
-     "cases": 10,
+     "passed": 36,
+     "cases": 40,
      "cost_usd": 0.0,
      "cases_sha": "x"
     },
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 20,
+     "cases": 40,
      "cost_usd": 0.0,
      "cases_sha": "x"
     }
@@ -43,22 +43,22 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 20,
+     "cases": 40,
      "cost_usd": 0.0,
      "cases_sha": "x"
     },
     {
      "impl": "b",
-     "passed": 9,
-     "cases": 10,
+     "passed": 39,
+     "cases": 40,
      "cost_usd": 0.0,
      "cases_sha": "x"
     },
     {
      "impl": "c",
-     "passed": 7,
-     "cases": 10,
+     "passed": 28,
+     "cases": 40,
      "cost_usd": 0.0,
      "cases_sha": "x"
     }
@@ -406,16 +406,16 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 20,
+     "cases": 40,
      "cost_usd": 0.0,
      "cases_sha": "aaaa1111",
      "date": "2026-10-16"
     },
     {
      "impl": "b",
-     "passed": 8,
-     "cases": 10,
+     "passed": 32,
+     "cases": 40,
      "cost_usd": 0.0,
      "cases_sha": "aaaa1111",
      "date": "2026-10-16"
@@ -446,16 +446,16 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 20,
+     "cases": 40,
      "cost_usd": 0.0,
      "cases_sha": "aaaa1111",
      "date": "2026-10-16"
     },
     {
      "impl": "b",
-     "passed": 8,
-     "cases": 10,
+     "passed": 32,
+     "cases": 40,
      "cost_usd": 0.0,
      "cases_sha": "aaaa1111",
      "date": "2026-10-16"
@@ -716,15 +716,15 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 6,
-     "cases": 10,
+     "passed": 34,
+     "cases": 40,
      "cost_usd": 0.0,
      "cases_sha": "x"
     },
     {
      "impl": "b",
-     "passed": 5,
-     "cases": 10,
+     "passed": 20,
+     "cases": 40,
      "cost_usd": 0.0,
      "cases_sha": "x"
     }
@@ -803,15 +803,15 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 20,
+     "cases": 40,
      "cost_usd": 0.0,
      "cases_sha": "x"
     },
     {
      "impl": "b",
-     "passed": 6,
-     "cases": 10,
+     "passed": 36,
+     "cases": 40,
      "cost_usd": 0.0,
      "cases_sha": "x"
     }
@@ -1384,8 +1384,8 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 10,
-     "cases": 10,
+     "passed": 40,
+     "cases": 40,
      "cost_usd": 0.0,
      "cases_sha": "x",
      "model_calls": 12,
@@ -1396,8 +1396,8 @@
     },
     {
      "impl": "b",
-     "passed": 7,
-     "cases": 10,
+     "passed": 28,
+     "cases": 40,
      "cost_usd": 0.0,
      "cases_sha": "x",
      "model_calls": 0,
@@ -1697,7 +1697,7 @@
  {
   "id": "RNK-045",
   "kind": "verdict",
-  "area": "without per-case rows the point estimates are a best guess",
+  "area": "without per-case rows the point estimates are a best guess (a balanced aggregate has no case counts to test)",
   "args": {
    "rows": [
     {
@@ -1705,14 +1705,16 @@
      "passed": 15,
      "cases": 30,
      "cost_usd": 0.0,
-     "cases_sha": "x"
+     "cases_sha": "x",
+     "balanced": 0.5
     },
     {
      "impl": "b",
      "passed": 20,
      "cases": 30,
      "cost_usd": 0.0,
-     "cases_sha": "x"
+     "cases_sha": "x",
+     "balanced": 0.8
     }
    ],
    "selected": "a",
@@ -1724,14 +1726,14 @@
    },
    "contains": [
     "best guess",
-    "significance cannot be tested"
+    "allow a test"
    ]
   }
  },
  {
   "id": "RNK-046",
   "kind": "verdict",
-  "area": "a best guess does not switch when the solution forbids it",
+  "area": "a best guess does not switch when the solution forbids it (a balanced aggregate has no case counts to test)",
   "args": {
    "rows": [
     {
@@ -1739,14 +1741,16 @@
      "passed": 15,
      "cases": 30,
      "cost_usd": 0.0,
-     "cases_sha": "x"
+     "cases_sha": "x",
+     "balanced": 0.5
     },
     {
      "impl": "b",
      "passed": 20,
      "cases": 30,
      "cost_usd": 0.0,
-     "cases_sha": "x"
+     "cases_sha": "x",
+     "balanced": 0.8
     }
    ],
    "selected": "a",
@@ -1765,7 +1769,7 @@
  {
   "id": "RNK-047",
   "kind": "verdict",
-  "area": "exactly equal estimates keep the selected arm",
+  "area": "exactly equal estimates keep the selected arm (a balanced aggregate has no case counts to test)",
   "args": {
    "rows": [
     {
@@ -1773,14 +1777,16 @@
      "passed": 15,
      "cases": 30,
      "cost_usd": 0.0,
-     "cases_sha": "x"
+     "cases_sha": "x",
+     "balanced": 0.5
     },
     {
      "impl": "b",
      "passed": 15,
      "cases": 30,
      "cost_usd": 0.0,
-     "cases_sha": "x"
+     "cases_sha": "x",
+     "balanced": 0.5
     }
    ],
    "selected": "a",
@@ -1889,6 +1895,72 @@
    "eq": {
     "verdict": "TIE"
    }
+  }
+ },
+ {
+  "id": "RNK-049",
+  "kind": "verdict",
+  "area": "aggregate pass counts without per-case rows get Fisher's exact test",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 10,
+     "cases": 40,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 22,
+     "cases": 40,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "LOSS"
+   },
+   "contains": [
+    "exact Fisher test on the pass counts",
+    "b passed 22 of 40, a 10 of 40"
+   ]
+  }
+ },
+ {
+  "id": "RNK-050",
+  "kind": "verdict",
+  "area": "a count gap Fisher's test cannot separate keeps the selected arm",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 20,
+     "cases": 40,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    },
+    {
+     "impl": "b",
+     "passed": 24,
+     "cases": 40,
+     "cost_usd": 0.0,
+     "cases_sha": "x"
+    }
+   ],
+   "selected": "a"
+  },
+  "expect": {
+   "eq": {
+    "verdict": "TIE"
+   },
+   "contains": [
+    "not shown better",
+    "more cases would settle it"
+   ]
   }
  }
 ]

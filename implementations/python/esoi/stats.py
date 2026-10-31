@@ -9,6 +9,8 @@ Three standard tools, each small enough to check by hand:
   half, so the p-value is a binomial tail on the disagreements.
 * ``sign_test_greater(wins, losses)``: the exact one-sided sign test, the question the leaderboard asks ("is this arm better?").
   McNemar's test for pass or fail per case and the sign test on paired per-case score differences are the same binomial tail.
+* ``fisher_exact_greater(passed_a, cases_a, passed_b, cases_b)``: the exact one-sided Fisher test on two arms' aggregate pass counts, for
+  when only totals exist (unpaired, so weaker than the paired test, but still a test).
 * ``holm(p_values)``: Holm's correction, which keeps the chance of any false lead below the stated level when one arm is
   compared with several rivals.
 
@@ -64,6 +66,18 @@ def sign_test_greater(wins: int, losses: int) -> float:
     if n == 0:
         return 1.0
     return float(Fraction(sum(comb(n, i) for i in range(wins, n + 1)), 2 ** n))
+
+
+def fisher_exact_greater(passed_a: int, cases_a: int, passed_b: int, cases_b: int) -> float:
+    """Exact one-sided p-value that arm A's true pass rate is higher than arm B's, from the 2 by 2 table of passed and failed cases
+    (the hypergeometric tail: given the total passes, the chance A holds at least ``passed_a`` of them)."""
+    if min(passed_a, cases_a - passed_a, passed_b, cases_b - passed_b) < 0:
+        raise ValueError("pass counts must lie between 0 and the number of cases")
+    total, passes = cases_a + cases_b, passed_a + passed_b
+    if total == 0:
+        return 1.0
+    tail = sum(comb(cases_a, k) * comb(cases_b, passes - k) for k in range(passed_a, min(cases_a, passes) + 1))
+    return float(min(Fraction(1), Fraction(tail, comb(total, passes))))
 
 
 def holm(p_values: List[float]) -> List[float]:

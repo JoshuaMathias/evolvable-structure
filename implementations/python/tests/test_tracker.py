@@ -32,7 +32,7 @@ def test_tracking_columns_survive_a_rebuild(cfg):
 
 def test_the_verdict_and_parent_columns_reach_the_tabs(cfg):
     solution = tab(cfg, "solutions")[0]
-    assert solution["verdict"] == "WIN" and solution["auto_status"] == "invariant" or solution["verdict"] == "WIN"
+    assert solution["verdict"] in ("WIN", "TIE")
     assert "parent_problem_ids" in tables.read_header(cfg.tracker_dir / "problems.csv")
 
 
