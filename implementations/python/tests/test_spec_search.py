@@ -179,3 +179,11 @@ def test_the_index_json_round_trips_into_views(cfg):
 def test_the_solution_selects_an_implementation_by_name():
     assert ss.search("invoice batch queue", views(), using="lexical-only", expand=0).route == "lexical"
     assert ss.search("invoice batch queue", views(), using="lexical-vector-gated", expand=0).route == "unjudged"
+
+
+def test_view_line_clips_by_default_and_keeps_the_whole_text_when_asked():
+    view = ss.View(kind="solution", id="s1", title="Title", text="word " * 100)
+    clipped, whole = ss.view_line(view), ss.view_line(view, None)
+    assert len(whole) > len(clipped)
+    assert whole.endswith("word")
+    assert len(ss.view_line(view, 10)) < len(clipped)

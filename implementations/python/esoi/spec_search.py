@@ -257,16 +257,20 @@ def parse_ids(text: str, offered: set) -> Optional[List[str]]:
     return out
 
 
-def view_line(view: View) -> str:
-    """The line a judge reads for one candidate: kind, key, title, a clipped text."""
+def view_line(view: View, line_text: Optional[int] = LINE_TEXT) -> str:
+    """The line a judge reads for one candidate: kind, key, title, and the text clipped to ``line_text`` characters
+    (None keeps the whole text)."""
     text = " ".join((view.text or "").split())
-    return f"{view.kind} {view.key}: {view.title}" + (f". {text[:LINE_TEXT]}" if text and text != view.title else "")
+    if line_text is not None:
+        text = text[:line_text]
+    return f"{view.kind} {view.key}: {view.title}" + (f". {text}" if text and text != view.title else "")
 
 
-def ask(judge: Judge, task: str, keys: List[str], by_key: Mapping[str, View], limit: int) -> Optional[List[str]]:
+def ask(judge: Judge, task: str, keys: List[str], by_key: Mapping[str, View], limit: int,
+        line_text: Optional[int] = LINE_TEXT) -> Optional[List[str]]:
     """One judge call over ``keys``; None when it fails or answers unreadably, so the caller keeps the candidates."""
     try:
-        reply = judge(task, [view_line(by_key[k]) for k in keys], limit)
+        reply = judge(task, [view_line(by_key[k], line_text) for k in keys], limit)
     except Exception:  # noqa: BLE001  a failed call must never lose the candidates
         log.debug("judge failed", exc_info=True)
         return None
@@ -356,7 +360,7 @@ def search(task: str, views: Sequence[View], *, judge: Optional[Judge] = None, v
            ranked_kinds: Optional[Sequence[str]] = None, link_kinds: Optional[Sequence[str]] = None,
            tags: Optional[Sequence[str]] = None, tag_table: Optional[TagTable] = None, tag_mode: str = "boost",
            gate: Gate = Gate(), batch_size: int = 10, max_workers: int = 4, unjudged_top: int = 3,
-           lexical_top: int = 3) -> Selection:
+           lexical_top: int = 3, line_text: Optional[int] = LINE_TEXT) -> Selection:
     """The views ``task`` concerns, as a ``Selection`` (ranked items best first, each followed by the items it links).
     ``strategy`` is ``gated``, ``judge-all`` or ``lexical``; see the module. Nothing is called but the injected
     ``vector_search`` and ``judge``."""
@@ -375,7 +379,7 @@ def gated(task: str, views: Sequence[View], *, judge: Optional[Judge] = None, ve
           ranked_kinds: Optional[Sequence[str]] = None, link_kinds: Optional[Sequence[str]] = None,
           tags: Optional[Sequence[str]] = None, tag_table: Optional[TagTable] = None, tag_mode: str = "boost",
           gate: Gate = Gate(), batch_size: int = 10, max_workers: int = 4, unjudged_top: int = 3,
-          lexical_top: int = 3) -> Selection:
+          lexical_top: int = 3, line_text: Optional[int] = LINE_TEXT) -> Selection:
     """Lexical plus vector candidates, fused, then the gate: a clear case and an empty case are answered with no judge
     call, any other costs one call over the best ``gate.pool`` candidates. ``strategy`` ``judge-all`` and ``lexical`` run
     the other two stagings with the same arguments."""
@@ -400,7 +404,7 @@ def gated(task: str, views: Sequence[View], *, judge: Optional[Judge] = None, ve
             return finish(result, views, take(list(candidates)), expand, link_kinds)
         batches = [candidates[i:i + batch_size] for i in range(0, len(candidates), batch_size)]
         with ThreadPoolExecutor(max_workers=max(1, min(max_workers, len(batches)))) as pool:
-            verdicts = list(pool.map(lambda b: ask(judge, task, b, by_key, cap or len(b)), batches))
+            verdicts = list(pool.map(lambda b: ask(judge, task, b, by_key, cap or len(b), line_text), batches))
         result.route, result.calls = "judged", len(batches)
         picked = set()
         for batch, verdict in zip(batches, verdicts):
@@ -423,7 +427,7 @@ def gated(task: str, views: Sequence[View], *, judge: Optional[Judge] = None, ve
         result.route = "unjudged"
         return finish(result, views, pool_keys[:fallback], expand, link_kinds)
     result.route, result.calls = "judged", 1
-    verdict = ask(judge, task, pool_keys, by_key, fallback)
+    verdict = ask(judge, task, pool_keys, by_key, fallback, line_text)
     if verdict is None:
         result.failed_batches = 1
         verdict = pool_keys[:fallback]          # a failed call keeps the best few rather than nothing
@@ -436,7 +440,7 @@ def lexical_only(task: str, views: Sequence[View], *, judge: Optional[Judge] = N
                  expand: int = 1, ranked_kinds: Optional[Sequence[str]] = None, link_kinds: Optional[Sequence[str]] = None,
                  tags: Optional[Sequence[str]] = None, tag_table: Optional[TagTable] = None, tag_mode: str = "boost",
                  gate: Gate = Gate(), batch_size: int = 10, max_workers: int = 4, unjudged_top: int = 3,
-                 lexical_top: int = 3) -> Selection:
+                 lexical_top: int = 3, line_text: Optional[int] = LINE_TEXT) -> Selection:
     """The baseline: the lexical top three, no vector search and no judge. Free and instant; shows what the rest adds."""
     return gated(task, views, strategy="lexical", k_lexical=k_lexical, max_ranked=max_ranked, expand=expand,
                  ranked_kinds=ranked_kinds, link_kinds=link_kinds, lexical_top=lexical_top)
