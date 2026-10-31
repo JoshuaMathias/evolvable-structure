@@ -738,3 +738,36 @@ def test_assemble_defaults_takes_provided_objects_and_options(toy):
     mine = consumer.Mine()
     system = parts.assemble_defaults(AssemblyConfig(selections={INDEX: "acme-index"}, options={INDEX: {"prefix": "p-"}}), {STORE: mine})
     assert system[STORE] is mine and system[INDEX].prefix == "p-" and INDEX not in system.pending
+
+
+# options filled from a mapping the consumer passes (the process environment is never read)
+
+def keyed(secret_default=None):
+    """An arm that declares which option comes from which variable, and which option it cannot be built without."""
+    def init(self, token, region="north"):
+        self.token, self.region = token, region
+    return type("Keyed", (), {"__init__": init, "find": lambda self, key: key, "ENVIRON": {"token": ("PRIMARY_TOKEN", "BACKUP_TOKEN"),
+                "region": "REGION_NAME"}, "ENVIRON_REQUIRED": ("token",)})
+
+
+def test_environ_fills_declared_options_and_explicit_options_win(toy):
+    parts = toy[0]
+    parts.register(INDEX, "keyed", keyed())
+    cfg = AssemblyConfig(selections={INDEX: "keyed"}, consumer_environ={"BACKUP_TOKEN": "s3cret", "REGION_NAME": "south", "OTHER": "x"})
+    system = parts.assemble_defaults(cfg)
+    assert INDEX not in system.pending and system[INDEX].token == "s3cret" and system[INDEX].region == "south"
+    reason = system.reason_by_solution[INDEX]
+    assert "options from consumer environ: token <- BACKUP_TOKEN, region <- REGION_NAME" in reason and "s3cret" not in reason
+    first = parts.assemble_defaults(AssemblyConfig(selections={INDEX: "keyed"}, consumer_environ={"PRIMARY_TOKEN": "a", "BACKUP_TOKEN": "b"}))
+    assert first[INDEX].token == "a"
+    wins = parts.assemble_defaults(AssemblyConfig(selections={INDEX: "keyed"}, options={INDEX: {"token": "mine"}}, consumer_environ={"PRIMARY_TOKEN": "a"}))
+    assert wins[INDEX].token == "mine" and "token <-" not in wins.reason_by_solution[INDEX]
+
+
+def test_a_required_option_missing_from_environ_stays_pending_naming_the_variables(toy):
+    parts = toy[0]
+    parts.register(INDEX, "keyed", keyed())
+    system = parts.assemble_defaults(AssemblyConfig(selections={INDEX: "keyed"}, consumer_environ={"PRIMARY_TOKEN": "  "}))
+    assert system.pending[INDEX] == ("toy-index (keyed): set PRIMARY_TOKEN or BACKUP_TOKEN (option 'token') in consumer_environ=, "
+                                     "or pass options={'toy-index': {...}}")
+    assert INDEX not in system.solutions()

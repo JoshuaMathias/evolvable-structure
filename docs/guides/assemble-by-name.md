@@ -107,7 +107,13 @@ finding.
 
 ## What the library does not do
 
-It reads no environment: the only environment `esoi` sees is `AssemblyConfig.selection_environ`, a mapping you pass in. It does
+It reads no environment: the only environment `esoi` sees is a mapping you pass in, `AssemblyConfig.selection_environ` for the
+choice of an arm and `AssemblyConfig.consumer_environ` for arm options. An arm declares as data which option comes from which
+variable (`ENVIRON = {"api_key": "SERVICE_API_KEY"}`, a tuple of names means the first present wins, and
+`ENVIRON_REQUIRED = ("api_key",)` names the options it cannot be built without). `assemble_defaults` fills a declared option from
+`consumer_environ` unless `options` gives it, says so in the reason line by variable name (never value), and leaves a required
+option that is absent pending with a line naming the variables. So a consumer's whole wiring can be
+`assemble_defaults(AssemblyConfig(consumer_environ=os.environ))`. It does
 not import your application, install anything, or choose the best arm; the metric does that (`esoi select --promote`).
 What belongs in `esoi` and what stays in your application is in
 [What belongs where](../explanation/what-belongs-where.md).

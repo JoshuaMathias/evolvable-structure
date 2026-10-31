@@ -105,6 +105,10 @@ class AssemblyConfig:
     ``ESOI_SELECT_<SCOPE>_<SOLUTION_ID>`` choice puts exactly that variable here, and nothing else is accepted.
     A name in ``names``, ``selections`` or ``selection_environ`` may be ``name@key=value,...`` (or, in the first two, a list of
     such entries): it then applies only when every ``key=value`` holds in ``circumstances``, the caller's own mapping.
+    ``consumer_environ`` is a mapping the consumer hands over (usually its own process environment, passed explicitly): an arm that
+    declares ``ENVIRON = {option: variable name or tuple of names}`` has those options filled from it, unless ``options`` gives
+    them; ``ENVIRON_REQUIRED`` names the declared options without which it cannot be built (it then stays pending, naming the
+    variables). Only variable names appear in reasons and ``pending``, never values.
     ``reasons`` is ``{solution_id: [record id or "unconfirmed: text", ...]}`` for the ``selections`` of the same solution: why
     it differs from a parent's default (shown by ``explain``, recorded in the ``Choice``).
     """
@@ -115,6 +119,34 @@ class AssemblyConfig:
     selection_environ: Mapping[str, str] = field(default_factory=dict)
     reasons: Mapping[str, Sequence[str]] = field(default_factory=dict)
     circumstances: Mapping[str, Any] = field(default_factory=dict)
+    consumer_environ: Mapping[str, str] = field(default_factory=dict)
+
+
+ENVIRON_ATTRIBUTE = "ENVIRON"                    # on an arm: {option name: variable name, or a tuple of variable names}
+ENVIRON_REQUIRED_ATTRIBUTE = "ENVIRON_REQUIRED"  # on an arm: the declared options it cannot be built without
+
+
+def environ_declared(target: Any) -> Dict[str, Tuple[str, ...]]:
+    """``{option: (variable names, first present wins)}`` an arm declares as data in its ``ENVIRON`` attribute."""
+    found = getattr(target, ENVIRON_ATTRIBUTE, None)
+    if not isinstance(found, Mapping):
+        return {}
+    return {option: ((names,) if isinstance(names, str) else tuple(names)) for option, names in found.items()}
+
+
+def environ_fill(target: Any, options: Mapping[str, Any], environ: Mapping[str, str]) -> Dict[str, str]:
+    """``{option: variable name}`` for each declared option the explicit ``options`` leave out and the passed mapping supplies
+    (a non-empty value). Explicit options always win. Only names are returned, never values."""
+    return {option: next(v for v in names if str(environ.get(v) or "").strip())
+            for option, names in environ_declared(target).items()
+            if option not in options and any(str(environ.get(v) or "").strip() for v in names)}
+
+
+def environ_lacking(target: Any, options: Mapping[str, Any], environ: Mapping[str, str]) -> Dict[str, Tuple[str, ...]]:
+    """The required declared options that neither ``options`` nor the passed mapping supplies, with the variable names to set."""
+    declared, filled = environ_declared(target), environ_fill(target, options, environ)
+    return {option: declared[option] for option in getattr(target, ENVIRON_REQUIRED_ATTRIBUTE, ())
+            if option in declared and option not in options and option not in filled}
 
 
 def builder_of(target: Any) -> Any:
@@ -732,12 +764,16 @@ class Assembler:
                     found[sid] = f"{sid} ({picked.name}): cannot be loaded ({error}); install what it needs or pass provided={{{sid!r}: ...}}"
                 else:
                     builder = builder_of(target)
-                    options = config.options.get(sid, {})
+                    options = {**config.options.get(sid, {}), **environ_fill(target, config.options.get(sid, {}), config.consumer_environ)}
                     missing = [name for name, par in (inspect.signature(builder).parameters.items() if builder is not None else [])
                                if name != "self" and name not in needs and name not in options and par.default is par.empty
                                and par.kind not in (par.VAR_POSITIONAL, par.VAR_KEYWORD)]
+                    lacking = environ_lacking(target, config.options.get(sid, {}), config.consumer_environ)
                     unmet = [need for need in needs.values() if not check(need)]
-                    if missing:
+                    if lacking:
+                        found[sid] = (f"{sid} ({picked.name}): set " + "; ".join(f"{' or '.join(names)} (option {option!r})"
+                                      for option, names in lacking.items()) + f" in consumer_environ=, or pass options={{{sid!r}: {{...}}}}")
+                    elif missing:
                         found[sid] = f"{sid} ({picked.name}): pass options={{{sid!r}: {{{', '.join(repr(m) + ': ...' for m in missing)}}}}}"
                     elif unmet:
                         found[sid] = f"{sid} ({picked.name}): needs {', '.join(unmet)}; see those lines"
@@ -800,6 +836,8 @@ class Assembler:
                 raise need_error(chain, sid)
             target = self.load(sid, picked.name)
             options = dict(cfg.options.get(sid, {}))
+            filled = environ_fill(target, options, cfg.consumer_environ)
+            options.update({option: str(cfg.consumer_environ[variable]).strip() for option, variable in filled.items()})
             kwargs = {param: build(need, chain + [(sid, picked.name)]) for param, need in self.needs_of(target).items()}
             if inspect.isclass(target) or inspect.isfunction(target):   # a class or factory is built; anything else is an instance
                 builder = builder_of(target)
@@ -812,7 +850,7 @@ class Assembler:
             else:
                 obj = target
             reason = (f"{sid} -> {picked.name} (layer: {picked.layer}, package version {package_version(target)}, "
-                      f"config hash {config_hash(options)}{', reasons: ' + '; '.join(picked.reasons) if picked.reasons else ''})")
+                      f"config hash {config_hash(options)}{', options from consumer environ: ' + ', '.join(f'{o} <- {v}' for o, v in filled.items()) if filled else ''}{', reasons: ' + '; '.join(picked.reasons) if picked.reasons else ''})")
             built[sid] = (obj, reason, picked, target)
             return obj
 
