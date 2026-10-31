@@ -360,3 +360,21 @@ def test_an_aggregate_headline_becomes_the_recorded_details_cell():
     assert details_text("12 of 20 exact\n matches") == "12 of 20 exact matches"
     assert details_text(None) == ""
     assert len(details_text("x" * 500)) == 300 and details_text("x" * 500).endswith("...")
+
+
+def test_an_older_per_case_header_is_upgraded_before_new_rows_are_added(tmp_path):
+    import csv as csvmodule
+    from esoi.harness import PER_CASE_COLUMNS, upgrade_per_case_header
+    old = [c for c in PER_CASE_COLUMNS if c != "score"]
+    path = tmp_path / "per_case.csv"
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        writer = csvmodule.DictWriter(fh, old, lineterminator="\n")
+        writer.writeheader()
+        writer.writerow({c: ("1" if c == "ok" else "x") for c in old})
+    upgrade_per_case_header(path)
+    with open(path, newline="", encoding="utf-8") as fh:
+        rows = list(csvmodule.DictReader(fh))
+    assert list(rows[0].keys()) == PER_CASE_COLUMNS and rows[0]["ok"] == "1" and rows[0]["score"] == ""
+    before = path.read_text(encoding="utf-8")
+    upgrade_per_case_header(path)
+    assert path.read_text(encoding="utf-8") == before

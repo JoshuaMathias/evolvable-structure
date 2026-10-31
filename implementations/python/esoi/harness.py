@@ -541,6 +541,29 @@ def read_per_case(config: Config, every: bool = False) -> List[Dict[str, str]]:
     return leaderboard.per_case_rows(config, every)
 
 
+def upgrade_per_case_header(path: Path) -> None:
+    """Rewrite a per-case log written by an older version (a header without a column added since, such as ``score``) under the
+    current header, in one move, so a new row never lands under a header that lacks its column. Existing values are kept and a
+    column the old file lacked is left empty. A file already on the current header is not touched."""
+    if not path.is_file() or path.stat().st_size == 0:
+        return
+    with open(path, newline="", encoding="utf-8") as fh:
+        header = next(csv.reader(fh), [])
+        if header == PER_CASE_COLUMNS:
+            return
+        fh.seek(0)
+        rows = [r for r in csv.DictReader(fh) if r.get("component") != "component"]
+    unknown = [name for name in header if name not in PER_CASE_COLUMNS]
+    if unknown:
+        raise RunError(f"{path} has column(s) this version does not know ({', '.join(unknown)}); remedy: update esoi")
+    temporary = path.with_suffix(path.suffix + ".upgrade")
+    with open(temporary, "w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, PER_CASE_COLUMNS, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows({name: row.get(name, "") or "" for name in PER_CASE_COLUMNS} for row in rows)
+    os.replace(temporary, path)
+
+
 def write_per_case(config: Config, new: List[Dict[str, str]]) -> None:
     """Add rows to the per-case log without losing another recorder's: one append of the whole batch (``O_APPEND``), then,
     when the arm had rows of its own from older cases or an earlier run of the same sample, a compaction written to a
@@ -548,6 +571,7 @@ def write_per_case(config: Config, new: List[Dict[str, str]]) -> None:
     the arm is stale (``circumstances_stale``) until its rows are back."""
     path = config.root / config.per_case
     path.parent.mkdir(parents=True, exist_ok=True)
+    upgrade_per_case_header(path)
     out = io.StringIO()
     writer = csv.DictWriter(out, PER_CASE_COLUMNS, lineterminator="\n")
     if not path.is_file() or path.stat().st_size == 0:
