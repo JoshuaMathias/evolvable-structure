@@ -630,11 +630,6 @@ def shutil_which(name: str) -> Optional[str]:
 
 # an assembly: closure, plan, coherence
 
-def default_rank(assembler: Any, solution_id: str, selected: str) -> List[str]:
-    """Arms to try after ``selected`` for a seat: the metric ranking when the caller supplies one, else the other names in order."""
-    return [name for name in assembler.names(solution_id) if name != selected]
-
-
 def assembly_plan(assembler: Any, config: Any, environ: Mapping[str, str], solutions: Sequence[str] = (), every_arm: bool = False,
                   resolver: Optional[Resolver] = None, rank: Optional[Callable[[str, str], Sequence[str]]] = None,
                   lead: Optional[Callable[[str], Optional[float]]] = None, project: Optional[Path] = None
@@ -649,14 +644,27 @@ def assembly_plan(assembler: Any, config: Any, environ: Mapping[str, str], solut
     notes: List[str] = []
     entries = req.gather(req.members_pairs(state["members"], notes))
     names = dict(base.names)
+    orders: Dict[Tuple[str, str], Tuple[List[str], Optional[float], str]] = {}
+
+    def order_of(sid: str, name: str) -> Tuple[List[str], Optional[float], str]:
+        if (sid, name) not in orders:
+            orders[(sid, name)] = assembler.metric_order(sid, name)
+            notes.append(orders[(sid, name)][2])
+        return orders[(sid, name)]
+
+    def metric_rank(sid: str, name: str) -> List[str]:
+        return order_of(sid, name)[0]
+
+    def metric_lead(sid: str, name: str) -> Optional[float]:
+        return order_of(sid, name)[1]
 
     def fallback(conflicts: Sequence[Conflict], current: Sequence[req.Entry]) -> Optional[Tuple[Substitution, List[req.Entry]]]:
         pulled = {arm for one in conflicts for spec, arms in one.pulls for arm in arms}
         seats = [m.label for m in state["members"] if m.label in pulled]
-        seats.sort(key=lambda label: (lead(label.split(":", 1)[0]) or 0.0) if lead else 0.0)
+        seats.sort(key=lambda label: (lead(label.split(":", 1)[0]) if lead else metric_lead(label.split(":", 1)[0], label.split(":", 1)[1])) or 0.0)
         for label in seats:
             sid, name = label.split(":", 1)
-            for alternative in (rank(sid, name) if rank else default_rank(assembler, sid, name)):
+            for alternative in [a for a in (rank(sid, name) if rank else metric_rank(sid, name)) if a != name]:
                 trial_config = replace(base, names={**names, sid: alternative})
                 members = assembler.closure(trial_config, None, solutions, every_arm)
                 found = req.gather(req.members_pairs(members, []))

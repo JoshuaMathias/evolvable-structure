@@ -434,6 +434,41 @@ class Assembler:
             raise AssemblyError(f"the records in {root} cannot be loaded ({type(error).__name__}: {error})") from error
         return Packaged(defaults, modules, "the records", hierarchy.read_overrides(cfg))
 
+    def metric_order(self, solution_id: str, selected: str = "") -> Tuple[List[str], Optional[float], str]:
+        """``(arm names best first, lead, note)`` for a seat, from the scope's own leaderboard when it has records and results:
+        the latest rows of the solution's component ranked as the leaderboard ranks them, and ``lead`` 1.0 when the selected
+        arm's lead over its runner-up is significant by the same ``decisions`` the selection uses, else 0.0. Without records or
+        a results file (a packaged snapshot) the order is the snapshot's names and ``lead`` is None; ``note`` says which."""
+        names = self.names(solution_id)
+        order = [selected] + [n for n in names if n != selected] if selected else list(names)
+        if self.records is None:
+            return order, None, f"{solution_id}: no records packaged, so arms are tried in the snapshot's order"
+        try:
+            from . import leaderboard
+            cfg = config_module.load(Path(self.records) / "esoi.toml")
+            loaded = registry_module.load(cfg)
+            row = next((r for r in loaded.every_solution() if r.get("solution_id") == solution_id), {})
+            component, _ = leaderboard.first_arm(cfg, row.get("metric_command", ""))
+            results = leaderboard.latest_results(cfg.results_path).get(component, {}) if component and cfg.results_path.is_file() else {}
+        except Exception as error:
+            return order, None, f"{solution_id}: the leaderboard could not be read ({type(error).__name__}: {error}); using record order"
+        by_key = {runtime.key(impl): impl for impl in results}
+        ranked = [runtime.key(r["impl"]) for r in leaderboard.rank(results)] if results else []
+        known = [n for n in ranked if n in names]
+        if not known:
+            return order, None, f"{solution_id}: no results file rows for its arms, so arms are tried in record order"
+        best_first = known + [n for n in names if n not in known]
+        if selected:
+            best_first = [selected] + [n for n in best_first if n != selected]
+        lead = 0.0
+        if selected and by_key.get(selected) and len(known) > 1:
+            rivals = {by_key[n]: results[by_key[n]] for n in known if n != selected}
+            found = leaderboard.decisions({by_key[selected]: results[by_key[selected]], **rivals}, by_key[selected], cfg.evaluation,
+                                          None, leaderboard.per_case_rows(cfg))
+            runner_up = next((d for d in found if runtime.key(d.rival) == known[0 if known[0] != selected else 1]), None)
+            lead = 1.0 if runner_up is not None and runner_up.outcome == "incumbent" and runner_up.basis == "significance" else 0.0
+        return best_first, lead, f"{solution_id}: arms ranked by the leaderboard in {cfg.results}"
+
     def owned(self, target: Any) -> bool:
         """Whether a declared target is defined in the package itself (its ``__init__`` included)."""
         module = str(getattr(target, "__module__", None) or type(target).__module__)

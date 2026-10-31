@@ -57,7 +57,21 @@ def repo(tmp_path_factory):
         TEMPLATE_REPO["root"] = root
     copy = tmp_path_factory.mktemp("case") / "demo"
     shutil.copytree(TEMPLATE_REPO["root"], copy)
-    return copy
+    yield copy
+    forget_demo_package(copy)
+
+
+def forget_demo_package(root):
+    """Each copy of the example repository is a package named ``demo`` at a different path. A command run in one (``records sync``)
+    imports it and registers its solutions; left behind, the next copy would find this copy's ``demo`` modules and registry entries
+    instead of its own, and fail with a missing module."""
+    from esoi import runtime
+    for name, module in list(sys.modules.items()):
+        if (name == "demo" or name.startswith("demo.")) and str(getattr(module, "__file__", "") or "").startswith(str(root)):
+            sys.modules.pop(name)
+    for key in [k for k in runtime.REGISTRY if k[0] == "demo"]:
+        runtime.REGISTRY.pop(key)
+    runtime.PROJECTS.clear()
 
 
 @pytest.fixture

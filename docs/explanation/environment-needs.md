@@ -52,7 +52,7 @@ Two arms may need versions of one package that cannot coexist. The installer the
 
 1. let pip's resolver work on the merged set, with every declaration's own range and the installed versions as constraints;
 2. use a declared alternative (another distribution or a wider tested range);
-3. use another arm for the least important seat, chosen by the metric ranking, labelled "selected X; using Y here because X
+3. use another arm for the least important seat, chosen by the scope's own leaderboard (the latest comparable results, best first, and a seat whose selected arm has no significant lead gives way first; a packaged copy with no results falls back to the snapshot order and the plan says so), labelled "selected X; using Y here because X
    conflicts with Z", as a circumstance of this environment and never silently;
 4. isolate an arm that declares it can run behind a process boundary, in a virtual environment of its own;
 5. only then stop, naming the conflicting requirements, who pulls each, and the options for a person.

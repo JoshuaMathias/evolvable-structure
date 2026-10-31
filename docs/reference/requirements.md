@@ -68,3 +68,5 @@ environment lock, makes one pip call for the whole set (timeout 15 minutes), run
 files only from inside the package directory (working directory: the file's folder; `sh` for `.sh`, the current interpreter for
 `.py`; 10 minute timeout) and stops at the first failure with the step and the masked tail of its output. Isolated arms go under
 `<project>/.esoi/venvs/`.
+
+`Assembler.metric_order(solution_id, selected)` returns `(arm names best first, lead, note)` from the scope's records and results (`lead` 1.0 when the selected arm's lead over its runner-up is significant by `leaderboard.decisions`, 0.0 otherwise, None without results). `assembly_plan(rank=..., lead=...)` hooks override it.

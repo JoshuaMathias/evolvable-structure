@@ -582,3 +582,77 @@ def test_requirements_cli_exit_codes_and_json(toy, capsys, monkeypatch):
     assert data["schema"] == "esoi.requirements/1"
     assert cli.main(["requirements", "--package", "no_such_package_zz"]) == 2
     assert cli.main(["requirements", "--package", "esoireq_cli2", "--coherence", "--arm", "seat-a=alpha", "--arm", "seat-b=gamma"]) == 1
+
+
+# ladder step 3 reads the scope's own leaderboard
+
+def project_assembler(repo, monkeypatch):
+    """The scaffolded demo project as an Assembler with records, after recording a run of each arm so results exist."""
+    from esoi import cli
+    cwd = os.getcwd()
+    os.chdir(repo)
+    try:
+        for impl in ("live", "shout"):
+            assert cli.main(["run", "greet_a_person", "--impl", impl]) == 0
+    finally:
+        os.chdir(cwd)
+    monkeypatch.syspath_prepend(str(repo))
+    for name in [m for m in sys.modules if m == "demo" or m.startswith("demo.")]:
+        sys.modules.pop(name)
+    parts = Assembler("demo", repo / "demo", modules=("demo.greet",), records=repo)
+    parts.prepare()
+    for name in ("live", "shout"):   # arms named as the results name them
+        runtime.register("greet-a-person", name, lambda person: person, scope="demo")
+    return parts
+
+
+@pytest.fixture
+def demo_cleanup():
+    yield
+    for name in [m for m in sys.modules if m == "demo" or m.startswith("demo.")]:
+        sys.modules.pop(name)
+    for key in [k for k in runtime.REGISTRY if k[0] == "demo"]:
+        runtime.REGISTRY.pop(key)
+    runtime.PROJECTS.clear()
+
+
+def test_metric_order_ranks_arms_from_the_scopes_own_results(repo, monkeypatch, demo_cleanup):
+    parts = project_assembler(repo, monkeypatch)
+    order, lead, note = parts.metric_order("greet-a-person", "shout")
+    assert order == ["shout", "live", "greet"]   # the selected arm first, then the leaderboard's order (live 2/2, shout 1/2), then unrun arms
+    again, lead_again, _ = parts.metric_order("greet-a-person", "live")
+    assert again[:2] == ["live", "shout"] and "ranked by the leaderboard" in note
+    assert lead == 0.0 and lead_again == 0.0   # two cases are not a significant lead
+
+
+def test_metric_order_falls_back_to_snapshot_order_and_says_so(toy):
+    parts, _ = toy
+    order, lead, note = parts.metric_order("seat-a", "")
+    assert lead is None and "no records packaged" in note and "snapshot" in note
+
+
+def test_a_results_file_without_the_arms_falls_back_to_record_order(repo, monkeypatch, demo_cleanup):
+    monkeypatch.syspath_prepend(str(repo))
+    parts = Assembler("demo", repo / "demo", modules=("demo.greet",), records=repo)
+    parts.prepare()
+    order, lead, note = parts.metric_order("greet-a-person", "greet")
+    assert lead is None and "record order" in note and order[0] == "greet"
+
+
+def test_the_ladder_uses_the_leaderboard_by_default_and_hooks_override(toy, monkeypatch):
+    assembler, _ = toy
+    calls = []
+    monkeypatch.setattr(Assembler, "metric_order", lambda self, sid, name="": (calls.append((sid, name)) or ([name, "delta"], 0.0, f"{sid}: ranked")))
+    alpha = runtime.REGISTRY[("esoireq", "seat-a")].implementations["alpha"]
+    saved = alpha.REQUIRES
+    alpha.REQUIRES = (R.python("toypkg_mod", "toypkg>=2"),)
+    try:
+        config = cfg(**{"seat-a": "alpha", "seat-b": "gamma"})
+        chosen, _ = installer.assembly_plan(assembler, config, {})
+        assert chosen.substitutions and chosen.substitutions[0].using == "delta" and calls
+        assert any("ranked" in note for note in chosen.notes)
+        calls.clear()
+        installer.assembly_plan(assembler, config, {}, rank=lambda sid, name: ["delta"], lead=lambda sid: 0.0)
+        assert calls == []   # explicit hooks win, the leaderboard is not consulted
+    finally:
+        alpha.REQUIRES = saved

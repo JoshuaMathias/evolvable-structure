@@ -22,7 +22,7 @@ To plan for a different arm, add `--arm solution=name`; for every arm of the sol
 ## When requirements conflict
 
 The plan says so and shows the resolution ladder: the resolver with installed versions kept, a declared alternative, another arm
-for the least important seat (labelled, never silent), an isolated environment for an arm that allows it, and finally the exact
+for the least important seat, ranked by the scope's own leaderboard (labelled, never silent), an isolated environment for an arm that allows it, and finally the exact
 conflict with the options for you. See [the explanation](../explanation/environment-needs.md).
 
 ## Re-run after a failure
