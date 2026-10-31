@@ -26,6 +26,7 @@ a team process, a personal schedule.
 - [Finding the specifications a new use case needs](explanation/finding-specifications.md): the specification index, tiers, and what a system on top adds.
 - [Choosing by metric](explanation/choosing-by-metric.md)
 - [A metric must be meaningfully real](explanation/metrics-must-be-real.md): no scripted stand-ins; creative and limited measures are fine, fake ones are not (rule S31).
+- [The first stage needs no model](explanation/first-stage-needs-no-model.md): guidance for a metric's cascading conditionals: start with a free stage that proves the scorer.
 - [Declare, call, measure, promote](explanation/graceful-selection.md): the graceful way to declare alternatives in code and let the metric pick.
 - [When metrics are run](explanation/when-metrics-are-run.md): when to run each metric and who approves the spend.
 - [Depend on other solutions by name](explanation/cross-dependency-by-name.md): why one solution needs another by name, not by import.

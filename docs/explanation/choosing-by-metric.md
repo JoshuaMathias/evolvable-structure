@@ -82,6 +82,8 @@ stays chosen until it is. A result expires when the measured code or the cases c
 stage allows; an expired result counts as not run. Rule S32 checks that the list can be read and S33 that `selected` is the
 implementation the cascade chooses.
 
+Guidance: make the first stage one that needs no model; see [the first stage needs no model](first-stage-needs-no-model.md).
+
 ## When to run
 
 Running a metric costs time and sometimes money, and a result only supports a decision while it is current. See
