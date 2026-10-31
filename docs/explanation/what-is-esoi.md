@@ -61,7 +61,7 @@ process, a document, an AI agent's own behaviour. See [beyond code](beyond-code.
 ## A small start
 
 One intent, one problem, one ideal, one solution with two implementations, one metric with a handful of cases.
-[Apply ESOI by hand](../guides/apply-by-hand.md) takes about an hour and needs no tools.
+[Apply ESOI by hand](../how-to/apply-by-hand.md) takes about an hour and needs no tools.
 
 ## Good to know
 

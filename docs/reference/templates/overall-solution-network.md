@@ -2,7 +2,7 @@
 
 # Overall solution network (template, legacy layout)
 
-This is the legacy two-level layout. New work uses [the intent layout](intent-layout.md); to move an existing repository, follow [the migration guide](../guides/migrate-to-intents.md).
+This is the legacy two-level layout. New work uses [the intent layout](intent-layout.md); to move an existing repository, follow [the migration guide](../../how-to/migrate-to-intents.md).
 
 Every repository writes one overall network: why it exists, what it should become, what it is defined to do, the alternatives to it, and how to tell whether it succeeds. Everything practical in the repository (each detailed solution, each module) implements a part of it, and each detailed record links up to it with `parent_problem_ids`, `parent_ideal_ids`, `overall_solution_ids` or `parent_metric_ids`.
 

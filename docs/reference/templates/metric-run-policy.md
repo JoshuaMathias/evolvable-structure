@@ -4,7 +4,7 @@
 
 A Metric is what gets run, and when to run it is itself a solution: it has a problem, ideals, alternative implementations and a metric of its own. Record yours as a small ESOI network that the repository's other records link to. Nothing here adds a field to the intent template: timing is not a field of the Metric template (name, purpose, record, disadvantages), so it lives in the solution that governs the metrics.
 
-Read [when-metrics-are-run.md](../explanation/when-metrics-are-run.md) first.
+Read [when-metrics-are-run.md](../../explanation/when-metrics-are-run.md) first.
 
 ## 1. The problem and the ideals
 

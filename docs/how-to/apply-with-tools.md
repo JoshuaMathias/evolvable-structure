@@ -69,7 +69,7 @@ Rename the example's parts, replace its text with your own intent, and keep runn
 ## When to run what
 
 Metrics that call no paid service run on every change; paid ones run only when a decision depends on them, staged and under a
-call budget. Write your repository's version down with the [metric run policy template](../templates/metric-run-policy.md) and
+call budget. Write your repository's version down with the [metric run policy template](../reference/templates/metric-run-policy.md) and
 read [when metrics are run](../explanation/when-metrics-are-run.md). In day-to-day use:
 
 ```bash
@@ -100,7 +100,7 @@ The questions in the templates come from the author's `SKILL.md`. After it chang
 ESOI_TEMPLATE_SOURCE=path/to/SKILL.md esoi template sync
 ```
 
-regenerates the parsed field list, every document in `docs/templates/` and the quoted excerpts. `esoi template check`
+regenerates the parsed field list, every document in `docs/reference/templates/` and the quoted excerpts. `esoi template check`
 tells you whether they are stale; a new field appears as a missing column in your records until you fill it.
 
 ## Commands

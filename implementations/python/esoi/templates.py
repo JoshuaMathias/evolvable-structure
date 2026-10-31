@@ -16,6 +16,7 @@ opens with a line saying where its words come from.
 """
 from __future__ import annotations
 
+import posixpath
 import re
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
@@ -105,7 +106,7 @@ def intent_layout_template(entities: Dict[str, Dict[str, object]]) -> str:
             "Record ids are unique across the whole tree, so any link can name a record in another intent.", "",
             "## When to add a sub-intent", "",
             "Only when it brings insights on opportunities that do not emerge directly from the parent intent or the solution "
-            "it implements; its `opportunities` cell states them (see [when to create a sub-intent](../explanation/when-to-create-a-sub-intent.md)). Risks belong in an implementation's or a "
+            "it implements; its `opportunities` cell states them (see [when to create a sub-intent](@DOCS@/explanation/when-to-create-a-sub-intent.md)). Risks belong in an implementation's or a "
             "metric's disadvantages and uncertainties in the solution's metric, so neither earns a sub-intent alone.", ""]
     return "\n".join(out)
 
@@ -116,7 +117,7 @@ def overall_template(entities: Dict[str, Dict[str, object]]) -> str:
                 ("metric", "Top metrics", "M")]
     out = [f"<!-- {ATTRIBUTION} -->", "", "# Overall solution network (template, legacy layout)", "",
            "This is the legacy two-level layout. New work uses [the intent layout](intent-layout.md); to move an existing "
-           "repository, follow [the migration guide](../guides/migrate-to-intents.md).", "",
+           "repository, follow [the migration guide](@DOCS@/how-to/migrate-to-intents.md).", "",
            "Every repository writes one overall network: why it exists, what it should become, what it is defined to do, "
            "the alternatives to it, and how to tell whether it succeeds. Everything practical in the repository (each detailed "
            "solution, each module) implements a part of it, and each detailed record links up to it with "
@@ -173,7 +174,7 @@ def metric_run_policy_template(entities: Dict[str, Dict[str, object]]) -> str:
            "implementations and a metric of its own. Record yours as a small ESOI network that the repository's other "
            "records link to. Nothing here adds a field to the intent template: timing is not a field of the Metric "
            "template (name, purpose, record, disadvantages), so it lives in the solution that governs the metrics.", "",
-           "Read [when-metrics-are-run.md](../explanation/when-metrics-are-run.md) first.", "",
+           "Read [when-metrics-are-run.md](@DOCS@/explanation/when-metrics-are-run.md) first.", "",
            "## 1. The problem and the ideals", "",
            "Copy [problem.md](problem.md) and [ideal.md](ideal.md). Typical problems: results that are stale when a decision "
            "is made, paid runs nobody approved, runs so frequent that nobody waits for them. Typical ideals: a decision is "
@@ -335,7 +336,7 @@ def excerpts(skill_text: str) -> str:
              "# The definitions and principles, in Joshua Mathias's words", "",
              "Everything below is quoted verbatim from the evolvable-structure skill's `SKILL.md`, written by Joshua "
              "Mathias, who is its authority. It is regenerated whenever that file changes. The intent template itself "
-             "(Intent, Problem, Solution, Implementation, Ideal, Metric) is in [the templates](../templates/).", "",
+             "(Intent, Problem, Solution, Implementation, Ideal, Metric) is in [the templates](@TEMPLATES@/).", "",
              "## What it is", "", quote(opening), "", "## Purpose", "", quote(purpose), "", "## Definitions", "",
              quote(definitions), "", "## Principles (ideals)", "", quote(principles), ""]
     return "\n".join(parts)
@@ -349,6 +350,7 @@ def generated_files(rows: List[Dict[str, str]], skill_text: str, config: Config)
     """Every generated file, by absolute path, for the configured outputs."""
     files: Dict[Path, str] = {}
     entities = by_entity(rows)
+    docs_root = Path(config.excerpts_file).parent.parent.as_posix() if config.excerpts_file else "docs"
     if config.templates_dir:
         folder = config.root / config.templates_dir
         for entity in ENTITIES:
@@ -363,7 +365,18 @@ def generated_files(rows: List[Dict[str, str]], skill_text: str, config: Config)
             files[folder / "record-headers" / name] = text
     if config.excerpts_file:
         files[config.root / config.excerpts_file] = excerpts(skill_text)
-    return files
+    return {path: link_docs(text, path, config, docs_root) for path, text in files.items()}
+
+
+def link_docs(text: str, path: Path, config: Config, docs_root: str) -> str:
+    """Resolve the ``@DOCS@`` and ``@TEMPLATES@`` link placeholders to relative paths from the generated file's folder, so the
+    generated documents link correctly wherever the docs and templates folders are configured."""
+    if "@DOCS@" not in text and "@TEMPLATES@" not in text:
+        return text
+    here = path.parent.relative_to(config.root).as_posix()
+    docs = posixpath.relpath(docs_root, here)
+    templates = posixpath.relpath(config.templates_dir or docs_root + "/reference/templates", here)
+    return text.replace("@DOCS@", docs).replace("@TEMPLATES@", templates)
 
 
 def sync(config: Config, source: Optional[str] = None, check: bool = False, say: Callable[[str], None] = print) -> int:

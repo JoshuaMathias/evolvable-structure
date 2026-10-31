@@ -46,5 +46,5 @@ This module finds records. Choosing among implementations by their measured resu
 `esoi.variants`). The two meet only in that the strategies here are implementations of the solution `spec-search`, chosen
 the same way as any other.
 
-See [Search records and items together](../guides/search-specs-and-items.md) to use it, and
+See [Search records and items together](../how-to/search-specs-and-items.md) to use it, and
 [what belongs where](what-belongs-where.md) for why it is here.

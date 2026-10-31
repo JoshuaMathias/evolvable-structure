@@ -119,4 +119,4 @@ declared in code are one set. Write `[selection]` in `esoi.toml` when the deploy
 inside it for an existing table.
 
 The Python layer is `esoi.runtime`; the records and the rules behind it are `esoi.declarations` (rule S30), `esoi.promote` and
-`esoi.select`. Moving an existing project: [migrate-to-intents.md](../guides/migrate-to-intents.md).
+`esoi.select`. Moving an existing project: [migrate-to-intents.md](../how-to/migrate-to-intents.md).

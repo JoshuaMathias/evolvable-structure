@@ -24,4 +24,4 @@ the other rules that accept exceptions.
 
 A package without a parent assembles as before, and a repository without a `[parent]` table is never checked by S35. The rule is not
 in the way of a first adoption: it only asks for reasons where a parent exists to differ from. How to use it is in
-[Build on another package's defaults and say why you differ](../guides/hierarchical-defaults.md).
+[Build on another package's defaults and say why you differ](../how-to/hierarchical-defaults.md).

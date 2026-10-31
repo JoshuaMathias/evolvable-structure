@@ -25,4 +25,4 @@ metric is whatever you can honestly measure.
 
 For work that has no code, "run" means whatever produces a measurement: a short quiz, a survey, a sample of outcomes. The
 results log is then a spreadsheet instead of a file, and the checks are done by a person with the review sheet layout in
-[the templates](../templates/review-sheet.md). The rest of the structure is the same.
+[the templates](../reference/templates/review-sheet.md). The rest of the structure is the same.

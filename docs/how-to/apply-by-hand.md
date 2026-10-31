@@ -10,7 +10,7 @@ have more than an hour, follow the steps themselves.
 
 ## 1. Write the intent (about twenty minutes)
 
-Copy [intent.md](../templates/intent.md) and give the intent a name and a vision statement in present tense ("The
+Copy [intent.md](../reference/templates/intent.md) and give the intent a name and a vision statement in present tense ("The
 world is ..."). Then write one to three problems and ideals, one top solution that everything falls under, the
 alternative ways of carrying it out as implementations, and one or two metrics. Use short ids such as `prob-slow-reports`
 and `ideal-fast-answers`. Keep them together in one folder: the folder is the intent.
@@ -20,9 +20,9 @@ and `ideal-fast-answers`. Keep them together in one folder: the folder is the in
 Start coarse. Give a part its own solution only when it has a different definition of best that could impact the success of
 the intent, and a sub-intent only for an opportunity (see [when-to-create-a-sub-intent.md](../explanation/when-to-create-a-sub-intent.md)).
 
-Pick one part of the work. Copy [solution.md](../templates/solution.md) and answer every question. Copy
-[problem.md](../templates/problem.md), [ideal.md](../templates/ideal.md), [implementation.md](../templates/implementation.md)
-and [metric.md](../templates/metric.md) as needed, once per record. Link them: the solution names its problems, ideals,
+Pick one part of the work. Copy [solution.md](../reference/templates/solution.md) and answer every question. Copy
+[problem.md](../reference/templates/problem.md), [ideal.md](../reference/templates/ideal.md), [implementation.md](../reference/templates/implementation.md)
+and [metric.md](../reference/templates/metric.md) as needed, once per record. Link them: the solution names its problems, ideals,
 metric and implementations, and each of those names the solution back. If the part builds on a solution somewhere else,
 write that solution's id on the implementation.
 
@@ -31,7 +31,7 @@ write that solution's id on the implementation.
 Write five to ten cases: an input and what a good output looks like. Run each implementation on them, by hand if need be,
 and record one row in a results table with the date, the implementation, cases passed out of cases run, the version of the
 thing measured, and a short fingerprint of the case file (a file hash, or a version number you bump when cases change).
-The columns are in [record-headers/results.csv](../templates/record-headers/results.csv).
+The columns are in [record-headers/results.csv](../reference/templates/record-headers/results.csv).
 
 ## 4. Decide and write it down
 
@@ -42,8 +42,8 @@ keeping it anyway until a named decision. Put that in `selected` and `selected_b
 
 - Add a row to the results table each time an implementation or the cases change.
 - Review the intent's vision statement, problems and ideals when direction changes, and the results when something is rerun.
-- Use [review-sheet.md](../templates/review-sheet.md) to lay the records out as a spreadsheet for someone else to review.
-- Copy [repository-standard.md](../templates/repository-standard.md) once the shape has settled, and keep it short.
+- Use [review-sheet.md](../reference/templates/review-sheet.md) to lay the records out as a spreadsheet for someone else to review.
+- Copy [repository-standard.md](../reference/templates/repository-standard.md) once the shape has settled, and keep it short.
 
 When the files multiply, move to [the tools](apply-with-tools.md), which check that links agree, that every file has an
 owner, and that results are fresh.

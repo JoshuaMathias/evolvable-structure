@@ -2,7 +2,7 @@
 import re
 from pathlib import Path
 
-GUIDE = Path(__file__).resolve().parents[3] / "docs" / "guides" / "measure-before-and-after.md"
+GUIDE = Path(__file__).resolve().parents[3] / "docs" / "how-to" / "measure-before-and-after.md"
 
 
 def test_every_python_block_of_the_guide_runs_and_prints_what_it_says(tmp_path, monkeypatch, capsys):

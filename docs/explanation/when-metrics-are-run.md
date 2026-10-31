@@ -4,9 +4,9 @@ A Metric is what gets run. A set of cases, a scorer and a harness are only how a
 a metric costs time and sometimes money, and a result is only worth deciding from while it is current. So *when* each metric
 is run is a design question with the same shape as any other: it is a solution, with a problem, ideals, alternative
 implementations and a metric of its own. This page writes it that way, using the records described in
-[intent-types.md](intent-types.md); the questions each record must answer are in [the templates](../templates/), in the
+[intent-types.md](intent-types.md); the questions each record must answer are in [the templates](../reference/templates/), in the
 author's words, and are not repeated here. A fill-in version for your own repository is
-[metric-run-policy.md](../templates/metric-run-policy.md).
+[metric-run-policy.md](../reference/templates/metric-run-policy.md).
 
 ## The problems
 
@@ -29,7 +29,7 @@ author's words, and are not repeated here. A fill-in version for your own reposi
 
 ## The solution
 
-A written policy per repository (the template is [metric-run-policy.md](../templates/metric-run-policy.md)) that names, for
+A written policy per repository (the template is [metric-run-policy.md](../reference/templates/metric-run-policy.md)) that names, for
 every Metric it governs, when it is run, in what stages, with what limit, who approves, and when its result stops counting.
 The practice that has worked is below; each repository records its own version.
 
@@ -116,4 +116,4 @@ change). The first two are counted by hand or from the results log; the third is
 
 The Python implementation reports a stale result (`esoi check --strict`), re-runs and re-records what is stale
 (`esoi run --stale`), runs a staged sample with a budget (`esoi run <component> --impl <name> --sample 3 --max-calls N`), and
-records the time the check itself takes. See [apply-with-tools.md](../guides/apply-with-tools.md).
+records the time the check itself takes. See [apply-with-tools.md](../how-to/apply-with-tools.md).

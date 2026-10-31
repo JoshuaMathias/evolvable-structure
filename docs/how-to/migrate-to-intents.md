@@ -13,7 +13,7 @@ running `esoi check` after each.
    unchanged. Ids are unique across the whole tree, so nothing that links to them breaks.
 2. Add `intent.csv` there with one row: `intent_id`, `name`, `vision_statement`, `opportunities` (what the intent inspires), and empty `implements`.
    The top intent's name and vision statement are the project's purpose, why the project exists, in its own words
-   (present tense, "The world is ..."; see the [intent template](../templates/intent.md)). Do not copy them from the
+   (present tense, "The world is ..."; see the [intent template](../reference/templates/intent.md)). Do not copy them from the
    overall network when that network was written about the structure ("the structure that ..."): the evolvable structure
    the project applies is a solution inside the top intent, not the top intent. The overall network's ideals are a place
    to look for the purpose, not to copy. The network's prose can be kept as `network.md`.

@@ -24,8 +24,8 @@ The main feature is explanation and templates that need no code; Python is one e
 
 | Path | What it is | Open it when |
 |---|---|---|
-| `docs/` | Explanation, guides and templates, all non-code | writing or changing what ESOI says |
-| `docs/templates/`, `docs/explanation/from-the-skill.md` | Generated from Joshua's `SKILL.md`; never hand-edit | the template changes (run `esoi template sync`) |
+| `docs/` | The docs in four categories (`tutorials/`, `how-to/`, `explanation/`, `reference/`, with `reference/templates/`), all non-code; `esoi docs check` enforces it | writing or changing what ESOI says |
+| `docs/reference/templates/`, `docs/explanation/from-the-skill.md` | Generated from Joshua's `SKILL.md`; never hand-edit | the template changes (run `esoi template sync`) |
 | `skill/`, `.claude-plugin/`, `implementations/python/esoi/data/skill/` | Public copy of the author's skill; generated, never hand-edit | the skill changes (run `esoi skill sync` with `ESOI_SKILL_SOURCE`) |
 | `implementations/python/` | The `esoi` package, its tests and evaluation components | changing the tools |
 | `esoi/` | ESOI applied to this repository. It holds the top intent (here ESOI itself, because that is why this repository exists; another project's top intent is its own purpose); `esoi-runtime/` is a sub-intent with its own `intent.csv`; its folder is named by its intent id | adding or changing a part |

@@ -40,7 +40,7 @@ then the parent's (then the parent's parent's), so the child states only what di
 visible to it; a name must be one the solution lists in the child or a parent. A layer value may be ``name@key=value`` or a
 list of them: a condition on ``AssemblyConfig.circumstances``, the first entry that applies winning. ``reasons`` says why a
 selection differs from a parent's default, and ``explain`` lists every layer of one solution with the winner named
-(``esoi.hierarchy``; the guide is docs/guides/hierarchical-defaults.md).
+(``esoi.hierarchy``; the guide is docs/how-to/hierarchical-defaults.md).
 
 It never imports a consumer: the consumer constructs the ``Assembler`` and passes it what it owns. Standard library and ``esoi``
 only. ``Assembly`` is frozen: choices and implementations are fixed when ``assemble`` returns, nothing resolves later.
@@ -66,6 +66,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple
 from . import config as config_module
 from . import hierarchy
 from . import registry as registry_module
+from . import requirements as requirements_module
 from . import runtime
 from .fields import parse_tags
 from .select import default_name
@@ -129,9 +130,13 @@ ENVIRON_REQUIRED_ATTRIBUTE = "ENVIRON_REQUIRED"  # on an arm: the declared optio
 def environ_declared(target: Any) -> Dict[str, Tuple[str, ...]]:
     """``{option: (variable names, first present wins)}`` an arm declares as data in its ``ENVIRON`` attribute."""
     found = getattr(target, ENVIRON_ATTRIBUTE, None)
-    if not isinstance(found, Mapping):
-        return {}
-    return {option: ((names,) if isinstance(names, str) else tuple(names)) for option, names in found.items()}
+    out = ({option: ((names,) if isinstance(names, str) else tuple(names)) for option, names in found.items()}
+           if isinstance(found, Mapping) else {})
+    for item in requirements_module.declared(target):   # env(..., option=...) and an api's key(option=...) fill options too
+        key = item.key if isinstance(item, requirements_module.Api) else item
+        if isinstance(key, requirements_module.Env) and key.option and key.option not in out:
+            out[key.option] = key.names
+    return out
 
 
 def environ_fill(target: Any, options: Mapping[str, Any], environ: Mapping[str, str]) -> Dict[str, str]:
@@ -272,6 +277,12 @@ class Assembly:
     @property
     def reasons(self) -> Tuple[str, ...]:
         return tuple(self.reason_by_solution.values())
+
+    @property
+    def requirements(self) -> Tuple[requirements_module.Entry, ...]:
+        """What the built arms declare they need from their environment, once each (see ``esoi.requirements``)."""
+        return tuple(requirements_module.gather(requirements_module.members_pairs(
+            requirements_module.Member(f"{sid}:{self.choices[sid].name}", arm) for sid, arm in self.implementations.items())))
 
     def solutions(self) -> List[str]:
         """The assembled solution ids, in build order."""
@@ -776,10 +787,18 @@ class Assembler:
                                if name != "self" and name not in needs and name not in options and par.default is par.empty
                                and par.kind not in (par.VAR_POSITIONAL, par.VAR_KEYWORD)]
                     lacking = environ_lacking(target, config.options.get(sid, {}), config.consumer_environ)
+                    given_options = config.options.get(sid, {})
+                    remedy = requirements_module.remedy_line(
+                        one for one in requirements_module.check(requirements_module.declared(target), config.consumer_environ)
+                        if not (isinstance(one.requirement, requirements_module.Env) and one.requirement.option in given_options)
+                        and not (isinstance(one.requirement, requirements_module.Api) and one.requirement.key is not None
+                                 and one.requirement.key.option in given_options))
                     unmet = [need for need in needs.values() if not check(need)]
                     if lacking:
                         found[sid] = (f"{sid} ({picked.name}): set " + "; ".join(f"{' or '.join(names)} (option {' or '.join(repr(o) for o in group)})"
                                       for group, names in lacking.items()) + f" in the environ mapping you pass, or pass options={{{sid!r}: {{...}}}}")
+                    elif remedy:
+                        found[sid] = f"{sid} ({picked.name}): {remedy}"
                     elif missing:
                         found[sid] = f"{sid} ({picked.name}): pass options={{{sid!r}: {{{', '.join(repr(m) + ': ...' for m in missing)}}}}}"
                     elif unmet:
@@ -790,6 +809,53 @@ class Assembler:
         for sid in self.visible():
             check(sid)
         return found
+
+    def closure(self, config: Optional[AssemblyConfig] = None, provided: Optional[Mapping[str, Any]] = None,
+                solutions: Sequence[str] = (), every_arm: bool = False) -> List[requirements_module.Member]:
+        """The dependency closure of what an assembly would use, each member with the reason it is in: the selected arm of each
+        solution asked for (``solutions``, else the config's, else every visible one) that is not provided, then the arms that
+        fill their solution-typed needs, recursively (``needed by <solution>:<arm>``). ``every_arm=True`` takes every named arm
+        of the roots instead. An arm that cannot be loaded is left to ``pending_needs``."""
+        cfg = config or AssemblyConfig()
+        given = dict(provided or {})
+        self.prepare()
+        members: List[requirements_module.Member] = []
+        seen: Set[Tuple[str, str]] = set()
+
+        def visit(sid: str, name: Optional[str], reason: str) -> None:
+            for one in ([name] if name else self.names(sid)):
+                if (sid, one) in seen:
+                    continue
+                seen.add((sid, one))
+                try:
+                    target = self.load(sid, one)
+                    needs = self.needs_of(target)
+                except Exception:
+                    continue
+                members.append(requirements_module.Member(f"{sid}:{one}", target, reason))
+                if not every_arm:
+                    for need in needs.values():
+                        picked = self.pick(need, None, cfg) if need not in given and self.known_solution(need) else None
+                        if picked is not None:
+                            visit(need, picked.name, f"needed by {sid}:{one}")
+
+        for sid in (list(solutions) or list(cfg.solutions) or self.visible()):
+            self.check_solution(sid)
+            if sid in given:
+                continue
+            if every_arm:
+                visit(sid, None, "every arm")
+            else:
+                picked = self.pick(sid, None, cfg)
+                if picked is not None:
+                    visit(sid, picked.name, "selected")
+        return members
+
+    def requirements(self, config: Optional[AssemblyConfig] = None, provided: Optional[Mapping[str, Any]] = None,
+                     every_arm: bool = False, solutions: Sequence[str] = ()) -> List[requirements_module.Entry]:
+        """What the closure declares it needs from its environment (see ``closure``): the arms an assembly would use, the arms
+        that fill their needs, and the package modules each imports, each requirement once with its users."""
+        return requirements_module.gather(requirements_module.members_pairs(self.closure(config, provided, solutions, every_arm)))
 
     def assemble_defaults(self, config: Optional[AssemblyConfig] = None, provided: Optional[Mapping[str, Any]] = None) -> Assembly:
         """Build every solution of the scope that its chosen arm (explicit name, selections, then the package default) can build

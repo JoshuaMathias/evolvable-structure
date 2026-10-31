@@ -33,4 +33,4 @@ In the parent intent's `implementations.csv`, the implementation the sub-intent 
 
 ## When to add a sub-intent
 
-Only when it brings insights on opportunities that do not emerge directly from the parent intent or the solution it implements; its `opportunities` cell states them (see [when to create a sub-intent](../explanation/when-to-create-a-sub-intent.md)). Risks belong in an implementation's or a metric's disadvantages and uncertainties in the solution's metric, so neither earns a sub-intent alone.
+Only when it brings insights on opportunities that do not emerge directly from the parent intent or the solution it implements; its `opportunities` cell states them (see [when to create a sub-intent](../../explanation/when-to-create-a-sub-intent.md)). Risks belong in an implementation's or a metric's disadvantages and uncertainties in the solution's metric, so neither earns a sub-intent alone.

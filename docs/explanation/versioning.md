@@ -21,7 +21,7 @@ starting a new empty `## Unreleased`. Tagging and publishing are separate decisi
 
 ### What a feature that adds record files changes for an adopter
 
-Seeing a difference by circumstance (see [the guide](../guides/measure-per-circumstance.md)) is the example of a minor bump that
+Seeing a difference by circumstance (see [the guide](../how-to/measure-per-circumstance.md)) is the example of a minor bump that
 adds structure. An adopter that does nothing sees only these:
 
 - **One optional record file.** `circumstances.csv` is read when it exists, in any intent folder. It is not one of the five

@@ -2,7 +2,7 @@
 
 # The definitions and principles, in Joshua Mathias's words
 
-Everything below is quoted verbatim from the evolvable-structure skill's `SKILL.md`, written by Joshua Mathias, who is its authority. It is regenerated whenever that file changes. The intent template itself (Intent, Problem, Solution, Implementation, Ideal, Metric) is in [the templates](../templates/).
+Everything below is quoted verbatim from the evolvable-structure skill's `SKILL.md`, written by Joshua Mathias, who is its authority. It is regenerated whenever that file changes. The intent template itself (Intent, Problem, Solution, Implementation, Ideal, Metric) is in [the templates](../reference/templates/).
 
 ## What it is
 

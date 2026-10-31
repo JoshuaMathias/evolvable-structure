@@ -14,7 +14,7 @@ from esoi import check, circumstances, harness, leaderboard, runtime, variants
 from esoi import config as config_module
 from esoi.runtime import SelectionError
 
-GUIDE = Path(__file__).resolve().parents[3] / "docs" / "guides" / "measure-per-circumstance.md"
+GUIDE = Path(__file__).resolve().parents[3] / "docs" / "how-to" / "measure-per-circumstance.md"
 QUIET = lambda text: None
 HEADER = "circumstance_id,case_filter,run_filter,problem_ids,solution_ids\n"
 BIG_SMALL = "big,size>5,,greeting-by-hand,greet-a-person\nsmall,size<=5,,greeting-by-hand,greet-a-person\n"

@@ -37,4 +37,4 @@ agree, confidence rises; where they conflict, that is information about our case
 suppressed. The weights are in one visible table with a reason each (`esoi evidence table`), so a reviewer can disagree with a
 weight rather than with a hidden judgement.
 
-How: [Use public evidence beside your own results](../guides/use-public-evidence.md).
+How: [Use public evidence beside your own results](../how-to/use-public-evidence.md).

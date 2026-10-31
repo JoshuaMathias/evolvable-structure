@@ -112,7 +112,7 @@ def plan(config: Config, apply: bool = False) -> Tuple[List[str], List[str]]:
         "do not emerge from its parent intent or the solution it implements. Move its solutions into a subfolder with "
         "its own intent.csv (implements, opportunities) and name it in the implementation's sub_intent.",
         "Run `esoi check --write-docs` and `esoi tracker build`; fix what they name.",
-        "See docs/guides/migrate-to-intents.md in the esoi repository."]
+        "See docs/how-to/migrate-to-intents.md in the esoi repository."]
     return done, manual
 
 

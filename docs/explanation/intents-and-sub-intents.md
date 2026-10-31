@@ -2,7 +2,7 @@
 
 An **intent** is a container. In the author's words, "An intent is like a folder containing the files of the other five
 specification types": problems, solutions, implementations, ideals and metrics. It has a name and a vision statement in
-present tense (for example "The world is ..."), from the [intent template](../templates/intent.md). The template says what
+present tense (for example "The world is ..."), from the [intent template](../reference/templates/intent.md). The template says what
 it is not: "A general category like "parenting" or "career." An intent is also not an organization itself, rather the
 container of specification that clarifies why the organization exists (as a solution and implementation within an intent)."
 
@@ -83,4 +83,4 @@ Repositories that use `overall` in their configuration still load and check that
 | Detailed problems and ideals with `parent_problem_ids` and `parent_ideal_ids` | Unchanged: sub-problems and sub-ideals elaborate a problem or an ideal |
 | A top metric fed by `parent_metric_ids` | Unchanged: a metric's part |
 
-A migration, step by step, is in [migrate-to-intents.md](../guides/migrate-to-intents.md).
+A migration, step by step, is in [migrate-to-intents.md](../how-to/migrate-to-intents.md).

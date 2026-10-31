@@ -140,7 +140,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 | `the-steps:no-stated-order` | No stated order |  |  |
 | `docs-and-templates:README.md` | Documentation folder | docs/README.md |  |
 | `follow-the-steps:steps` | The ESOI steps | skill/evolvable-structure/steps.md |  |
-| `follow-the-steps:one-hour-pass` | One-hour first pass | docs/guides/apply-by-hand.md |  |
+| `follow-the-steps:one-hour-pass` | One-hour first pass | docs/how-to/apply-by-hand.md |  |
 | `local-application-index:live_index` | Index folder in the user's home | implementations/python/evaluation/components/index_projects/impls/live_index.py |  |
 | `local-application-index:skill_rows` | Routing rows in the skill's index (retired baseline) | implementations/python/evaluation/components/index_projects/impls/skill_rows.py |  |
 | `local-application-index:records_only` | Nothing beyond each project's own records (floor) | implementations/python/evaluation/components/index_projects/impls/records_only.py |  |

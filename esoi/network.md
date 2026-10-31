@@ -538,7 +538,7 @@ The records below were first written as prose; they are kept as a reading view o
 
 ### IM16 The standard documents (The standard, selected)
 - **Name:** Standard document
-- **Description:** `docs/explanation/intent-types.md` gives the shape of a solution and the other four record types, and `docs/guides/apply-with-tools.md` the steps to adopt them; `esoi rules` lists what is checked.
+- **Description:** `docs/explanation/intent-types.md` gives the shape of a solution and the other four record types, and `docs/how-to/apply-with-tools.md` the steps to adopt them; `esoi rules` lists what is checked.
 - **Advantages:** Two short documents to read first.
 - **Disadvantages:** Prose can drift from the rules unless updated with them.
 - **Implements:** SO11

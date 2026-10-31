@@ -9,7 +9,8 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `examples` | docs | Adopters as short examples and testimonials. | docs-and-templates |
 | `structure-registry` | docs | This repository's own overall network and detailed records. | intent-registry |
 | `project-files` | project | Files at the repository root: readme, configuration, contributing, licence. | docs-and-templates |
-| `wiki` | scripts | Generating the GitHub wiki from docs/ on every push to main, so the docs stay the one source. | docs-and-templates |
+| `wiki` | scripts | A thin wrapper that generates this repository's GitHub wiki from docs/ through esoi docs wiki. | docs-and-templates |
+| `docs-standard` | tools | Checking the four-category docs standard and generating a wiki from docs/, so the docs stay the one source. | docs-and-templates |
 | `public-skill` | docs | The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package. | skill-distribution, behave-by-esoi, follow-the-steps |
 | `records-core` | core | Loading the configuration and the CSV records, and checking the intent records against the template. | intent-registry |
 | `template-reader` | core | Reading the intent template from its source and keeping the parsed copy. | template-sync |
@@ -79,5 +80,6 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `eval-select-an-implementation` | evaluation | Cases for resolving a selection. | runtime-selection |
 | `runtime` | core | Declarations in code and the cascade that picks the implementation a call runs. | runtime-selection |
 | `assemble` | core | unconfirmed: for Joshua to confirm. | assemble-by-name |
+| `requirements` | core | Declaring what an implementation needs from its environment and checking it. | assemble-by-name |
 | `hierarchy` | core | unconfirmed: for Joshua to confirm. | assemble-by-name |
 | `eval-assemble-by-name` | evaluation | unconfirmed: for Joshua to confirm. | assemble-by-name |

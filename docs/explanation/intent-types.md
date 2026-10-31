@@ -2,7 +2,7 @@
 
 An **intent** is the container: a meaningful set of specifications with a name and a vision statement (what it is
 manifesting, in present tense). See [intents-and-sub-intents.md](intents-and-sub-intents.md) and the
-[intent template](../templates/intent.md). Inside it, ESOI writes the intent as five kinds of record: **problems**,
+[intent template](../reference/templates/intent.md). Inside it, ESOI writes the intent as five kinds of record: **problems**,
 **ideals**, **solutions**, **implementations** and **metrics**. Each is defined, with the questions a record must answer,
 in the author's own words. Those words are not repeated here: open the template for the type you need.
 
@@ -16,11 +16,11 @@ That mapping is also why a part becomes a sub-intent only for an opportunity (se
 
 | Type | Template | Answers |
 |---|---|---|
-| Problem | [problem.md](../templates/problem.md) | What motivated the intent |
-| Ideal | [ideal.md](../templates/ideal.md) | The future state, in one dimension |
-| Solution | [solution.md](../templates/solution.md) | How one or more problems are addressed, and its interface |
-| Implementation | [implementation.md](../templates/implementation.md) | A built alternative that carries out a solution |
-| Metric | [metric.md](../templates/metric.md) | How to measure the distance from an implementation to an ideal |
+| Problem | [problem.md](../reference/templates/problem.md) | What motivated the intent |
+| Ideal | [ideal.md](../reference/templates/ideal.md) | The future state, in one dimension |
+| Solution | [solution.md](../reference/templates/solution.md) | How one or more problems are addressed, and its interface |
+| Implementation | [implementation.md](../reference/templates/implementation.md) | A built alternative that carries out a solution |
+| Metric | [metric.md](../reference/templates/metric.md) | How to measure the distance from an implementation to an ideal |
 
 Each template starts with the definition, lists the questions to answer, and ends with what the type is not and what it
 connects to. The definitions of intent, evolvable, structure and the rest are in

@@ -63,7 +63,7 @@ def check(config: Config, strict: bool = False, files: Optional[List[str]] = Non
 
 
 LEGACY_NOTE = ("note: this repository uses the legacy two-level layout (`overall` and detailed records); the intent layout "
-               "makes intents folders and sub-intents subfolders. See docs/guides/migrate-to-intents.md in the esoi "
+               "makes intents folders and sub-intents subfolders. See docs/how-to/migrate-to-intents.md in the esoi "
                "repository, or run `esoi intent migrate`")
 
 

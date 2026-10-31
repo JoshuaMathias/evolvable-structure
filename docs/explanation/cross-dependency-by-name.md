@@ -31,5 +31,5 @@ call in the consumer's own code (trusted, it is the consumer's code), the arm's 
 the package's own records or packaged snapshot, where the module must start with the package name and lie inside the
 package folder. The library never imports the application that uses it.
 
-How to use it is in [Assemble the parts of a program by name](../guides/assemble-by-name.md). The part of this that is
+How to use it is in [Assemble the parts of a program by name](../how-to/assemble-by-name.md). The part of this that is
 general, and the part that is a particular application's, are separated in [What belongs where](what-belongs-where.md).

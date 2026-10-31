@@ -1,6 +1,6 @@
 # When this repository's metrics are run
 
-The filled-in [metric run policy](../docs/templates/metric-run-policy.md) for this repository. The records are in this folder
+The filled-in [metric run policy](../docs/reference/templates/metric-run-policy.md) for this repository. The records are in this folder
 (and in its sub-intent folder); this page is the readable version.
 
 ## Problem and ideal

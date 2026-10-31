@@ -10,7 +10,7 @@ structure_dir = "esoi"
 evaluation_dir = "implementations/python/evaluation/components"
 # The intent template is read from the evolvable-structure skill's SKILL.md when ESOI_TEMPLATE_SOURCE (or --source)
 # names it; the documents below are generated from it by `esoi template sync`.
-templates_dir = "docs/templates"
+templates_dir = "docs/reference/templates"
 # The stamp of the skill and template this library follows, written by `esoi skill sync` and `esoi template sync`.
 version_stamp = "implementations/python/esoi/data/skill_version.json"
 excerpts_file = "docs/explanation/from-the-skill.md"

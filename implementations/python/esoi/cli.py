@@ -23,6 +23,9 @@
     esoi projects init|add|list|check|index|where   the local ESOI index (a folder named by ESOI_HOME, else ~/.esoi)
     esoi version [--record]                the package version, the skill it follows, the template version; --record writes the template version into esoi.toml
     esoi hygiene [--staged] [--history]    scan for secrets, machine paths and real addresses
+    esoi requirements [--package P | --scope S] [--solution ID] [--check] [--json] [--env-template FILE] [--install-script FILE]   what the implementations need from their environment
+    esoi install [--package P | --scope S] [--solution ID ...] [--assembly] [--yes]   install only what the solutions in use need (dry run without --yes)
+    esoi docs check|wiki [--out DIR] [--repo-url URL] [--push WIKI_GIT_URL]   the four-category docs standard; generate the wiki from docs/
     esoi sheet-sync sync|push|pull|check   two-way sync of the tracker with a Google Sheet (esoi[sheets])
 
 ``--config PATH`` (before the subcommand) names the configuration file or folder; by default the nearest
@@ -140,10 +143,163 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--root", default=".")
     p.add_argument("--staged", action="store_true")
     p.add_argument("--history", action="store_true", help="also scan every line ever added in git history")
+    p = sub.add_parser("requirements", help="what implementations need from their environment: report, check, .env template, install script, coherence")
+    p.add_argument("--package", default=None, help="an importable package whose assembler() (or ASSEMBLER) gives the arms an assembly would use")
+    p.add_argument("--scope", default=None, help="the registry scope whose declared arms to report (default: the configured package)")
+    p.add_argument("--solution", action="append", help="only this solution id (repeatable)")
+    p.add_argument("--all-arms", action="store_true", help="every named arm, not only the selected ones")
+    p.add_argument("--arm", action="append", metavar="SOLUTION=NAME", help="use this arm for a solution instead of the package default (repeatable)")
+    p.add_argument("--check", action="store_true", help="check against the process environment; exit 1 when a required one is unmet")
+    p.add_argument("--coherence", action="store_true", help="check that the selected implementations' requirements resolve together; exit 1 with the proposed fix if not")
+    p.add_argument("--online", action="store_true", help="with --coherence, ask pip for a dry run in a temporary virtualenv (network)")
+    p.add_argument("--probe", action="store_true", help="with --check, call each requirement's declared cheap probe (network)")
+    p.add_argument("--offline", action="store_true", help="never touch the network, whatever else is asked")
+    p.add_argument("--json", action="store_true")
+    p.add_argument("--env-template", default=None, metavar="FILE", help="write a .env template (secrets blank)")
+    p.add_argument("--env-file", default=None, metavar="FILE", help="add the missing variables, commented out, to this env file (never overwrites; mode 600)")
+    p.add_argument("--install-script", default=None, metavar="FILE", help="write an install script")
+    p = sub.add_parser("install", help="install only what the solutions in use need (dry run unless --yes)")
+    p.add_argument("--package", default=None)
+    p.add_argument("--scope", default=None)
+    p.add_argument("--solution", action="append", help="a solution id to install for (repeatable); default: what a default assembly would use")
+    p.add_argument("--assembly", action="store_true", help="what a default assembly would use (the default when no --solution is given)")
+    p.add_argument("--all-arms", action="store_true", help="every named arm of the solutions, not only the selected ones")
+    p.add_argument("--arm", action="append", metavar="SOLUTION=NAME", help="use this arm for a solution instead of the package default (repeatable)")
+    p.add_argument("--project", default=".", help="the project folder; isolated environments go under <project>/.esoi/venvs")
+    p.add_argument("--yes", action="store_true", help="actually run the plan (pip in the current environment, and the files inside the package)")
+    p.add_argument("--json", action="store_true")
+    p = sub.add_parser("docs", help="the four-category docs standard, and the wiki generated from it")
+    p.add_argument("action", choices=["check", "wiki"])
+    p.add_argument("--root", default=".")
+    p.add_argument("--docs-dir", default="docs")
+    p.add_argument("--out", default=None, help="wiki: the folder to write the pages into")
+    p.add_argument("--repo-url", default=None, help="wiki: the repository's web address (default: its origin remote)")
+    p.add_argument("--branch", default="main")
+    p.add_argument("--extra", action="append", help="wiki: a markdown file outside docs/ to include as a page (repeatable)")
+    p.add_argument("--check", action="store_true", help="wiki: fail when a page is not linked from the start page")
+    p.add_argument("--push", default=None, metavar="WIKI_GIT_URL", help="wiki: commit and push the pages to this wiki repository")
     p = sub.add_parser("sheet-sync", help="sync the tracker with a Google Sheet")
     p.add_argument("mode", choices=["sync", "push", "pull", "check"])
     p.add_argument("--dry-run", action="store_true")
     return parser
+
+
+def closure_for(config, args: argparse.Namespace, environ):
+    """``(assembler or None, members)`` for the CLI's ``--package`` / ``--scope`` / ``--solution`` choice. With ``--package`` the
+    closure follows the assembly (selected arms, the arms filling their needs); with ``--scope`` it is every declared arm of the scope."""
+    import importlib
+    from . import requirements as needs
+    from . import runtime
+    from .assemble import AssemblyConfig
+    solutions = tuple(getattr(args, "solution", None) or ())
+    if args.package:
+        module = importlib.import_module(args.package)
+        found = getattr(module, "assembler", None) or getattr(module, "ASSEMBLER", None)
+        assembler = found() if callable(found) else found
+        if assembler is None:
+            raise ValueError(f"{args.package} has no assembler() or ASSEMBLER")
+        arms = dict(item.split("=", 1) for item in (getattr(args, "arm", None) or ()) if "=" in item)
+        cfg = AssemblyConfig(solutions=solutions, names=arms, consumer_environ=environ)
+        return assembler, assembler.closure(cfg, None, solutions, getattr(args, "all_arms", False)), cfg
+    if config.package:
+        importlib.import_module(config.package)
+    scope = args.scope or config.package
+    members = [needs.Member(f"{sid}:{name}", target, "declared") for (where, sid), entry in sorted(runtime.REGISTRY.items())
+               if where == scope and (not solutions or sid in solutions)
+               for name, target in sorted(entry.implementations.items()) if not isinstance(target, str)]
+    return None, members, None
+
+
+def requirements_command(config, args: argparse.Namespace) -> int:
+    """``esoi requirements``: report, check and generate files for what the implementations need from their environment.
+    Exit codes: 0 all met, 1 something unmet (or, with --coherence, selected arms that conflict), 2 error."""
+    import json
+    import os
+    from . import installer
+    from . import requirements as needs
+    environ = dict(os.environ)
+    try:
+        assembler, members, cfg = closure_for(config, args, environ)
+        notes: list = []
+        entries = needs.gather(needs.members_pairs(members, notes))
+        if args.coherence:
+            if assembler is None:
+                print("esoi: --coherence needs --package (an assembly to check)", file=sys.stderr)
+                return 2
+            cleanup = None
+            resolver = None
+            if args.online and not args.offline:
+                resolver, cleanup = installer.venv_resolver()
+            try:
+                chosen, closure = installer.assembly_plan(assembler, cfg, environ, tuple(args.solution or ()), args.all_arms, resolver)
+            finally:
+                if cleanup:
+                    cleanup()
+            if args.json:
+                print(json.dumps(installer.plan_json(chosen, closure), indent=1))
+            else:
+                print("coherence: " + ("the selected implementations' requirements resolve together" if not chosen.adjusted else "CONFLICT in the selected implementations"))
+                print(installer.plan_text(chosen, closure), end="")
+            return needs.EXIT_UNMET if chosen.adjusted else needs.EXIT_MET
+    except (ValueError, ImportError, AttributeError, RuntimeError) as exc:
+        print(f"esoi: {exc}", file=sys.stderr)
+        return needs.EXIT_ERROR
+    checks = needs.check(entries, environ, args.probe, args.offline) if args.check else None
+    if args.json:
+        print(json.dumps(needs.as_json(entries, checks, notes), indent=1))
+    else:
+        print(needs.report(entries, checks), end="")
+        for note in notes:
+            print(f"note: {note}")
+    try:
+        if args.env_template:
+            print(needs.write_env_file(Path(args.env_template), entries), file=sys.stderr)
+        if args.env_file:
+            print(needs.write_env_file(Path(args.env_file), entries), file=sys.stderr)
+        if args.install_script:
+            Path(args.install_script).write_text(needs.install_script(entries, environ), encoding="utf-8")
+            print(f"wrote {args.install_script}", file=sys.stderr)
+    except (ValueError, OSError) as exc:
+        print(f"esoi: {exc}", file=sys.stderr)
+        return needs.EXIT_ERROR
+    return needs.EXIT_UNMET if checks and any(one.failing for one in checks) else needs.EXIT_MET
+
+
+def install_command(config, args: argparse.Namespace) -> int:
+    """``esoi install``: the closure of what the solutions use, the plan, and (only with --yes) the install.
+    Exit codes: 0 done or nothing to do, 1 something to do (dry run), failed, or still missing, 2 error."""
+    import json
+    import os
+    from . import installer
+    from . import requirements as needs
+    environ = dict(os.environ)
+    try:
+        assembler, members, cfg = closure_for(config, args, environ)
+        notes: list = []
+        if assembler is not None:
+            chosen, members = installer.assembly_plan(assembler, cfg, environ, tuple(args.solution or ()), args.all_arms, None, project=Path(args.project))
+        else:
+            entries = needs.gather(needs.members_pairs(members, notes))
+            chosen = installer.make_plan(entries, environ, None, None, Path(args.project), notes)
+    except (ValueError, ImportError, AttributeError, RuntimeError) as exc:
+        print(f"esoi: {exc}", file=sys.stderr)
+        return needs.EXIT_ERROR
+    if args.json:
+        print(json.dumps(installer.plan_json(chosen, members), indent=1))
+    else:
+        print(installer.plan_text(chosen, members), end="")
+    if not args.yes:
+        if not chosen.empty or chosen.conflicts:
+            print("dry run: nothing was changed; run again with --yes to apply this plan", file=sys.stderr)
+        return needs.EXIT_UNMET if (not chosen.empty or chosen.conflicts or chosen.binaries or chosen.missing) else needs.EXIT_MET
+    done = installer.execute(chosen, installer.package_roots(members), environ)
+    for line in done.warnings:
+        print(f"warning: {line}", file=sys.stderr)
+    for line in done.reports:
+        print(line)
+    if chosen.substitutions:
+        print("note: install used the substituted arms above; to run them, select them (AssemblyConfig names / esoi select)")
+    return needs.EXIT_UNMET if (done.code or chosen.binaries or chosen.missing) else needs.EXIT_MET
 
 
 def spec_command(config, args: argparse.Namespace) -> int:
@@ -318,6 +474,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         return skill.install(args.project, args.dest, args.from_dir, args.force)
     if args.cmd == "version":
         return version_command(args, config_module)
+    if args.cmd == "docs":
+        from . import docs
+        if args.action == "wiki" and not args.out:
+            print("esoi docs wiki: pass --out DIR", file=sys.stderr)
+            return 2
+        return docs.run_cli(args, Path(args.root).resolve())
     if args.cmd == "hygiene":
         from . import hygiene
         table = {}
@@ -339,6 +501,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     except config_module.ConfigError as exc:
         print(f"esoi: {exc}", file=sys.stderr)
         return 2
+    if args.cmd == "requirements":
+        return requirements_command(config, args)
+    if args.cmd == "install":
+        return install_command(config, args)
     if args.cmd == "spec":
         return spec_command(config, args)
     if args.cmd == "check":

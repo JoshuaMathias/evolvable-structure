@@ -15,11 +15,11 @@ card in a Documentation list, so the structure documents itself.
 
 | Board list | Its rule on the board | ESOI today |
 |---|---|---|
-| Problems to Solve | A card per problem: why it matters, why it is hard, what workarounds exist | [Problem](../templates/problem.md), which kept those questions and added what it is and who has it |
-| Ideals | "Ideals are requirements"; each says "How to know this ideal is reached", preferably with a threshold | [Ideal](../templates/ideal.md), whose Hints of Measurement carry the same question |
-| Solution Definitions | What a part must do, its goals, knowledge and measures of success; a software version adds parameters, inputs, outputs and effects | [Solution](../templates/solution.md), with the same fields and interface |
-| Possible Implementations | "Every implementation has only one definition, while a definition could have many implementations which are mutually exclusive alternatives" | [Implementation](../templates/implementation.md): description, advantages, disadvantages |
-| Metric Definitions and Metric Implementations | "A metric can itself be a definition with a specific goal that could be implemented in different ways" | [Metric](../templates/metric.md), and the note that metrics can also be solutions |
+| Problems to Solve | A card per problem: why it matters, why it is hard, what workarounds exist | [Problem](../reference/templates/problem.md), which kept those questions and added what it is and who has it |
+| Ideals | "Ideals are requirements"; each says "How to know this ideal is reached", preferably with a threshold | [Ideal](../reference/templates/ideal.md), whose Hints of Measurement carry the same question |
+| Solution Definitions | What a part must do, its goals, knowledge and measures of success; a software version adds parameters, inputs, outputs and effects | [Solution](../reference/templates/solution.md), with the same fields and interface |
+| Possible Implementations | "Every implementation has only one definition, while a definition could have many implementations which are mutually exclusive alternatives" | [Implementation](../reference/templates/implementation.md): description, advantages, disadvantages |
+| Metric Definitions and Metric Implementations | "A metric can itself be a definition with a specific goal that could be implemented in different ways" | [Metric](../reference/templates/metric.md), and the note that metrics can also be solutions |
 | Foundation (principles, dependencies, target audience) | What applies to the whole project, with solutions adding their own | The top intent (its name, vision statement and top solution), and settings inherited inward |
 | Knowledge | Sources and tools, each linked to the parts of the project it affects | The Solution's Knowledge field |
 | Difficulties | What may make the project hard, including missing knowledge or needed approval | Difficulties noted on solutions and in the intent's problems |
@@ -52,11 +52,11 @@ so the default changes when a better implementation is measured rather than when
 
 ## Using the board today
 
-Copy the board in Trello and fill it with the current [templates](../templates/): one card per record, a list per type,
+Copy the board in Trello and fill it with the current [templates](../reference/templates/): one card per record, a list per type,
 and links between cards for the network. Put each metric run in a checklist or a linked sheet with the date, the
 implementation and the version measured, and move the winning implementation to "Chosen". It suits work with no code
-and a small team. When records multiply, the [review sheet](../templates/review-sheet.md) or the
-[tools](../guides/apply-with-tools.md) take over.
+and a small team. When records multiply, the [review sheet](../reference/templates/review-sheet.md) or the
+[tools](../how-to/apply-with-tools.md) take over.
 
 The board itself is mostly empty placeholders: only the Documentation cards, the steps checklist and the software
 definition template are written out, and it has no versioning. Treat it as the origin and a starting layout, and the

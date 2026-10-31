@@ -8,15 +8,38 @@ things improve, and it changes with you when your intent does.
 It works for anything with an intent and more than one way to serve it: a product, code, a course, a coaching program,
 a team process, a personal schedule.
 
-## Start here
+## Tutorials
 
-1. [What ESOI is](explanation/what-is-esoi.md): the idea in five minutes.
-2. [The ESOI steps](../skill/evolvable-structure/steps.md): what to do, in order, from your purpose to choosing by a
-   measurement.
-3. [Apply ESOI by hand](guides/apply-by-hand.md): a first pass in about an hour, with no tools.
+Learn by doing; each one ends with something working.
 
-## Understand it
+- [Assemble a solution and get its environment ready](tutorials/get-an-assembly-ready.md): declare what an arm needs, see what
+  is missing, generate the `.env` template and the install script.
 
+## How-to guides
+
+Steps for a task you already know you want to do.
+
+- [Apply ESOI by hand](how-to/apply-by-hand.md): a first pass in about an hour, with no tools.
+- [Apply ESOI with the Python tools](how-to/apply-with-tools.md)
+- [Migrate to intents](how-to/migrate-to-intents.md): from the two-level overall layout.
+- [Install the skill](how-to/install-the-skill.md): give an AI agent the principles.
+- [Search records and items together](how-to/search-specs-and-items.md)
+- [Use public evidence](how-to/use-public-evidence.md)
+- [Assemble the parts of a program by name](how-to/assemble-by-name.md): resolve, build in dependency order, fail early.
+- [Declare what an implementation needs from its environment](how-to/declare-environment-needs.md): variables, API keys, packages, binaries, services; generate the `.env` template and install script.
+- [Install only what your solutions need](how-to/install-only-what-you-need.md): the closure, the plan, the resolution ladder, coherence in CI.
+- [Build on another package's defaults and say why you differ](how-to/hierarchical-defaults.md): a parent's defaults, one `explain`, reasons for each override, rule S35.
+- [Keep a metric's value before and after a piece of work](how-to/measure-before-and-after.md): find the slice of the specification, read the metric twice, keep the rows.
+- [Measure an implementation per circumstance](how-to/measure-per-circumstance.md): circumstances, variants, slice rows, and how to read a slice verdict as a proposal.
+- [Generate the wiki from the docs](how-to/generate-the-wiki.md): check the four categories and publish a wiki that cannot drift.
+
+## Explanation
+
+Why it is built this way. Start with the idea, then the pieces.
+
+- [What ESOI is](explanation/what-is-esoi.md): the idea in five minutes.
+- [The ESOI steps](../skill/evolvable-structure/steps.md): what to do, in order, from your purpose to choosing by a
+  measurement.
 - [Intents and the five specification types](explanation/intent-types.md): an intent as the container; problems, ideals,
   solutions, implementations and metrics.
 - [How the records connect](explanation/how-they-connect.md)
@@ -24,54 +47,43 @@ a team process, a personal schedule.
 - [When to create a sub-intent](explanation/when-to-create-a-sub-intent.md)
 - [The local ESOI index](explanation/local-index.md): where ESOI is applied on a machine.
 - [Finding the specifications a new use case needs](explanation/finding-specifications.md): the specification index, tiers, and what a system on top adds.
-- [One search for records and items, written once](explanation/one-search-for-records-and-items.md): the stages around the index (fusion, a gate, one judge call), with the vector search and judge supplied by the caller. How: [Search records and items together](guides/search-specs-and-items.md).
-- [Judge public evidence like a scientist](explanation/judge-public-evidence-like-a-scientist.md): other people's evals are complementary; one is never enough, a vendor number is a claim, saturation and confounds are flagged. How: [Use public evidence](guides/use-public-evidence.md).
+- [One search for records and items, written once](explanation/one-search-for-records-and-items.md): the stages around the index, with the vector search and judge supplied by the caller.
+- [Judge public evidence like a scientist](explanation/judge-public-evidence-like-a-scientist.md): other people's evals are complementary; one is never enough, a vendor number is a claim.
 - [Choosing by metric](explanation/choosing-by-metric.md)
 - [A metric must be meaningfully real](explanation/metrics-must-be-real.md): no scripted stand-ins; creative and limited measures are fine, fake ones are not (rule S31).
-- [The first stage needs no model](explanation/first-stage-needs-no-model.md): guidance for a metric's cascading conditionals: start with a free stage that proves the scorer.
+- [The first stage needs no model](explanation/first-stage-needs-no-model.md): start a metric's cascade with a free stage that proves the scorer.
 - [Declare, call, measure, promote](explanation/graceful-selection.md): the graceful way to declare alternatives in code and let the metric pick.
 - [When metrics are run](explanation/when-metrics-are-run.md): when to run each metric and who approves the spend.
 - [Depend on other solutions by name](explanation/cross-dependency-by-name.md): why one solution needs another by name, not by import.
+- [Declare environment needs beside the arm](explanation/environment-needs.md): why an arm states its variables, API keys and packages, and how assembly reports them.
+- [Override only what differs, and say why](explanation/override-only-what-differs.md): why defaults are hierarchical and an override cites its own records.
 - [What belongs in the library and what stays in an application](explanation/what-belongs-where.md): the test, with a table.
 - [Versioning](explanation/versioning.md): the package version, the skill and template stamp, and the template version a repository records (rule S34).
-
-## Where it applies
-
 - [Applying ESOI beyond code](explanation/beyond-code.md)
 - [ESOI applied to AI behaviour](explanation/esoi-for-ai.md)
-
-## Templates
-
-- [All templates](templates/README.md): what each one is for.
-- [Problem](templates/problem.md), [Ideal](templates/ideal.md), [Solution](templates/solution.md),
-  [Implementation](templates/implementation.md) and [Metric](templates/metric.md)
-- [Intent](templates/intent.md)
-- [Repository standard](templates/repository-standard.md)
-- [Review sheet layout](templates/review-sheet.md)
-- [Metric run policy](templates/metric-run-policy.md)
-
-## Guides
-
-- [Apply ESOI by hand](guides/apply-by-hand.md)
-- [Apply ESOI with the Python tools](guides/apply-with-tools.md)
-- [Migrate to intents](guides/migrate-to-intents.md): from the two-level overall layout.
-- [Install the skill](guides/install-the-skill.md): give an AI agent the principles.
-- [Assemble the parts of a program by name](guides/assemble-by-name.md): resolve, build in dependency order, fail early.
-- [Build on another package's defaults and say why you differ](guides/hierarchical-defaults.md): a parent's defaults, one `explain`, reasons for each override, rule S35.
-- [Override only what differs, and say why](explanation/override-only-what-differs.md): why defaults are hierarchical and an override cites its own records.
-- [Keep a metric's value before and after a piece of work](guides/measure-before-and-after.md): find the slice of the specification, read the metric twice, keep the rows.
-- [Measure an implementation per circumstance](guides/measure-per-circumstance.md): circumstances, variants, slice rows, and how to read a slice verdict as a proposal.
-
-## Background
-
 - [The definitions and principles, in Joshua Mathias's words](explanation/from-the-skill.md)
 - [Where the template came from](explanation/project-documentation-board.md)
 - [Related frameworks and designs](explanation/related-work.md)
+
+## Reference
+
+Facts to look up.
+
+- [Requirements: every kind, its fields, and the commands](reference/requirements.md): includes `esoi install`.
+- [Docs commands](reference/docs-commands.md): `esoi docs check` and `esoi docs wiki`.
+- [All templates](reference/templates/README.md): what each one is for.
+- [Problem](reference/templates/problem.md), [Ideal](reference/templates/ideal.md), [Solution](reference/templates/solution.md),
+  [Implementation](reference/templates/implementation.md) and [Metric](reference/templates/metric.md)
+- [Intent](reference/templates/intent.md)
+- [Repository standard](reference/templates/repository-standard.md)
+- [Review sheet layout](reference/templates/review-sheet.md)
+- [Metric run policy](reference/templates/metric-run-policy.md)
 
 ## About these pages
 
 The author's own words (the definitions, the principles and the intent template) are quoted from the
 evolvable-structure skill's `SKILL.md` and regenerated whenever it changes, in
-[the definitions and principles](explanation/from-the-skill.md) and [the templates](templates/README.md). To change a
+[the definitions and principles](explanation/from-the-skill.md) and [the templates](reference/templates/README.md). To change a
 question, change `SKILL.md`, then run `esoi template sync`. The repository's wiki is generated from this folder, so
-edit pages here, not on the wiki.
+edit pages here, not on the wiki. Every page sits in exactly one of the four folders (tutorials, how-to, explanation, reference),
+following the Diataxis framework; `esoi docs check` enforces it.
