@@ -23,8 +23,32 @@
      "path": "evaluation/components/results.csv",
      "key_col": "impl",
      "key": "live",
+     "col": "cases",
+     "value": "40"
+    },
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "live",
      "col": "passed",
-     "value": "1"
+     "value": "20"
+    },
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "live",
+     "col": "dev",
+     "value": "20/40"
+    },
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "shout",
+     "col": "cases",
+     "value": "40"
     },
     {
      "op": "csv_cell",
@@ -32,14 +56,23 @@
      "key_col": "impl",
      "key": "shout",
      "col": "passed",
-     "value": "2"
+     "value": "40"
+    },
+    {
+     "op": "csv_cell",
+     "path": "evaluation/components/results.csv",
+     "key_col": "impl",
+     "key": "shout",
+     "col": "dev",
+     "value": "40/40"
     }
    ]
   },
   "expect": {
    "rule": "S10",
    "contains": "beat the selected"
-  }
+  },
+  "note": "Results scaled from 2 cases to 40: under the owner's rule (Fisher's exact on aggregates, alpha 0.05) 1 of 2 vs 2 of 2 is not a significant gain, so a verdict of LOSS or a beaten-selected report needs 20/40 vs 40/40."
  },
  {
   "id": "STL-002",

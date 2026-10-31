@@ -8,14 +8,14 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 50,
+     "cases": 100,
      "cases_sha": "x"
     },
     {
      "impl": "b",
-     "passed": 9,
-     "cases": 10,
+     "passed": 90,
+     "cases": 100,
      "cases_sha": "x"
     }
    ],
@@ -30,7 +30,8 @@
     "command": "esoi run mini --impl b",
     "count": 1
    }
-  }
+  },
+  "note": "Rows scaled from 5/10 vs 9/10 to 50/100 vs 90/100: the owner's rule needs a statistically significant gain (Fisher's exact, alpha 0.05) and 9/10 vs 5/10 is p=0.09, so the old rows no longer clear it."
  },
  {
   "id": "PRM-002",
@@ -41,14 +42,14 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 50,
+     "cases": 100,
      "cases_sha": "x"
     },
     {
      "impl": "b",
-     "passed": 9,
-     "cases": 10,
+     "passed": 90,
+     "cases": 100,
      "cases_sha": "x"
     }
    ],
@@ -60,7 +61,8 @@
     "winner": "b",
     "selected": "b"
    }
-  }
+  },
+  "note": "Rows scaled from 5/10 vs 9/10 to 50/100 vs 90/100: the owner's rule needs a statistically significant gain (Fisher's exact, alpha 0.05) and 9/10 vs 5/10 is p=0.09, so the old rows no longer clear it."
  },
  {
   "id": "PRM-003",
@@ -134,14 +136,14 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 50,
+     "cases": 100,
      "cases_sha": "x"
     },
     {
      "impl": "b",
-     "passed": 9,
-     "cases": 10,
+     "passed": 90,
+     "cases": 100,
      "cases_sha": "y"
     }
    ],
@@ -152,7 +154,8 @@
    "eq": {
     "status": "none"
    }
-  }
+  },
+  "note": "Rows scaled from 5/10 vs 9/10 to 50/100 vs 90/100: the owner's rule needs a statistically significant gain (Fisher's exact, alpha 0.05) and 9/10 vs 5/10 is p=0.09, so the old rows no longer clear it."
  },
  {
   "id": "PRM-006",
@@ -163,14 +166,14 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 50,
+     "cases": 100,
      "cases_sha": "x"
     },
     {
      "impl": "b",
-     "passed": 9,
-     "cases": 10,
+     "passed": 90,
+     "cases": 100,
      "cases_sha": ""
     }
    ],
@@ -181,7 +184,8 @@
    "eq": {
     "status": "none"
    }
-  }
+  },
+  "note": "Rows scaled from 5/10 vs 9/10 to 50/100 vs 90/100: the owner's rule needs a statistically significant gain (Fisher's exact, alpha 0.05) and 9/10 vs 5/10 is p=0.09, so the old rows no longer clear it."
  },
  {
   "id": "PRM-007",
@@ -192,14 +196,14 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 50,
+     "cases": 100,
      "cases_sha": "x"
     },
     {
      "impl": "b",
-     "passed": 9,
-     "cases": 10,
+     "passed": 90,
+     "cases": 100,
      "cases_sha": "x"
     }
    ],
@@ -216,7 +220,8 @@
    "contains": [
     "does not count"
    ]
-  }
+  },
+  "note": "Rows scaled from 5/10 vs 9/10 to 50/100 vs 90/100: the owner's rule needs a statistically significant gain (Fisher's exact, alpha 0.05) and 9/10 vs 5/10 is p=0.09, so the old rows no longer clear it."
  },
  {
   "id": "PRM-008",
@@ -227,14 +232,14 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 50,
+     "cases": 100,
      "cases_sha": "x"
     },
     {
      "impl": "b",
-     "passed": 9,
-     "cases": 10,
+     "passed": 90,
+     "cases": 100,
      "cases_sha": "x"
     }
    ],
@@ -251,7 +256,8 @@
    "contains": [
     "does not count"
    ]
-  }
+  },
+  "note": "Rows scaled from 5/10 vs 9/10 to 50/100 vs 90/100: the owner's rule needs a statistically significant gain (Fisher's exact, alpha 0.05) and 9/10 vs 5/10 is p=0.09, so the old rows no longer clear it."
  },
  {
   "id": "PRM-009",
@@ -262,14 +268,14 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 50,
+     "cases": 100,
      "cases_sha": "x"
     },
     {
      "impl": "b",
-     "passed": 9,
-     "cases": 10,
+     "passed": 90,
+     "cases": 100,
      "cases_sha": "x"
     }
    ],
@@ -284,7 +290,8 @@
    "contains": [
     "holds its own default"
    ]
-  }
+  },
+  "note": "Rows scaled from 5/10 vs 9/10 to 50/100 vs 90/100: the owner's rule needs a statistically significant gain (Fisher's exact, alpha 0.05) and 9/10 vs 5/10 is p=0.09, so the old rows no longer clear it."
  },
  {
   "id": "PRM-010",
@@ -295,14 +302,14 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 50,
+     "cases": 100,
      "cases_sha": "x"
     },
     {
      "impl": "b",
-     "passed": 9,
-     "cases": 10,
+     "passed": 90,
+     "cases": 100,
      "cases_sha": "x"
     }
    ],
@@ -322,7 +329,8 @@
     "selected": "evaluation/components/mini/impls/b.py",
     "command": "esoi run mini --impl b"
    }
-  }
+  },
+  "note": "Rows scaled from 5/10 vs 9/10 to 50/100 vs 90/100: the owner's rule needs a statistically significant gain (Fisher's exact, alpha 0.05) and 9/10 vs 5/10 is p=0.09, so the old rows no longer clear it."
  },
  {
   "id": "PRM-011",
@@ -333,14 +341,14 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 50,
+     "cases": 100,
      "cases_sha": "x"
     },
     {
      "impl": "b",
-     "passed": 9,
-     "cases": 10,
+     "passed": 90,
+     "cases": 100,
      "cases_sha": "x"
     }
    ],
@@ -354,7 +362,8 @@
    "contains": [
     "no implementation record or impls file"
    ]
-  }
+  },
+  "note": "Rows scaled from 5/10 vs 9/10 to 50/100 vs 90/100: the owner's rule needs a statistically significant gain (Fisher's exact, alpha 0.05) and 9/10 vs 5/10 is p=0.09, so the old rows no longer clear it."
  },
  {
   "id": "PRM-012",
@@ -365,14 +374,14 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 50,
+     "cases": 100,
      "cases_sha": "x"
     },
     {
      "impl": "b",
-     "passed": 9,
-     "cases": 10,
+     "passed": 90,
+     "cases": 100,
      "cases_sha": "x"
     }
    ],
@@ -384,7 +393,8 @@
     "status": "promote",
     "selected": "mini-solution:b"
    }
-  }
+  },
+  "note": "Rows scaled from 5/10 vs 9/10 to 50/100 vs 90/100: the owner's rule needs a statistically significant gain (Fisher's exact, alpha 0.05) and 9/10 vs 5/10 is p=0.09, so the old rows no longer clear it."
  },
  {
   "id": "PRM-013",
@@ -395,20 +405,20 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 50,
+     "cases": 100,
      "cases_sha": "x"
     },
     {
      "impl": "b",
-     "passed": 9,
-     "cases": 10,
+     "passed": 90,
+     "cases": 100,
      "cases_sha": "x"
     },
     {
      "impl": "c",
-     "passed": 10,
-     "cases": 10,
+     "passed": 100,
+     "cases": 100,
      "cases_sha": "x"
     }
    ],
@@ -421,7 +431,8 @@
     "winner": "c",
     "selected": "c"
    }
-  }
+  },
+  "note": "Rows scaled from 5/10 vs 9/10 to 50/100 vs 90/100: the owner's rule needs a statistically significant gain (Fisher's exact, alpha 0.05) and 9/10 vs 5/10 is p=0.09, so the old rows no longer clear it."
  },
  {
   "id": "PRM-014",
@@ -455,14 +466,14 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 50,
+     "cases": 100,
      "cases_sha": "x"
     },
     {
      "impl": "b",
-     "passed": 9,
-     "cases": 10,
+     "passed": 90,
+     "cases": 100,
      "cases_sha": "x"
     }
    ],
@@ -476,7 +487,8 @@
     "command": "esoi run mini --impl b",
     "evidence": true
    }
-  }
+  },
+  "note": "Rows scaled from 5/10 vs 9/10 to 50/100 vs 90/100: the owner's rule needs a statistically significant gain (Fisher's exact, alpha 0.05) and 9/10 vs 5/10 is p=0.09, so the old rows no longer clear it."
  },
  {
   "id": "PRM-016",
@@ -487,14 +499,14 @@
    "rows": [
     {
      "impl": "a",
-     "passed": 5,
-     "cases": 10,
+     "passed": 50,
+     "cases": 100,
      "cases_sha": "x"
     },
     {
      "impl": "b",
-     "passed": 9,
-     "cases": 10,
+     "passed": 90,
+     "cases": 100,
      "cases_sha": "x"
     }
    ],
@@ -506,6 +518,7 @@
     "selected": "a",
     "command": "esoi run mini --impl a"
    }
-  }
+  },
+  "note": "Rows scaled from 5/10 vs 9/10 to 50/100 vs 90/100: the owner's rule needs a statistically significant gain (Fisher's exact, alpha 0.05) and 9/10 vs 5/10 is p=0.09, so the old rows no longer clear it."
  }
 ]
