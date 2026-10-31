@@ -776,7 +776,7 @@ def test_a_required_option_missing_from_environ_stays_pending_naming_the_variabl
     parts = toy[0]
     parts.register(INDEX, "keyed", keyed())
     system = parts.assemble_defaults(AssemblyConfig(selections={INDEX: "keyed"}, consumer_environ={"PRIMARY_TOKEN": "  "}))
-    assert system.pending[INDEX] == ("toy-index (keyed): set PRIMARY_TOKEN or BACKUP_TOKEN (option 'token') in consumer_environ=, "
+    assert system.pending[INDEX] == ("toy-index (keyed): set PRIMARY_TOKEN or BACKUP_TOKEN (option 'token') in the environ mapping you pass, "
                                      "or pass options={'toy-index': {...}}")
     assert INDEX not in system.solutions()
 
