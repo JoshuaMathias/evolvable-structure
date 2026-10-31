@@ -84,3 +84,4 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `requirements` | core | Declaring what an implementation needs from its environment and checking it. | assemble-by-name |
 | `hierarchy` | core | unconfirmed: for Joshua to confirm. | assemble-by-name |
 | `eval-assemble-by-name` | evaluation | unconfirmed: for Joshua to confirm. | assemble-by-name |
+| `lock` | core | unconfirmed: for Joshua to confirm. | assemble-by-name |
