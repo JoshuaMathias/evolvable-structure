@@ -12,6 +12,9 @@ the condition for moving on, joined by `` | ``::
 * ``gate``: what a result must show before the next stage is worth running: ``all-pass`` (every case passed) or
   ``competitive`` (the selected implementation does not clearly beat it at this stage). ``min-pass-rate`` (a fraction)
   adds a floor. Every stage but the last needs a gate or a floor, since nothing else says when to move on.
+* A stage named ``public`` (with ``real=no``; ``when`` is free text) stands for public evidence others measured
+  (``esoi.evidence``). It claims no results row, is never the stage a choice rests on, needs no gate, and is satisfied for an
+  implementation when evidence rows exist for it and grade at least C. It never replaces our own first-stage result.
 * ``max-age-days``: a result older than this has expired. ``when``: any other condition, for a person or an AI to judge;
   it is reported, never evaluated. Its text cannot contain ` > `, ` | ` or ``]``.
 
@@ -40,6 +43,7 @@ from . import leaderboard
 from .leaderboard import Row
 
 SEPARATOR, PAIR_SEPARATOR = " > ", " | "
+PUBLIC_STAGE = "public"
 KEYS = ("sample", "real", "gate", "min-pass-rate", "max-age-days", "when")
 GATES = ("all-pass", "competitive")
 SAMPLE_LABEL = re.compile(r"^(full|sample|sample:\d+|only:\S+)$")
@@ -61,6 +65,11 @@ class Stage:
     @property
     def gated(self) -> bool:
         return bool(self.gate) or self.min_pass_rate is not None
+
+    @property
+    def public(self) -> bool:
+        """The stage that stands for public evidence (see the module docstring); it is not run, so it holds no results."""
+        return self.name == PUBLIC_STAGE
 
 
 def parse(text: str) -> Tuple[List[Stage], List[str]]:
@@ -85,11 +94,13 @@ def parse(text: str) -> Tuple[List[Stage], List[str]]:
                 values[key] = value
         stage, problems = build(name, values)
         errors.extend(f"stage {name}: {p}" for p in problems)
+        if stage.public and stage.real is not False:
+            errors.append(f"stage {name} stands for public evidence, so it needs real=no (it runs nothing)")
         stages.append(stage)
     names = [s.name for s in stages]
     errors.extend(f"stage name {n!r} is used twice" for n in sorted({n for n in names if names.count(n) > 1}))
     errors.extend(f"stage {s.name} has no gate or min-pass-rate, so nothing says when to move on to {stages[i + 1].name}"
-                  for i, s in enumerate(stages[:-1]) if not s.gated)
+                  for i, s in enumerate(stages[:-1]) if not s.gated and not s.public)
     return stages, errors
 
 
@@ -126,6 +137,8 @@ def build(name: str, values: Dict[str, str]) -> Tuple[Stage, List[str]]:
 def matches(stage: Stage, row: Row) -> bool:
     """Whether a results row is a result of this stage."""
     label = (row.get("sample") or "").strip()
+    if stage.public:
+        return False
     if stage.sample == "full" and label:
         return False
     if stage.sample == "sample" and not label.startswith("sample:"):
@@ -242,6 +255,8 @@ def next_stage(stages: List[Stage], mine: Standing, selected: Optional[Standing]
     """``(stage index, why)`` for the first stage with no counting result, once every earlier stage's gate is met; else
     ``(None, why nothing is next)``. A stage never run is ``not run``, never an estimate."""
     for index, stage in enumerate(stages):
+        if stage.public:
+            continue
         row = mine.rows.get(index)
         if row is None:
             return index, f"expired: {mine.expired[index][1]}" if index in mine.expired else "not run"
@@ -298,15 +313,36 @@ def describe(row: Optional[Row]) -> str:
     return "not run" if row is None else f"{row.get('passed', '?')}/{row.get('cases', '?')} on {row.get('date', '?')}"
 
 
+def public_lines(evidence_module, config, registry, solution_id: str, graded, stages: List[Stage], say: Callable[[str], None]) -> None:
+    """The graded public evidence of each implementation of a solution, labelled as such. It is not a result: it is never in the
+    standings, never chooses an implementation, and a ``public`` stage reads it only to say whether it is satisfied."""
+    if not graded:
+        return
+    stage = next((s for s in stages if s.public), None)
+    for impl, keys in evidence_module.implementation_candidates(config, registry, solution_id).items():
+        found = evidence_module.lines_for_implementation(graded, keys)
+        if not found:
+            continue
+        met, why = evidence_module.public_stage_met(found)
+        gate = f" [public stage {'satisfied' if met else 'not satisfied'}: {why}]" if stage else ""
+        say(f"  public evidence for {impl} (others' measurements, not our result){gate}")
+        for estimate in found:
+            say(f"    {estimate.line()}")
+            if estimate.needs_own_run:
+                say(f"      to settle it: {estimate.settle}")
+
+
 def run_cli(config, solution: str = "", strict: bool = False, say: Callable[[str], None] = print,
             today: Optional[datetime.date] = None) -> int:
     """``esoi cascade [SOLUTION]``: each stage, every implementation's result per stage (a stage not run says so), which
     implementation the cascade chooses against the selected one, and the next stage worth running. With ``strict`` it
     exits 1 when the chosen implementation is not the selected one."""
-    from . import harness, registry as registry_module
+    from . import evidence as evidence_module, harness, registry as registry_module
     from .tables import ids
     loaded = registry_module.load(config)
     history = leaderboard.all_results(config.results_path)
+    evidence_rows = evidence_module.load_for(config)
+    graded = evidence_module.estimates(evidence_rows, today) if evidence_rows else {}
     found, behind = 0, 0
     for metric in loaded.metrics:
         stages, errors = parse(metric.get("cascading_conditionals", ""))
@@ -317,6 +353,8 @@ def run_cli(config, solution: str = "", strict: bool = False, say: Callable[[str
         say(f"{metric.get('metric_id', '')}: {' > '.join(s.name for s in stages) or '(no valid stage)'}")
         for line in errors:
             say(f"  problem: {line}")
+        for owner in owners:
+            public_lines(evidence_module, config, loaded, owner, graded, stages, say)
         component, chosen = next(iter(registry_module.harness_arms(config, metric.get("command", ""))), ("", ""))
         if not stages or not component or component not in history:
             say("  no results yet: every stage is not run" if stages else "  fix the list to read it")
@@ -326,7 +364,7 @@ def run_cli(config, solution: str = "", strict: bool = False, say: Callable[[str
         for impl, s in sorted(standing.items()):
             say(f"  {impl}: " + "; ".join(f"{stage.name} {describe(s.rows.get(i))}"
                                            + (f" (expired: {s.expired[i][1]})" if i in s.expired else "")
-                                           for i, stage in enumerate(stages)))
+                                           for i, stage in enumerate(stages) if not stage.public))
         decision = decide(stages, standing, config.evaluation)
         for note in decision.notes:
             say(f"  note: {note}")

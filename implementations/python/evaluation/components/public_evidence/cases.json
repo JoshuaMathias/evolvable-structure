@@ -1,0 +1,374 @@
+[
+ {
+  "id": "PE-001",
+  "kind": "grade",
+  "area": "grade",
+  "description": "a lone vendor number is grade D, vendor_only, and needs an own run",
+  "args": {
+   "rows": [
+    {
+     "evidence_id": "V1",
+     "candidate": "alpha",
+     "source_kind": "vendor_reported",
+     "run_by_independent": "no"
+    }
+   ],
+   "today": "2026-10-31"
+  },
+  "expect": {
+   "eq": {
+    "grades": {
+     "alpha/quality": "D"
+    },
+    "needs_own_run": {
+     "alpha/quality": true
+    }
+   }
+  }
+ },
+ {
+  "id": "PE-002",
+  "kind": "rank",
+  "area": "rank",
+  "description": "a vendor number cannot rank an arm above an independently measured one",
+  "args": {
+   "rows": [
+    {
+     "evidence_id": "V1",
+     "candidate": "vendorco",
+     "value": 0.95,
+     "source_kind": "vendor_reported",
+     "run_by_independent": "no"
+    },
+    {
+     "evidence_id": "I1",
+     "candidate": "steady",
+     "value": 0.7
+    }
+   ],
+   "today": "2026-10-31",
+   "dims": [
+    "quality"
+   ]
+  },
+  "expect": {
+   "eq": {
+    "order": {
+     "quality": [
+      "steady",
+      "vendorco"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "PE-003",
+  "kind": "grade",
+  "area": "grade",
+  "description": "two independent sources that agree raise a single-source B to A",
+  "args": {
+   "rows": [
+    {
+     "evidence_id": "I1",
+     "candidate": "alpha",
+     "value": 0.7
+    },
+    {
+     "evidence_id": "I2",
+     "candidate": "alpha",
+     "value": 0.72
+    }
+   ],
+   "today": "2026-10-31"
+  },
+  "expect": {
+   "eq": {
+    "grades": {
+     "alpha/quality": "A"
+    },
+    "needs_own_run": {
+     "alpha/quality": false
+    }
+   }
+  }
+ },
+ {
+  "id": "PE-004",
+  "kind": "grade",
+  "area": "grade",
+  "description": "one independent source is never better than B",
+  "args": {
+   "rows": [
+    {
+     "evidence_id": "I1",
+     "candidate": "alpha",
+     "value": 0.7
+    }
+   ],
+   "today": "2026-10-31"
+  },
+  "expect": {
+   "eq": {
+    "grades": {
+     "alpha/quality": "B"
+    },
+    "flags": {
+     "alpha/quality": [
+      "single_source"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "PE-005",
+  "kind": "grade",
+  "area": "grade",
+  "description": "two independent sources that disagree beyond tolerance are flagged and need an own run",
+  "args": {
+   "rows": [
+    {
+     "evidence_id": "I1",
+     "candidate": "alpha",
+     "value": 0.8
+    },
+    {
+     "evidence_id": "I2",
+     "candidate": "alpha",
+     "value": 0.5
+    }
+   ],
+   "today": "2026-10-31"
+  },
+  "expect": {
+   "eq": {
+    "flags": {
+     "alpha/quality": [
+      "contradicts"
+     ]
+    },
+    "needs_own_run": {
+     "alpha/quality": true
+    }
+   }
+  }
+ },
+ {
+  "id": "PE-006",
+  "kind": "grade",
+  "area": "grade",
+  "description": "seconds and milliseconds convert and agree",
+  "args": {
+   "rows": [
+    {
+     "evidence_id": "T1",
+     "candidate": "alpha",
+     "dimension": "speed",
+     "measure": "latency",
+     "better": "lower",
+     "comparator": "",
+     "value": 1.2,
+     "unit": "s"
+    },
+    {
+     "evidence_id": "T2",
+     "candidate": "alpha",
+     "dimension": "speed",
+     "measure": "latency",
+     "better": "lower",
+     "comparator": "",
+     "value": 1200,
+     "unit": "ms"
+    }
+   ],
+   "today": "2026-10-31"
+  },
+  "expect": {
+   "eq": {
+    "grades": {
+     "alpha/speed": "A"
+    },
+    "flags": {
+     "alpha/speed": []
+    }
+   }
+  }
+ },
+ {
+  "id": "PE-007",
+  "kind": "grade",
+  "area": "grade",
+  "description": "units that do not convert are flagged unit_mismatch",
+  "args": {
+   "rows": [
+    {
+     "evidence_id": "T1",
+     "candidate": "alpha",
+     "dimension": "speed",
+     "measure": "latency",
+     "better": "lower",
+     "comparator": "",
+     "value": 1.2,
+     "unit": "s"
+    },
+    {
+     "evidence_id": "T2",
+     "candidate": "alpha",
+     "dimension": "speed",
+     "measure": "latency",
+     "better": "lower",
+     "comparator": "",
+     "value": 900,
+     "unit": "tokens/s"
+    }
+   ],
+   "today": "2026-10-31"
+  },
+  "expect": {
+   "eq": {
+    "needs_own_run": {
+     "alpha/speed": true
+    }
+   }
+  }
+ },
+ {
+  "id": "PE-008",
+  "kind": "grade",
+  "area": "grade",
+  "description": "a saturated benchmark is flagged and needs an own run",
+  "args": {
+   "rows": [
+    {
+     "evidence_id": "I1",
+     "candidate": "alpha",
+     "benchmark_status": "saturated"
+    },
+    {
+     "evidence_id": "I2",
+     "candidate": "alpha",
+     "value": 0.71,
+     "benchmark_status": "saturated"
+    }
+   ],
+   "today": "2026-10-31"
+  },
+  "expect": {
+   "eq": {
+    "flags": {
+     "alpha/quality": [
+      "saturated"
+     ]
+    },
+    "needs_own_run": {
+     "alpha/quality": true
+    }
+   }
+  }
+ },
+ {
+  "id": "PE-009",
+  "kind": "grade",
+  "area": "grade",
+  "description": "a named confound is flagged",
+  "args": {
+   "rows": [
+    {
+     "evidence_id": "I1",
+     "candidate": "alpha",
+     "confounds": "different tool harness"
+    }
+   ],
+   "today": "2026-10-31"
+  },
+  "expect": {
+   "eq": {
+    "flags": {
+     "alpha/quality": [
+      "single_source",
+      "confounded"
+     ]
+    },
+    "needs_own_run": {
+     "alpha/quality": true
+    }
+   }
+  }
+ },
+ {
+  "id": "PE-010",
+  "kind": "grade",
+  "area": "grade",
+  "description": "a price older than its stale days is flagged stale",
+  "args": {
+   "rows": [
+    {
+     "evidence_id": "C1",
+     "candidate": "alpha",
+     "dimension": "cost",
+     "measure": "price",
+     "unit": "usd/mtok",
+     "better": "lower",
+     "comparator": "",
+     "date_published": "2026-05-01"
+    }
+   ],
+   "today": "2026-10-31"
+  },
+  "expect": {
+   "eq": {
+    "flags": {
+     "alpha/cost": [
+      "single_source",
+      "stale"
+     ]
+    }
+   }
+  }
+ },
+ {
+  "id": "PE-011",
+  "kind": "rank",
+  "area": "rank",
+  "description": "a lower-is-better dimension orders the smaller number first",
+  "args": {
+   "rows": [
+    {
+     "evidence_id": "A1",
+     "candidate": "fast",
+     "dimension": "speed",
+     "measure": "latency",
+     "better": "lower",
+     "comparator": "",
+     "value": 2,
+     "unit": "s"
+    },
+    {
+     "evidence_id": "A2",
+     "candidate": "slow",
+     "dimension": "speed",
+     "measure": "latency",
+     "better": "lower",
+     "comparator": "",
+     "value": 9,
+     "unit": "s"
+    }
+   ],
+   "today": "2026-10-31",
+   "dims": [
+    "speed"
+   ]
+  },
+  "expect": {
+   "eq": {
+    "order": {
+     "speed": [
+      "fast",
+      "slow"
+     ]
+    }
+   }
+  }
+ }
+]

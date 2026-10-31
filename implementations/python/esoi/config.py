@@ -1,7 +1,7 @@
 """One configuration per adopting repository: ``esoi.toml`` (top-level keys) or ``[tool.esoi]`` in ``pyproject.toml``.
 
 Every key has a default, so a repository states only what differs. Paths are relative to the folder that holds
-the config file (the repository root). Sub-tables (``[rules.S13]``, ``[hermetic]``, ``[consumer]``, ``[parent]``, ``[sheets]``, ``[skill]``, ``[records]``)
+the config file (the repository root). Sub-tables (``[rules.S13]``, ``[hermetic]``, ``[consumer]``, ``[parent]``, ``[sheets]``, ``[skill]``, ``[records]``, ``[evidence]``)
 are kept as plain dicts for the module that reads them.
 
     package = "mylib"                 # the importable package the module rules look at ("" turns them off)
@@ -89,6 +89,7 @@ class Config:
     skill: Dict[str, Any] = field(default_factory=dict)
     parent: Dict[str, Any] = field(default_factory=dict)   # [parent] records = "../hub" or snapshot = "..json": the package this one builds on (rule S35)
     records: Dict[str, Any] = field(default_factory=dict)   # [records] approved_fields: columns the specification's owner approved
+    evidence: Dict[str, Any] = field(default_factory=dict)   # [evidence] file = "path.csv" and [evidence.aliases] candidate = "implementation" (esoi.evidence)
     source: Optional[Path] = None
 
     def __post_init__(self) -> None:

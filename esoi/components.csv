@@ -65,3 +65,5 @@ eval-keep-metric-record,evaluation,implementations/python/evaluation/components/
 circumstances,core,implementations/python/esoi/circumstances.py;implementations/python/esoi/variants.py,unconfirmed: for Joshua to confirm.,leaderboard;runtime-selection
 spec_search,core,implementations/python/esoi/spec_search.py,The spec search solution's interface and implementations.,spec-search
 eval-spec_search,evaluation,implementations/python/evaluation/components/spec_search/**,Cases and scorer for spec-search.,spec-search
+evidence,tools,implementations/python/esoi/evidence.py,unconfirmed: for Joshua to confirm.,public-evidence
+eval-public_evidence,evaluation,implementations/python/evaluation/components/public_evidence/**,unconfirmed: for Joshua to confirm.,public-evidence

@@ -11,6 +11,7 @@
     esoi leaderboard [--strict]            rank the implementations of every evaluated solution
     esoi select SOLUTION [--name NAME]     show which implementation runs now, and which layer of the cascade chose it
     esoi cascade [SOLUTION] [--strict]     a metric's cascading conditionals: each stage's results, the chosen implementation, what to run next
+    esoi evidence [list|grade|rank|table]  public evidence others measured, graded A to D; complementary, never a result row
     esoi select --promote [SOLUTION]       switch `selected` to the rival that clearly wins on the solution's own metric
     esoi select --snapshot FILE            write the defaults and modules for a package shipped without the records
     esoi tracker build|check               build or verify the review tracker tabs
@@ -82,6 +83,12 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("cascade", help="the stages of a costly metric, what each implementation reached, and what to run next")
     p.add_argument("solution", nargs="?", default="")
     p.add_argument("--strict", action="store_true", help="exit 1 when the cascade chooses another implementation than `selected`")
+    p = sub.add_parser("evidence", help="public evidence: list, grade or rank what others measured, never counted as a result")
+    p.add_argument("action", nargs="?", default="list", choices=["list", "grade", "rank", "table"])
+    p.add_argument("--candidate", default="", help="only this candidate")
+    p.add_argument("--dimension", default="", help="only this dimension")
+    p.add_argument("--weights", default="", help="rank: dimension=weight pairs, such as quality=2,cost=1 (default: every dimension present, equal)")
+    p.add_argument("--file", default="", help="read this evidence CSV instead of the configured one")
     p = sub.add_parser("tracker", help="the review tracker")
     p.add_argument("action", choices=["build", "check"])
     p = sub.add_parser("consumer", help="check a consuming repository")
@@ -409,6 +416,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.cmd == "cascade":
         from . import cascade
         return cascade.run_cli(config, args.solution, args.strict)
+    if args.cmd == "evidence":
+        from . import evidence
+        return evidence.run_cli(config, args.action, args.candidate, args.dimension, args.weights, args.file)
     if args.cmd == "tracker":
         from . import registry, tracker
         loaded = registry.load(config)

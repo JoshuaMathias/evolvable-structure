@@ -95,6 +95,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 | `spec-index` | Specification index | weighted-tfidf | Specification recall at k |
 | `keep-metric-record` | keep-metric-record | library-modules | unconfirmed: for Joshua to confirm. |
 | `spec-search` | Spec search | lexical-vector-gated | Spec search correctness |
+| `public-evidence` | Grade evidence | graded | unconfirmed: for Joshua to confirm. |
 
 ## Implementations
 
@@ -162,6 +163,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 | `keep-metric-record:library-modules` | unconfirmed: for Joshua to confirm. | implementations/python/esoi/iteration.py |  |
 | `spec-search:lexical-only` | Lexical only | implementations/python/esoi/spec_search.py |  |
 | `spec-search:lexical-vector-gated` | Lexical vector gated | implementations/python/esoi/spec_search.py |  |
+| `public-evidence:graded` | Graded | implementations/python/esoi/evidence.py |  |
 
 ## Metrics
 
@@ -194,3 +196,4 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 - `metric-spec-index-recall`, Specification recall at k: `esoi run spec_index --impl weighted_tfidf; esoi run spec_index --impl term_overlap`
 - `metric-keep-metric-record`, unconfirmed: for Joshua to confirm.: `esoi run keep_metric_record --impl live_record`
 - `metric-spec-search`, Spec search correctness: `esoi run spec_search --impl gated; esoi run spec_search --impl lexical_only`
+- `metric-public-evidence`, unconfirmed: for Joshua to confirm.: `esoi run public_evidence --impl graded`
