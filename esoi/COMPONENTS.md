@@ -39,7 +39,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `eval-review-tracker` | evaluation | Cases for the tracker. | review-tracker |
 | `eval-check-a-consumer` | evaluation | Mutation cases for the consumer check. | consumer-check |
 | `eval-know-stale-results` | evaluation | Cases for telling a stale result from a current one. | when-metrics-are-run |
-| `eval-shared` | evaluation | Fixtures shared by the evaluations, and the results log. | structure-check, measurement-harness, consumer-check, when-metrics-are-run, behave-by-esoi, judge-esoi-behaviour, specify-from-code, readable-records, promote-the-winner |
+| `eval-shared` | evaluation | Fixtures shared by the evaluations, the results log and the per-case log. | structure-check, measurement-harness, consumer-check, when-metrics-are-run, behave-by-esoi, judge-esoi-behaviour, specify-from-code, readable-records, promote-the-winner |
 | `python-project` | project | Packaging, the implementation's readme and its reference documents. | structure-check |
 | `ci` | project | The continuous integration workflow. | when-metrics-are-run |
 | `skill-distribution` | tools | Generating, checking and installing the public copy of the author's skill. | skill-distribution |
