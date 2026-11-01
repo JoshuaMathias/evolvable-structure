@@ -289,3 +289,25 @@ def test_the_guide_runs_as_written(tmp_path, monkeypatch, capsys):
         exec(compile(block, str(GUIDE), "exec"), namespace)   # the guide's own examples, run as written
     claimed = re.findall(r"^print\(.*\)\n# (.+)$", "\n".join(blocks), re.M)
     assert claimed and capsys.readouterr().out.splitlines() == claimed
+
+
+def test_run_stale_plan_lists_the_decisions_and_runs_nothing(repo):
+    """``esoi run --stale --plan``: the same decisions as a real pass, no run, no row; the rows stay the only progress."""
+    cfg, score = scenario(repo, circs="")
+    git(repo, "init", "-q")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "init")
+    record(cfg, score, "live")
+    record(cfg, score, "shout")
+    (cfg.evaluation / "greet_a_person" / "cases.json").write_text((cfg.evaluation / "greet_a_person" / "cases.json").read_text() + " ")
+    git(repo, "commit", "-q", "-am", "cases changed")
+    before = cfg.results_path.read_text()
+    lines = []
+    assert harness.rerun_stale(cfg, lines.append, plan=True) == 0
+    assert cfg.results_path.read_text() == before                      # nothing ran, nothing recorded
+    assert any(x.startswith("greet_a_person/live: would run") for x in lines)
+    assert any(x.startswith("greet_a_person/shout: would run") for x in lines)
+    harness.rerun_stale(cfg, QUIET)                                       # a real pass records both ...
+    lines.clear()
+    harness.rerun_stale(cfg, lines.append, plan=True)
+    assert lines == ["greet_a_person/live: current", "greet_a_person/shout: current"]   # ... and a plan then has nothing to do

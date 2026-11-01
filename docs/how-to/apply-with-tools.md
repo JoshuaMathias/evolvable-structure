@@ -80,7 +80,7 @@ esoi run --stale                          # re-run and record whatever is stale,
 esoi check --strict                       # every recorded result is current
 ```
 
-`esoi run --stale` re-runs the selected arm of each solution and the rivals recorded beside it (a verdict that rests on a rival
+`esoi run --stale --plan` lists what would run and why, and runs nothing; a real `--stale` pass can be killed and run again, because the recorded rows are the progress and it starts at the arm that was in flight. `esoi run --stale` re-runs the selected arm of each solution and the rivals recorded beside it (a verdict that rests on a rival
 recorded before the measured code changed is flagged by `esoi check --strict`, waive one as `S20 <solution>:<implementation>`),
 on the sample the selected arm's latest row used (`--full` runs the whole set), so a re-record stays comparable; a rival
 recorded on another sample is not stale, it is not comparable, and is re-run too. It never runs an arm that may spend money: one that declares `PAID = True`, is listed in `paid_arms`, or whose last run called a

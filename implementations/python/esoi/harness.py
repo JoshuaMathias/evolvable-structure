@@ -771,7 +771,7 @@ def stale_arms(config: Config) -> List[Tuple[str, str]]:
 
 
 def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool = True, include_paid: bool = False,
-                include: Optional[List[str]] = None, full: bool = False) -> int:
+                include: Optional[List[str]] = None, full: bool = False, plan: bool = False) -> int:
     """Run every selected implementation, and every rival recorded beside it, whose recorded result is stale, and record
     it; the loop to run after changing measured code or cases, on committed code.
 
@@ -780,7 +780,10 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
     selected arm is not stale, it is not comparable: it is re-run on the selected arm's sample too.
 
     An arm that may spend money (``paid_reason``) is never run by default: it is listed as skipped with the command that
-    runs it. ``include_paid`` runs them all, ``include`` (``component/impl`` names) only those."""
+    runs it. ``include_paid`` runs them all, ``include`` (``component/impl`` names) only those.
+    The recorded rows are the only progress: every run appends its row when it finishes, so a killed re-record loses just the
+    arm in flight and the next ``--stale`` starts at it, skipping what is already current. ``plan`` lists each arm with its
+    decision (current, would run, skipped as paid or capped) and runs nothing."""
     from . import leaderboard
     from .registry import first_arm, load
     prepare_path(config)
@@ -817,6 +820,9 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
             skipped_ceiling.append(f"{comp}/{impl}")
             continue
         say(f"{comp}/{impl}: stale, {why}")
+        if plan:
+            say(f"{comp}/{impl}: would run" + (f" ({' '.join(flags)})" if flags else ""))
+            continue
         score = importlib.import_module(f"{comp}.score")
         try:
             run_component(comp, score.score_case, ["--impl", impl] + flags + (["--record"] if record else []), config,
@@ -839,10 +845,10 @@ def run_cli(argv: List[str], config: Config, say: Callable[[str], None] = print)
     if argv and argv[0] == "--stale":
         include = [argv[i + 1] for i, word in enumerate(argv[:-1]) if word == "--include"]
         return rerun_stale(config, say, record="--no-record" not in argv, include_paid="--include-paid" in argv,
-                           include=include, full="--full" in argv)
+                           include=include, full="--full" in argv, plan="--plan" in argv)
     components = discover_components(config)
     if not argv or argv[0] not in components:
-        say("usage: esoi run <component> --impl <name> [--only IDS] [--sample N] [--max-calls N] [--record] [--differs WHAT] [--force REASON]  |  esoi run --stale [--full] [--include-paid | --include COMPONENT/IMPL]")
+        say("usage: esoi run <component> --impl <name> [--only IDS] [--sample N] [--max-calls N] [--record] [--differs WHAT] [--force REASON]  |  esoi run --stale [--plan] [--full] [--include-paid | --include COMPONENT/IMPL]")
         say("components: " + (", ".join(components) or "none found under " + config.evaluation_dir))
         return 2
     score = importlib.import_module(f"{argv[0]}.score")
