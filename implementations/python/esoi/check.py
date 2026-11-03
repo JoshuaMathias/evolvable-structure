@@ -104,8 +104,7 @@ def write_docs(config: Config, say: Callable[[str], None] = print) -> None:
     config.structure.mkdir(parents=True, exist_ok=True)
     (config.structure / "COMPONENTS.md").write_text(render_components_doc(registry.components, config.structure_dir), encoding="utf-8")
     if config.intent_mode:
-        for intent in intents.discover(config):
-            (intent.folder / "README.md").write_text(readme.render(registry, intent), encoding="utf-8")
+        readme.write(config, registry, say=lambda text: None)
         from . import diagram
         diagram.write(config, registry, say=lambda text: None)
     if config.tracker_dir.is_dir() or registry.solutions:

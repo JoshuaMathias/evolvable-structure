@@ -92,6 +92,7 @@ class Config:
     switching: Dict[str, Any] = field(default_factory=dict)   # [switching] and [switching.<solution id>]: stricter requirements for switching (esoi.leaderboard.policy_for)
     expiration: Dict[str, Any] = field(default_factory=dict)   # [expiration] default = "90 days": when results expire unless a metric or stage says otherwise (esoi.cascade.load_stages)
     evidence: Dict[str, Any] = field(default_factory=dict)   # [evidence] file = "path.csv" and [evidence.aliases] candidate = "implementation" (esoi.evidence)
+    readme: Dict[str, Any] = field(default_factory=dict)   # [readme] layout = "glance" | "full" | "links": the README layout (esoi.readme)
     source: Optional[Path] = None
 
     def __post_init__(self) -> None:

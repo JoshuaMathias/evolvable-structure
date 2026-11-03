@@ -103,6 +103,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--solution", default="", help="only this solution")
     p = sub.add_parser("diagram", help="draw each intent's solution diagram (Mermaid) from the solutions' outputs and the implementations' dependencies")
     p.add_argument("--check", action="store_true", help="only report the diagrams that are out of date")
+    p = sub.add_parser("readmes", help="write the README of every intent folder from its records (at a glance, with the diagram and links)")
+    p.add_argument("--check", action="store_true", help="only report the READMEs that are out of date")
     p = sub.add_parser("tracker", help="the review tracker")
     p.add_argument("action", choices=["build", "check"])
     p = sub.add_parser("consumer", help="check a consuming repository")
@@ -682,6 +684,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.cmd == "evidence-table":
         from . import evidence_table
         return evidence_table.run_cli(config, args.file, args.begin or evidence_table.BEGIN, args.end or evidence_table.END, args.solution)
+    if args.cmd == "readmes":
+        from . import readme
+        return readme.run_cli(config, args.check)
     if args.cmd == "diagram":
         from . import diagram
         return diagram.run_cli(config, args.check)

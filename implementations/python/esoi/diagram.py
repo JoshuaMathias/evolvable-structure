@@ -19,7 +19,7 @@ from typing import Callable, Dict, List, Tuple
 from .config import Config
 from .intents import Intent, discover
 from .registry import Registry
-from .tables import ids
+from .tables import ids, written
 
 FILE = "diagram.md"
 LABEL_CHARS = 60
@@ -29,7 +29,7 @@ HEADER = ("These are ESOI records rendered as a diagram (evolvable structure tha
 
 def clip(text: str, limit: int = LABEL_CHARS) -> str:
     """One line of a cell, without characters Mermaid reads as syntax, cut at a word."""
-    clean = " ".join((text or "").replace('"', "'").replace("|", "/").replace("[", "(").replace("]", ")").split())
+    clean = " ".join(written(text).replace('"', "'").replace("|", "/").replace("[", "(").replace("]", ")").split())
     if len(clean) <= limit:
         return clean.rstrip(".")
     return clean[:limit].rsplit(" ", 1)[0].rstrip(".,;:") + "..."
@@ -47,24 +47,34 @@ def edges(registry: Registry, intent_id: str) -> Dict[Tuple[str, str], str]:
     return found
 
 
-def render(registry: Registry, intent: Intent) -> str:
-    """The diagram page of one intent ("" when no solution of it builds on another)."""
+def block(registry: Registry, intent: Intent) -> List[str]:
+    """The fenced Mermaid source of one intent's diagram, as lines ([] when no solution of it builds on another). The diagram page
+    and the intent's README both embed these lines, so the two cannot differ."""
     found = edges(registry, intent.intent_id)
     if not found:
-        return ""
+        return []
     names = {r.get("solution_id", ""): r.get("name", "") for r in registry.every_solution()}
-    used = sorted({s for pair in found for s in pair}, key=lambda s: [r.get("solution_id") for r in registry.every_solution()].index(s))
+    order = [r.get("solution_id") for r in registry.every_solution()]
+    used = sorted({s for pair in found for s in pair}, key=order.index)
     node = {sid: f"s{i}" for i, sid in enumerate(used)}
-    paragraph = " ".join((intent.row.get("solution_coherence") or "").split())
-    lines = [HEADER, "", f"# Solution diagram: {intent.row.get('name', '') or intent.intent_id}", ""]
-    if paragraph:
-        lines += [paragraph, ""]   # the intent's own account of how its solutions fit, above the picture of it
-    lines += ["An arrow runs from the solution that provides to the solution that builds on it; its label is what the provider outputs.", "",
-              "```mermaid", "flowchart LR"]
+    lines = ["```mermaid", "flowchart LR"]
     lines += [f'    {node[sid]}["{clip(names.get(sid, "") or sid, 40)}<br/>{sid}"]' for sid in used]
     for (provider, user), label in sorted(found.items(), key=lambda kv: (used.index(kv[0][0]), used.index(kv[0][1]))):
         lines.append(f'    {node[provider]} -->|"{label}"| {node[user]}' if label else f"    {node[provider]} --> {node[user]}")
-    return "\n".join(lines + ["```", ""])
+    return lines + ["```"]
+
+
+def render(registry: Registry, intent: Intent) -> str:
+    """The diagram page of one intent ("" when no solution of it builds on another)."""
+    lines = block(registry, intent)
+    if not lines:
+        return ""
+    paragraph = " ".join((intent.row.get("solution_coherence") or "").split())
+    head = [HEADER, "", f"# Solution diagram: {intent.row.get('name', '') or intent.intent_id}", ""]
+    if paragraph:
+        head += [paragraph, ""]   # the intent's own account of how its solutions fit, above the picture of it
+    head += ["An arrow runs from the solution that provides to the solution that builds on it; its label is what the provider outputs.", ""]
+    return "\n".join(head + lines + [""])
 
 
 def pages(config: Config, registry: Registry) -> List[Tuple[Path, str]]:

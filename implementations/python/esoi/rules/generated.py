@@ -64,10 +64,9 @@ def run(ctx: Context) -> List[str]:
         bad.append(f"S8 {config.structure_dir}/COMPONENTS.md: out of date (run `esoi check --write-docs`)")
 
     if config.intent_mode:
-        for intent in intents.discover(config):
-            page = intent.folder / "README.md"
-            if not page.exists() or page.read_text(encoding="utf-8") != readme.render(ctx.registry, intent):
-                bad.append(f"S8 {page.relative_to(config.root)}: out of date (run `esoi check --write-docs`)")
+        for page, text in readme.pages(config, ctx.registry, ctx.results):
+            if not page.exists() or page.read_text(encoding="utf-8") != text:
+                bad.append(f"S8 {page.relative_to(config.root)}: out of date (run `esoi readmes`)")
 
         from .. import diagram
         bad.extend(f"S8 {path.relative_to(config.root)}: out of date (run `esoi diagram` or `esoi check --write-docs`)"

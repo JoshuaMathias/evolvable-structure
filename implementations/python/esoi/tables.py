@@ -89,3 +89,12 @@ def repo_files(root: Path) -> List[str]:
         if path.is_file() and not (set(rel.parts) & SKIP_DIRS):
             found.append(rel.as_posix())
     return sorted(found)
+
+
+UNWRITTEN = re.compile(r"^\s*unconfirmed(?:, from the call)?:\s*(?:for [\w .']+? to confirm\.?\s*)?", re.I)
+
+
+def written(text: str) -> str:
+    """A cell without a leading ``unconfirmed:`` marker: a cell that holds only the marker is unwritten, and a generated page
+    states finished truth only, so it leaves the marker out."""
+    return UNWRITTEN.sub("", text or "")

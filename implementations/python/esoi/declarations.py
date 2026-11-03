@@ -38,6 +38,10 @@ class SolutionDecl:
     parameters: str = ""
     outputs: str = ""
     port: str = ""
+    kind: str = ""      # the ``kind`` keyword of ``@solution`` (event, evaluate or store), empty when the code gives none
+    entry: str = ""     # the ``entry`` keyword: the method the one-line call runs
+    example: object = None   # the ``example`` keyword when it is a literal the call accepts offline (shown in the README)
+    has_example: bool = False
 
 
 @dataclass
@@ -96,6 +100,16 @@ def signature(node: ast.AST) -> Tuple[str, str]:
     return args, ast.unparse(node.returns) if node.returns else ""
 
 
+def literal(node: Optional[ast.AST]) -> Tuple[object, bool]:
+    """``(value, True)`` when the node is a Python literal, else ``(None, False)``."""
+    if node is None:
+        return None, False
+    try:
+        return ast.literal_eval(node), True
+    except (ValueError, SyntaxError):
+        return None, False
+
+
 def scan_file(rel: str, text: str, out: Declared) -> None:
     try:
         tree = ast.parse(text)
@@ -114,8 +128,13 @@ def scan_file(rel: str, text: str, out: Declared) -> None:
                 purpose = first_paragraph(ast.get_docstring(node))
                 if kind == "solution":
                     params, returns = signature(node)
+                    keywords = {k.arg: k.value for k in call.keywords if k.arg}
+                    example, has_example = literal(keywords.get("example"))
                     out.solutions[sid] = SolutionDecl(sid, rel, node.lineno, node.name, purpose, params, returns,
-                                                      node.name if isinstance(node, ast.ClassDef) else "")
+                                                      node.name if isinstance(node, ast.ClassDef) else "",
+                                                      string_arg(keywords["kind"]) or "" if "kind" in keywords else "",
+                                                      string_arg(keywords["entry"]) or "" if "entry" in keywords else "",
+                                                      example, has_example)
                 else:
                     given = string_arg(call.args[1]) if len(call.args) > 1 else None
                     given = given or next((string_arg(k.value) for k in call.keywords if k.arg == "name"), None)
