@@ -752,3 +752,7 @@ date,component,impl,cases,passed,dev,heldout,model_calls,tokens_in,tokens_out,co
 2026-11-03,readme_at_a_glance,at_a_glance,4,4,4/4,0/0,0,0,0,0.0,6.6,e861c0b,90612f4c,none,"vision 4/4, coherence 4/4, diagram 4/4, solutions 4/4, links 4/4, finished 4/4, pure 4/4, size 4/4",,
 2026-11-03,readme_at_a_glance,links_page,4,0,0/4,0/0,0,0,0,0.0,6.5,e861c0b,90612f4c,none,"vision 4/4, coherence 0/4, diagram 0/4, solutions 0/4, links 4/4, finished 4/4, pure 4/4, size 4/4",,
 2026-11-03,readable_records,live_readme,10,10,10/10,0/0,0,0,0,0.0,0.3,e861c0b,2a872872,none,"check 5/5, readme 4/4, sub 1/1",,
+2026-11-03,readme_at_a_glance,at_a_glance,4,4,4/4,0/0,0,0,0,0.0,6.2,ae4d742,90612f4c,none,"vision 4/4, coherence 4/4, diagram 4/4, solutions 4/4, links 4/4, finished 4/4, pure 4/4, size 4/4",,
+2026-11-03,readme_at_a_glance,full_page,4,0,0/4,0/0,0,0,0,0.0,6.3,ae4d742,90612f4c,none,"vision 4/4, coherence 4/4, diagram 0/4, solutions 0/4, links 0/4, finished 4/4, pure 4/4, size 0/4",,
+2026-11-03,readme_at_a_glance,links_page,4,0,0/4,0/0,0,0,0,0.0,6.3,ae4d742,90612f4c,none,"vision 4/4, coherence 0/4, diagram 0/4, solutions 0/4, links 4/4, finished 4/4, pure 4/4, size 4/4",,
+2026-11-03,readable_records,live_readme,10,10,10/10,0/0,0,0,0,0.0,0.3,ae4d742,2a872872,none,"check 5/5, readme 4/4, sub 1/1",,
