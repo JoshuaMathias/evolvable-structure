@@ -25,6 +25,7 @@ Steps for a task you already know you want to do.
 - [Install the skill](how-to/install-the-skill.md): give an AI agent the principles.
 - [Search records and items together](how-to/search-specs-and-items.md)
 - [Use public evidence](how-to/use-public-evidence.md)
+- [Declare a solution's interface and call it with one function](how-to/declare-a-solutions-interface.md): kind, entry, example, `run(id, input)`, the outcomes, the opt-in checks.
 - [Assemble the parts of a program by name](how-to/assemble-by-name.md): resolve, build in dependency order, fail early.
 - [Declare what an implementation needs from its environment](how-to/declare-environment-needs.md): variables, API keys, packages, binaries, services; generate the `.env` template and install script.
 - [Install only what your solutions need](how-to/install-only-what-you-need.md): the closure, the plan, the resolution ladder, coherence in CI.

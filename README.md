@@ -1,15 +1,47 @@
-# Evolvable Structure that Optimizes Intent (ESOI)
+# esoi: choose each implementation by measurement, and keep the reason
 
-ESOI makes sure what you intend actually happens, and keeps getting better. You put your intent into words (a name and
-a vision) and five short kinds of record: **problem** (what is in the way), **ideal** (the future you want),
-**solution** (what to do about it), **implementation** (one built way of doing it) and **metric** (how to measure
-how close it gets). You try more than one way and let the measurement pick the best. The structure stays steady while
-the ways of doing things improve, and it changes with you when your intent does.
+esoi is a small Python library, with no dependencies in its core, for code that has more than one way to do a job. You declare an
+interface, register implementations beside their code, run them on shared cases, and esoi records pass rate, cost and latency per
+case, labels the leader significant (an exact two-sided paired test) or a best guess, and makes it the default. A lockfile pins the
+defaults for production. The same records (problem, ideal, solution, implementation, metric) work without code, for a course or a
+team process: [the guide](docs/README.md). Terms: [glossary](docs/explanation/glossary.md).
 
-It works for anything with an intent and more than one way to serve it: a product, code, a course, a coaching program,
-a team process, a personal schedule. You need no code to use it.
+```bash
+pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git@v0.3.0#subdirectory=implementations/python"
+```
 
-**[Read the guide on the wiki](https://github.com/JoshuaMathias/evolvable-structure/wiki)**
+```python
+from esoi import implementation, solution
+
+@solution("greet-a-person", kind="event", entry="greet", example="Ada")   # the interface
+def greet(name: str) -> str: ...
+
+@implementation("greet-a-person", "plain")                                # one implementation, beside its code
+def plain(name: str) -> str:
+    return f"Hello, {name}!"
+```
+
+```bash
+esoi run greet_a_person --impl plain --record   # measure each implementation on the same cases
+esoi select --promote                           # make the measured leader the default
+esoi lock                                       # pin it
+```
+
+## One call for any solution or intent
+
+```pycon
+>>> import esoi
+>>> esoi.run("implementation-selection", "structure-check").name   # which implementation serves a solution now
+'rule-script'
+>>> esoi.run("structure-check", ".")                                # this folder's structural problems
+[]
+```
+
+`esoi.run(id, input)` reaches any solution or intent the same way, and `esoi.run(Interface)` returns a typed handle. Your package gets
+the same function with one line, `run = esoi.entry.runner(<your Assembler>)`: a user picks one of your parts by id, overrides one
+implementation (`arms=`), changes its parameters (`arm@option=value`) or registers their own, and every other part keeps its measured
+default. How to declare an interface: [declare a solution's interface](docs/how-to/declare-a-solutions-interface.md). How esoi
+compares with DSPy, MLflow's model registry, promptfoo, Inspect and fitness functions: [related work](docs/explanation/related-work.md).
 
 ## Start here
 
@@ -75,6 +107,5 @@ its core; Google Sheets sync is an optional extra (`esoi[sheets]`).
 
 ## Contributing and licence
 
-Only Joshua, or an AI acting on his own prompt, edits this repository; others open an issue or a pull request that
-he reviews (see [CONTRIBUTING.md](CONTRIBUTING.md)). Edit pages in `docs/`, not on the wiki: the wiki is regenerated on
+How to propose a change: [CONTRIBUTING.md](CONTRIBUTING.md). Edit pages in `docs/`, not on the wiki: the wiki is regenerated on
 every push. Apache-2.0, see [LICENSE](LICENSE).
