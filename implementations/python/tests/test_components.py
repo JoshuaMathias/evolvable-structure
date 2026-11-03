@@ -23,6 +23,9 @@ LIVE = {"check_the_structure": "live_checker", "own_every_file": "live_checker",
         "readable_records": "live_readme", "promote_the_winner": "live_promote", "assemble_by_name": "live_assembler", "keep_metric_record": "live_record", "behave_by_esoi": "reference_good", "judge_esoi_behaviour": "regex_only", "spec_search": "gated", "public_evidence": "graded"}
 # Graded accuracy metrics: no pass-every-case bar, no broken/ baseline; the selected arm must beat the naive arm instead.
 GRADED = {"spec_index": ("weighted_tfidf", "term_overlap")}
+# Measured over repositories that are not part of this one (ESOI_GLANCE_ADOPTERS names them): here only the cases this repository can
+# read count, and the arm the measurement selected must pass them while the page-less baseline and the record-tables-only arm do not.
+LOCAL = {"readme_at_a_glance": ("at_a_glance", ("full_page", "links_page", "readme_at_a_glance.broken.no_readme:build"))}
 
 
 def score_all(component, spec):
@@ -32,7 +35,7 @@ def score_all(component, spec):
 
 
 def test_every_component_has_a_live_implementation_listed_here():
-    assert set(COMPONENTS) == set(LIVE) | set(GRADED)
+    assert set(COMPONENTS) == set(LIVE) | set(GRADED) | set(LOCAL)
 
 
 @pytest.mark.parametrize("component", sorted(LIVE))
@@ -54,3 +57,19 @@ def test_a_graded_metric_ranks_its_selected_arm_above_the_naive_arm(component):
     selected, naive = GRADED[component]
     good, bad = score_all(component, selected), score_all(component, naive)
     assert sum(good) > sum(bad), f"{component}: {selected} {sum(good)} does not beat {naive} {sum(bad)} of {len(good)}"
+
+
+def score_local(component, spec):
+    score = importlib.import_module(f"{component}.score")
+    fn = harness.load_impl(spec, component)(harness.CallMeter())
+    rows = [score.score_case(fn, case) for case in harness.load_cases(component, CONFIG)]
+    return [r["ok"] for r in rows if r["got"] != "unavailable"]
+
+
+@pytest.mark.parametrize("component", sorted(LOCAL))
+def test_the_selected_arm_passes_the_readable_cases_and_the_rivals_do_not(component):
+    selected, rivals = LOCAL[component]
+    good = score_local(component, selected)
+    assert good and all(good), f"{component}: {good}"
+    for rival in rivals:
+        assert not all(score_local(component, rival)), f"{component}/{rival} passes every readable case"

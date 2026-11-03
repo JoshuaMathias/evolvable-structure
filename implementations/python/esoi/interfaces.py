@@ -269,14 +269,34 @@ class ReadableRecording(Protocol):
     def page(self, project: str) -> str: ...
 
 
-@implementation("readable-records", "generated-readme")
-class GeneratedReadme:
-    """A page written from the records, so it cannot disagree with them."""
+@implementation("readable-records", "full_page")
+class FullPageReadme:
+    """The record tables only, written from the records, so the page cannot disagree with them."""
 
     def page(self, project: str) -> str:
-        from . import intents, readme
+        from . import readme
         cfg, found = loaded(project)
-        return readme.render(found, intents.discover(cfg)[0])
+        return readme.pages(cfg, found, layout="full")[0][1]
+
+
+@implementation("readable-records", "at_a_glance")
+class AtAGlanceReadme:
+    """The summary a reader needs first (vision, coherence, diagram, entry calls, links), then the full record below a divider."""
+
+    def page(self, project: str) -> str:
+        from . import readme
+        cfg, found = loaded(project)
+        return readme.pages(cfg, found, layout="glance")[0][1]
+
+
+@implementation("readable-records", "links_page")
+class LinksPageReadme:
+    """A compact page of the vision statement and links to everything else."""
+
+    def page(self, project: str) -> str:
+        from . import readme
+        cfg, found = loaded(project)
+        return readme.pages(cfg, found, layout="links")[0][1]
 
 
 @solution("promote-the-winner", kind="evaluate", entry="proposals", example=".")

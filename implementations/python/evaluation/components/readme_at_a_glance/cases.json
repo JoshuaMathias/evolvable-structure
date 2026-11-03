@@ -1,0 +1,42 @@
+[
+ {
+  "id": "GLN-001",
+  "kind": "page",
+  "area": "the top intent folder of this repository reads at a glance",
+  "description": "the top intent folder of this repository reads at a glance",
+  "args": {
+   "repo": "this",
+   "intent": "top"
+  }
+ },
+ {
+  "id": "GLN-002",
+  "kind": "page",
+  "area": "the sub-intent folder esoi-runtime of this repository reads at a glance",
+  "description": "the sub-intent folder esoi-runtime of this repository reads at a glance",
+  "args": {
+   "repo": "this",
+   "intent": "esoi-runtime"
+  }
+ },
+ {
+  "id": "GLN-003",
+  "kind": "page",
+  "area": "the top intent folder of the first adopting repository reads at a glance",
+  "description": "the top intent folder of the first adopting repository reads at a glance",
+  "args": {
+   "repo": "adopter-1",
+   "intent": "top"
+  }
+ },
+ {
+  "id": "GLN-004",
+  "kind": "page",
+  "area": "the top intent folder of the second adopting repository reads at a glance",
+  "description": "the top intent folder of the second adopting repository reads at a glance",
+  "args": {
+   "repo": "adopter-2",
+   "intent": "top"
+  }
+ }
+]
