@@ -55,9 +55,12 @@ def render(registry: Registry, intent: Intent) -> str:
     names = {r.get("solution_id", ""): r.get("name", "") for r in registry.every_solution()}
     used = sorted({s for pair in found for s in pair}, key=lambda s: [r.get("solution_id") for r in registry.every_solution()].index(s))
     node = {sid: f"s{i}" for i, sid in enumerate(used)}
-    lines = [HEADER, "", f"# Solution diagram: {intent.row.get('name', '') or intent.intent_id}", "",
-             "An arrow runs from the solution that provides to the solution that builds on it; its label is what the provider outputs.", "",
-             "```mermaid", "flowchart LR"]
+    paragraph = " ".join((intent.row.get("solution_coherence") or "").split())
+    lines = [HEADER, "", f"# Solution diagram: {intent.row.get('name', '') or intent.intent_id}", ""]
+    if paragraph:
+        lines += [paragraph, ""]   # the intent's own account of how its solutions fit, above the picture of it
+    lines += ["An arrow runs from the solution that provides to the solution that builds on it; its label is what the provider outputs.", "",
+              "```mermaid", "flowchart LR"]
     lines += [f'    {node[sid]}["{clip(names.get(sid, "") or sid, 40)}<br/>{sid}"]' for sid in used]
     for (provider, user), label in sorted(found.items(), key=lambda kv: (used.index(kv[0][0]), used.index(kv[0][1]))):
         lines.append(f'    {node[provider]} -->|"{label}"| {node[user]}' if label else f"    {node[provider]} --> {node[user]}")

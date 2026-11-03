@@ -16,7 +16,8 @@ def test_an_edge_runs_from_the_solution_that_provides_to_the_one_that_builds_on_
     assert diagram.edges(loaded, "demo")[("greet-a-person", "project-purpose")] == "A 'greeting' line"
     page = diagram.render(loaded, intents.discover(cfg)[0])
     assert "```mermaid" in page and "flowchart LR" in page and '-->|"A \'greeting\' line"|' in page
-    assert page.index("greet-a-person") < page.index("project-purpose")
+    drawing = page[page.index("```mermaid"):]   # the paragraph above it names the solutions in its own order
+    assert drawing.index("greet-a-person") < drawing.index("project-purpose")
 
 
 def test_an_intent_without_a_dependency_has_no_diagram_and_a_stale_one_is_reported_and_written(cfg):
