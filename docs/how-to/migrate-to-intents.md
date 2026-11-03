@@ -103,6 +103,6 @@ new version first (`pip install -U` with the same command as before).
    is compared on calls.
 6. **Promotion.** Put `automatic` in a `promotion` column of `solutions.csv` (add the column) for each solution whose policy lets
    the metric decide; leave it empty to review each proposal printed by `esoi select --promote`.
-7. **Generated READMEs.** Run `esoi check --write-docs` once and commit the `README.md` it writes in each intent folder (rule S8
+7. **Generated READMEs.** Run `esoi readmes` once (`esoi check --write-docs` runs the same code) and commit the `README.md` it writes in each intent folder (rule S8
    keeps them current). A hand-kept summary of the records beside them can go; your own prose about the network stays.
 8. **Check.** `esoi check --strict`.

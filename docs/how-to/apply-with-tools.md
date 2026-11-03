@@ -114,6 +114,7 @@ tells you whether they are stale; a new field appears as a missing column in you
 | `esoi leaderboard [--strict]` | Ranks implementations and prints a verdict per solution |
 | `esoi tracker build\|check` | Builds the review sheet tabs |
 | `esoi diagram [--check]` | Draws each intent's solution diagram (Mermaid, `diagram.md` beside its records) from the solutions' outputs and the implementations' `uses_solution_ids`; `--check` lists the ones out of date. `esoi check --write-docs` writes them too |
+| `esoi readmes [--check]` | Writes the README of every intent folder (at a glance: vision, solution coherence, diagram, entry calls, links, then the full record); `--check` lists the stale ones. `esoi check --write-docs` writes them too |
 | `esoi sheet-sync sync\|push\|pull\|check` | Syncs those tabs with a Google Sheet |
 | `esoi template sync\|check` | Parses the template source and regenerates the templates |
 | `esoi skill sync\|check\|install` | Generates and verifies the public copy of the skill, or installs it ([guide](install-the-skill.md)) |

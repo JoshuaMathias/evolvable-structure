@@ -117,3 +117,10 @@ def test_a_declared_entry_shows_as_the_one_line_call_with_its_example(cfg):
                                                'class Greeting:\n    """Greets."""\n')
     text = page(cfg)
     assert 'demo.run("greet-a-person", \'Ada\')' in text
+
+
+def test_the_declarations_of_esois_own_modules_are_read_through_their_relative_import():
+    from esoi import declarations
+    seen = declarations.Declared()
+    declarations.scan_file("pkg/seat.py", 'from .runtime import solution\n\n\n@solution("one", kind="event", entry="go", example="x")\nclass One:\n    """One."""\n', seen)
+    assert seen.solutions["one"].entry == "go" and seen.solutions["one"].example == "x"

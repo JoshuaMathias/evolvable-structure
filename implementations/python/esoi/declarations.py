@@ -76,6 +76,8 @@ def imports_esoi(tree: ast.AST) -> bool:
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] == "esoi":
             return True
+        if isinstance(node, ast.ImportFrom) and node.level and (node.module or "") == "runtime":
+            return True   # esoi's own modules import the decorators from their sibling (``from .runtime import solution``)
         if isinstance(node, ast.Import) and any(a.name.split(".")[0] == "esoi" for a in node.names):
             return True
     return False
