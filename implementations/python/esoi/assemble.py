@@ -62,7 +62,7 @@ import typing
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple
+from typing import Any, Callable, Dict, Generic, List, Mapping, Optional, Sequence, Set, Tuple, TypeVar
 
 from . import config as config_module
 from . import hierarchy
@@ -74,13 +74,45 @@ from .fields import parse_tags
 from .select import default_name
 from .tables import ids, read_csv, read_header, write_csv
 
-__all__ = ["Assembler", "Assembly", "AssemblyConfig", "AssemblyError", "LockError", "CONSUMER_PROVIDED", "NAME_PATTERN", "check_name",
-           "cycle_of", "problems"]
+__all__ = ["Assembler", "Assembly", "AssemblyConfig", "AssemblyError", "Lazy", "LockError", "CONSUMER_PROVIDED", "NAME_PATTERN",
+           "check_name", "cycle_of", "problems"]
 
 NAME_PATTERN = "^[a-z0-9][a-z0-9_-]*$"
 NAME = re.compile(r"[a-z0-9][a-z0-9_-]*")
 CONSUMER_PROVIDED = "consumer-provided"   # the tag of a solution that has no default arm because the consumer supplies it
 log = logging.getLogger("esoi.assemble")
+
+
+Need = TypeVar("Need")
+
+
+class Lazy(Generic[Need]):
+    """Annotate a constructor parameter ``Lazy[Protocol]`` when the part is needed only on some paths. It is still a need of the
+    solution (uses edges, coherence), but ``assemble`` hands over a stand-in and builds the part when the first attribute is read, and
+    ``pending_needs`` and ``closure`` do not count it: an answer path that never touches the part never asks for what it needs.
+    A part that cannot be built raises ``AssemblyError`` at that first use."""
+
+
+class LazyNeed:
+    """The stand-in for one ``Lazy`` need: the real part is built once, on the first attribute read, and every read goes to it."""
+
+    def __init__(self, label: str, build: Callable[[], Any]):
+        self.label, self.build, self.lock, self.part = label, build, threading.Lock(), None
+
+    def resolved(self) -> Any:
+        """The built part, building it now if this is the first use."""
+        with self.lock:
+            if self.part is None:
+                self.part = self.build()
+            return self.part
+
+    def __getattr__(self, name: str) -> Any:
+        if name in ("label", "build", "lock", "part"):    # not yet set: never recurse into the build
+            raise AttributeError(name)
+        return getattr(self.resolved(), name)
+
+    def __repr__(self) -> str:
+        return f"<lazy {self.label}>"
 
 
 class AssemblyError(ValueError):
@@ -761,10 +793,24 @@ class Assembler:
             raise AssemblyError(f"cannot read the parameter types of {getattr(target, '__qualname__', target)!r}: {error}") from error
         found = {}
         for param in inspect.signature(build).parameters:
-            sid = self.solution_of(hints.get(param)) if param in hints else None
+            hint = hints.get(param)
+            if typing.get_origin(hint) is Lazy:    # Lazy[Protocol] is the need of Protocol, built on first use
+                hint = typing.get_args(hint)[0]
+            sid = self.solution_of(hint) if param in hints else None
             if sid:
                 found[param] = sid
         return found
+
+    def lazy_needs_of(self, target: Any) -> Set[str]:
+        """The parameter names of ``target`` annotated ``Lazy[...]`` (a subset of ``needs_of``'s keys)."""
+        build = builder_of(target)
+        if build is None:
+            return set()
+        try:
+            hints = typing.get_type_hints(build)
+        except Exception:
+            return set()
+        return {param for param, hint in hints.items() if typing.get_origin(hint) is Lazy}
 
     def declared_needs(self, implementations: Sequence[Mapping[str, str]]) -> Tuple[Dict[str, Set[str]], List[str]]:
         """``({implementation_id: {solution ids it needs}}, findings)`` read from the constructor parameters of each recorded
@@ -858,7 +904,8 @@ class Assembler:
                         if not (isinstance(one.requirement, requirements_module.Env) and one.requirement.option in given_options)
                         and not (isinstance(one.requirement, requirements_module.Api) and one.requirement.key is not None
                                  and one.requirement.key.option in given_options))
-                    unmet = [need for need in needs.values() if not check(need)]
+                    lazy = self.lazy_needs_of(target)
+                    unmet = [need for param, need in needs.items() if param not in lazy and not check(need)]
                     if lacking:
                         found[sid] = (f"{sid} ({picked.name}): set " + "; ".join(f"{' or '.join(names)} (option {' or '.join(repr(o) for o in group)})"
                                       for group, names in lacking.items()) + f" in the environ mapping you pass, or pass options={{{sid!r}: {{...}}}}")
@@ -879,7 +926,7 @@ class Assembler:
                 solutions: Sequence[str] = (), every_arm: bool = False) -> List[requirements_module.Member]:
         """The dependency closure of what an assembly would use, each member with the reason it is in: the selected arm of each
         solution asked for (``solutions``, else the config's, else every visible one) that is not provided, then the arms that
-        fill their solution-typed needs, recursively (``needed by <solution>:<arm>``). ``every_arm=True`` takes every named arm
+        fill their solution-typed needs, recursively (``needed by <solution>:<arm>``; a ``Lazy`` need is left out). ``every_arm=True`` takes every named arm
         of the roots instead. An arm that cannot be loaded is left to ``pending_needs``."""
         cfg = config or AssemblyConfig()
         given = dict(provided or {})
@@ -899,7 +946,10 @@ class Assembler:
                     continue
                 members.append(requirements_module.Member(f"{sid}:{one}", target, reason))
                 if not every_arm:
-                    for need in needs.values():
+                    lazy = self.lazy_needs_of(target)
+                    for param, need in needs.items():
+                        if param in lazy:    # built on first use: its requirements are asked for then, not up front
+                            continue
                         picked = self.pick(need, None, cfg) if need not in given and self.known_solution(need) else None
                         if picked is not None:
                             visit(need, picked.name, f"needed by {sid}:{one}")
@@ -977,7 +1027,10 @@ class Assembler:
             options = {**variant_options, **dict(cfg.options.get(sid, {}))}
             filled = environ_fill(target, options, cfg.consumer_environ)
             options.update({option: str(cfg.consumer_environ[variable]).strip() for option, variable in filled.items()})
-            kwargs = {param: build(need, chain + [(sid, picked.name)]) for param, need in self.needs_of(target).items()}
+            lazy = self.lazy_needs_of(target)
+            below = chain + [(sid, picked.name)]
+            kwargs = {param: (LazyNeed(need, lambda need=need, below=below: build(need, below)) if param in lazy else build(need, below))
+                      for param, need in self.needs_of(target).items()}
             if inspect.isclass(target) or inspect.isfunction(target):   # a class or factory is built; anything else is an instance
                 builder = builder_of(target)
                 params = inspect.signature(builder).parameters if builder is not None else {}

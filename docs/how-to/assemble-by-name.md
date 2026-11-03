@@ -78,6 +78,9 @@ print(*system.reasons, sep="\n")                     # store -> memory (layer: c
   supplies that is not listed is an error, never a fall-through. `selection_environ` is a mapping you pass in; only
   `ESOI_SELECT_<SCOPE>_<SOLUTION_ID>` is read from it.
 - A cycle or a need with no arm fails at startup and names the chain: `report (plain) needs store: no arm, not provided (chain: report -> store)`.
+- A part used on only some paths is declared `index: Lazy[Index]` (`from esoi.assemble import Lazy`). It is still a need of the
+  solution, but `assemble` hands over a stand-in and builds the part on its first attribute read, once. `pending_needs` and `closure`
+  leave it out, so a path that never touches it never asks for what it needs; a part nothing can build raises `AssemblyError` at that first use.
 - The result is frozen: `system.choice("report")` and `system.implementation("report")` are what was chosen and loaded when
   `assemble` ran. `parts.choice` and `parts.resolve` look up when called.
 

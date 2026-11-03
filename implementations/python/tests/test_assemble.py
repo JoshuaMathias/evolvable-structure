@@ -696,7 +696,7 @@ def test_r13_the_public_api_is_explicit():
     namespace = {}
     exec("from esoi.assemble import *", namespace)
     exported = {name for name in namespace if name != "__builtins__"}
-    assert exported == set(assemble.__all__) == {"Assembler", "Assembly", "AssemblyConfig", "AssemblyError", "LockError", "CONSUMER_PROVIDED",
+    assert exported == set(assemble.__all__) == {"Assembler", "Assembly", "AssemblyConfig", "AssemblyError", "Lazy", "LockError", "CONSUMER_PROVIDED",
                                                   "NAME_PATTERN", "check_name", "cycle_of", "problems"}
 
 
@@ -829,3 +829,60 @@ def test_any_one_of_a_group_of_required_options_is_enough(toy):
     assert parts.assemble_defaults(cfg).pending[INDEX] == ("toy-index (either): set T_NAME or U_NAME (option 'token' or 'url') "
                                                            "in the environ mapping you pass, or pass options={'toy-index': {...}}")
     assert parts.assemble_defaults(AssemblyConfig(selections={INDEX: "either"}, consumer_environ={"U_NAME": "http://x"}))[INDEX].url == "http://x"
+
+
+# lazy needs: a part built on first use
+
+def lazy_arms(toy, built):
+    """A report whose index is ``Lazy`` and an index arm that counts its builds."""
+    from esoitoy.solutions import Index, Store
+    from esoi.assemble import Lazy
+
+    class LazyReport:
+        def __init__(self, store: Store, index: Lazy[Index]):
+            self.store, self.index = store, index
+
+        def render(self):
+            return "report:" + self.index.find("k")
+
+    class CountingIndex:
+        def __init__(self, store: Store):
+            built.append(1)
+            self.store = store
+
+        def find(self, key):
+            return key
+
+    parts = toy[0]
+    parts.register(REPORT, "lazy-report", LazyReport)
+    return parts, CountingIndex
+
+
+def test_a_lazy_need_is_a_need_of_the_solution_but_is_built_on_first_use(toy):
+    built = []
+    parts, counting = lazy_arms(toy, built)
+    parts.register(INDEX, "counting-index", counting)
+    config = AssemblyConfig(solutions=(REPORT,), selections={REPORT: "lazy-report", INDEX: "counting-index"})
+    assert parts.needs_of(parts.resolve(REPORT, "lazy-report")) == {"store": STORE, "index": INDEX}     # still a declared need
+    system = parts.assemble(config)
+    assert built == [] and system[REPORT].render() == "report:k" and built == [1]
+    system[REPORT].render()
+    assert built == [1]                                    # built once, however often it is used
+
+
+def test_a_lazy_need_nothing_meets_does_not_stop_the_solution_until_it_is_used(toy):
+    parts, _ = lazy_arms(toy, [])
+    config = AssemblyConfig(selections={REPORT: "lazy-report"})
+    assert REPORT not in parts.pending_needs(config, {})        # the index has no arm, but the report does not need it up front
+    assert INDEX in parts.pending_needs(config, {})             # the index is still reported on its own line
+    system = parts.assemble(AssemblyConfig(solutions=(REPORT,), selections={REPORT: "lazy-report"}))
+    with pytest.raises(AssemblyError, match=INDEX):
+        system[REPORT].render()                                 # the unmet need is named at first use
+
+
+def test_the_closure_leaves_a_lazy_need_out(toy):
+    parts, counting = lazy_arms(toy, [])
+    parts.register(INDEX, "counting-index", counting)
+    config = AssemblyConfig(selections={REPORT: "lazy-report", INDEX: "counting-index"})
+    labels = [member.label for member in parts.closure(config, None, solutions=(REPORT,))]
+    assert any(label.startswith(f"{REPORT}:") for label in labels) and not any(label.startswith(f"{INDEX}:") for label in labels)
