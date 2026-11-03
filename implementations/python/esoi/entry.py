@@ -105,10 +105,10 @@ def tree(root: Path) -> Tuple[Dict[str, Any], Dict[str, Dict[str, str]], List[Di
     found = {i.intent_id: i for i in intents_module.discover(cfg)}
     solutions: Dict[str, Dict[str, str]] = {}
     implementations: List[Dict[str, str]] = []
-    for intent in found.values():
-        for row in read_csv(intent.folder / "solutions.csv") if (intent.folder / "solutions.csv").is_file() else []:
-            solutions[row["solution_id"]] = dict(row, intent_id=intent.intent_id)
-        implementations += read_csv(intent.folder / "implementations.csv") if (intent.folder / "implementations.csv").is_file() else []
+    for intent_id, folder in intents_module.folders(cfg):
+        for row in read_csv(folder / "solutions.csv"):
+            solutions[row["solution_id"]] = dict(row, intent_id=intent_id)
+        implementations += read_csv(folder / "implementations.csv")
     return found, solutions, implementations
 
 

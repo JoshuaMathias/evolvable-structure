@@ -43,6 +43,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from . import config as config_module
+from . import intents
 from .config import Config
 from .select import load_table
 from .tables import read_csv
@@ -108,8 +109,9 @@ def known_solution_ids(options: Options) -> Tuple[set, bool]:
     """Solution ids the library defines, and whether the full ``solutions.csv`` was found. A source checkout has
     the registry; a wheel install does not, and then the ids come from the selection table."""
     csv_path = Path(options.solutions_csv) if options.solutions_csv else library_solutions_csv(library_dir(options).parent)
-    if csv_path.exists():
-        return {row["solution_id"] for row in read_csv(csv_path)}, True
+    rows = intents.read_tree(csv_path.parent, csv_path.name)   # the whole tree: records kept beside the code are read too
+    if rows:
+        return {row["solution_id"] for row in rows}, True
     if options.selection.endswith(".json"):
         return set(snapshot_ids(options)), False
     if options.selection:
@@ -302,7 +304,7 @@ def cases_hash(files: List[str], root: Path) -> str:
 
 def check_solutions(report: ConsumerReport, rows: List[Dict[str, str]], solutions: Path, results: Path, root: Path) -> None:
     """C9 to C11: every integration point sits in a solution with a current recorded result."""
-    sols = {r.get("solution_id", ""): r for r in read_csv(solutions)}
+    sols = {r.get("solution_id", ""): r for r in intents.read_tree(Path(solutions).parent, Path(solutions).name)}
     result_rows = read_csv(results)
     latest: Dict[str, Dict[str, str]] = {}
     for r in result_rows:
