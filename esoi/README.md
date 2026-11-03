@@ -93,7 +93,7 @@ flowchart LR
 | Solution | Entry call | Selected implementation | Metric |
 |---|---|---|---|
 | `apply-esoi` | `esoi.run("apply-esoi", '.')` | `documents-templates-and-tools` | Adoption effort, Intents whose solutions one paragraph and one diagram explain as the code builds them |
-| `intent-registry` | `esoi.run("intent-registry", '.')` | `csv-records-in-the-repository` | Record completeness |
+| `intent-registry` | `esoi.run("intent-registry", '.')` | `beside_code` | Navigable records, Record completeness |
 | `template-sync` | `esoi.run("template-sync", '.')` | `template-parser` | Template agreement |
 | `ownership-map` | `esoi.run("ownership-map", '.')` | `component-rows` | Trace completeness |
 | `implementation-selection` | `esoi.run("implementation-selection", 'structure-check')` | `declarations` | Resolution correctness |
@@ -138,7 +138,7 @@ flowchart LR
 - `prob-evaluation-detached-from-shipped-code`: Evaluations built beside production code test copies, stubs or scripts of their own, so their results describe something that does not run.
 - `prob-embedding-soundness-unknown`: A system builds on a library's solutions with its own stores and prompts, but cannot see which library solution each of its parts serves, whether its parts meet the library's own cases, or how far...
 - `prob-template-copies-drift`: The intent template is being refined in the skill, and every registry and checker that copied its fields falls out of date.
-- and 17 more: all 27 are in [problems](#problems) of the full record below
+- and 18 more: all 28 are in [problems](#problems) of the full record below
 
 **Ideals**
 
@@ -152,7 +152,7 @@ flowchart LR
 - `ideal-faithful-measurement`, Faithful measurement: What is measured is what ships.
 - `ideal-sound-integration`, Sound integration: A system built on a library meets the same standard as the library, through the library's own checks and cases.
 - `ideal-living-template`, Living template: The template's author changes it in one place and every record follows.
-- and 14 more: all 24 are in [ideals](#ideals) of the full record below
+- and 15 more: all 25 are in [ideals](#ideals) of the full record below
 
 ## Metrics and their leaders
 
@@ -166,7 +166,7 @@ flowchart LR
 - `metric-check-dependability`, Check dependability: leader `live_checker`, 61 of 76 cases
 - `metric-review-coverage`, Review coverage: leader `live_tracker`, 10 of 10 cases
 - `metric-consumer-soundness`, Consumer soundness: leader `live_consumer_check`, 22 of 22 cases
-- and 22 more: all 32 are in [metrics](#metrics) of the full record below
+- and 23 more: all 33 are in [metrics](#metrics) of the full record below
 
 ## Where to go next
 
@@ -208,6 +208,7 @@ flowchart LR
 - `prob-metric-measures-a-stand-in`: A metric scores a scripted judge, a mocked model or a canned answer instead of the real thing, so its number measures the plumbing around the thing and not the thing. A perfect scripted judge passes everything, and a decision built on the number is backed by nothing.
 - `prob-spec-search`: A system that finds a repository's records for a request, or finds them together with its own notes or documents, rebuilds the same stages inside its own code: lexical scoring, a semantic search, rank fusion, a confidence gate, one judging call and the way a ranked record brings its links. The copy in one product cannot be reused or improved by the next.
 - `prob-intent-folder-not-glanceable`: A person clicking into an intent folder cannot tell at a glance what it is, how its parts fit or where to go next: the page lists the records but shows no picture of how the solutions connect, no call that tries a solution, and no link down to the sub-intents, up to the parent intent or out to the repository.
+- `prob-spec-far-from-code`: A person reading the code of a solution cannot find its specification without leaving the code tree: the records sit in a separate folder, a code folder carries no page that says what it is for, and a change to the code and to its spec happen in two places.
 
 ### Ideals
 
@@ -235,13 +236,14 @@ flowchart LR
 - `ideal-right-spec-at-the-right-time`, Right specification at the right time: For any new use case or input, the relevant specifications are found by looking at a small, cheap description first and reading in full only what was chosen.
 - `ideal-spec-search`, One search, written once: The stages of finding the specifications a request concerns are written once, in the library, and a product supplies only its vector search and its judge.
 - `ideal-glanceable-intent`, Glanceable intent: Anyone clicking into an intent folder sees on the first screen what the intent is, how its solutions fit together and where to go next.
+- `ideal-navigable-records`, Navigable records: A person opening a code folder finds the specification of what it holds beside it, and a person opening a specification finds its code one folder away.
 
 ### Solutions
 
 | Solution | Name | Selected | Metric |
 |---|---|---|---|
 | `apply-esoi` | Apply ESOI to a project | documents-templates-and-tools | Adoption effort, Intents whose solutions one paragraph and one diagram explain as the code builds them |
-| `intent-registry` | Intent registry | csv-records-in-the-repository | Record completeness |
+| `intent-registry` | Intent registry | beside_code | Navigable records, Record completeness |
 | `template-sync` | Template sync | template-parser | Template agreement |
 | `ownership-map` | Ownership map | component-rows | Trace completeness |
 | `implementation-selection` | Implementation selection | declarations | Resolution correctness |
@@ -276,71 +278,71 @@ flowchart LR
 
 | Implementation | Name | Where | Sub-intent |
 |---|---|---|---|
-| `apply-esoi:documents-templates-and-tools` | Documents, templates and tools together | implementations/python/esoi/interfaces.py |  |
+| `apply-esoi:documents-templates-and-tools` | Documents, templates and tools together | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | `apply-esoi:documents-only` | Documents only, applied by hand |  |  |
-| `intent-registry:csv-records-in-the-repository` | CSV records in the repository | implementations/python/esoi/interfaces.py |  |
-| `intent-registry:records-beside-the-code` | Records beside the code |  |  |
+| `intent-registry:esoi_folder` | Records in the esoi folder | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `intent-registry:beside_code` | Records beside the code | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | `intent-registry:sheet-as-source` | Sheet as source |  |  |
-| `template-sync:template-parser` | Template parser | implementations/python/esoi/interfaces.py |  |
+| `template-sync:template-parser` | Template parser | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | `template-sync:hand-kept-field-list` | Hand-kept field list |  |  |
-| `ownership-map:component-rows` | Component rows | implementations/python/esoi/interfaces.py |  |
-| `implementation-selection:declarations` | Declarations in code | implementations/python/esoi/interfaces.py | [esoi-runtime](esoi-runtime/README.md) |
+| `ownership-map:component-rows` | Component rows | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `implementation-selection:declarations` | Declarations in code | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) | [esoi-runtime](esoi-runtime/README.md) |
 | `implementation-selection:entry-point-plugins` | Entry-point plugins |  |  |
-| `measurement-harness:component-harness` | Component harness | implementations/python/esoi/interfaces.py |  |
+| `measurement-harness:component-harness` | Component harness | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | `measurement-harness:external-eval-platform` | External eval platform |  |  |
-| `leaderboard:margin-leaderboard` | Margin leaderboard | implementations/python/esoi/interfaces.py |  |
-| `discriminating-cases:broken-baselines` | Broken baselines | implementations/python/esoi/interfaces.py |  |
-| `structure-check:rule-script` | Rule script | implementations/python/esoi/interfaces.py |  |
-| `structure-rules:rule-modules` | Numbered rule modules | implementations/python/esoi/interfaces.py |  |
+| `leaderboard:margin-leaderboard` | Margin leaderboard | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `discriminating-cases:broken-baselines` | Broken baselines | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `structure-check:rule-script` | Rule script | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `structure-rules:rule-modules` | Numbered rule modules | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | `structure-rules:prose-rules` | Rules in prose |  |  |
-| `review-tracker:tracker-and-sheet` | Tracker and sheet | implementations/python/esoi/interfaces.py |  |
-| `consumer-check:consumer-command` | Consumer command | implementations/python/esoi/interfaces.py |  |
-| `the-standard:standard-document` | Standard document | implementations/python/esoi/interfaces.py |  |
-| `when-metrics-are-run:on-every-change` | On every change | implementations/python/esoi/interfaces.py |  |
+| `review-tracker:tracker-and-sheet` | Tracker and sheet | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `consumer-check:consumer-command` | Consumer command | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `the-standard:standard-document` | Standard document | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `when-metrics-are-run:on-every-change` | On every change | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | `when-metrics-are-run:on-a-schedule` | On a schedule |  |  |
 | `when-metrics-are-run:on-a-decision` | On a decision |  |  |
 | `when-metrics-are-run:on-drift` | On drift |  |  |
-| `skill-distribution:generated-public-copy` | Generated public copy | implementations/python/esoi/interfaces.py |  |
+| `skill-distribution:generated-public-copy` | Generated public copy | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | `skill-distribution:hand-copied-folder` | Hand-copied folder |  |  |
 | `skill-distribution:publish-the-private-folder` | Publish the private folder |  |  |
-| `structure-budget:written-weighing-rule` | Written weighing rule | implementations/python/esoi/interfaces.py |  |
+| `structure-budget:written-weighing-rule` | Written weighing rule | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | `structure-budget:measured-cost-and-catches` | Measured cost and catches |  |  |
-| `esoi-for-ai:skill-as-standing-instructions` | Skill as standing instructions | implementations/python/esoi/interfaces.py |  |
+| `esoi-for-ai:skill-as-standing-instructions` | Skill as standing instructions | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | `esoi-for-ai:skill-on-request` | Skill on request |  |  |
 | `esoi-for-ai:no-skill` | No skill |  |  |
 | `esoi-for-ai:perspective-review` | Perspective review |  |  |
-| `the-steps:esoi-steps` | The ESOI steps | implementations/python/esoi/interfaces.py |  |
+| `the-steps:esoi-steps` | The ESOI steps | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | `the-steps:board-checklist` | Project Documentation board checklist |  |  |
 | `the-steps:one-hour-pass` | One-hour first pass |  |  |
 | `the-steps:no-stated-order` | No stated order |  |  |
-| `docs-and-templates:documentation-folder` | Documentation folder | implementations/python/esoi/interfaces.py |  |
-| `follow-the-steps:steps` | The ESOI steps | implementations/python/esoi/interfaces.py |  |
-| `follow-the-steps:one-hour-pass` | One-hour first pass | docs/how-to/apply-by-hand.md |  |
-| `local-application-index:live_index` | Index folder in the user's home | implementations/python/esoi/interfaces.py |  |
-| `local-application-index:skill_rows` | Routing rows in the skill's index (retired baseline) | implementations/python/evaluation/components/index_projects/impls/skill_rows.py |  |
-| `local-application-index:records_only` | Nothing beyond each project's own records (floor) | implementations/python/evaluation/components/index_projects/impls/records_only.py |  |
-| `esoi-behaviour-judge:model-judge-on-the-rubric` | Model judge on the rubric | implementations/python/esoi/interfaces.py |  |
+| `docs-and-templates:documentation-folder` | Documentation folder | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `follow-the-steps:steps` | The ESOI steps | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `follow-the-steps:one-hour-pass` | One-hour first pass | [docs/how-to/apply-by-hand.md](../docs/how-to/apply-by-hand.md) |  |
+| `local-application-index:live_index` | Index folder in the user's home | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `local-application-index:skill_rows` | Routing rows in the skill's index (retired baseline) | [implementations/python/evaluation/components/index_projects/impls/skill_rows.py](../implementations/python/evaluation/components/index_projects/impls/skill_rows.py) |  |
+| `local-application-index:records_only` | Nothing beyond each project's own records (floor) | [implementations/python/evaluation/components/index_projects/impls/records_only.py](../implementations/python/evaluation/components/index_projects/impls/records_only.py) |  |
+| `esoi-behaviour-judge:model-judge-on-the-rubric` | Model judge on the rubric | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | `esoi-behaviour-judge:regex-checks-only` | Regex checks only |  |  |
 | `esoi-behaviour-judge:human-review-of-every-reply` | Human review of every reply |  |  |
-| `behave-by-esoi:standing-instructions` | Skill as standing instructions | implementations/python/esoi/interfaces.py |  |
-| `behave-by-esoi:skill-on-request` | Skill on request | implementations/python/evaluation/components/behave_by_esoi/impls/skill_on_request.py |  |
-| `behave-by-esoi:no-skill` | No skill | implementations/python/evaluation/components/behave_by_esoi/impls/no_skill.py |  |
-| `judge-esoi-behaviour:model-judge` | Model judge | implementations/python/esoi/interfaces.py |  |
-| `judge-esoi-behaviour:regex-only` | Regex only | implementations/python/evaluation/components/judge_esoi_behaviour/impls/regex_only.py |  |
-| `specify-from-code:declarations-and-sync` | Declarations read from the code, rows synced | implementations/python/esoi/interfaces.py |  |
+| `behave-by-esoi:standing-instructions` | Skill as standing instructions | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `behave-by-esoi:skill-on-request` | Skill on request | [implementations/python/evaluation/components/behave_by_esoi/impls/skill_on_request.py](../implementations/python/evaluation/components/behave_by_esoi/impls/skill_on_request.py) |  |
+| `behave-by-esoi:no-skill` | No skill | [implementations/python/evaluation/components/behave_by_esoi/impls/no_skill.py](../implementations/python/evaluation/components/behave_by_esoi/impls/no_skill.py) |  |
+| `judge-esoi-behaviour:model-judge` | Model judge | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `judge-esoi-behaviour:regex-only` | Regex only | [implementations/python/evaluation/components/judge_esoi_behaviour/impls/regex_only.py](../implementations/python/evaluation/components/judge_esoi_behaviour/impls/regex_only.py) |  |
+| `specify-from-code:declarations-and-sync` | Declarations read from the code, rows synced | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | `specify-from-code:hand-kept-records` | Records kept by hand |  |  |
-| `readable-records:full_page` | Record tables only | implementations/python/esoi/interfaces.py |  |
-| `readable-records:at_a_glance` | At a glance, full record below | implementations/python/esoi/interfaces.py |  |
-| `readable-records:links_page` | Compact page of links | implementations/python/esoi/interfaces.py |  |
+| `readable-records:full_page` | Record tables only | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `readable-records:at_a_glance` | At a glance, full record below | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `readable-records:links_page` | Compact page of links | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | `readable-records:hand-written-readme` | README written by hand |  |  |
-| `promote-the-winner:margin-promotion` | Promotion on the leaderboard's verdict | implementations/python/esoi/interfaces.py |  |
+| `promote-the-winner:margin-promotion` | Promotion on the leaderboard's verdict | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | `promote-the-winner:person-edits-the-records` | A person edits the records |  |  |
-| `spec-index:weighted-tfidf` | Field-weighted TF-IDF over the index | implementations/python/esoi/spec_index.py |  |
-| `spec-index:term-overlap` | Plain term overlap | implementations/python/esoi/spec_index.py |  |
-| `keep-metric-record:library-modules` |  | implementations/python/esoi/interfaces.py |  |
-| `spec-search:lexical-only` | Lexical only | implementations/python/esoi/spec_search.py |  |
-| `spec-search:lexical-vector-gated` | Lexical vector gated | implementations/python/esoi/spec_search.py |  |
-| `public-evidence:graded` | Graded | implementations/python/esoi/evidence.py |  |
+| `spec-index:weighted-tfidf` | Field-weighted TF-IDF over the index | [implementations/python/esoi/spec_index.py](../implementations/python/esoi/spec_index.py) |  |
+| `spec-index:term-overlap` | Plain term overlap | [implementations/python/esoi/spec_index.py](../implementations/python/esoi/spec_index.py) |  |
+| `keep-metric-record:library-modules` |  | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `spec-search:lexical-only` | Lexical only | [implementations/python/esoi/spec_search.py](../implementations/python/esoi/spec_search.py) |  |
+| `spec-search:lexical-vector-gated` | Lexical vector gated | [implementations/python/esoi/spec_search.py](../implementations/python/esoi/spec_search.py) |  |
+| `public-evidence:graded` | Graded | [implementations/python/esoi/evidence.py](../implementations/python/esoi/evidence.py) |  |
 
 ### Metrics
 
@@ -376,3 +378,4 @@ flowchart LR
 - `metric-spec-search`, Spec search correctness: `esoi run spec_search --impl gated; esoi run spec_search --impl lexical_only`
 - `metric-public-evidence`, Public evidence graded: `esoi run public_evidence --impl graded`
 - `metric-solution-coherence`, Intents whose solutions one paragraph and one diagram explain as the code builds them: `python3 -m esoi.coherence --gate`
+- `metric-navigable-records`, Navigable records: `esoi run navigable_records --impl beside_code; esoi run navigable_records --impl esoi_folder`

@@ -67,9 +67,9 @@ flowchart LR
 
 | Implementation | Name | Where | Sub-intent |
 |---|---|---|---|
-| `runtime-selection:select` | Selector class and table | implementations/python/esoi/select.py |  |
-| `runtime-selection:declarations-and-cascade` | Declarations in code with one cascade | implementations/python/esoi/interfaces.py |  |
-| `assemble-by-name:assembler` | assemble-by-name:assembler | implementations/python/esoi/interfaces.py |  |
+| `runtime-selection:select` | Selector class and table | [implementations/python/esoi/select.py](../../implementations/python/esoi/select.py) |  |
+| `runtime-selection:declarations-and-cascade` | Declarations in code with one cascade | [implementations/python/esoi/interfaces.py](../../implementations/python/esoi/interfaces.py) |  |
+| `assemble-by-name:assembler` | assemble-by-name:assembler | [implementations/python/esoi/interfaces.py](../../implementations/python/esoi/interfaces.py) |  |
 
 ### Metrics
 

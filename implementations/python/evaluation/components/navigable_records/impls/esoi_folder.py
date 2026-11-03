@@ -1,4 +1,4 @@
-"""The records of the top intent all in the structure folder (``esoi records gather``): the layout before records beside the code. Zero model calls."""
+"""ALTERNATIVE: the records of the top intent all in the structure folder (``esoi records gather``), the layout before records beside the code. Zero model calls."""
 import navigable_fixture
 from esoi import besidecode  # noqa: F401  (the layout is made by the library's own placement)
 

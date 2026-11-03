@@ -122,14 +122,15 @@
   }
  },
  "intent-registry": {
-  "default": "csv-records-in-the-repository",
+  "default": "beside_code",
   "evidence": {
-   "detail": "no rival implementation was measured on the same cases",
-   "p": null,
-   "verdict": "UNMEASURED"
+   "detail": "beside_code is better than esoi_folder (two-sided exact McNemar test, Holm-adjusted p=1.42e-14, 47 of 53 cases disagree)",
+   "p": 0.0,
+   "verdict": "WIN"
   },
   "modules": {
-   "csv-records-in-the-repository": "esoi.interfaces"
+   "beside_code": "esoi.interfaces",
+   "esoi_folder": "esoi.interfaces"
   }
  },
  "judge-esoi-behaviour": {

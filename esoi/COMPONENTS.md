@@ -63,6 +63,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `eval-specify-from-code` | evaluation | Cases for reading declarations, syncing the records and creating a solution. | specify-from-code |
 | `eval-readable-records` | evaluation | Cases for the generated README of an intent folder. | readable-records |
 | `eval-readme-at-a-glance` | evaluation | Cases for the layouts of the README of an intent folder: one case per intent folder, scored by model-free glance checks. | readable-records |
+| `eval-navigable-records` | evaluation | Cases for the layouts of a repository's records: one case per solution, scored by model-free navigation checks. | intent-registry |
 | `eval-promote-the-winner` | evaluation | Cases for promoting the winner of a solution's metric. | promote-the-winner |
 | `spec_index` | core | The spec index solution's interface and implementations. | spec-index |
 | `eval-spec_index` | evaluation | Cases and scorer for spec-index. | spec-index |
@@ -82,6 +83,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `evidence-table` | tools | Markdown table of every evaluated solution's arms with intervals, verdicts and public evidence, written between markers. | leaderboard |
 | `one-line-entry` | tools | One line for any solution or intent: run(id, input) through the declared interface, and its offline check. | implementation-selection, structure-check, apply-esoi |
 | `standards-navigation` | tools | Showing an author only the standards whose risk tags and paths match the file in hand, and checking a commit against them on the lines it adds. | esoi-for-ai |
+| `beside-code-records` | tools | Records kept beside the code: where each record belongs, the moves that put it there or back, and the advisory rule S40. | intent-registry |
 | `selection` | core | Resolving an implementation of a solution from a selection table. | runtime-selection |
 | `eval-select-an-implementation` | evaluation | Cases for resolving a selection. | runtime-selection |
 | `runtime` | core | Declarations in code and the cascade that picks the implementation a call runs. | runtime-selection |
