@@ -7,6 +7,7 @@ opens with a line saying where its words come from.
 
     templates_dir/<entity>.md                  one fill-in template per intent type (problem, ideal, solution, ...)
     templates_dir/intent-layout.md             the template for an intent folder and its sub-intents
+    templates_dir/solution-folder.md           the template for a code folder that keeps its records beside the code
     templates_dir/overall-solution-network.md  the template for the legacy two-level overall network
     templates_dir/repository-standard.md       the skeleton of a repository's own standard
     templates_dir/metric-run-policy.md         the template for when a repository's metrics are run
@@ -88,9 +89,10 @@ def intent_layout_template(entities: Dict[str, Dict[str, object]]) -> str:
            "about ESOI unless ESOI is the project); the configured folder only holds it. The evolvable structure the project "
            "applies is a solution inside the top intent, whose implementation may use the esoi solutions. A sub-intent is a subfolder, named by "
            "its `intent_id`, that holds its own `intent.csv`; it arises as an implementation of a solution in the parent intent. "
-           "Recording intents as folders is the selected implementation of the `intent-registry` solution; its rival, "
-           "records kept beside the code they describe, stays a listed alternative, so the folder layout is one way to record the "
-           "hierarchy, not the only one.", "",
+           "Recording intents as folders is one implementation of the `intent-registry` solution; its rival keeps each "
+           "solution's records beside the code they describe (see [the solution folder](solution-folder.md) and "
+           "[the standard](@DOCS@/reference/records-beside-code.md)). Which one a repository uses is chosen by the metric "
+           "`metric-navigable-records`, so the folder layout is one way to record the hierarchy, not the only one.", "",
            "```", "<folder>/                   holds the top intent", "  intent.csv", "  problems.csv  ideals.csv  solutions.csv  "
            "implementations.csv  metrics.csv", "  <sub-intent-id>/          a sub-intent, in a folder named by its intent_id (its own intent.csv and five files)", "```", "",
            "## intent.csv", "", "| Column | Filled by | Question or meaning |", "|---|---|---|", "| `intent_id` | you | "
@@ -110,6 +112,39 @@ def intent_layout_template(entities: Dict[str, Dict[str, object]]) -> str:
             "it implements; its `opportunities` cell states them (see [when to create a sub-intent](@DOCS@/explanation/when-to-create-a-sub-intent.md)). Risks belong in an implementation's or a "
             "metric's disadvantages and uncertainties in the solution's metric, so neither earns a sub-intent alone.", ""]
     return "\n".join(out)
+
+
+def solution_folder_template(entities: Dict[str, Dict[str, object]]) -> str:
+    meta = entities.get("solution", {"meta": {}})["meta"]
+    return "\n".join([
+        f"<!-- {ATTRIBUTION} The folder layout is this template's own. -->", "",
+        "# The solution folder (template, records beside the code)", "",
+        f"> {meta.get('definition', '')}", "",
+        "A repository that keeps its records beside the code lists, in `esoi.toml`, the folders that may hold them "
+        "(`[records] beside_code = [\"pkg\", \"pkg/*\"]`). A folder that holds records is a code folder: it keeps the code, "
+        "the record files of the solutions whose code it holds, and a generated `README.md`. It is not an intent unless it also "
+        "holds an `intent.csv`. Each record lives once. The standard is [records beside the code](@DOCS@/reference/records-beside-code.md).", "",
+        "```", "<top intent folder>/       the top intent only (esoi by default)", "  intent.csv", "  README.md                 generated",
+        "<code folder>/                  a solution folder: code, records and a generated README", "  solutions.csv  implementations.csv  metrics.csv"
+        "  problems.csv  ideals.csv   only the files it has rows for", "  README.md                 generated: never edited",
+        "  <module>.py ...           the code the implementations name in `filepath`", "  <code folder>/            a folder below it, with its own records when it holds code",
+        "  <sub-intent-id>/          a sub-intent beside its code: its own intent.csv and the same record files", "```", "",
+        "## Where each record goes", "",
+        "| Record | Lives in |", "|---|---|",
+        "| Implementation | The code folder of the file its `filepath` names (the nearest listed folder at or above it). |",
+        "| Solution | The lowest listed folder that holds the code of all its implementations, so its spec and code are in the same folder or one link apart. |",
+        "| Metric | With its solutions: the lowest listed folder that holds them all. |",
+        "| Problem | With its solutions, likewise. |",
+        "| Ideal | With its problems, likewise. |",
+        "| Intent | `intent.csv` in the top intent folder, or in a code folder that is a sub-intent (named by its `intent_id`). |",
+        "| A row with no code to follow | Stays in the top intent folder. |", "",
+        "A row never leaves the intent that owns it: the rows in and below a folder that holds an `intent.csv` belong to that "
+        "sub-intent. `esoi records place` moves the records to these folders and `esoi records gather` moves them back.", "",
+        "## The README of the folder", "",
+        "Written by `esoi readmes` from the records of the folder, never edited: for each solution its name, purpose, entry call and "
+        "selected implementation; the diagram when the folders below it hold solutions it builds on; the implementations it holds, "
+        "each with a link to its code; the metrics with their leaders; problems and ideals in a line each; and links up to the "
+        "folder above or the intent, down to the folders below, and out to the repository's top README.", ""])
 
 
 def overall_template(entities: Dict[str, Dict[str, object]]) -> str:
@@ -358,6 +393,7 @@ def generated_files(rows: List[Dict[str, str]], skill_text: str, config: Config)
             if entity in entities:
                 files[folder / f"{entity}.md"] = entity_template(entity, entities[entity])
         files[folder / "intent-layout.md"] = intent_layout_template(entities)
+        files[folder / "solution-folder.md"] = solution_folder_template(entities)
         files[folder / "overall-solution-network.md"] = overall_template(entities)
         files[folder / "repository-standard.md"] = standard_template(rows)
         files[folder / "metric-run-policy.md"] = metric_run_policy_template(entities)

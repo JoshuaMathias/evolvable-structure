@@ -32,7 +32,7 @@ from . import diagram, intents, leaderboard
 from .config import Config
 from .intents import Intent
 from .registry import Registry, harness_arms
-from .tables import written
+from .tables import read_csv, written
 
 FILE = "README.md"
 LAYOUTS = ("glance", "full", "links")
@@ -86,6 +86,7 @@ class View:
     intents: List[Intent] = field(default_factory=list)
     results: Dict[str, Dict[str, Dict[str, str]]] = field(default_factory=dict)
     declared: Dict[str, Any] = field(default_factory=dict)
+    beside: List[Tuple[str, Path]] = field(default_factory=list)   # (owning intent id, folder) of each solution folder kept beside the code
 
     def intent(self, intent_id: str) -> Optional[Intent]:
         return next((i for i in self.intents if i.intent_id == intent_id), None)
@@ -99,7 +100,8 @@ def view_of(config: Config, registry: Registry, results: Optional[Dict[str, Dict
     except (OSError, ValueError):
         declared = {}
     return View(config, intents.discover(config),
-                leaderboard.latest_results(config.results_path) if results is None else results, declared)
+                leaderboard.latest_results(config.results_path) if results is None else results, declared,
+                [(owner, folder) for owner, folder, has in intents.located(config) if not has])
 
 
 def layout_of(config: Optional[Config], layout: Optional[str] = None) -> str:
@@ -174,6 +176,10 @@ def navigation(view: View, registry: Registry, intent: Intent) -> List[str]:
         out.append(f"- Parent intent: [{one_line(parent.row.get('name', '')) or parent.intent_id}]({link(intent.folder, parent.folder / FILE)})")
     if (root / FILE).is_file():
         out.append(f"- Repository: [top README]({link(intent.folder, root / FILE)})")
+    places = [folder for owner, folder in view.beside if owner == intent.intent_id]
+    if places:
+        out.append("- Records beside the code: " + ", ".join(f"[{one_line(folder.relative_to(root).as_posix())}]({link(intent.folder, folder / FILE)})"
+                                                            for folder in places))
     shown = [f"[{name}]({name})" for name, _ in RECORD_FILES if (intent.folder / name).is_file()]
     if (intent.folder / "intent.csv").is_file():
         shown.insert(0, "[intent.csv](intent.csv)")
@@ -316,6 +322,104 @@ def render_links(registry: Registry, intent: Intent, view: View) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def ids_in(folder: Path, name: str, key: str) -> List[str]:
+    """The record ids one folder's own file holds, in file order."""
+    return [r.get(key, "").strip() for r in read_csv(folder / name) if r.get(key, "").strip()]
+
+
+def code_cell(view: View, folder: Path, filepath: str) -> str:
+    """An implementation's code as a link from the folder's page when the file exists, else the path as written."""
+    path = filepath.split("::")[0].strip()
+    if not path:
+        return "no code yet"
+    if view.config is not None and (view.config.root / path).is_file():
+        return f"[`{path}`]({link(folder, view.config.root / path)})"
+    return f"`{one_line(path)}`"
+
+
+def folder_diagram(registry: Registry, view: View, owner: str, folder: Path) -> List[str]:
+    """The Mermaid diagram of the solutions held in this folder and in the folders below it, when one builds on another."""
+    below = [f for _, f in view.beside if f == folder or folder in f.parents]
+    own = {s for f in below for s in ids_in(f, "solutions.csv", "solution_id")}
+    rows = [r for r in registry.every_solution() if r.get("solution_id", "") in own]
+    if len(rows) < 2:
+        return []
+    shaped = Registry(solutions=rows, solution_order=[r.get("solution_id", "") for r in rows],
+                      implementations=[r for r in registry.implementations if r.get("solution_id", "") in own])
+    return diagram.block(shaped, Intent(owner, folder))
+
+
+def folder_links(view: View, owner: str, folder: Path) -> List[str]:
+    config = view.config
+    out: List[str] = []
+    parents = [f for _, f in view.beside if f in folder.parents]
+    up = parents[-1] if parents else None
+    if up is not None:
+        out.append(f"- Up: [{one_line(up.relative_to(config.root).as_posix())}]({link(folder, up / FILE)})")
+    parent = view.intent(owner)
+    if parent is not None:
+        out.append(f"- Intent: [{one_line(parent.row.get('name', '')) or parent.intent_id}]({link(folder, parent.folder / FILE)})")
+    for _, down in view.beside:
+        if folder in down.parents and not any(folder in f.parents and f in down.parents for _, f in view.beside):
+            out.append(f"- Down: [{one_line(down.relative_to(config.root).as_posix())}]({link(folder, down / FILE)})")
+    if (config.root / FILE).is_file():
+        out.append(f"- Repository: [top README]({link(folder, config.root / FILE)})")
+    return out
+
+
+def render_folder(registry: Registry, view: View, owner: str, folder: Path) -> str:
+    """The README of a solution folder kept beside its code: each solution it holds, with its entry call and selected
+    implementation, the implementations it holds with a link to the code, the metrics with their leaders, the problems and
+    ideals, links up and down, and the diagram when the folders below it hold solutions it builds on."""
+    config = view.config
+    where = folder.relative_to(config.root).as_posix()
+    solutions = [r for r in registry.every_solution() if r.get("solution_id", "") in ids_in(folder, "solutions.csv", "solution_id")]
+    heading_text = one_line(solutions[0].get("name", "")) if len(solutions) == 1 else folder.name
+    lines = [f"# {heading_text or folder.name}", "",
+             f"*ESOI records kept beside the code in `{where}`, generated from the CSV files in this folder by `esoi readmes`. "
+             "Edit the CSV files, not this page.*", ""]
+    for r in solutions:
+        sid = r.get("solution_id", "")
+        lines += [f"## {one_line(r.get('name', '')) or sid} (`{sid}`)", ""]
+        purpose = first_sentence(r.get("purpose", "")) or first_sentence(r.get("description", ""))
+        if purpose:
+            lines += [purpose, ""]
+        picked = one_line(r.get("selected", ""))
+        lines += [f"- Entry call: {entry_call(view, config.package, sid)}",
+                  f"- Selected implementation: {('`' + picked + '`') if picked else 'none selected'}",
+                  f"- Metric: {metric_names(r.get('metric', ''))}", ""]
+    picture = folder_diagram(registry, view, owner, folder)
+    if picture:
+        lines += ["## Diagram", "", "An arrow runs from the solution that provides to the solution that builds on it; its label is "
+                  "what the provider outputs.", ""] + picture + [""]
+    mine_impl = set(ids_in(folder, "implementations.csv", "implementation_id"))
+    impls = [r for r in registry.implementations if r.get("implementation_id", "") in mine_impl]
+    if impls:
+        chosen = {r.get("solution_id", ""): one_line(r.get("selected", "")) for r in registry.every_solution()}
+        lines += ["## Implementations", "", "| Implementation | Name | Code | Selected |", "|---|---|---|---|"]
+        for r in impls:
+            name = r.get("implementation_id", "").split(":", 1)[-1]
+            lines.append(f"| `{r.get('implementation_id', '')}` | {one_line(r.get('name', ''))} | {code_cell(view, folder, r.get('filepath', ''))} | "
+                         f"{'selected' if chosen.get(r.get('solution_id', '')) in (name, r.get('implementation_id', '')) else ''} |")
+        lines.append("")
+    metric_ids = set(ids_in(folder, "metrics.csv", "metric_id"))
+    metrics = [r for r in registry.metrics if r.get("metric_id", "") in metric_ids]
+    if metrics:
+        lines += ["## Metrics", ""]
+        for r in metrics:
+            tail = leader(view, r)
+            lines.append(f"- `{r.get('metric_id', '')}`, {one_line(r.get('name', ''))}" + (f": {tail}" if tail else ""))
+        lines.append("")
+    problem_ids, ideal_ids = set(ids_in(folder, "problems.csv", "problem_id")), set(ids_in(folder, "ideals.csv", "ideal_id"))
+    for title, rows, key, column in (("Problems", [r for r in registry.problems if r.get("problem_id", "") in problem_ids], "problem_id", "problem"),
+                                     ("Ideals", [r for r in registry.ideals if r.get("ideal_id", "") in ideal_ids], "ideal_id", "principle")):
+        if rows:
+            lines += [f"## {title}", ""] + [f"- `{r.get(key, '')}`" + (f": {first_sentence(r.get(column, ''))}" if first_sentence(r.get(column, '')) else "")
+                                             for r in rows] + [""]
+    lines += ["## Where to go next", ""] + folder_links(view, owner, folder) + [""]
+    return "\n".join(lines).rstrip() + "\n"
+
+
 RENDERERS: Dict[str, Callable[[Registry, Intent, View], str]] = {"glance": render_glance, "full": render_full, "links": render_links}
 
 
@@ -331,7 +435,8 @@ def pages(config: Config, registry: Registry, results: Optional[Dict[str, Dict[s
     if not config.intent_mode:
         return []
     view = view_of(config, registry, results)
-    return [(i.folder / FILE, render(registry, i, view, layout)) for i in view.intents]
+    return ([(i.folder / FILE, render(registry, i, view, layout)) for i in view.intents]
+            + [(folder / FILE, render_folder(registry, view, owner, folder)) for owner, folder in view.beside])
 
 
 def stale(config: Config, registry: Registry, results: Optional[Dict[str, Dict[str, Dict[str, str]]]] = None) -> List[Path]:

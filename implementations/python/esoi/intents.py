@@ -8,6 +8,12 @@ own ``intent.csv`` and so lies inside its parent's folder. Each intent folder ho
 a record in another, and the rules read every intent's records as one set. A folder without an ``intent.csv`` (a
 generated ``tracker/``, say) is not an intent.
 
+Records may also be kept beside the code they describe: ``[records] beside_code = ["pkg", "pkg/*"]`` in ``esoi.toml`` lists
+folders (paths or globs) that hold record files next to the code. Such a folder with an ``intent.csv`` is a sub-intent; one
+without it is a solution folder whose rows belong to the nearest ancestor intent folder (else the top intent). Each record
+lives once, in one folder; the same id in two folders is reported (rule S29). Nothing is gathered or copied: every reader sees
+the tree through ``folders`` and ``read_rows``.
+
 A repository whose structure folder has no ``intent.csv`` is the legacy layout: one folder of records, optionally
 with an ``overall`` network beside it. ``folders`` then returns that one folder, so callers need not tell the layouts
 apart. Standard library only.
@@ -41,9 +47,59 @@ class Intent:
         return not self.parent
 
 
-def discover(config: Config) -> List[Intent]:
-    """Every intent of the repository, the top intent first, then sub-intents depth first in folder order.
-    Empty when the structure folder has no ``intent.csv`` (the legacy layout)."""
+RECORD_FILES = ("problems.csv", "ideals.csv", "solutions.csv", "implementations.csv", "metrics.csv")
+
+
+def beside_folders(config: Config) -> List[Path]:
+    """The folders ``[records] beside_code`` names (paths or globs from the repository root) that hold records, in the order
+    listed, each once. The structure folder and anything inside it are never beside the code."""
+    patterns = config.records.get("beside_code", []) if isinstance(config.records, dict) else []
+    found: List[Path] = []
+    for pattern in ([patterns] if isinstance(patterns, str) else patterns):
+        for path in sorted(config.root.glob(str(pattern))):
+            inside = path == config.structure or config.structure in path.parents
+            holds = any((path / name).is_file() for name in (INTENT_FILE, *RECORD_FILES))
+            if path.is_dir() and holds and not inside and path not in found and path.name not in SKIPPED_FOLDERS:
+                found.append(path)
+    return found
+
+
+def owner_of(config: Config, folder: Path, intent_folders: Dict[Path, str]) -> str:
+    """The id of the intent that owns the records in ``folder``: the nearest ancestor (or the folder itself) holding an
+    ``intent.csv``, else the top intent."""
+    for candidate in [folder, *folder.parents]:
+        if candidate in intent_folders:
+            return intent_folders[candidate]
+    return intent_folders.get(config.structure, "")
+
+
+def named_folders(config: Config, walked: List[Intent], beside: List[Path]) -> Dict[Path, str]:
+    """{folder: intent id} for every folder holding an ``intent.csv``, inside the structure folder or beside the code."""
+    named = {i.folder: i.intent_id for i in walked}
+    for folder in beside:
+        if (folder / INTENT_FILE).is_file():
+            records = read_csv(folder / INTENT_FILE)
+            named[folder] = (records[0].get("intent_id", "") if records else "").strip() or f"<{folder.name}>"
+    return named
+
+
+def located(config: Config) -> List[Tuple[str, Path, bool]]:
+    """``(owning intent id, folder, holds an intent.csv)`` for every folder of records, in reading order: the structure
+    folder's intents first, then the folders beside the code in the order the configuration lists them."""
+    walked = discover_in_structure(config)
+    if not walked:
+        return []
+    beside = beside_folders(config)
+    named = named_folders(config, walked, beside)
+    out: List[Tuple[str, Path, bool]] = [(i.intent_id, i.folder, True) for i in walked]
+    for folder in beside:
+        has = folder in named
+        out.append((named[folder] if has else owner_of(config, folder, named), folder, has))
+    return out
+
+
+def discover_in_structure(config: Config) -> List[Intent]:
+    """The intents inside the structure folder (the top intent first); see ``discover`` for the whole tree."""
     top = config.structure
     if not (top / INTENT_FILE).is_file():
         return []
@@ -65,10 +121,26 @@ def discover(config: Config) -> List[Intent]:
     return found
 
 
+def discover(config: Config) -> List[Intent]:
+    """Every intent of the repository, the top intent first, then sub-intents depth first in folder order, then the
+    sub-intents kept beside the code. Empty when the structure folder has no ``intent.csv`` (the legacy layout)."""
+    found = discover_in_structure(config)
+    if not found:
+        return []
+    beside = beside_folders(config)
+    named = named_folders(config, found, beside)
+    for folder in beside:
+        if (folder / INTENT_FILE).is_file():
+            records = read_csv(folder / INTENT_FILE)
+            parent = owner_of(config, folder.parent, {k: v for k, v in named.items() if k != folder})
+            found.append(Intent(named[folder], folder, parent, records[0] if records else {}, len(records)))
+    return found
+
+
 def folders(config: Config) -> List[Tuple[str, Path]]:
     """``(intent id, folder)`` for every folder that holds records: each intent, or the one legacy folder."""
-    intents = discover(config)
-    return [(i.intent_id, i.folder) for i in intents] if intents else [("", config.structure)]
+    places = located(config)
+    return [(iid, folder) for iid, folder, _ in places] if places else [("", config.structure)]
 
 
 ENTITY_OF_FILE = {"solutions.csv": "solution", "metrics.csv": "metric"}
@@ -113,4 +185,20 @@ def coherence_notes(config: Config, registry) -> List[str]:
         if missing:
             out.append(f"note: intent {intent.intent_id}: solution_coherence does not name {', '.join(missing)}; say how each fits "
                        "(its id or its name)")
+    return out
+
+
+def duplicate_rows(config: Config) -> List[Tuple[str, str, List[Path]]]:
+    """``(file name, record id, folders)`` for every record id that more than one folder of the tree holds in the same file:
+    a record lives once, in the one folder that holds its code."""
+    from .records import FILES
+    out: List[Tuple[str, str, List[Path]]] = []
+    for name, key in ((n, k) for n, k in FILES.values()):
+        where: Dict[str, List[Path]] = {}
+        for _, folder in folders(config):
+            for row in read_csv(folder / name):
+                ident = row.get(key, "").strip()
+                if ident:
+                    where.setdefault(ident, []).append(folder)
+        out += [(name, ident, found) for ident, found in where.items() if len(found) > 1]
     return out

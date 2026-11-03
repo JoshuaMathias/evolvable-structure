@@ -6,6 +6,7 @@
     esoi template sync|check               keep the parsed intent template in step with its source
     esoi skill sync|check|install          the public copy of the author's skill: generate, verify, install
     esoi records [check|sync]              check only the intent records, or write the rows the code declares and they lack
+    esoi records place|gather [--apply]    move records beside the code they describe (or into the structure folder); a dry run without --apply
     esoi new solution ID [--intent ID]     a solution in one command: records, code with declarations, evaluation folder
     esoi run COMPONENT --impl NAME [--record]   run and record one implementation over a component's cases
     esoi leaderboard [--strict]            rank the implementations of every evaluated solution
@@ -69,7 +70,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--from", dest="from_dir", default=None, help="install: a skill folder to install instead of the bundled one")
     p.add_argument("--force", action="store_true", help="install: replace a different skill already there")
     p = sub.add_parser("records", help="check only the intent records, or sync the rows the code declares")
-    p.add_argument("action", nargs="?", default="check", choices=["check", "sync"])
+    p.add_argument("action", nargs="?", default="check", choices=["check", "sync", "place", "gather"])
+    p.add_argument("--apply", action="store_true", help="place, gather: move the records (a dry run without it)")
     p.add_argument("--intent", default=None, help="sync: the intent whose folder receives new rows (default: the top intent)")
     p.add_argument("--dry-run", action="store_true", help="sync: list the rows without writing them")
     p = sub.add_parser("new", help="create something new from one command")
@@ -623,6 +625,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.cmd == "intent":
         from . import migrate
         return migrate.run_cli(config, args.apply)
+    if args.cmd == "records" and args.action in ("place", "gather"):
+        from . import besidecode
+        return besidecode.run_cli(config, "beside" if args.action == "place" else "gather", args.apply)
     if args.cmd == "records" and args.action == "sync":
         from . import declarations, registry
         try:

@@ -83,9 +83,11 @@ class Context:
     def fingerprint(self) -> str:
         """What every remembered plugin result depends on besides its own files: the configuration and the structure
         folder (the records and their headers)."""
+        from ..intents import INTENT_FILE, RECORD_FILES
         base = self.config.structure_dir.rstrip("/") + "/"
+        record_names = {INTENT_FILE, *RECORD_FILES}   # records kept beside the code change what a remembered result depends on
         stats = [[f, (self.root / f).stat().st_size, (self.root / f).stat().st_mtime_ns]
-                 for f in self.files if f.startswith(base) and (self.root / f).is_file()]
+                 for f in self.files if (f.startswith(base) or f.rsplit("/", 1)[-1] in record_names) and (self.root / f).is_file()]
         settings = json.dumps(asdict(self.config), sort_keys=True, default=str)
         return hashlib.sha1((settings + json.dumps(stats)).encode()).hexdigest()
 

@@ -7,6 +7,7 @@ intent template in the author's `SKILL.md`; the questions are his words. To chan
 |---|---|
 | [intent.md](intent.md), [problem.md](problem.md), [ideal.md](ideal.md), [solution.md](solution.md), [implementation.md](implementation.md), [metric.md](metric.md) | Write one record of that type (the intent template is the intent's own record) |
 | [intent-layout.md](intent-layout.md) | Lay out an intent as a folder, with sub-intents as subfolders |
+| [solution-folder.md](solution-folder.md) | Keep a solution's records in the folder that holds its code (the standard is [records beside the code](../records-beside-code.md)) |
 | [overall-solution-network.md](overall-solution-network.md) | Legacy two-level layout only: write a repository's overall solution network |
 | [repository-standard.md](repository-standard.md) | Start the standard for how your repository applies ESOI |
 | [review-sheet.md](review-sheet.md) | Lay the records out as a spreadsheet for review |

@@ -255,11 +255,11 @@ def check(root: Path, pairs: bool = True) -> Dict[str, object]:
     every_solution: Dict[str, Dict[str, str]] = {}
     every_impl: List[Dict[str, str]] = []
     home: Dict[str, str] = {}
-    for intent in found:
-        for r in read(intent.folder / "solutions.csv"):
+    for intent_id, folder in esoi_intents.folders(cfg):
+        for r in read(folder / "solutions.csv"):
             every_solution[r["solution_id"]] = r
-            home[r["solution_id"]] = intent.intent_id
-        every_impl += read(intent.folder / "implementations.csv")
+            home[r["solution_id"]] = intent_id
+        every_impl += read(folder / "implementations.csv")
     impl_by_id = {r["implementation_id"]: r for r in every_impl}
     selected = {sid: selected_record(sid, r, every_impl) for sid, r in every_solution.items()}
     uses = {sid: [t for t in ids(rec.get("uses_solution_ids", "")) if t != sid] for sid, rec in selected.items()}

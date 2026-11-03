@@ -21,6 +21,10 @@ A cell that holds only an `unconfirmed:` marker is an unwritten cell and is left
 No em dashes appear in generated text. `diagram.md` stays beside the records: it is the diagram on a page of its own (with the
 coherence paragraph), generated from the same lines as the diagram in the README, so the two cannot differ.
 
+## Folders beside the code
+
+Where a repository keeps its records beside the code ([the standard](records-beside-code.md)), the top intent's page lists the solution folders under "Where to go next" ("Records beside the code"), a sub-intent beside its code gets the page above, and every solution folder gets its own generated page, described in the standard.
+
 ## The two rival layouts
 
 `full` writes the record tables only, in file order (the page before this standard). `links` writes the name, the vision statement

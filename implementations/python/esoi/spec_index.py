@@ -233,9 +233,11 @@ def stamp_of(config: Config) -> str:
     """Cheap fingerprint of the record files (names, sizes, modification times): it changes when a record is edited, without
     reading or parsing them."""
     parts = []
-    for path in sorted(config.structure.rglob("*.csv")):
-        if config.tracker_folder in path.relative_to(config.structure).parts:
-            continue
+    from . import intents
+    paths = [p for p in sorted(config.structure.rglob("*.csv")) if config.tracker_folder not in p.relative_to(config.structure).parts]
+    paths += [folder / name for folder in intents.beside_folders(config) for name in (intents.INTENT_FILE, *intents.RECORD_FILES)
+              if (folder / name).is_file()]
+    for path in paths:
         info = path.stat()
         parts.append(f"{path.relative_to(config.root)}:{info.st_size}:{info.st_mtime_ns}")
     return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()[:16]

@@ -16,7 +16,7 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from . import intents
 from .config import Config
@@ -228,46 +228,79 @@ def blank(columns: List[str], **given: str) -> Dict[str, str]:
     return row
 
 
+def code_home(config: Config, default: Path, file: str) -> Path:
+    """The folder a new record about the code in ``file`` is written to: the nearest folder beside the code that holds it
+    (records kept beside the code), else ``default`` (the intent folder)."""
+    path = (config.root / file).resolve()
+    near = [f for f in intents.beside_folders(config) if f.resolve() == path.parent or f.resolve() in path.parents]
+    return max(near, key=lambda f: len(f.parts)) if near else default
+
+
+def holder(config: Config, default: Path, name: str, key: str, ident: str) -> Path:
+    """The folder whose ``name`` file holds the record ``ident`` (``default`` when none does)."""
+    for _, folder in intents.folders(config):
+        if any(r.get(key, "") == ident for r in read_csv(folder / name)):
+            return folder
+    return default
+
+
 def sync(config: Config, registry: Registry, declared: Declared, intent_id: Optional[str] = None,
          apply: bool = True) -> List[str]:
     """Write the solution rows and implementation records the code declares and the records lack, into the folder of
-    ``intent_id`` (default the top intent). Only cells the code knows are filled; a cell with text is never touched.
-    Returns what changed, one line each (and writes nothing when ``apply`` is false)."""
-    folder = intent_folder(config, intent_id)
+    ``intent_id`` (default the top intent), or beside the code when the records are kept there (each new row goes to the nearest
+    folder beside the declaring file). Only cells the code knows are filled; a cell with text is never touched. A row that
+    already exists is completed in the folder that holds it. Returns what changed, one line each (and writes nothing when
+    ``apply`` is false)."""
+    default = intent_folder(config, intent_id)
     template = load_template(TEMPLATE_DATA)
     known_solutions = {r.get("solution_id", "") for r in registry.every_solution()}
     known_records = {r.get("implementation_id", "") for r in registry.implementations}
-    sol_cols, sol_rows = table_rows(folder, "solutions.csv", "solution_id", template, "solution")
-    imp_cols, imp_rows = table_rows(folder, "implementations.csv", "implementation_id", template, "implementation")
-    sol_by_id = {r["solution_id"]: r for r in sol_rows}
+    held: Dict[Path, Dict[str, Any]] = {}
+
+    def tables(folder: Path) -> Dict[str, Any]:
+        if folder not in held:
+            sol_cols, sol_rows = table_rows(folder, "solutions.csv", "solution_id", template, "solution")
+            imp_cols, imp_rows = table_rows(folder, "implementations.csv", "implementation_id", template, "implementation")
+            held[folder] = {"sc": sol_cols, "sr": sol_rows, "ic": imp_cols, "ir": imp_rows, "changed": False}
+        return held[folder]
+
     done: List[str] = []
     for sid, decl in sorted(declared.solutions.items()):
         if sid in known_solutions:
             continue
         names = sorted(n for s, n in declared.implementations if s == sid)
-        row = blank(sol_cols, solution_id=sid, name=title(decl.name or sid), purpose=decl.purpose,
+        t = tables(code_home(config, default, decl.file))
+        row = blank(t["sc"], solution_id=sid, name=title(decl.name or sid), purpose=decl.purpose,
                     parameters=decl.parameters, outputs=decl.outputs, interface_name=decl.port, implementations=";".join(names),
                     selected=names[0] if len(names) == 1 else "")
-        sol_rows.append(row)
-        sol_by_id[sid] = row
+        t["sr"].append(row)
+        t["changed"] = True
         done.append(f"solutions.csv: add {sid} (from {decl.file}:{decl.line})")
     for (sid, name), decl in sorted(declared.implementations.items()):
         if decl.implementation_id not in known_records:
-            imp_rows.append(blank(imp_cols, implementation_id=decl.implementation_id, solution_id=sid, filepath=decl.file,
-                                  name=title(name), description=decl.purpose))
+            t = tables(code_home(config, default, decl.file))
+            t["ir"].append(blank(t["ic"], implementation_id=decl.implementation_id, solution_id=sid, filepath=decl.file,
+                                 name=title(name), description=decl.purpose))
+            t["changed"] = True
             done.append(f"implementations.csv: add {decl.implementation_id} (from {decl.file}:{decl.line})")
         else:
-            record = next((r for r in imp_rows if r.get("implementation_id") == decl.implementation_id), None)
+            t = tables(holder(config, default, "implementations.csv", "implementation_id", decl.implementation_id))
+            record = next((r for r in t["ir"] if r.get("implementation_id") == decl.implementation_id), None)
             if record is not None and "filepath" in record and not record["filepath"].strip():
                 record["filepath"] = decl.file
+                t["changed"] = True
                 done.append(f"implementations.csv: fill the empty filepath of {decl.implementation_id}")
-        row = sol_by_id.get(sid)
+        st = tables(holder(config, default, "solutions.csv", "solution_id", sid))
+        row = next((r for r in st["sr"] if r.get("solution_id") == sid), None)
         listed = ids(row["implementations"]) if row is not None and "implementations" in row else []
         if row is not None and "implementations" in row and name not in listed \
                 and decl.file not in [e.split("::")[0] for e in listed]:
             row["implementations"] = ";".join(listed + [name])
+            st["changed"] = True
             done.append(f"solutions.csv: list {name} in the implementations of {sid}")
-    if apply and done:
-        write_csv(folder / "solutions.csv", sol_cols, sol_rows)
-        write_csv(folder / "implementations.csv", imp_cols, imp_rows)
+    if apply:
+        for folder, t in held.items():
+            if t["changed"]:
+                write_csv(folder / "solutions.csv", t["sc"], t["sr"])
+                write_csv(folder / "implementations.csv", t["ic"], t["ir"])
     return done

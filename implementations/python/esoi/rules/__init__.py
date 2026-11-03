@@ -9,10 +9,10 @@ from types import ModuleType
 from typing import Dict, List
 
 from ..config import Config
-from . import cascade_rules, declarations, entry_rules, generated, hierarchy_rules, intents, layout, measurement, registry_rules, version_rules
+from . import beside_rules, cascade_rules, declarations, entry_rules, generated, hierarchy_rules, intents, layout, measurement, registry_rules, version_rules
 from .base import Context, RuleGroup
 
-BUILTIN: List[RuleGroup] = [layout.GROUP, registry_rules.GROUP, measurement.GROUP, generated.GROUP, intents.GROUP, declarations.GROUP, cascade_rules.GROUP, hierarchy_rules.GROUP, version_rules.GROUP, entry_rules.GROUP]
+BUILTIN: List[RuleGroup] = [layout.GROUP, registry_rules.GROUP, measurement.GROUP, generated.GROUP, intents.GROUP, declarations.GROUP, cascade_rules.GROUP, hierarchy_rules.GROUP, version_rules.GROUP, entry_rules.GROUP, beside_rules.GROUP]
 
 
 def load_plugin(spec: str, root: Path) -> ModuleType:

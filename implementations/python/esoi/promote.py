@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from . import cascade, leaderboard
+from . import cascade, intents, leaderboard
 from .config import Config
 from .declarations import intent_folder
 from .harness import stale_reason
@@ -261,7 +261,9 @@ def edit_row(folder: Path, name: str, key: str, ident: str, changes: Dict[str, s
 def apply(config: Config, registry: Registry, proposal: Proposal) -> None:
     """Write a proposal's edits to the records of the intent folders that hold the rows."""
     solution = next(r for r in registry.solutions if r["solution_id"] == proposal.solution_id)
-    folder = intent_folder(config, solution.get("intent_id") or None)
+    folder = next((f for _, f in intents.folders(config) if any(r.get("solution_id") == proposal.solution_id
+                                                                 for r in read_csv(f / "solutions.csv"))),
+                  intent_folder(config, solution.get("intent_id") or None))
     changes = {"selected": proposal.selected}
     if "selected_by" in read_header(folder / "solutions.csv"):   # the evidence is stored only where the project approved that column
         changes["selected_by"] = proposal.selected_by
