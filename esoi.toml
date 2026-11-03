@@ -45,3 +45,26 @@ allow_mailboxes = ["joshuamonkey"]
 [records]
 # The version of the intent template this repository's own records follow (`esoi version --record`).
 template_version = 4
+
+# Opt-in rules, advisory: `esoi check --findings` lists what they find; none of it fails a check.
+[rules.S36]
+enabled = true
+
+[rules.S37]
+enabled = true
+
+# Solution coherence (rule S38): floors per intent, the strong-evidence share of checkable uses edges (precision) and the checkable
+# share of all edges (coverage), as measured when the tree was recorded; raised as compositions are typed, never lowered.
+[rules.S38]
+enabled = true
+
+[rules.S38.floors.esoi]
+precision = 0.923
+coverage = 1.0
+
+[rules.S38.floors.esoi-runtime]
+precision = 1.0
+coverage = 1.0
+
+[rules.S39]
+enabled = true

@@ -79,6 +79,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `eval-public_evidence` | evaluation | unconfirmed: for Joshua to confirm. | public-evidence |
 | `stats` | core | Wilson interval, exact paired McNemar test and Holm correction for choosing by metric. | leaderboard |
 | `evidence-table` | tools | Markdown table of every evaluated solution's arms with intervals, verdicts and public evidence, written between markers. | leaderboard |
+| `one-line-entry` | tools | One line for any solution or intent: run(id, input) through the declared interface, and its offline check. | implementation-selection, structure-check, apply-esoi |
 | `selection` | core | Resolving an implementation of a solution from a selection table. | runtime-selection |
 | `eval-select-an-implementation` | evaluation | Cases for resolving a selection. | runtime-selection |
 | `runtime` | core | Declarations in code and the cascade that picks the implementation a call runs. | runtime-selection |

@@ -37,6 +37,6 @@ def test_the_example_is_declared_in_code_and_its_specifications_live_in_the_defa
     scaffold.init(tmp_path, "declared_demo", say=lambda text: None)
     assert (tmp_path / "esoi" / "intent.csv").is_file() and (tmp_path / "esoi" / "README.md").is_file()
     source = (tmp_path / "declared_demo" / "greet.py").read_text()
-    assert '@solution("greet-a-person")' in source and '@implementation("greet-a-person", "greet")' in source
+    assert '@solution("greet-a-person", kind="event", example="Ada")' in source and '@implementation("greet-a-person", "greet")' in source
     assert not (tmp_path / "evaluation" / "components" / "greet_a_person" / "impls" / "greet.py").exists()   # no wrapper needed
     assert scaffold.DEFAULT_STRUCTURE_DIR == "esoi" == config.DEFAULT_STRUCTURE_DIR

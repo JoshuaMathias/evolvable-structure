@@ -27,7 +27,7 @@
     "status": "promote",
     "winner": "b",
     "selected": "b",
-    "command": "esoi run mini --impl b",
+    "command": "esoi run mini --impl a",
     "count": 1
    }
   },
@@ -329,7 +329,7 @@
    "eq": {
     "status": "promote",
     "selected": "evaluation/components/mini/impls/b.py",
-    "command": "esoi run mini --impl b"
+    "command": "esoi run mini --impl a"
    }
   },
   "note": "Rows scaled from 5/10 vs 9/10 to 50/100 vs 90/100: the owner's rule needs a statistically significant gain (Fisher's exact, alpha 0.05) and 9/10 vs 5/10 is p=0.09, so the old rows no longer clear it."
@@ -486,7 +486,7 @@
    "eq": {
     "applied": true,
     "selected": "b",
-    "command": "esoi run mini --impl b",
+    "command": "esoi run mini --impl a",
     "evidence": true
    }
   },

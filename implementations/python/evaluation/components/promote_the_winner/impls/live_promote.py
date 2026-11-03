@@ -42,11 +42,12 @@ def decide(args):
     with tempfile.TemporaryDirectory(prefix="esoi_promote_") as tmp:
         config, loaded = world(Path(tmp), args)
         found = promote.propose(config, loaded, today="2026-10-18", stale=stale_for(args))
+        command = tables.read_csv(Path(tmp) / "specs" / "metrics.csv")[0]["command"]   # promotion never rewrites it
     if not found:
         return {"count": 0, "status": "none"}
     first = found[0]
     return {"count": len(found), "status": first.status, "winner": first.winner, "selected": first.selected,
-            "command": first.command, "reason": first.reason, "text": first.reason}
+            "command": command, "reason": first.reason, "text": first.reason}
 
 
 def apply(args):

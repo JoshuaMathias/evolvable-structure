@@ -3,7 +3,7 @@ documentation,docs,docs/**,"Explanation, guides and non-code templates (the main
 examples,docs,examples/**,Adopters as short examples and testimonials.,docs-and-templates
 structure-registry,docs,esoi/**,This repository's own overall network and detailed records.,intent-registry
 project-files,project,*,"Files at the repository root: readme, configuration, contributing, licence.",docs-and-templates
-wiki,scripts,scripts/docs_to_wiki.py,"A thin wrapper that generates this repository's GitHub wiki from docs/ through esoi docs wiki.",docs-and-templates
+wiki,scripts,scripts/docs_to_wiki.py,A thin wrapper that generates this repository's GitHub wiki from docs/ through esoi docs wiki.,docs-and-templates
 docs-standard,tools,implementations/python/esoi/docs.py,"Checking the four-category docs standard and generating a wiki from docs/, so the docs stay the one source.",docs-and-templates
 public-skill,docs,skill/**;.claude-plugin/**;implementations/python/esoi/data/skill/**,"The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package.",skill-distribution;behave-by-esoi;follow-the-steps
 records-core,core,implementations/python/esoi/__init__.py;implementations/python/esoi/tables.py;implementations/python/esoi/config.py;implementations/python/esoi/registry.py;implementations/python/esoi/records.py;implementations/python/esoi/fields.py,"Loading the configuration and the CSV records, and checking the intent records against the template.",intent-registry
@@ -17,7 +17,7 @@ rules-ownership,tools,implementations/python/esoi/rules/layout.py,The placement 
 rules-registry,tools,implementations/python/esoi/rules/registry_rules.py,The rules about the registry's own shape and the selection table.,structure-rules;runtime-selection
 rules-measurement,tools,implementations/python/esoi/rules/measurement.py,"The rules about measurement, provenance and discriminating cases.",structure-rules;leaderboard
 rules-generated,tools,implementations/python/esoi/rules/generated.py,"The rules about generated files, the tracker and the records.",structure-rules;review-tracker;template-sync;readable-records
-check-runner,tools,implementations/python/esoi/check.py,Running every rule over a repository and reporting problems.,structure-check;readable-records
+check-runner,tools,implementations/python/esoi/check.py;implementations/python/esoi/coherence.py;implementations/python/esoi/rules/entry_rules.py;implementations/python/esoi/ratchet.py,Running every rule over a repository and reporting problems.,structure-check;readable-records
 harness,tools,implementations/python/esoi/harness.py;implementations/python/esoi/hermetic.py,Running one implementation over a component's cases and recording the result.,measurement-harness
 diagram,tools,implementations/python/esoi/diagram.py,"Drawing each intent's solution diagram (Mermaid) from the solutions' outputs and the implementations' dependencies, and listing the diagrams out of date.",intent-registry;readable-records
 run-guards,tools,implementations/python/esoi/run_guards.py,"Refusing an esoi run that cannot inform a decision: a perfect arm already caps it, a public result already exists, or the cases that failed last have not been rerun to a pass.",measurement-harness
@@ -73,3 +73,4 @@ evidence,tools,implementations/python/esoi/evidence.py,unconfirmed: for Joshua t
 eval-public_evidence,evaluation,implementations/python/evaluation/components/public_evidence/**,unconfirmed: for Joshua to confirm.,public-evidence
 stats,core,implementations/python/esoi/stats.py,"Wilson interval, exact paired McNemar test and Holm correction for choosing by metric.",leaderboard
 evidence-table,tools,implementations/python/esoi/evidence_table.py,"Markdown table of every evaluated solution's arms with intervals, verdicts and public evidence, written between markers.",leaderboard
+one-line-entry,tools,implementations/python/esoi/entry.py;implementations/python/esoi/esoi_selection.json;implementations/python/esoi/interfaces.py,"One line for any solution or intent: run(id, input) through the declared interface, and its offline check.",implementation-selection;structure-check;apply-esoi

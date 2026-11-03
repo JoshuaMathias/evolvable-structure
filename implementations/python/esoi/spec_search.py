@@ -354,7 +354,7 @@ def propose(task: str, views: Sequence[View], vector_search: Optional[VectorSear
     return lexical, semantic, candidates, sources
 
 
-@solution("spec-search")
+@solution("spec-search", kind="event", example={"task": "which solution ranks implementations", "views": []})
 def search(task: str, views: Sequence[View], *, judge: Optional[Judge] = None, vector_search: Optional[VectorSearch] = None,
            strategy: str = "gated", k_lexical: int = 15, k_vector: int = 15, max_ranked: Optional[int] = None, expand: int = 1,
            ranked_kinds: Optional[Sequence[str]] = None, link_kinds: Optional[Sequence[str]] = None,

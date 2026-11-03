@@ -513,7 +513,7 @@ def all_estimates(evidence: Iterable[Evidence], today: Optional[datetime.date] =
     return out
 
 
-@solution("public-evidence")
+@solution("public-evidence", kind="event", example={"evidence": []})
 def grade_evidence(evidence: Iterable[Evidence], today: Optional[datetime.date] = None,
                    p: Params = DEFAULTS) -> Dict[Tuple[str, str], Estimate]:
     """Grade what others measured: one ``Estimate`` per candidate and dimension, with its flags and whether an own run is needed."""

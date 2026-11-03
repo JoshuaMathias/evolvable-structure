@@ -106,6 +106,7 @@ STRUCTURE = {
         "milestones": "1. Share of building blocks with a metric: 100%. 2. Share of building blocks with a recorded run: 100%.",
         "knowledge": "The project's own history and goals, and the esoi documentation.",
         "measures_of_success": "Every solution of the project is recorded with a problem, an ideal and a metric, and the check passes.",
+        "outputs": "The project's records, checked against the rules.",
         "tags": format_tags([{"tag": "records", "risk_ids": ["purpose-unrecorded"]}])},
     "metric": {
         "name": "Coverage by measured solutions",
@@ -121,12 +122,29 @@ code_paths = ["{package}"]
 
 # The version of the ESOI intent template these records follow; `esoi check` says when a newer esoi changes the template.
 records.template_version = {version}
+
+# Opt-in rules (advisory: `esoi check --findings` lists what they find, nothing here ever fails a check). Turn each on when you
+# want it: S36 the project's overall solution network, S37 the one-line entry and the README example, S38 solution coherence,
+# S39 the trend of waivers and floors since a base commit.
+# [rules.S36]
+# enabled = true
 '''
 GREET = '''"""The example solution, declared where it lives: the interface, and the alternative the project ships."""
 from esoi import implementation, solution
 
 
-@solution("greet-a-person")
+@solution("project-purpose", kind="event", example="Ada")
+def purpose(name: str) -> str:
+    """Every greeting the project sends is the one it meant to send."""
+
+
+@implementation("project-purpose", "the-project")
+def the_project(name: str) -> str:
+    """The project's own answer: greet through the one greeting function."""
+    return greet(name)
+
+
+@solution("greet-a-person", kind="event", example="Ada")
 def greet(name: str) -> str:
     """Greet one person by name in plain text."""
 
@@ -136,7 +154,28 @@ def standard_greeting(name: str) -> str:
     """The standard greeting. The project default is the solution's `selected` in the records, not a copy here."""
     return f"Hello, {name}!"
 '''
-INIT = '"""{package}: replace this docstring with what the package is for."""\n'
+INIT = '''"""{package}: replace this docstring with what the package is for."""
+from pathlib import Path
+
+from esoi.assemble import Assembler
+from esoi.entry import runner
+
+here = Path(__file__).resolve().parent
+# One call reaches every solution and the project itself: {package}.run("greet-a-person", "Ada").
+run = runner(Assembler("{package}", here, modules=("{package}.greet",), records=here.parent if (here.parent / "esoi.toml").is_file() else None))
+'''
+README = '''# {package}
+
+Replace this line with what the project is for.
+
+One call reaches any solution of the project by its id (the interface it declares, built from the implementation the records select):
+
+```pycon
+>>> import {package}
+>>> {package}.run("greet-a-person", "Ada")
+'Hello, Ada!'
+```
+'''
 SCORE = '''"""Score one greeting case against its declarative ``expect``."""
 from esoi import expect
 
@@ -196,15 +235,15 @@ def files_for(package: str, template) -> Dict[str, str]:
         return ["solution_id"] + fields(template, "solution", True) + extra
 
     solution = record("solution", template, SAMPLE["solution"], solution_id=SOLUTION, problem_ids="greeting-by-hand",
-                      ideal_ids="consistent-greeting", metric_ids="greeting-pass-rate", interface_name="",
+                      ideal_ids="consistent-greeting", metric_ids="greeting-pass-rate", interface_name="greet",
                       implementations=";".join(greet_paths), selected=greet_paths[0])
     structure_solution = record("solution", template, STRUCTURE["solution"], solution_id="project-structure",
                                 problem_ids="purpose-unrecorded", ideal_ids="explicit-purpose", metric_ids="structure-coverage",
                                 implementations="esoi-records", selected="esoi-records")
     # The single solution at the top: why the project exists is the project's own, so every cell is left for it to write
     # and `esoi check` reports each one. Its implementation builds on the project's other solutions.
-    purpose_solution = record("solution", template, {}, solution_id=PURPOSE, implementations="the-project",
-                              selected="the-project")
+    purpose_solution = record("solution", template, {}, solution_id=PURPOSE, implementations="the-project;by-hand",
+                              selected="the-project", interface_name="purpose")
     impl_rows = []
     for path in greet_paths:
         stem = path.rsplit("/", 1)[-1][:-3]
@@ -217,7 +256,10 @@ def files_for(package: str, template) -> Dict[str, str]:
                             implementation_id="project-structure:esoi-records", solution_id="project-structure",
                             uses_solution_ids="@esoi/structure-check"))
     impl_rows.append(record("implementation", template, {}, implementation_id=f"{PURPOSE}:the-project", solution_id=PURPOSE,
-                            uses_solution_ids=f"{SOLUTION};project-structure"))
+                            filepath=f"{package}/greet.py", uses_solution_ids=f"{SOLUTION};project-structure"))
+    impl_rows.append(record("implementation", template, dict(name="Greet by hand", description="Each person writing a greeting types it themselves.",
+                                                             advantages="Needs no code.", disadvantages="Greetings come out different every time."),
+                            implementation_id=f"{PURPOSE}:by-hand", solution_id=PURPOSE))
     out: Dict[str, str] = {}
     out[f"{structure}/intent.csv"] = render_csv(
         ["intent_id"] + fields(template, "intent", True) + ["implements"],
@@ -258,6 +300,7 @@ def files_for(package: str, template) -> Dict[str, str]:
     out[".gitignore"] = "__pycache__/\n.esoi_cache/\n"
     out[f"{package}/__init__.py"] = INIT.format(package=package)
     out[f"{package}/greet.py"] = GREET
+    out["README.md"] = README.format(package=package)
     out["tests/test_greet.py"] = TEST.format(package=package)
     base = f"evaluation/components/{COMPONENT}"
     out[f"{base}/__init__.py"] = ""

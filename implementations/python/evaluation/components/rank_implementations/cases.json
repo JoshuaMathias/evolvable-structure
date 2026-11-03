@@ -1691,7 +1691,7 @@
    },
    "contains": [
     "best guess, not yet significant",
-    "p=0.0625",
+    "p=0.125",
     "4 of 30 cases disagree",
     "more cases would settle it"
    ]
@@ -2068,7 +2068,7 @@
     "verdict": "TIE"
    },
    "contains": [
-    "is not shown better than a (p=0.0625, 4 of 30 cases disagree); more cases would settle it"
+    "is not shown better than a (p=0.125, 4 of 30 cases disagree); more cases would settle it"
    ]
   },
   "note": "Added 2026-10-31: the opt-in stricter policy keeps the former significance-required behaviour."

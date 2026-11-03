@@ -151,7 +151,7 @@ def line(entry: Dict[str, Any]) -> str:
     return f"{entry['kind']} {entry['id']}: {entry['title']}"
 
 
-@solution("spec-index")
+@solution("spec-index", kind="event", example={"index": {"n": 0, "df": {}, "entries": []}, "text": "which solution ranks implementations"})
 def find_specs(index: Dict[str, Any], text: str, k: int = 8, expand: int = 0) -> List[Dict[str, Any]]:
     """The ``k`` entries of ``index`` that best match the words of a new use case or input, best first, each as
     ``{id, kind, score, matched, via}`` (``via`` is the hit a linked entry came in through, empty for a direct match).

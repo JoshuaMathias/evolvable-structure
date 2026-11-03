@@ -6,6 +6,10 @@ The esoi package is a dependency of other people's production code, which declar
 
 This sub-intent arises as the implementation `implementation-selection:declarations` of its parent intent `esoi`. Opportunities: The Python package can become a runtime dependency inside other people's production code, not only a tool run on a repository: selection at run time, graceful declarations of alternatives (decorators, for example) and embedding without forking. That is a creative space beyond selecting an implementation by a table in one repository.
 
+## How the solutions fit together
+
+Inside a running program, implementation-selection hands each call to runtime-selection, which picks the declared implementation of a solution by name, override, environment or default and refuses an unknown name with the valid choices, and to assemble-by-name, which builds whole assemblies of named implementations and their needs. assemble-by-name makes each of its choices through runtime-selection, with a parent's defaults beneath a child's own.
+
 ## Problems
 
 - `prob-selection-default-kept-twice`: The default implementation of a solution is written in the selection table and again in the records, and only a check holds the two equal. Choosing a winner means editing both, and a mismatch fails the build.
@@ -23,8 +27,8 @@ This sub-intent arises as the implementation `implementation-selection:declarati
 | Implementation | Name | Where | Sub-intent |
 |---|---|---|---|
 | `runtime-selection:select` | Selector class and table | implementations/python/esoi/select.py |  |
-| `runtime-selection:declarations-and-cascade` | Declarations in code with one cascade | implementations/python/esoi/runtime.py |  |
-| `assemble-by-name:assembler` | assemble-by-name:assembler | implementations/python/esoi/assemble.py |  |
+| `runtime-selection:declarations-and-cascade` | Declarations in code with one cascade | implementations/python/esoi/interfaces.py |  |
+| `assemble-by-name:assembler` | assemble-by-name:assembler | implementations/python/esoi/interfaces.py |  |
 
 ## Metrics
 

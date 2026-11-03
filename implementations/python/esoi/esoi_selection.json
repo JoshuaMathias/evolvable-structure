@@ -1,0 +1,365 @@
+{
+ "@intents": {
+  "intents": {
+   "esoi": {
+    "arm": "",
+    "root": "apply-esoi"
+   },
+   "esoi-runtime": {
+    "arm": "",
+    "root": "assemble-by-name"
+   }
+  },
+  "scopes": {
+   "apply-esoi": "esoi",
+   "assemble-by-name": "esoi",
+   "behave-by-esoi": "esoi",
+   "consumer-check": "esoi",
+   "discriminating-cases": "esoi",
+   "docs-and-templates": "esoi",
+   "esoi-behaviour-judge": "esoi",
+   "esoi-for-ai": "esoi",
+   "follow-the-steps": "esoi",
+   "implementation-selection": "esoi",
+   "intent-registry": "esoi",
+   "judge-esoi-behaviour": "esoi",
+   "keep-metric-record": "esoi",
+   "leaderboard": "esoi",
+   "local-application-index": "esoi",
+   "measurement-harness": "esoi",
+   "ownership-map": "esoi",
+   "promote-the-winner": "esoi",
+   "public-evidence": "esoi",
+   "readable-records": "esoi",
+   "review-tracker": "esoi",
+   "runtime-selection": "esoi",
+   "skill-distribution": "esoi",
+   "spec-index": "esoi",
+   "spec-search": "esoi",
+   "specify-from-code": "esoi",
+   "structure-budget": "esoi",
+   "structure-check": "esoi",
+   "structure-rules": "esoi",
+   "template-sync": "esoi",
+   "the-standard": "esoi",
+   "the-steps": "esoi",
+   "when-metrics-are-run": "esoi"
+  }
+ },
+ "apply-esoi": {
+  "default": "documents-templates-and-tools",
+  "modules": {
+   "documents-templates-and-tools": "esoi.interfaces"
+  }
+ },
+ "assemble-by-name": {
+  "default": "assembler",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "assembler": "esoi.interfaces"
+  }
+ },
+ "behave-by-esoi": {
+  "default": "standing-instructions",
+  "evidence": {
+   "detail": "the selected implementation has no recorded row; no arm has a result",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "standing-instructions": "esoi.interfaces"
+  }
+ },
+ "consumer-check": {
+  "default": "consumer-command",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "consumer-command": "esoi.interfaces"
+  }
+ },
+ "discriminating-cases": {
+  "default": "broken-baselines",
+  "modules": {
+   "broken-baselines": "esoi.interfaces"
+  }
+ },
+ "docs-and-templates": {
+  "default": "documentation-folder",
+  "modules": {
+   "documentation-folder": "esoi.interfaces"
+  }
+ },
+ "esoi-behaviour-judge": {
+  "default": "model-judge-on-the-rubric",
+  "modules": {
+   "model-judge-on-the-rubric": "esoi.interfaces"
+  }
+ },
+ "esoi-for-ai": {
+  "default": "skill-as-standing-instructions",
+  "modules": {
+   "skill-as-standing-instructions": "esoi.interfaces"
+  }
+ },
+ "follow-the-steps": {
+  "default": "steps",
+  "modules": {
+   "steps": "esoi.interfaces"
+  }
+ },
+ "implementation-selection": {
+  "default": "declarations",
+  "modules": {
+   "declarations": "esoi.interfaces"
+  }
+ },
+ "intent-registry": {
+  "default": "csv-records-in-the-repository",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "csv-records-in-the-repository": "esoi.interfaces"
+  }
+ },
+ "judge-esoi-behaviour": {
+  "default": "model-judge",
+  "evidence": {
+   "detail": "the selected implementation has no recorded row; no arm has a result",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "model-judge": "esoi.interfaces"
+  }
+ },
+ "keep-metric-record": {
+  "default": "library-modules",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "library-modules": "esoi.interfaces"
+  }
+ },
+ "leaderboard": {
+  "default": "margin-leaderboard",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "margin-leaderboard": "esoi.interfaces"
+  }
+ },
+ "local-application-index": {
+  "default": "live_index",
+  "evidence": {
+   "detail": "live_index is better than records_only (two-sided exact McNemar test, Holm-adjusted p=0.0312, 7 of 10 cases disagree); live_index leads skill_rows (skill_rows 0.6 against live_index 1; best guess, not yet significant, two-sided exact McNemar test, Holm-adjusted p=0.125, 4 of 10 cases disagree)",
+   "p": 0.03125,
+   "verdict": "WIN"
+  },
+  "modules": {
+   "live_index": "esoi.interfaces"
+  }
+ },
+ "measurement-harness": {
+  "default": "component-harness",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "component-harness": "esoi.interfaces"
+  }
+ },
+ "ownership-map": {
+  "default": "component-rows",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "component-rows": "esoi.interfaces"
+  }
+ },
+ "promote-the-winner": {
+  "default": "margin-promotion",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "margin-promotion": "esoi.interfaces"
+  }
+ },
+ "public-evidence": {
+  "default": "graded",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "graded": "esoi.evidence"
+  }
+ },
+ "readable-records": {
+  "default": "generated-readme",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "generated-readme": "esoi.interfaces"
+  }
+ },
+ "review-tracker": {
+  "default": "tracker-and-sheet",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "tracker-and-sheet": "esoi.interfaces"
+  }
+ },
+ "runtime-selection": {
+  "default": "declarations-and-cascade",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "declarations-and-cascade": "esoi.interfaces",
+   "select": "esoi.select"
+  }
+ },
+ "skill-distribution": {
+  "default": "generated-public-copy",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "generated-public-copy": "esoi.interfaces"
+  }
+ },
+ "spec-index": {
+  "default": "weighted-tfidf",
+  "evidence": {
+   "detail": "weighted_tfidf leads term_overlap (term_overlap 0.771 against weighted_tfidf 0.857; best guess, not yet significant, two-sided exact McNemar test, Holm-adjusted p=0.375, 5 of 35 cases disagree)",
+   "p": 0.375,
+   "verdict": "WIN"
+  },
+  "modules": {
+   "term-overlap": "esoi.spec_index",
+   "weighted-tfidf": "esoi.spec_index"
+  }
+ },
+ "spec-search": {
+  "default": "lexical-vector-gated",
+  "evidence": {
+   "detail": "lexical_only is exactly equal to gated on the metric (lexical_only 1 against gated 1), so gated stays",
+   "p": 1.0,
+   "verdict": "TIE"
+  },
+  "modules": {
+   "lexical-only": "esoi.spec_search",
+   "lexical-vector-gated": "esoi.spec_search"
+  }
+ },
+ "specify-from-code": {
+  "default": "declarations-and-sync",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "declarations-and-sync": "esoi.interfaces"
+  }
+ },
+ "structure-budget": {
+  "default": "written-weighing-rule",
+  "modules": {
+   "written-weighing-rule": "esoi.interfaces"
+  }
+ },
+ "structure-check": {
+  "default": "rule-script",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "rule-script": "esoi.interfaces"
+  }
+ },
+ "structure-rules": {
+  "default": "rule-modules",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "rule-modules": "esoi.interfaces"
+  }
+ },
+ "template-sync": {
+  "default": "template-parser",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "template-parser": "esoi.interfaces"
+  }
+ },
+ "the-standard": {
+  "default": "standard-document",
+  "modules": {
+   "standard-document": "esoi.interfaces"
+  }
+ },
+ "the-steps": {
+  "default": "esoi-steps",
+  "modules": {
+   "esoi-steps": "esoi.interfaces"
+  }
+ },
+ "when-metrics-are-run": {
+  "default": "on-every-change",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "on-every-change": "esoi.interfaces"
+  }
+ }
+}
