@@ -43,7 +43,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from . import balance, circumstances, leaderboard, run_guards, variants
+from . import balance, circumstances, leaderboard, run_guards, run_log, variants
 from .config import Config
 from .assemble import check_name
 from .leaderboard import cases_digest, is_partial
@@ -326,7 +326,7 @@ def current_sha(config: Config) -> str:
     itself is not the code under test)."""
     sha = git(config, "rev-parse", "--short", "HEAD")
     if sha and git(config, "status", "--porcelain", "--untracked-files=no", "--", *own_code_paths(config),
-                   config.evaluation_dir, f":(exclude){config.results}", f":(exclude){config.per_case}"):
+                   config.evaluation_dir, f":(exclude){config.results}", f":(exclude){config.per_case}", f":(exclude){config.runs_log}"):
         sha += "-dirty"
     return sha
 
@@ -336,7 +336,7 @@ def changed_since(config: Config, sha: str) -> Optional[List[str]]:
     working tree since the commit a result was recorded at; ``None`` when that commit is not known here."""
     base = sha.removesuffix("-dirty")
     done = subprocess.run(["git", "diff", "--name-only", base, "--", *own_code_paths(config), config.evaluation_dir,
-                           f":(exclude){config.results}", f":(exclude){config.per_case}"], cwd=config.root, capture_output=True, text=True)
+                           f":(exclude){config.results}", f":(exclude){config.per_case}", f":(exclude){config.runs_log}"], cwd=config.root, capture_output=True, text=True)
     return done.stdout.split() if done.returncode == 0 else None
 
 
@@ -457,6 +457,11 @@ def check_guards(config: Config, component: str, impl: str, sample: str, args: a
     except ValueError as exc:
         raise RunError(str(exc)) from exc
     notes: List[str] = []
+    unsolved = "" if getattr(args, "failed", False) or sample else run_guards.unsolved_reason(config, component, impl)
+    if unsolved and not forced:
+        raise RunError(f"{impl} is not run on the whole set: {unsolved}")
+    if unsolved:
+        notes.append(f"forced past unsolved failures: {forced}")
     for line in lines:
         say(f"public result: {line}")
     if capped and not forced:
@@ -478,6 +483,12 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     ap = argparse.ArgumentParser(prog=f"esoi run {component}", description=f"Evaluate the {component} component on its own.")
     ap.add_argument("--impl", required=True, help="implementation name (impls/<name>.py) or module:build")
     ap.add_argument("--only", default=None, help="comma-separated case ids")
+    ap.add_argument("--failed", action="store_true",
+                    help="run only the cases whose latest run (of this implementation, on these cases) failed; cannot be combined with --only or --sample")
+    ap.add_argument("--keep-going", action="store_true",
+                    help="run past a failing case; without it an unrecorded run stops at the first failure so the implementation can be improved at once")
+    ap.add_argument("--fresh", action="store_true",
+                    help="run every case, including ones already run for this implementation version (a --sample or whole run reuses those)")
     ap.add_argument("--sample", type=int, default=None, metavar="N",
                     help="run N cases spread over the strata (same cases every time; N=3 is a prefix of N=10)")
     ap.add_argument("--max-calls", type=int, default=None, help="abort when model calls exceed this")
@@ -495,6 +506,16 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
         circumstances.check_fields(circs, cases)
     except ValueError as exc:
         raise RunError(str(exc)) from exc
+    impl = args.impl if ":" in args.impl else variants.canonical(args.impl)   # one spelling of a variant in every record
+    runs_path, cases_sha = config.root / config.runs_log, cases_digest(component, config.evaluation)
+    if args.failed:
+        if args.only or args.sample is not None:
+            raise RunError("--failed already names the cases to run (the ones that failed last); drop --only or --sample")
+        failing = run_log.failed_cases(runs_path, component, impl, cases_sha)
+        if not failing:
+            raise RunError(f"no failing case is logged for {impl} on these cases, so there is nothing to rerun "
+                           f"(the log is {config.runs_log}); run it without --failed")
+        args.only = ",".join(failing)
     if args.only:
         keep = {c.strip() for c in args.only.split(",")}
         cases = [c for c in cases if c["id"] in keep]
@@ -508,37 +529,67 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     budget = args.max_calls if args.max_calls is not None else "none"
     say(f"{component}: {len(cases)} case(s), impl {args.impl}, model-call budget {budget}: "
         f"{', '.join(str(c['id']) for c in cases[:12])}{' ...' if len(cases) > 12 else ''}")
-    impl = args.impl if ":" in args.impl else variants.canonical(args.impl)   # one spelling of a variant in every record
     notes = check_guards(config, component, impl, sample, args, say) if guards else []
     meter = CallMeter(args.max_calls)
     fn = load_impl(impl, component, config)(meter)
+    git_sha = current_sha(config)
+    reuse = {} if (args.fresh or args.only) else run_log.reusable(runs_path, component, impl, cases_sha, git_sha)
+    stop_at_fail = not (args.keep_going or args.record)   # a recorded run is a whole measurement; a development run is for fixing
+    log = run_log.RunLog(runs_path, dict(component=component, impl=impl, cases_sha=cases_sha, git_sha=git_sha, sample=sample,
+                                         recorded="yes" if args.record else "no"))
+    log.begin()
     rows: List[Dict[str, Any]] = []
+    reused = dict(calls=0, tokens_in=0, tokens_out=0, cost=0.0, seconds=0.0, cases=0)
+    stopped = ""
     started = time.time()
-    for case in cases:
-        before, t0, in0, out0 = meter.calls, time.time(), meter.tokens_in, meter.tokens_out
-        try:
-            row = scorer(fn, case)
-        except BudgetExceeded:
-            raise
-        except Exception as exc:
-            row = dict(ok=False, note=f"{type(exc).__name__}: {exc}")
-        row.update(id=case["id"], area=case.get("area"), calls=meter.calls - before, seconds=round(time.time() - t0, 1),
-                   tokens_in=meter.tokens_in - in0, tokens_out=meter.tokens_out - out0)
-        rows.append(row)
-        say(f"[{row['id']:9}] {'PASS' if row['ok'] else 'FAIL'} calls={row['calls']} {row.get('got', '')} | {row.get('note', '')}")
+    try:
+        for case in cases:
+            before, t0, in0, out0, cost0 = meter.calls, time.time(), meter.tokens_in, meter.tokens_out, meter.cost_usd
+            if str(case["id"]) in reuse:
+                row = dict(reuse[str(case["id"])])
+                spent = float(row.pop("cost", 0) or 0)
+                for name, key in (("calls", "calls"), ("tokens_in", "tokens_in"), ("tokens_out", "tokens_out"), ("seconds", "seconds")):
+                    reused[name] += row.get(key) or 0
+                reused["cost"] += spent
+                reused["cases"] += 1
+                rows.append(row)
+                log.case(row, spent, reused=True)
+                say(f"[{row['id']:9}] {'PASS' if row['ok'] else 'FAIL'} reused from an earlier run of this implementation version")
+                continue
+            try:
+                row = scorer(fn, case)
+            except BudgetExceeded:
+                raise
+            except Exception as exc:
+                row = dict(ok=False, note=f"{type(exc).__name__}: {exc}")
+            row.update(id=case["id"], area=case.get("area"), calls=meter.calls - before, seconds=round(time.time() - t0, 1),
+                       tokens_in=meter.tokens_in - in0, tokens_out=meter.tokens_out - out0)
+            rows.append(row)
+            log.case(row, meter.cost_usd - cost0)
+            say(f"[{row['id']:9}] {'PASS' if row['ok'] else 'FAIL'} calls={row['calls']} {row.get('got', '')} | {row.get('note', '')}")
+            if stop_at_fail and not row["ok"]:
+                stopped = f"stopped at the first failing case, {row['id']}"
+                break
+    except BaseException as exc:   # Ctrl-C, a spent call budget or a crash: what was scored stays in the log
+        log.end(f"stopped: {type(exc).__name__}")
+        raise
+    log.end("done" if not stopped else stopped.replace("stopped at", "stopped: at"))
+    cases = cases[:len(rows)]
     passed = sum(bool(r["ok"]) for r in rows)
     held = [r for r, c in zip(rows, cases) if c.get("heldout")]
     summary = dict(component=component, impl=impl, cases=len(rows), passed=passed,
                    dev=f"{sum(bool(r['ok']) for r in rows if r not in held)}/{len(rows) - len(held)}",
                    heldout=f"{sum(bool(r['ok']) for r in held)}/{len(held)}",
-                   model_calls=meter.calls, tokens_in=meter.tokens_in, tokens_out=meter.tokens_out,
-                   cli_reported_cost_usd=round(meter.cost_usd, 4), seconds=round(time.time() - started, 1),
+                   model_calls=meter.calls + reused["calls"], tokens_in=meter.tokens_in + reused["tokens_in"],
+                   tokens_out=meter.tokens_out + reused["tokens_out"],
+                   cli_reported_cost_usd=round(meter.cost_usd + reused["cost"], 4),
+                   seconds=round(time.time() - started + reused["seconds"], 1),
                    model=SIMULATED_MODEL if declares_simulated(impl_path(config, component, variants.base_of(impl))) else meter.model,
                    sample=sample)
     cost = run_cost(config, summary, summary["model"])
     summary.update(balance.balanced(passed, len(rows), cost, summary["seconds"], config.balance.get(component)))
     say(f"\n{component} / {args.impl}: {passed}/{len(rows)} passed (dev {summary['dev']}, held-out "
-        f"{summary['heldout']}), {meter.calls} model calls, {meter.tokens_in} in / {meter.tokens_out} out tokens, "
+        f"{summary['heldout']}), {summary['model_calls']} model calls, {summary['tokens_in']} in / {summary['tokens_out']} out tokens, "
         f"cost {'$' + str(cost) if cost != '' else 'unknown (no price for the model in `prices`)'}, {summary['seconds']}s")
     if "balanced" in summary:
         say(f"balanced score {summary['balanced']} = accuracy {summary['accuracy']}, ${summary['cost_per_case']}/case, "
@@ -548,6 +599,8 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
         headline = score.aggregate(rows)
         say(f"{component}: {headline}")
         summary["details"] = details_text(headline)
+    if reused["cases"]:
+        notes.append(f"reused {reused['cases']} case(s) already run for this implementation version")
     if notes:
         summary["details"] = run_guards.note_details(summary.get("details", ""), notes)
     if args.out:
@@ -555,6 +608,9 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(dict(summary=summary, rows=rows), indent=1), encoding="utf-8")
         say(f"results: {out}")
+    if stopped:
+        say(f"{stopped}: fix it and rerun just the failing case(s) with --failed; every case run is saved in {config.runs_log} "
+            "(this run is not recorded; add --keep-going to run past failures)")
     if args.record:
         record_result(summary, config)
         say(f"recorded in {config.results}")
@@ -825,7 +881,7 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
             continue
         score = importlib.import_module(f"{comp}.score")
         try:
-            run_component(comp, score.score_case, ["--impl", impl] + flags + (["--record"] if record else []), config,
+            run_component(comp, score.score_case, ["--impl", impl] + flags + (["--record"] if record else ["--keep-going"]), config,
                           lambda text: None, guards=False)
         except RunError as exc:   # an arm that cannot start (an unknown variant key, a bad circumstance) fails once, loudly
             failed += 1
@@ -848,7 +904,7 @@ def run_cli(argv: List[str], config: Config, say: Callable[[str], None] = print)
                            include=include, full="--full" in argv, plan="--plan" in argv)
     components = discover_components(config)
     if not argv or argv[0] not in components:
-        say("usage: esoi run <component> --impl <name> [--only IDS] [--sample N] [--max-calls N] [--record] [--differs WHAT] [--force REASON]  |  esoi run --stale [--plan] [--full] [--include-paid | --include COMPONENT/IMPL]")
+        say("usage: esoi run <component> --impl <name> [--only IDS | --failed] [--sample N] [--max-calls N] [--keep-going] [--fresh] [--record] [--differs WHAT] [--force REASON]  |  esoi run --stale [--plan] [--full] [--include-paid | --include COMPONENT/IMPL]")
         say("components: " + (", ".join(components) or "none found under " + config.evaluation_dir))
         return 2
     score = importlib.import_module(f"{argv[0]}.score")

@@ -38,6 +38,8 @@ Across the three stages that is about 43 case runs per arm, about 580,000 input 
 
 - While working: run the cases for the part you changed (`esoi run <component> --impl live_checker`), and the tests
   (`python -m pytest implementations/python/tests`).
+- While improving an arm: an unrecorded run stops at its first failing case and every run is saved in `runs.csv`; fix the arm, then
+  rerun only the failing cases with `--failed`. The whole set waits until they pass (`--force "reason"` overrides).
 - Before committing: `esoi check`.
 - After committing a change to measured code or cases: `esoi run --stale`, then commit the results log. The strict check
   (`esoi check --strict`) is how anyone confirms that every recorded result is current.

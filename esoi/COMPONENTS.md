@@ -25,7 +25,8 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `rules-generated` | tools | The rules about generated files, the tracker and the records. | structure-rules, review-tracker, template-sync, readable-records |
 | `check-runner` | tools | Running every rule over a repository and reporting problems. | structure-check, readable-records |
 | `harness` | tools | Running one implementation over a component's cases and recording the result. | measurement-harness |
-| `run-guards` | tools | Refusing an esoi run that cannot inform a decision: a perfect arm already caps it, or a public result already exists. | measurement-harness |
+| `run-guards` | tools | Refusing an esoi run that cannot inform a decision: a perfect arm already caps it, a public result already exists, or the cases that failed last have not been rerun to a pass. | measurement-harness |
+| `run-log` | tools | Saving every run case by case, even a stopped one, and reading it back to rerun only the failing cases and to reuse cases an earlier stage already ran. | measurement-harness, leaderboard |
 | `tracker` | tools | Building the review tracker tabs and syncing them with a sheet. | review-tracker |
 | `consumer` | tools | Checking a consuming repository's integration registry. | consumer-check |
 | `hygiene` | tools | Scanning a public repository for secrets and private data. | structure-check |
@@ -63,7 +64,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `eval-promote-the-winner` | evaluation | Cases for promoting the winner of a solution's metric. | promote-the-winner |
 | `spec_index` | core | The spec index solution's interface and implementations. | spec-index |
 | `eval-spec_index` | evaluation | Cases and scorer for spec-index. | spec-index |
-| `cascade` | tools | Reading a metric's cascading conditionals, choosing the implementation by the latest stage run, expiry of results and the next stage to run. | leaderboard, promote-the-winner |
+| `cascade` | tools | Reading a metric's cascading conditionals, checking their order against the skill's expectations, choosing the implementation by the latest stage run, expiry of results and the next stage to run. | leaderboard, promote-the-winner |
 | `rules-cascade` | tools | The rules about cascading conditionals: the list can be read (S32) and the selection follows the cascade (S33). | structure-rules, leaderboard |
 | `rules-hierarchy` | tools | unconfirmed: for Joshua to confirm. | structure-rules, assemble-by-name |
 | `versioning` | tools | The stamp of the skill and template the library follows, the template version, and recording it in a repository. | template-sync |

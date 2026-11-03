@@ -13,3 +13,4 @@ dist/
 .esoi_sync_state.json
 scratch/
 .esoi_cache/
+implementations/python/evaluation/components/runs.csv

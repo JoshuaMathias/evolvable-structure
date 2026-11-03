@@ -81,6 +81,35 @@ Two cases are known in advance to teach nothing, so the tools refuse them (`esoi
 
 Every override is recorded in the row's `details`, so a later reader sees why a run that looked redundant was made.
 
+### Iterate on the failing cases before the whole set
+
+The skill says: "All runs are recorded and saved even if stopped midrun. When building or improving an implementation, improvements
+are made immediately after a single failure case without needing to run the rest of the metric. The failing case or cases are rerun
+by themselves and a run on all cases is not done until the failing cases are solved." The tools follow it with four small parts.
+
+- **Every run is saved.** `esoi run` appends each case to `runs.csv`, beside the results log, the moment the case finishes, with a
+  line when the run starts and one when it ends (`done`, or `stopped: ...` for Ctrl-C, a spent call budget or a crash). A killed run
+  keeps what it scored. The leaderboard and the cascade never read this log; a run counts for them only when `--record` also put its
+  summary in the results log.
+- **An unrecorded run stops at the first failing case**, so the implementation is improved at once. A recorded run is a whole
+  measurement, so it runs every case; `--keep-going` makes an unrecorded run do the same. Stopping by default (rather than only on a
+  flag) is the more evolvable choice because the unrecorded run is the one used while improving, and the option that needs a flag
+  should be the one that spends more.
+- **`--failed` reruns only the cases that failed last** for that implementation on those cases (the latest outcome of each case in
+  `runs.csv`), as a run of named cases, so it records as `only:` rows and never decides a verdict.
+- **A run of every case waits for them.** While cases that failed in a development run have not passed since, a whole-set run is
+  refused with the cases named; `--force "reason"` overrides it and the reason is recorded in the row's `details`. A failure inside
+  a finished, recorded whole run is a measurement (a baseline that fails by design is one), so it does not block.
+
+The cascade does not repeat itself either: a later stage that covers cases an earlier stage ran for the same implementation version
+and cases reuses their rows (the run says so, and `details` records how many) and runs only the rest. A changed implementation has
+another version, so nothing is reused and the stage is run in full again, which is the re-record the skill allows. Code with
+uncommitted changes, or of no known version, is never reused. Pass `--fresh` to run every case anyway.
+
+`esoi check` prints a note (never an error) for a metric whose cascade departs from the skill's expected order: a first stage that
+may call a model, a later stage covering fewer cases than the one before, or a last stage that is not the whole set. See
+[The first stage needs no model](first-stage-needs-no-model.md).
+
 ### Someone approves spend
 
 A paid run is approved by the person or role that bears its cost, before it starts, against the estimate. A run that stays

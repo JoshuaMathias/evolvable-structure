@@ -23,6 +23,9 @@ The rules this module carries out, from the skill:
 * A stage that was not run has no result (``None``), never an estimate.
 * A result expires when the measured implementation or the cases changed since it was recorded (the harness's staleness
   test), or when it is older than the stage's ``max-age-days``. An expired result counts as not run.
+* A stage that was run for an implementation version is not run again for a later stage: ``esoi run`` reuses the cases already run
+  for the same implementation and cases (``esoi.run_log.reusable``), and runs them again only when the implementation changed.
+  ``expectation_notes`` says when a list departs from the expected order (free first stage, growing stages, whole set last).
 * Downstream users take the implementation with the highest result at the latest stage that has ever been run, unless
   another implementation scored higher at an earlier stage the two share and has not yet been run at the latest one: that
   implementation stays chosen until it is run there. The first implementation is compared with the others only on rows
@@ -301,6 +304,36 @@ def solution_choice(config, registry, solution: Row, component: str, current: st
     return decision.winner, shared_pair(stages, standing, current, decision.winner)
 
 
+def breadth(stage: Stage) -> Optional[float]:
+    """How many cases a stage's ``sample`` says it runs: ``full`` or a blank sample is the whole set (infinite here), ``sample:N`` is N,
+    and ``sample`` or ``only:`` says nothing comparable (``None``)."""
+    if stage.sample in ("", "full"):
+        return float("inf")
+    return float(stage.sample.split(":")[1]) if re.fullmatch(r"sample:\d+", stage.sample) else None
+
+
+def expectation_notes(stages: List[Stage]) -> List[str]:
+    """What a list does not do of the skill's expectations for cascading conditionals, as notes (never errors: a cascade that
+    differs may have a reason). The first stage costs nothing (it needs no model, so it says ``real=no``); later stages are
+    progressively more comprehensive (no stage that calls a model runs fewer cases than the one before); the last is the most comprehensive and
+    as objective as possible, which this reads as the whole set. A one-stage list, and a stage named ``public``, are not judged."""
+    own = [s for s in stages if not s.public]
+    notes: List[str] = []
+    if len(own) < 2:
+        return notes
+    if own[0].real is not False:
+        notes.append(f"the first stage, {own[0].name}, should cost nothing (a unit test, or qualitative questions scored as a number): "
+                     "add real=no, or put a stage that needs no model first (see docs/explanation/first-stage-needs-no-model.md)")
+    paid = [s for s in own if s.real is not False]   # a free stage is cheap whatever it covers, so it is not compared for breadth
+    for before, after in zip(paid, paid[1:]):
+        low, high = breadth(before), breadth(after)
+        if low is not None and high is not None and high < low:
+            notes.append(f"stage {after.name} runs fewer cases than {before.name} before it; later stages should be progressively more comprehensive")
+    if breadth(own[-1]) != float("inf"):
+        notes.append(f"the last stage, {own[-1].name}, should be the most comprehensive and as objective as possible (sample=full)")
+    return notes
+
+
 def run_command(component: str, impl: str, stage: Stage) -> str:
     """The ``esoi run`` line that records a result for this stage. It is a suggestion: a stage with ``real=yes`` calls a
     model, so it needs the metric run policy's estimate, budget and approval first."""
@@ -353,6 +386,8 @@ def run_cli(config, solution: str = "", strict: bool = False, say: Callable[[str
         say(f"{metric.get('metric_id', '')}: {' > '.join(s.name for s in stages) or '(no valid stage)'}")
         for line in errors:
             say(f"  problem: {line}")
+        for line in expectation_notes(stages):
+            say(f"  note: {line}")
         for owner in owners:
             public_lines(evidence_module, config, loaded, owner, graded, stages, say)
         component, chosen = next(iter(registry_module.harness_arms(config, metric.get("command", ""))), ("", ""))

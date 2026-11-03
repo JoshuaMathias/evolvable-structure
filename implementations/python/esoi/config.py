@@ -149,6 +149,11 @@ class Config:
         return str(Path(self.results).with_name("per_case.csv"))
 
     @property
+    def runs_log(self) -> str:
+        """The log of every run, finished or stopped, beside the results log (``esoi.run_log``). The leaderboard never reads it."""
+        return str(Path(self.results).with_name("runs.csv"))
+
+    @property
     def tracker_dir(self) -> Path:
         return self.structure / self.tracker_folder
 

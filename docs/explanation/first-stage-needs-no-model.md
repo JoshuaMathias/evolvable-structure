@@ -8,6 +8,11 @@ The skill says it this way: "New or proposed alternative implementations are tes
 cost, such as a unit test or specific type of review" (see [the definitions and principles](from-the-skill.md)). This
 page says what that first step should be for a metric.
 
+The skill's expectation for the whole list: the first conditional is free (a unit test, or qualitative questions answered and
+converted to a number), the second is a single case or an end-to-end run (simulated if needed), the next ones cover more cases, and
+the last is as objective as possible. Later stages include what is useful from the earlier ones, but cases already run are not run
+again (except to re-record after the implementation changed). `esoi check` prints a note when a cascade departs from that order.
+
 ## Why
 
 - **It is free and runs every time.** Nobody has to decide whether it is worth running.

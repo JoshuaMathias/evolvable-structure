@@ -69,7 +69,18 @@ LEGACY_NOTE = ("note: this repository uses the legacy two-level layout (`overall
 
 def notes(config: Config) -> List[str]:
     """Lines that are information, not violations: they never change the exit code."""
-    return ([LEGACY_NOTE] if config.overall and not config.intent_mode else []) + versioning.note(config)
+    return ([LEGACY_NOTE] if config.overall and not config.intent_mode else []) + versioning.note(config) + cascade_notes(config)
+
+
+def cascade_notes(config: Config) -> List[str]:
+    """One note per metric whose cascading conditionals depart from the expected order (``cascade.expectation_notes``)."""
+    from . import cascade
+    try:
+        metrics = load_registry(config).metrics
+    except Exception:   # noqa: BLE001  a note must never be the reason the check fails
+        return []
+    return [f"note: metrics.csv {m.get('metric_id', '')}: {line}" for m in metrics
+            for line in cascade.expectation_notes(cascade.parse(m.get("cascading_conditionals", ""))[0])]
 
 
 def write_docs(config: Config, say: Callable[[str], None] = print) -> None:

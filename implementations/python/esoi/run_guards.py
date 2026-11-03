@@ -1,4 +1,4 @@
-"""Two guards that stop ``esoi run`` from spending on a measurement that cannot inform a decision. No model call, no network.
+"""Three guards that stop ``esoi run`` from spending on a measurement that cannot inform a decision. No model call, no network.
 
 **Ceiling.** When another arm of the same component already passed every case on the same cases and sample, an arm that may
 spend money cannot beat it on accuracy, and is refused unless it can still win on what the metric weighs besides accuracy:
@@ -17,7 +17,10 @@ The name is matched, ignoring case, ``_``, ``-`` and spaces, against the ``compa
 an independent row exists for the arm's candidate (the implementation name or an ``[evidence.aliases]`` target) on that
 benchmark, the number is already public, so a run is refused unless it says what differs from the public one.
 
-Both are bypassed with ``--force REASON``, and the public one with ``--differs "harness: ..."`` (harness, prompt, settings,
+**Unsolved failures.** A run of every case is refused while the arm's earlier cases that failed in a development run have not
+been rerun to a pass (``unsolved_reason``): rerun those alone with ``--failed`` first.
+
+All three are bypassed with ``--force REASON``, and the public one with ``--differs "harness: ..."`` (harness, prompt, settings,
 corpus or metric). The reason is recorded in the row's ``details``.
 """
 from __future__ import annotations
@@ -25,7 +28,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from . import evidence, leaderboard, variants
+from . import evidence, leaderboard, run_log, variants
 from .config import Config
 
 Row = Dict[str, str]
@@ -97,6 +100,21 @@ def ceiling_reason(config: Config, component: str, impl: str, sample: str, paid:
                 f"may spend money: {paid}) cannot beat it on the {kind}; pass --force \"reason\" to run it anyway "
                 f"(the reason is recorded in the row's details)")
     return ""
+
+
+def unsolved_reason(config: Config, component: str, impl: str) -> str:
+    """Why a run of every case is premature: cases of the arm's latest runs failed and were not rerun to a pass (an empty
+    string when none). The iterative use of a metric fixes a failing case at once and reruns only the failing cases
+    (``esoi run --failed``) until they pass; the whole set waits for that. A failure inside a finished, recorded whole run is a
+    measurement, not work in progress, and is not counted (``run_log.unsolved_failures``)."""
+    failing = run_log.unsolved_failures(Path(config.root) / config.runs_log, component, impl,
+                                        leaderboard.cases_digest(component, config.evaluation))
+    if not failing:
+        return ""
+    shown = ", ".join(failing[:8]) + (f" and {len(failing) - 8} more" if len(failing) > 8 else "")
+    return (f"{len(failing)} case(s) failed in the latest run and have not passed since ({shown}); run `esoi run {component} "
+            f"--impl {impl} --failed` until they pass, or pass --force \"reason\" to run the whole set anyway "
+            "(the reason is recorded in the row's details)")
 
 
 def declared_benchmark(config: Config, component: str) -> str:
