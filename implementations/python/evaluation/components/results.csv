@@ -742,3 +742,5 @@ date,component,impl,cases,passed,dev,heldout,model_calls,tokens_in,tokens_out,co
 2026-11-03,public_evidence,graded,11,11,11/11,0/0,0,0,0,0.0,0.0,05f6cfc,302f8fb7,none,,,
 2026-11-03,select_an_implementation,live_selector,32,32,32/32,0/0,0,0,0,0.0,0.0,05f6cfc,8ba84fe1,none,"declared 13/13, resolve 19/19",,
 2026-11-03,assemble_by_name,live_assembler,41,41,41/41,0/0,0,0,0,0.0,0.3,05f6cfc,1b43c4f0,none,"assemble 39/39, docs 2/2",,
+2026-11-03,rank_implementations,live_leaderboard,54,54,49/49,5/5,0,0,0,0.0,0.3,2bdf6e6,eec1ad61,none,"board 8/8, rank 13/13, verdict 33/33",,
+2026-11-03,promote_the_winner,live_promote,17,17,17/17,0/0,0,0,0,0.0,0.0,2bdf6e6,e10ba250,none,"apply 2/2, decide 15/15",,
