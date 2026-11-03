@@ -15,10 +15,11 @@ from ..tables import ids
 from .base import Context, RuleGroup
 
 CROSS_PROJECT = re.compile(r"^@[\w.-]+/[\w.-]+$")
+CROSS_PROJECT_IMPLEMENTS = re.compile(r"^@[\w.-]+/[\w.-]+(:[\w.-]+)?$")
 
 SUMMARIES = {
     "S28": "Each intent folder has one intent.csv row with a unique intent_id and every field of the intent template; the "
-           "top intent leaves implements empty; a sub-intent is in a folder named by its intent_id, "
+           "top intent is a root (implements is empty, or names another project's solution as @project_id/solution_id); every intent below it is an implementation of a solution of its parent: a sub-intent is in a folder named by its intent_id, "
            "names, in implements, an implementation of its parent intent, that implementation names it back in "
            "sub_intent, and the sub-intent states the opportunities that justify it.",
     "S29": "A record id is used once across the whole tree (also across record types and intents), and every "
@@ -56,9 +57,10 @@ def run(ctx: Context) -> List[str]:
             bad.append(f"S28 {intent.intent_id}: {where} has the old column `opportunity`, renamed `opportunities` "
                        "(rename it in the header; the values stay)")
         if intent.is_top:
-            if implements:
-                bad.append(f"S28 {intent.intent_id}: the top intent is no implementation of anything; leave implements "
-                           "empty")
+            if implements and not CROSS_PROJECT_IMPLEMENTS.match(implements):
+                bad.append(f"S28 {intent.intent_id}: the top intent is a root: it implements nothing of this repository. It may "
+                           "name the solution of another project's intent it implements, written @project_id/solution_id "
+                           f"(optionally :implementation), and says {implements!r}")
             continue
         if intent.folder.name != intent.intent_id:
             bad.append(f"S28 {intent.intent_id}: its folder is named {intent.folder.name!r}; a sub-intent's folder is "

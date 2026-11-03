@@ -57,6 +57,7 @@ class Context:
     strict: bool = False
     used_waivers: Set[Tuple[str, str]] = field(default_factory=set)
     modules: Optional[Cache] = None
+    advisory: List[str] = field(default_factory=list)   # findings of opt-in rules that are not strict: to do, never a failure
 
     @property
     def root(self) -> Path:
@@ -92,18 +93,19 @@ class Context:
         """Docstring, imports, environment reads and line count of a Python module, from one cached parse."""
         return self.cache().get(rel)
 
-    def memo(self, name: str, globs: List[str], compute: Callable[[], Any]) -> Any:
+    def memo(self, name: str, globs: List[str], compute: Callable[[], Any], extra: str = "") -> Any:
         """Remember a plugin's expensive, JSON-serializable result until any file matching ``globs`` changes.
 
         ``compute`` must read nothing outside the files the globs name (and must not call ``waived``: record the keys
-        it consulted in its result and ask afterwards), or a stale answer can be reused."""
+        it consulted in its result and ask afterwards), or a stale answer can be reused. When it does read more (another package,
+        the esoi library), ``extra`` is a digest of that, added to the key."""
         matchers = [glob_re(g) for g in globs]
         stats = []
         for f in self.files:
             if any(rx.match(f) for rx in matchers):
                 stat = (self.root / f).stat()
                 stats.append([f, stat.st_size, stat.st_mtime_ns])
-        key = hashlib.sha1(json.dumps(stats).encode()).hexdigest()
+        key = hashlib.sha1((json.dumps(stats) + extra).encode()).hexdigest()
         return self.cache().memo(name, key, compute)
 
     def waived(self, rule: str, key: str) -> bool:

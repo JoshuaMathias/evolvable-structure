@@ -99,6 +99,10 @@ class Entry:
     interface: Any = None
     origin: Optional[Path] = None
     implementations: Dict[str, Any] = field(default_factory=dict)   # name -> the object, or "module:Attr" to import
+    kind: str = ""          # what the one-line entry returns: event (output for an input), evaluate (feedback on an artifact),
+                            # store (the ready handle; with an input, its query); see esoi.entry
+    entry: str = ""         # the method of the interface the one-line entry calls (a function solution is its own entry)
+    example: Any = None     # an input the entry accepts offline, shown in the README and run by metric-one-line-entry
     replaced: set = field(default_factory=set)   # names a consumer replaced on purpose: a later declaration of one is ignored
 
 
@@ -206,13 +210,30 @@ class Solution:
         return resolve(self.solution_id, using, scope=self.reached())
 
 
-def solution(solution_id: str, scope: Optional[str] = None):
+KINDS = ("event", "evaluate", "store")
+
+
+def solution(solution_id: str, scope: Optional[str] = None, *, kind: str = "", entry: str = "", example: Any = None):
     """Declare the interface of a solution. On a function the result is callable and runs the selected implementation;
     a class (a Protocol) is returned unchanged and reached with ``resolve(solution_id)``. The scope is the declaring
-    package unless given."""
+    package unless given.
+
+    ``kind`` and ``entry`` make the solution reachable by the one-line entry ``esoi.entry.run(solution_id, input)``: an
+    ``event`` returns the output of ``entry`` for the input, an ``evaluate`` returns ``entry``'s feedback or score on the
+    artifact passed as input, a ``store`` returns the ready handle (or, given an input, ``entry``'s answer to it). A function
+    is its own entry (``kind`` defaults to ``event``). ``example`` is an input the entry accepts offline."""
+    if kind and kind not in KINDS:
+        raise ValueError(f"@solution({solution_id!r}): kind {kind!r} is not one of {', '.join(KINDS)}")
+
     def declare(interface: Any) -> Any:
         found = scope_of(interface) if scope is None else scope
-        entry_for(solution_id, origin_of(interface), found).interface = interface
+        declared = entry_for(solution_id, origin_of(interface), found)
+        declared.interface = interface
+        declared.kind = kind or ("" if inspect.isclass(interface) else "event")
+        declared.entry = entry
+        declared.example = example
+        if inspect.isclass(interface) and entry and not callable(getattr(interface, entry, None)):
+            raise ValueError(f"@solution({solution_id!r}): entry {entry!r} is not a method of {interface.__name__}")
         wrapped = interface if inspect.isclass(interface) else Solution(solution_id, interface)
         if wrapped is not interface:
             wrapped.scope = found
@@ -514,7 +535,7 @@ def load_declared(config: Any, solution_id: str) -> Dict[str, Any]:
 
 def snapshot(config: Any) -> Dict[str, Any]:
     """``{solution_id: {"default": name, "modules": {name: dotted module}}}`` from the records, for a package that ships
-    without them (``esoi select --snapshot``). When the results log can judge the solution, its entry also carries
+    without them (``esoi select --snapshot``). ``esoi.entry.snapshot`` adds the intent map. When the results log can judge the solution, its entry also carries
     ``evidence`` (``verdict``, ``detail``, ``p``), which ``esoi lock`` records beside the arm it locks."""
     project = load_project(config.root)
     out: Dict[str, Any] = {}

@@ -226,6 +226,7 @@ def commit(root, message="change"):
 
 def test_a_solutions_file_without_an_interface_name_column_is_a_problem_when_something_needs_it_not_a_crash(cfg):
     drop_column(cfg, "solutions.csv", "interface_name")
+    check.write_docs(cfg, say=lambda text: None)   # the tracker follows the records
     assert check.check(cfg) == []   # no interface_name, no selection table: nothing reads the column
     (cfg.root / "demo" / "ports.py").write_text(PORT)
     found = check.check(cfg)

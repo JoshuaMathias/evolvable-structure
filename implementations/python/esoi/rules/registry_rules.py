@@ -9,6 +9,7 @@ import re
 from collections import Counter
 from typing import List
 
+from .. import variants
 from ..registry import RULE_COLUMNS
 from ..tables import ids
 from .base import Context, RuleGroup
@@ -70,7 +71,7 @@ def run(ctx: Context) -> List[str]:
     bad += missing_columns(ctx, bool(table) or bool(ports_in_package(ctx)))
     if ctx.table_error:
         bad.append(f"S14 {config.selection_table}: cannot load ({ctx.table_error})")
-    covered = set()
+    covered = {x for r in ctx.every_solution() for x in ids(r.get("interface_name", ""))} if config.enabled("S37") else set()   # opt-in S37 asks specifications for interfaces too
     for r in ctx.solutions:
         sid = r["solution_id"]
         covered.update(ids(r.get("interface_name", "")))
@@ -80,10 +81,10 @@ def run(ctx: Context) -> List[str]:
             + [x["filepath"].strip() for x in records if x.get("filepath", "").strip()]
         if sid in table:
             names = table[sid].get("implementations", {})
-            if r["selected"] and r["selected"] not in names:
+            if r["selected"] and r["selected"] not in names and variants.base_of(r["selected"]) not in names:
                 bad.append(f"S7 {sid}: selected {r['selected']!r} is not an implementation name in the selection "
                            f"table (choices: {', '.join(sorted(names))})")
-        elif r["selected"] and r["selected"] not in impls:
+        elif r["selected"] and r["selected"] not in impls and variants.base_of(r["selected"]) not in impls:   # a variant is its base with parameters
             bad.append(f"S7 {sid}: selected {r['selected']!r} is not among its implementations")
         for i in impls:
             if "/" in i and not (config.root / i.split("::")[0]).exists():

@@ -12,7 +12,7 @@ files (``COMPONENTS.md``, the tracker tabs, and anything a plugin's ``write_docs
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Tuple
 
 from . import intents, leaderboard, readme, rules, template, tracker, versioning
 from .config import Config
@@ -42,7 +42,14 @@ def rule_id(line: str) -> str:
 
 
 def check(config: Config, strict: bool = False, files: Optional[List[str]] = None) -> List[str]:
-    """All problem lines for the repository, with disabled rules dropped and unused waivers reported (S9)."""
+    """All problem lines for the repository, with disabled rules dropped and unused waivers reported (S9). Advisory findings of
+    opt-in rules (S36 to S39 unless a rule is strict) are not in this list: ``check_all`` returns them beside it."""
+    return check_all(config, strict, files)[0]
+
+
+def check_all(config: Config, strict: bool = False, files: Optional[List[str]] = None) -> Tuple[List[str], List[str]]:
+    """``(problems, advisory)``: the problem lines that fail the check, and the to-do lines of enabled opt-in rules that are not
+    strict (each says its next action)."""
     ctx = build_context(config, strict, files)
     bad: List[str] = []
     for group in rules.all_groups(config):
@@ -59,7 +66,7 @@ def check(config: Config, strict: bool = False, files: Optional[List[str]] = Non
                 bad.append(f"S9 {w['rule']} {w['path']}: waiver has no reason")
     if ctx.modules is not None:
         ctx.modules.save(keep=set(ctx.files))
-    return bad
+    return bad, list(ctx.advisory)
 
 
 LEGACY_NOTE = ("note: this repository uses the legacy two-level layout (`overall` and detailed records); the intent layout "
@@ -110,12 +117,27 @@ def write_docs(config: Config, say: Callable[[str], None] = print) -> None:
             hook(ctx)
 
 
-def run_cli(config: Config, strict: bool, write: bool, say: Callable[[str], None] = print) -> int:
+def run_cli(config: Config, strict: bool, write: bool, say: Callable[[str], None] = print, findings: bool = False) -> int:
+    """Print the problems (they decide the exit code), then the findings of the opt-in rules S36 to S39: a count per rule, and with
+    ``findings`` every line. Those findings are information: they never change the exit code."""
     if write:
         write_docs(config, say)
-    bad = check(config, strict)
+    bad, advisory = check_all(config, strict)
     for line in bad:
         say(line)
+    if advisory:
+        counts: dict = {}
+        for line in advisory:
+            counts[rule_id(line)] = counts.get(rule_id(line), 0) + 1
+        total = ", ".join(f"{rule} {n}" for rule, n in sorted(counts.items()))
+        say(f"to do: {len(advisory)} finding(s) of the opt-in rules ({total}); they never fail the check")
+        if findings:
+            for line in advisory:
+                say("  " + line)
+        else:
+            say("  list them with `esoi check --findings`")
+    elif findings:
+        say("to do: no findings of the opt-in rules")
     for line in notes(config):
         say(line)
     say(f"structure check: {'FAIL, ' + str(len(bad)) + ' problem(s)' if bad else 'ok'}")

@@ -1,0 +1,326 @@
+"""Rules S36 to S39, opt-in and advisory: the solution a repository implements, the one-line entry, coherence, and the ratchet.
+
+They apply only in the intent layout (an ``intent.csv`` in the structure folder), and only where the project's ``esoi.toml`` has
+``[rules.S3x] enabled = true``. Their findings never fail ``esoi check``: each says its next action, and ``esoi check --findings``
+lists them with a count per rule. A waiver (``waivers.csv``) excuses one key; rule S9 reports a waiver that no longer excuses
+anything, and S39 shows whether the waiver sets grew.
+
+S36  network: the top intent's one root solution is the solution the repository implements; it names at least one problem and
+     one ideal, an authoritative metric, and at least two implementations; every other problem, ideal and metric of the top intent
+     reaches the root's through parent_problem_ids, parent_ideal_ids or parent_metric_ids; and each problem, ideal and metric linked
+     to the root has real text (not empty, not its own id, not the library's ``unconfirmed:`` marker alone).
+S37  entry: every solution with an implementation in the package's code names in ``interface_name`` a class or function declared
+     with ``@solution(<id>, kind=..., entry=..., example=...)``; every declared solution and every intent answers its one line
+     offline (ok, or pending on a key or an install: ``python3 -m esoi.entry``); the README's first example that calls
+     ``<package>.run(`` runs (and, with ``[rules.S37] installed = true``, from an installed wheel).
+S38  coherence: every intent passes metric-solution-coherence's first stage (``esoi.coherence``): paragraph, roots, diagram, code
+     precision, coverage and lift at the floors of ``[rules.S38]`` (per intent in ``[rules.S38.floors.<intent-id>]``), fan-out and depth.
+S39  ratchet: the trend of the waiver sets, the enabled rules and the floors and ceilings against a base commit (``esoi.ratchet``).
+"""
+from __future__ import annotations
+
+import ast
+import hashlib
+import json
+import re as regex
+import os
+import subprocess
+import sys
+from pathlib import Path
+from typing import Dict, List, Set
+
+from .. import intents
+from ..runtime import KINDS
+from ..tables import ids
+from .base import Context, RuleGroup, parse_file
+
+SUMMARIES = {
+    "S36": "Opt-in network: the top intent's one root solution is the solution the repository implements (a problem, an ideal, an "
+           "authoritative metric and at least two implementations), every problem, ideal and metric of the top intent links up to "
+           "it, and each linked record has real text (waive as the record id).",
+    "S37": "Opt-in entry: a solution with code declares @solution(<id>, kind=, entry=, example=) and names it in interface_name; "
+           "every declared solution and every intent answers its one line offline (python3 -m esoi.entry); the README's first "
+           "example that calls <package>.run( runs (waive as the solution or intent id, or README.md).",
+    "S38": "Opt-in coherence: every intent passes python3 -m esoi.coherence: paragraph both ways, roots, diagram, code precision, "
+           "coverage and lift at the [rules.S38] floors (per intent), fan-out and depth (waive as the intent id).",
+    "S39": "Opt-in ratchet: the trend of the waiver sets, the enabled rules and the S38 floors and ceilings against a base commit "
+           "(shown, never a failure).",
+}
+
+
+def declarations(ctx: Context) -> Dict[str, Dict[str, object]]:
+    """``{solution id: {name, kind, entry, example, is_class, methods, bases}}`` for every @solution in the measured code."""
+    from .. import declarations as declared_module
+    out: Dict[str, Dict[str, object]] = {}
+    measured = set(declared_module.code_files(ctx.config))
+    for rel in ctx.files:
+        if rel not in measured or not rel.endswith(".py"):
+            continue
+        try:
+            tree = ast.parse((ctx.root / rel).read_text(encoding="utf-8"))
+        except (SyntaxError, OSError, UnicodeDecodeError):
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.ClassDef, ast.FunctionDef)):
+                continue
+            for deco in node.decorator_list:
+                if isinstance(deco, ast.Call) and getattr(deco.func, "id", getattr(deco.func, "attr", "")) == "solution" \
+                        and deco.args and isinstance(deco.args[0], ast.Constant):
+                    keywords = {k.arg: k.value for k in deco.keywords}
+                    out[str(deco.args[0].value)] = dict(
+                        name=node.name, file=rel, is_class=isinstance(node, ast.ClassDef),
+                        kind=keywords["kind"].value if isinstance(keywords.get("kind"), ast.Constant) else "",
+                        entry=keywords["entry"].value if isinstance(keywords.get("entry"), ast.Constant) else "",
+                        example="example" in keywords,
+                        methods={n.name for n in getattr(node, "body", []) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))},
+                        bases=[ast.unparse(b) for b in getattr(node, "bases", [])])
+    return out
+
+
+TEXT_FIELD = {"problem": "problem", "ideal": "principle", "metric": "purpose"}   # the main text field of each record kind
+MARKER = regex.compile(r"^\s*unconfirmed:\s*(for\b.*\bto confirm\.?)?\s*$", regex.I | regex.S)   # the placeholder the library itself writes
+
+
+def real_text(row: Dict[str, str], field: str, own_id: str) -> bool:
+    """Whether a record's main text says something: not empty, not its own id, not only the library's unconfirmed marker."""
+    text = (row.get(field) or "").strip()
+    return bool(text) and text != own_id and not MARKER.match(text)
+
+
+def overall_network(ctx: Context) -> List[str]:
+    found = [i for i in intents.discover(ctx.config) if i.is_top]
+    if not found:
+        return []
+    top = found[0]
+    def mine(rows):
+        return [r for r in rows if r.get("intent_id", top.intent_id) == top.intent_id]
+    solutions = {r["solution_id"]: r for r in mine(ctx.registry.every_solution())}
+    implementations = ctx.registry.implementations
+    from ..select import default_name
+    uses: Dict[str, List[str]] = {}
+    for sid, row in solutions.items():
+        chosen = (default_name(row, implementations) or "").lower()
+        record = next((r for r in implementations if r.get("solution_id") == sid
+                       and r["implementation_id"].split(":", 1)[-1].lower() == chosen), {})
+        uses[sid] = [t for t in ids(record.get("uses_solution_ids", "")) if t in solutions and t != sid]
+    used = {t for v in uses.values() for t in v}
+    roots = [s for s in solutions if s not in used]
+    bad: List[str] = []
+    if len(roots) != 1:
+        if not ctx.waived("S36", top.intent_id):
+            bad.append(f"S36 {top.intent_id}: {len(roots)} root solutions; the solution the repository implements is the one root "
+                       f"of its top intent ({', '.join(roots[:8])}{'...' if len(roots) > 8 else ''}); next: make one solution the "
+                       "one the others are used by, through uses_solution_ids")
+        return bad
+    root = solutions[roots[0]]
+    sid = root["solution_id"]
+    problems, ideals = ids(root.get("problem_ids", "")), ids(root.get("ideal_ids", ""))
+    metric = (root.get("authoritative_metric_id") or "").strip()
+    metrics = {r["metric_id"]: r for r in mine(ctx.registry.metrics)}
+    if not metric:
+        metric = next((m for m, r in metrics.items() if sid in ids(r.get("solution_ids", ""))), "")
+    arms = [r for r in implementations if r.get("solution_id") == sid]
+    lacking = [what for what, ok in (("a problem", problems), ("an ideal", ideals), ("an authoritative metric", metric),
+                                     ("an alternative implementation beside the selected one", len(arms) >= 2)) if not ok]
+    if lacking and not ctx.waived("S36", sid):
+        bad.append(f"S36 {sid}: the solution this repository implements lacks {'; '.join(lacking)}; next: add it to the records of {sid}")
+
+    def reaches(table: Dict[str, Dict[str, str]], column: str, start: str, goal: Set[str]) -> bool:
+        seen, stack = set(), [start]
+        while stack:
+            x = stack.pop()
+            if x in goal:
+                return True
+            if x in seen:
+                continue
+            seen.add(x)
+            stack += ids(table.get(x, {}).get(column, ""))
+        return False
+    for entity, rows, key, column, goal in (
+            ("problem", mine(ctx.registry.problems), "problem_id", "parent_problem_ids", set(problems)),
+            ("ideal", mine(ctx.registry.ideals), "ideal_id", "parent_ideal_ids", set(ideals)),
+            ("metric", list(metrics.values()), "metric_id", "parent_metric_ids", {metric} if metric else set())):
+        table = {r[key]: r for r in rows}
+        loose = [rid for rid in table if not reaches(table, column, rid, goal) and not ctx.waived("S36", rid)]
+        if loose:
+            bad.append(f"S36 {top.intent_id}: {len(loose)} {entity}(s) do not link up to {sid}'s through {column}: "
+                       f"{', '.join(loose[:12])}{'...' if len(loose) > 12 else ''}; next: set {column} on each to the id of the root's {entity}")
+        linked = [rid for rid in table if rid in goal or reaches(table, column, rid, goal)]
+        thin = [rid for rid in linked if not real_text(table[rid], TEXT_FIELD[entity], rid) and not ctx.waived("S36", rid)]
+        if thin:
+            bad.append(f"S36 {top.intent_id}: {len(thin)} {entity}(s) linked to {sid}'s have no real {TEXT_FIELD[entity]} text "
+                       f"(empty, its own id, or only an unconfirmed marker): {', '.join(thin[:12])}{'...' if len(thin) > 12 else ''}; "
+                       f"next: write the {TEXT_FIELD[entity]} from what the project owner decided")
+    return bad
+
+
+def interfaces(ctx: Context) -> List[str]:
+    config = ctx.config
+    declared = declarations(ctx)
+    package_dir = (config.package_dir or "").rstrip("/") + "/"
+    evaluation = (config.evaluation_dir or "").rstrip("/") + "/"
+    bad: List[str] = []
+    for row in ctx.every_solution():
+        sid = row.get("solution_id", "")
+        in_code = [r for r in ctx.registry.implementations if r.get("solution_id") == sid
+                   and (r.get("filepath") or "").split("::")[0].endswith(".py")
+                   and (r.get("filepath") or "").startswith(package_dir) and not (r.get("filepath") or "").startswith(evaluation)]
+        if not in_code or ctx.waived("S37", sid):
+            continue
+        names = ids(row.get("interface_name", ""))
+        found = declared.get(sid)
+        if found is None:
+            bad.append(f"S37 {sid}: has code ({in_code[0]['filepath']}) but no @solution({sid!r}, kind=, entry=, example=) declares "
+                       f"its interface{' (interface_name says ' + ', '.join(names) + ', which no @solution declares)' if names else ''}; next: "
+                       f"declare it where it lives")
+            continue
+        problems = []
+        if found["name"] not in names:
+            problems.append(f"interface_name is {row.get('interface_name', '')!r}, not {found['name']}")
+        if found["kind"] not in KINDS and (found["is_class"] or found["kind"]):
+            problems.append(f"kind= is {found['kind']!r}, not one of {', '.join(KINDS)}")
+        if found["is_class"] and not found["entry"]:
+            problems.append("no entry= method")
+        elif found["is_class"] and found["entry"] not in found["methods"] and not [b for b in found["bases"] if "Protocol" not in b]:
+            problems.append(f"entry {found['entry']!r} is not a method of {found['name']}")
+        if not found["example"]:
+            problems.append("no example= input")
+        if problems:
+            bad.append(f"S37 {sid}: {found['file']}: " + "; ".join(problems) + "; next: fix the @solution declaration")
+    return bad
+
+
+def child_json(ctx: Context, args: List[str]) -> object:
+    """Run ``python3 -m <args>`` in the project root in a child process with the project's python path; parse its JSON."""
+    env = dict(os.environ)
+    paths = [str(ctx.root / p) for p in (ctx.config.python_path or ["."])] + [str(Path(__file__).resolve().parents[2])]
+    env["PYTHONPATH"] = os.pathsep.join(paths + [env.get("PYTHONPATH", "")])
+    done = subprocess.run([sys.executable, "-m", *args, "--json", str(ctx.root)], cwd=ctx.root, env=env, capture_output=True,
+                          text=True, timeout=float(ctx.config.option("S37", "timeout", 600)))
+    try:
+        return json.loads(done.stdout.strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        return {"error": (done.stderr or done.stdout)[-400:]}
+
+
+INSIDE = "ESOI_IN_ENTRY_CHECK"   # set while an entry check runs: a structure check started by an entry skips the entry checks
+FAILING = ("needs-option", "load-error", "live-attempt", "no-entry", "fail")   # the outcomes of an id that does not answer
+NEXT = {"needs-option": "give its default arm what it needs so the line runs with no options, or declare the option as a requirement",
+        "load-error": "make the arm importable (or declare the missing package as a requirement of the arm)",
+        "live-attempt": "declare the program or service the arm calls as a requirement (so the line is pending) or fix the arm",
+        "no-entry": "declare @solution(id, kind=, entry=, example=)", "fail": "fix the entry so the example returns a value of its kind"}
+
+
+def skip_inside(ctx: Context, rule: str) -> bool:
+    """Inside an entry check the rule is not run (it would start the check again); its waivers count as used, not stale."""
+    if not os.environ.get(INSIDE):
+        return False
+    ctx.used_waivers.update((rule, w["path"]) for w in ctx.registry.waivers if w["rule"] == rule)
+    return True
+
+
+def chain_digest(ctx: Context) -> str:
+    """A digest of what an entry check reads beyond the project's own files: the esoi library, and every package the project
+    imports that itself uses esoi (the parent hubs of an Assembler chain), by file path, size and modification time."""
+    import importlib.machinery
+    found = {Path(__file__).resolve().parents[1]}
+    wanted: set = set()
+    package_dir = (ctx.config.package_dir or "").rstrip("/") + "/"
+    for rel in ctx.files:
+        if rel.startswith(package_dir) and rel.endswith(".py"):
+            tree = parse_file(ctx.root / rel)
+            for node in ast.walk(tree) if tree is not None else []:
+                if isinstance(node, ast.Import):
+                    wanted.update(a.name.split(".")[0] for a in node.names)
+                elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+                    wanted.add(node.module.split(".")[0])
+    search = [str(ctx.root / p) for p in (ctx.config.python_path or ["."])] + sys.path
+    for name in sorted(wanted - {ctx.config.package, "esoi"} - set(sys.stdlib_module_names)):
+        try:
+            spec = importlib.machinery.PathFinder.find_spec(name, search)
+        except (ImportError, ValueError):
+            spec = None
+        if spec is None or not spec.origin or not spec.origin.endswith("__init__.py"):
+            continue
+        folder = Path(spec.origin).resolve().parent
+        try:
+            if "esoi" in folder.joinpath("__init__.py").read_text(encoding="utf-8", errors="replace"):
+                found.add(folder)
+        except OSError:
+            continue
+    digest = hashlib.sha1()
+    for folder in sorted(found):
+        for file in sorted(folder.rglob("*.py")):
+            if "__pycache__" not in file.parts:
+                stat = file.stat()
+                digest.update(f"{file}:{stat.st_size}:{stat.st_mtime_ns};".encode())
+    return digest.hexdigest()
+
+
+def memo_globs(ctx: Context, *extra: str) -> List[str]:
+    return [f"{ctx.config.package_dir}/**", f"{ctx.config.structure_dir}/**", *extra]
+
+
+def entries(ctx: Context) -> List[str]:
+    if skip_inside(ctx, "S37"):
+        return []
+    rows = ctx.memo("S37-entries", memo_globs(ctx), lambda: child_json(ctx, ["esoi.entry"]), extra=chain_digest(ctx))
+    if isinstance(rows, dict):
+        return [f"S37 {ctx.config.package or '.'}: the entry check did not run: {rows.get('error', '')}"]
+    return [f"S37 {r['id']}: {r['outcome']} ({r['detail'][:160]}); next: {NEXT[r['outcome']]}" for r in rows
+            if r["outcome"] in FAILING and (r["level"] == "intent" or r["kind"]) and not ctx.waived("S37", r["id"])]
+
+
+def readme(ctx: Context) -> List[str]:
+    if skip_inside(ctx, "S37") or ctx.waived("S37", "README.md"):
+        return []
+    args = ["esoi.entry", "--readme"] + (["--installed"] if ctx.config.option("S37", "installed", False) else [])
+    found = ctx.memo("S37-readme" + ("-installed" if len(args) > 2 else ""), memo_globs(ctx, "README.md", "pyproject.toml",
+                     "**/pyproject.toml"), lambda: child_json(ctx, args), extra=chain_digest(ctx))
+    if "error" in found:
+        return [f"S37 README.md: the README check did not run: {found['error']}"]
+    return [f"S37 {line}; next: make the README's example match what the call returns" for line in found.get("problems", [])]
+
+
+def coherence(ctx: Context) -> List[str]:
+    from .. import coherence as coherence_module
+    report = coherence_module.check(ctx.root)
+    bad: List[str] = []
+    for r in report["intents"]:
+        if ctx.waived("S38", r["intent"]):
+            continue
+        for part in ("paragraph", "roots", "diagram", "code", "balance"):
+            for line in r["problems"].get(part, []):
+                bad.append(f"S38 {r['intent']}: {part}: {line[:300]}; next: {NEXT_COHERENCE[part]}")
+    return bad
+
+
+NEXT_COHERENCE = {"paragraph": "edit the intent's solution_coherence so each uses edge reads user first and each stated relation is recorded",
+                  "roots": "make one solution the root and let it use the rest (uses_solution_ids)",
+                  "diagram": "run `esoi check --write-docs`", "code": "type the composition in code (import or inject the used interface) or lower the claim in the records",
+                  "balance": "group solutions so no implementation uses more than max_fan_out"}
+
+
+def ratchet(ctx: Context) -> List[str]:
+    """The trend against the base commit. Every moved item is listed with its direction; none of it fails a check."""
+    from .. import ratchet as ratchet_module
+    moves, note = ratchet_module.trend(ctx.config)
+    if note:
+        return [f"S39 {note}"]
+    return [t.line() + ("; next: " + ("restore the rule or floor" if "floor" in t.what or "rule" in t.what or "ceiling" in t.what
+                                       else "close the new waiver by fixing what it excuses")
+                        if t.adverse else "") for t in moves if t.direction != "unchanged"]
+
+
+def run(ctx: Context) -> List[str]:
+    """The findings of the enabled opt-in rules go to ``ctx.advisory`` (to do, with the next action); none is a problem."""
+    if not ctx.config.intent_mode:
+        return []
+    for rule, parts in (("S36", (overall_network,)), ("S37", (interfaces, entries, readme)), ("S38", (coherence,)), ("S39", (ratchet,))):
+        if ctx.config.enabled(rule):
+            for part in parts:
+                ctx.advisory.extend(part(ctx))
+    return []
+
+
+GROUP = RuleGroup(SUMMARIES, run)

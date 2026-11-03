@@ -125,7 +125,7 @@ class Config:
         """The deployment layer of the selection cascade: ``[selection]`` entries ``solution_id = "implementation"``."""
         if isinstance(self.selection, str):
             return {}
-        return {str(k): str(v) for k, v in self.selection.items() if k != "table"}
+        return {str(k): str(v) for k, v in self.selection.items() if k not in ("table", "holdout")}
 
     @property
     def structure(self) -> Path:
@@ -187,6 +187,10 @@ class Config:
 
     def is_disabled(self, rule: str) -> bool:
         return rule in self.disable
+
+    def enabled(self, rule: str) -> bool:
+        """Whether an opt-in rule runs: ``[rules.<id>] enabled = true`` and not listed in ``disable``."""
+        return bool(self.option(rule, "enabled", False)) and not self.is_disabled(rule)
 
     def template_source_path(self, override: Optional[str] = None) -> Optional[Path]:
         """Where the intent template is read from: an override, ``$ESOI_TEMPLATE_SOURCE``, then ``template_source``."""

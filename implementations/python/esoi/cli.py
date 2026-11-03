@@ -1,7 +1,7 @@
 """The ``esoi`` command line. Each subcommand is a thin call into the module that owns the behaviour.
 
     esoi init [DIR] [--package NAME]       scaffold a passing example repository
-    esoi check [--strict] [--write-docs]   run every rule (esoi rules lists them)
+    esoi check [--strict] [--findings] [--write-docs]   run every rule (esoi rules lists them)
     esoi rules [--markdown]                list the rules and what each one means
     esoi template sync|check               keep the parsed intent template in step with its source
     esoi skill sync|check|install          the public copy of the author's skill: generate, verify, install
@@ -53,6 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--force", action="store_true", help="overwrite files that exist")
     p = sub.add_parser("check", help="run every rule")
     p.add_argument("--strict", action="store_true", help="also reject results recorded on uncommitted code")
+    p.add_argument("--findings", action="store_true", help="list every finding of the opt-in rules S36 to S39 with a count per rule (exit 0; they never fail the check)")
     p.add_argument("--write-docs", action="store_true", help="regenerate the generated files first")
     p = sub.add_parser("rules", help="list the rules")
     p.add_argument("--markdown", action="store_true")
@@ -474,13 +475,13 @@ def projects_command(args: argparse.Namespace) -> int:
 def select_command(config, args: argparse.Namespace) -> int:
     """``esoi select``: explain the cascade for a solution, promote a winner, or write a snapshot."""
     import json
-    from . import runtime
+    from . import entry, runtime
     from .select import Selector
     if args.promote:
         from . import promote
         return promote.run_cli(config, args.solution or "", args.dry_run, args.apply)
     if args.snapshot:
-        Path(args.snapshot).write_text(json.dumps(runtime.snapshot(config), indent=1, sort_keys=True) + "\n", encoding="utf-8")
+        Path(args.snapshot).write_text(json.dumps(entry.snapshot(config), indent=1, sort_keys=True) + "\n", encoding="utf-8")
         print(f"wrote {args.snapshot}")
         return 0
     if not args.solution:
@@ -595,7 +596,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return spec_command(config, args)
     if args.cmd == "check":
         from . import check
-        return check.run_cli(config, args.strict, args.write_docs)
+        return check.run_cli(config, args.strict, args.write_docs, findings=args.findings)
     if args.cmd == "rules":
         from . import rules
         for rid, text in rules.summaries(config).items():
