@@ -221,14 +221,16 @@
   }
  },
  "readable-records": {
-  "default": "generated-readme",
+  "default": "at_a_glance",
   "evidence": {
-   "detail": "no rival implementation was measured on the same cases",
-   "p": null,
-   "verdict": "UNMEASURED"
+   "detail": "at_a_glance leads full_page (full_page 0 against at_a_glance 1; best guess, not yet significant, two-sided exact McNemar test, Holm-adjusted p=0.25, 4 of 4 cases disagree); at_a_glance leads links_page (links_page 0 against at_a_glance 1; best guess, not yet significant, two-sided exact McNemar test, Holm-adjusted p=0.25, 4 of 4 cases disagree)",
+   "p": 0.25,
+   "verdict": "WIN"
   },
   "modules": {
-   "generated-readme": "esoi.interfaces"
+   "at_a_glance": "esoi.interfaces",
+   "full_page": "esoi.interfaces",
+   "links_page": "esoi.interfaces"
   }
  },
  "review-tracker": {
