@@ -106,7 +106,18 @@ and cases reuses their rows (the run says so, and `details` records how many) an
 another version, so nothing is reused and the stage is run in full again, which is the re-record the skill allows. Code with
 uncommitted changes, or of no known version, is never reused. Pass `--fresh` to run every case anyway.
 
-`esoi check` prints a note (never an error) for a metric whose cascade departs from the skill's expected order: a first stage that
+Improving comes before measuring, both for agility and to avoid the waste of reruns: improvements that are known and not blocked are
+finished before a metric is run. Running without `--failed`, an unrecorded `esoi run` that finds unsolved failures reruns just those
+cases and says so (pass `--force "reason"` for the whole set); a recorded run of every case is refused until they pass.
+
+A metric that is expensive, or on a large set of cases rather than a representative sample, normally carries other conditions
+that say when it is worth running, such as a weekly release frequency or a person's approval. A stage's `when=` holds that
+condition in words (`when=once a week, on the release day` or `when=Joshua approved the spend`); a program reports it and never
+evaluates it, so a person or an AI judges it. When approval is required is itself something to improve through the specifications:
+record what the approver learned and let the condition get narrower.
+
+`esoi check` prints a note (never an error) for a metric whose cascade departs from the skill's expected order (an idea stage first,
+then a free stage, a real single case, growing sets): a first stage that
 may call a model, a later model-calling stage covering fewer cases than the one before (a free full-set stage followed by a single real case is as expected: cases only need to grow among stages of the same cost kind), or a last stage narrower than an earlier model-calling stage. See
 [The first stage needs no model](first-stage-needs-no-model.md).
 
@@ -116,7 +127,7 @@ A paid run is approved by the person or role that bears its cost, before it star
 inside an already-approved budget (the staged sample on a development system, say) may be pre-approved in the policy. Write
 down who, so nobody has to guess.
 
-### Staleness
+### Staleness and expiration
 
 A recorded result is **stale** when any of these holds:
 
@@ -126,6 +137,11 @@ A recorded result is **stale** when any of these holds:
 - the model, the price or the service behind it changed.
 
 The first three can be checked by a tool and should be. The last needs a person or a scheduled run.
+
+**Expiration is a separate thing.** A result that is still current can be asked for again after a time: a metric's optional
+`expiration` field (`never`, or a number of days), a project default in `[expiration]`, or a stage's `max-age-days`, the most
+specific winning. With none of them a result never expires by age. See [Choosing by metric](choosing-by-metric.md#expiration),
+which also says why expiring costly stages is not recommended for high-stakes production systems.
 
 ### Re-measure when the world moves
 

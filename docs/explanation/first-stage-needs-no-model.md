@@ -8,10 +8,19 @@ The skill says it this way: "New or proposed alternative implementations are tes
 cost, such as a unit test or specific type of review" (see [the definitions and principles](from-the-skill.md)). This
 page says what that first step should be for a metric.
 
-The skill's expectation for the whole list: the first conditional is free (a unit test, or qualitative questions answered and
-converted to a number), the second is a single case or an end-to-end run (simulated if needed), the next ones cover more cases, and
-the last is as objective as possible. Later stages include what is useful from the earlier ones, but cases already run are not run
-again (except to re-record after the implementation changed). `esoi check` prints a note when a cascade departs from that order.
+The skill's expectation for the whole list, in order:
+
+1. **A metric that needs no implementation**: qualitative questions answered and converted to a number by ratings or weights, with
+   the meaning of every rating value specified. It evaluates ideas before anything is built (`kind=idea` with a `scale`).
+2. **A free metric on the implementation**: a unit test or a syntax check (`real=no`).
+3. **A real single case or end-to-end run** that mocks nothing relevant to the solution's purpose (`sample=sample:1`). A simulated
+   case, such as an AI playing the end user the solution is for, counts as real.
+4. **Diverse representative cases**, such as 3, 10 and 30.
+5. **The last stage is as objective as possible.**
+
+Later stages include what is useful from the earlier ones, but cases already run are not run again (except to re-record after the
+implementation changed). Cases only need to grow among the stages that call a model, so a free full-set stage may be followed by a
+single real case. `esoi check` prints a note, never an error, when a cascade departs from this order; no stage is required.
 
 ## Why
 

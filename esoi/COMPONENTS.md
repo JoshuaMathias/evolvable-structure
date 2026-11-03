@@ -64,7 +64,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `eval-promote-the-winner` | evaluation | Cases for promoting the winner of a solution's metric. | promote-the-winner |
 | `spec_index` | core | The spec index solution's interface and implementations. | spec-index |
 | `eval-spec_index` | evaluation | Cases and scorer for spec-index. | spec-index |
-| `cascade` | tools | Reading a metric's cascading conditionals, checking their order against the skill's expectations, choosing the implementation by the latest stage run, expiry of results and the next stage to run. | leaderboard, promote-the-winner |
+| `cascade` | tools | Reading a metric's cascading conditionals, checking their order against the skill's expectations, settling when results expire (stage, metric, project default), choosing the implementation by the latest stage run, expiry of results and the next stage to run. | leaderboard, promote-the-winner |
 | `rules-cascade` | tools | The rules about cascading conditionals: the list can be read (S32) and the selection follows the cascade (S33). | structure-rules, leaderboard |
 | `rules-hierarchy` | tools | unconfirmed: for Joshua to confirm. | structure-rules, assemble-by-name |
 | `versioning` | tools | The stamp of the skill and template the library follows, the template version, and recording it in a repository. | template-sync |

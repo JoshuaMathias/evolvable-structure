@@ -516,6 +516,12 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
             raise RunError(f"no failing case is logged for {impl} on these cases, so there is nothing to rerun "
                            f"(the log is {config.runs_log}); run it without --failed")
         args.only = ",".join(failing)
+    elif guards and not (args.only or args.sample is not None or args.record or args.force is not None):
+        unsolved = run_guards.unsolved_cases(config, component, impl)
+        if unsolved:   # the failing cases are rerun by themselves; the whole set waits until they pass
+            say(f"{len(unsolved)} case(s) failed in the latest run and have not passed since, so only those run ({', '.join(unsolved[:8])}"
+                f"{' ...' if len(unsolved) > 8 else ''}); pass --force \"reason\" to run the whole set")
+            args.only = ",".join(unsolved)
     if args.only:
         keep = {c.strip() for c in args.only.split(",")}
         cases = [c for c in cases if c["id"] in keep]

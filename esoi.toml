@@ -44,4 +44,4 @@ allow_mailboxes = ["joshuamonkey"]
 
 [records]
 # The version of the intent template this repository's own records follow (`esoi version --record`).
-template_version = 1
+template_version = 3

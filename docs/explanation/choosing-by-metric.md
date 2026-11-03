@@ -146,7 +146,30 @@ stays chosen until it is. A result expires when the measured code or the cases c
 stage allows; an expired result counts as not run. Rule S32 checks that the list can be read and S33 that `selected` is the
 implementation the cascade chooses.
 
-Guidance: make the first stage one that needs no model; see [the first stage needs no model](first-stage-needs-no-model.md).
+A stage with `kind=idea` and a `scale` needs no implementation: qualitative questions about an idea are answered and converted to
+a number by ratings or weights, and `scale` says where the meaning of every rating value is written. It evaluates ideas before
+anything is built; like `public` it claims no results row and needs no gate.
+
+### Expiration
+
+A metric's optional `expiration` field answers "when do metrics need to be rerun?": `never` (the default when nothing is set) or
+a number of days such as `90 days`. A project sets a default for all its metrics in `esoi.toml`, which a metric overrides:
+
+```
+[expiration]
+default = "180 days"
+```
+
+Precedence, most specific first: the stage's `max-age-days`, the metric's `expiration`, the project's `[expiration] default`, and
+with none of them a result never expires by age (`cascade.load_stages` applies it). A metric can say `never` against a project
+default. Expiration is not staleness: a result whose implementation, cases or measured code changed is stale and counts as not run
+whatever the expiration says, which is the re-record after an implementation change. Expiration only decides when a result that
+is still current is asked for again, and it applies through the cascade (a metric with no `cascading_conditionals` has no stages to
+expire). Expiring the costly later stages lets an improved implementation be selected quickly from the earlier, cheaper ones; that
+is not recommended for a high-stakes production system, which should instead require a significant gain
+(`require_significance`, above) and pin its selections with [`esoi lock`](../how-to/pin-selections-for-production.md).
+
+Guidance: the expected order of the stages is in [the first stage needs no model](first-stage-needs-no-model.md).
 
 ## When to run
 

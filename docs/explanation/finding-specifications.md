@@ -39,6 +39,10 @@ makes them findable.
 
 ## Tiers: read only what the moment needs
 
+The skill asks that the specifications themselves be structured to optimize the conceptual search tree, so a human or an AI only
+has to review the information relevant to the task in the moment. The tiers below, intents and sub-intents as folders, and the
+index and search above are how this library does it.
+
 | Tier | What | Use |
 |---|---|---|
 | 0 | `kind id: title` | scan every record; fits in a prompt |

@@ -99,7 +99,7 @@ def first_choice(config: Config, registry: Registry, solution: Row, component: s
     by_id = {m.get("metric_id", ""): m for m in registry.metrics}
     stages: List[cascade.Stage] = []
     for metric_id in ids(solution.get("metric_ids", "")):
-        found, errors = cascade.parse(by_id.get(metric_id, {}).get("cascading_conditionals", ""))
+        found, errors = cascade.load_stages(config, by_id.get(metric_id, {}))
         if found and not errors:
             stages = found
             break
@@ -158,7 +158,7 @@ def stage_missing(config: Config, registry: Registry, solution: Row, component: 
     from .tables import ids
     by_id = {m.get("metric_id", ""): m for m in registry.metrics}
     for metric_id in ids(solution.get("metric_ids", "")):
-        found, errors = cascade.parse(by_id.get(metric_id, {}).get("cascading_conditionals", ""))
+        found, errors = cascade.load_stages(config, by_id.get(metric_id, {}))
         if found and not errors:
             names = [st.name for st in found]
             if need not in names:

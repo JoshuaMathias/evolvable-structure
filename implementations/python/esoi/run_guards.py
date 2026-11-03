@@ -17,8 +17,9 @@ The name is matched, ignoring case, ``_``, ``-`` and spaces, against the ``compa
 an independent row exists for the arm's candidate (the implementation name or an ``[evidence.aliases]`` target) on that
 benchmark, the number is already public, so a run is refused unless it says what differs from the public one.
 
-**Unsolved failures.** A run of every case is refused while the arm's earlier cases that failed in a development run have not
-been rerun to a pass (``unsolved_reason``): rerun those alone with ``--failed`` first.
+**Unsolved failures.** While the arm's earlier cases that failed in a development run have not been rerun to a pass, a plain
+unrecorded ``esoi run`` reruns just those cases (what ``--failed`` does), and a recorded run of every case is refused
+(``unsolved_reason``): the failing cases are solved first.
 
 All three are bypassed with ``--force REASON``, and the public one with ``--differs "harness: ..."`` (harness, prompt, settings,
 corpus or metric). The reason is recorded in the row's ``details``.
@@ -100,6 +101,12 @@ def ceiling_reason(config: Config, component: str, impl: str, sample: str, paid:
                 f"may spend money: {paid}) cannot beat it on the {kind}; pass --force \"reason\" to run it anyway "
                 f"(the reason is recorded in the row's details)")
     return ""
+
+
+def unsolved_cases(config: Config, component: str, impl: str) -> List[str]:
+    """The ids of the arm's failed cases that have not passed since, in the order they were run (``run_log.unsolved_failures``)."""
+    return run_log.unsolved_failures(Path(config.root) / config.runs_log, component, impl,
+                                     leaderboard.cases_digest(component, config.evaluation))
 
 
 def unsolved_reason(config: Config, component: str, impl: str) -> str:

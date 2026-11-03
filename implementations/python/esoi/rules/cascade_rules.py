@@ -13,7 +13,8 @@ from .base import Context, RuleGroup
 
 SUMMARIES = {
     "S32": "A metric's `cascading_conditionals` is an ordered list of stages (`name [key=value | key=value]` joined by ` > `): "
-           "known keys and values, unique stage names, and a gate or floor on every stage but the last.",
+           "known keys and values, unique stage names, a gate or floor on every stage but the last (not on a `public` or `kind=idea` stage, which needs a `scale`), "
+           "and a metric `expiration` (and the project's `[expiration] default`) that is `never` or a number of days.",
     "S33": "Where a metric's cascade has counting results, the solution's selected implementation is the one the cascade "
            "chooses (the highest result at the latest stage run, unless another scored higher at an earlier shared stage "
            "and has not been run there yet), or a waiver names the pending decision (waive as `<solution>`).",
@@ -23,7 +24,7 @@ SUMMARIES = {
 def run(ctx: Context) -> list:
     bad: list = []
     for metric in ctx.registry.metrics:
-        stages, errors = cascade.parse(metric.get("cascading_conditionals", ""))
+        stages, errors = cascade.load_stages(ctx.config, metric)
         mid = metric.get("metric_id", "")
         bad.extend(f"S32 metrics.csv {mid}: {why}" for why in errors)
         component, selected = next(iter(ctx.harness_arms(metric.get("command", ""))), ("", ""))   # the command names the selected arm

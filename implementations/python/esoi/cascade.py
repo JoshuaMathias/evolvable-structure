@@ -17,6 +17,16 @@ the condition for moving on, joined by `` | ``::
   implementation when evidence rows exist for it and grade at least C. It never replaces our own first-stage result.
 * ``max-age-days``: a result older than this has expired. ``when``: any other condition, for a person or an AI to judge;
   it is reported, never evaluated. Its text cannot contain ` > `, ` | ` or ``]``.
+* ``kind=idea`` (with ``scale``): a stage that needs no implementation. Qualitative questions about an idea are answered and
+  converted to a number by ratings or weights, and ``scale`` says where the meaning of every rating value is written (a path or
+  a sentence). It evaluates ideas before anything is built, claims no results row, is never the stage a choice rests on and needs
+  no gate, like ``public``.
+
+Expiration (the metric's optional ``expiration`` field, the skill's "when do metrics need to be rerun?") is ``never`` or a number
+of days (``90 days``). Precedence, most specific first: a stage's ``max-age-days``, the metric's ``expiration``, the project's
+``[expiration] default`` in the configuration, and with none of them a result never expires by age. ``load_stages`` applies it.
+It is separate from staleness: a result whose implementation, cases or measured code changed is stale and counts as not run
+whatever the expiration says (the re-record after an implementation change).
 
 The rules this module carries out, from the skill:
 
@@ -36,6 +46,7 @@ staleness callable, so they need neither git nor the file system.
 """
 from __future__ import annotations
 
+import dataclasses
 import datetime
 import re
 from dataclasses import dataclass, field
@@ -47,7 +58,10 @@ from .leaderboard import Row
 
 SEPARATOR, PAIR_SEPARATOR = " > ", " | "
 PUBLIC_STAGE = "public"
-KEYS = ("sample", "real", "gate", "min-pass-rate", "max-age-days", "when")
+KEYS = ("sample", "real", "gate", "min-pass-rate", "max-age-days", "when", "kind", "scale")
+IDEA_KIND = "idea"
+KINDS = (IDEA_KIND,)
+EXPIRATION = re.compile(r"^\s*(?:(never)|(\d+)\s*days?)\s*\.?\s*$", re.I)
 GATES = ("all-pass", "competitive")
 SAMPLE_LABEL = re.compile(r"^(full|sample|sample:\d+|only:\S+)$")
 ITEM = re.compile(r"^\s*([a-z][a-z0-9-]*)\s*(?:\[(.*)\])?\s*$", re.S)
@@ -64,6 +78,18 @@ class Stage:
     min_pass_rate: Optional[float] = None
     max_age_days: Optional[int] = None
     when: str = ""
+    kind: str = ""
+    scale: str = ""
+
+    @property
+    def idea(self) -> bool:
+        """The stage that evaluates ideas before any implementation exists (see the module docstring); it holds no results row."""
+        return self.kind == IDEA_KIND
+
+    @property
+    def unrun(self) -> bool:
+        """A stage ``esoi run`` does not run and no results row belongs to: public evidence, or an idea stage."""
+        return self.public or self.idea
 
     @property
     def gated(self) -> bool:
@@ -103,7 +129,7 @@ def parse(text: str) -> Tuple[List[Stage], List[str]]:
     names = [s.name for s in stages]
     errors.extend(f"stage name {n!r} is used twice" for n in sorted({n for n in names if names.count(n) > 1}))
     errors.extend(f"stage {s.name} has no gate or min-pass-rate, so nothing says when to move on to {stages[i + 1].name}"
-                  for i, s in enumerate(stages[:-1]) if not s.gated and not s.public)
+                  for i, s in enumerate(stages[:-1]) if not s.gated and not s.unrun)
     return stages, errors
 
 
@@ -134,13 +160,50 @@ def build(name: str, values: Dict[str, str]) -> Tuple[Stage, List[str]]:
             age = int(values["max-age-days"])
         else:
             problems.append(f"max-age-days={values['max-age-days']} is not a positive whole number")
-    return Stage(name, sample, real, gate, floor, age, values.get("when", "")), problems
+    kind = values.get("kind", "")
+    if kind and kind not in KINDS:
+        problems.append(f"kind={kind} is not one of {', '.join(KINDS)}")
+        kind = ""
+    if kind == IDEA_KIND and not values.get("scale"):
+        problems.append("kind=idea needs scale=, where the meaning of every rating value is specified")
+    return Stage(name, sample, real, gate, floor, age, values.get("when", ""), kind, values.get("scale", "")), problems
+
+
+def parse_expiration(text: str) -> Tuple[Optional[int], str]:
+    """``(days, problem)`` for an ``expiration`` cell: ``never`` or blank is ``None`` days, ``N days`` is N. Anything else is a problem
+    (the cell is read by a program, so it is ``never`` or a number of days). The unconfirmed marker is ignored, as in a cascade."""
+    text = UNCONFIRMED.sub("", text or "")
+    if not text.strip():
+        return None, ""
+    found = EXPIRATION.match(text)
+    if not found:
+        return None, f"expiration {text.strip()[:40]!r} is not `never` or a number of days such as `90 days`"
+    return (int(found.group(2)) if found.group(2) else None), ("expiration of 0 days would expire every result at once" if found.group(2) == "0" else "")
+
+
+def default_days(config) -> Tuple[Optional[int], str]:
+    """The project's ``[expiration] default`` in days (``None`` for never or unset) and what is wrong with it."""
+    return parse_expiration(str((getattr(config, "expiration", None) or {}).get("default", "")))
+
+
+def load_stages(config, metric: Row) -> Tuple[List[Stage], List[str]]:
+    """The stages of a metric's cascade with their expiry settled: a stage's own ``max-age-days``, else the metric's ``expiration``,
+    else the project's default, else none (see the module docstring). Also the problems with the list and with the expiration cells."""
+    stages, errors = parse(metric.get("cascading_conditionals", ""))
+    days, problem = parse_expiration(metric.get("expiration", ""))
+    errors = errors + ([problem] if problem else [])
+    if not metric.get("expiration", "").strip():
+        days, problem = default_days(config)
+        errors += [f"[expiration] default: {problem}"] if problem else []
+    if days is not None and not problem:
+        stages = [s if s.max_age_days is not None or s.unrun else dataclasses.replace(s, max_age_days=days) for s in stages]
+    return stages, errors
 
 
 def matches(stage: Stage, row: Row) -> bool:
     """Whether a results row is a result of this stage."""
     label = (row.get("sample") or "").strip()
-    if stage.public:
+    if stage.unrun:
         return False
     if stage.sample == "full" and label:
         return False
@@ -258,7 +321,7 @@ def next_stage(stages: List[Stage], mine: Standing, selected: Optional[Standing]
     """``(stage index, why)`` for the first stage with no counting result, once every earlier stage's gate is met; else
     ``(None, why nothing is next)``. A stage never run is ``not run``, never an estimate."""
     for index, stage in enumerate(stages):
-        if stage.public:
+        if stage.unrun:
             continue
         row = mine.rows.get(index)
         if row is None:
@@ -289,7 +352,7 @@ def solution_choice(config, registry, solution: Row, component: str, current: st
     by_id = {m.get("metric_id", ""): m for m in registry.metrics}
     stages: List[Stage] = []
     for metric_id in ids(solution.get("metric_ids", "")):
-        found, errors = parse(by_id.get(metric_id, {}).get("cascading_conditionals", ""))
+        found, errors = load_stages(config, by_id.get(metric_id, {}))
         if found and not errors:
             stages = found
             break
@@ -314,19 +377,35 @@ def breadth(stage: Stage) -> Optional[float]:
 
 def expectation_notes(stages: List[Stage]) -> List[str]:
     """What a list does not do of the skill's expectations for cascading conditionals, as notes (never errors: a cascade that
-    differs may have a reason). The first stage costs nothing (it needs no model, so it says ``real=no``); later stages are
-    progressively more comprehensive (no stage that calls a model runs fewer cases than the one before; a free stage may cover the
-    whole set and be followed by a single real case, because cases only need to grow among stages of the same cost kind); the last is
-    the most comprehensive and as objective as possible, which is read as covering no fewer cases than any earlier model stage (it
-    need not be the whole set: it may be a real-use or public measure). A one-stage list, and a stage named ``public``, are not judged."""
-    own = [s for s in stages if not s.public]
+    differs may have a reason, and no stage is required). The expected order:
+
+      1. a stage that needs no implementation (``kind=idea``, qualitative questions turned into a number by ratings, with the
+         meaning of every rating value in ``scale``), to evaluate ideas before building;
+      2. a free stage on the implementation (``real=no``: a unit test, a syntax check);
+      3. a real single case or end-to-end run (``real=yes``, ``sample=sample:1``; a simulated user counts as real);
+      4. diverse representative cases, growing (3, 10, 30);
+      last: as comprehensive and objective as possible, read as covering no fewer cases than any earlier model-calling stage (it
+      need not be the whole set: it may be a real-use or public measure).
+
+    Cases only need to grow among stages of the same cost kind, so a free full-set stage may be followed by one real case. A list
+    with fewer than two stages that run, and a stage named ``public``, are not judged."""
+    own = [s for s in stages if not s.unrun]
     notes: List[str] = []
     if len(own) < 2:
         return notes
+    ideas = [s for s in stages if s.idea]
+    if not ideas:
+        notes.append("no stage evaluates ideas before implementation; consider a first stage with kind=idea and a scale= that says what every "
+                     "rating value means (qualitative questions converted to a number)")
+    elif not stages[0].idea:
+        notes.append(f"the idea stage {ideas[0].name} should come first, before any stage that needs the implementation")
     if own[0].real is not False:
-        notes.append(f"the first stage, {own[0].name}, should cost nothing (a unit test, or qualitative questions scored as a number): "
+        notes.append(f"the first stage on the implementation, {own[0].name}, should cost nothing (a unit test or syntax check): "
                      "add real=no, or put a stage that needs no model first (see docs/explanation/first-stage-needs-no-model.md)")
     paid = [s for s in own if s.real is not False]   # a free stage is cheap whatever it covers, so it is not compared for breadth
+    if paid and breadth(paid[0]) not in (None, 1.0) and len(paid) > 1:
+        notes.append(f"the first stage that calls a model, {paid[0].name}, should be a real single case or end-to-end run (sample=sample:1), "
+                     "simulated if needed, before more cases")
     for before, after in zip(paid, paid[1:]):
         low, high = breadth(before), breadth(after)
         if low is not None and high is not None and high < low:
@@ -383,7 +462,7 @@ def run_cli(config, solution: str = "", strict: bool = False, say: Callable[[str
     graded = evidence_module.estimates(evidence_rows, today) if evidence_rows else {}
     found, behind = 0, 0
     for metric in loaded.metrics:
-        stages, errors = parse(metric.get("cascading_conditionals", ""))
+        stages, errors = load_stages(config, metric)
         owners = ids(metric.get("solution_ids", ""))
         if not stages and not errors or (solution and solution not in owners):
             continue
@@ -404,7 +483,7 @@ def run_cli(config, solution: str = "", strict: bool = False, say: Callable[[str
         for impl, s in sorted(standing.items()):
             say(f"  {impl}: " + "; ".join(f"{stage.name} {describe(s.rows.get(i))}"
                                            + (f" (expired: {s.expired[i][1]})" if i in s.expired else "")
-                                           for i, stage in enumerate(stages) if not stage.public))
+                                           for i, stage in enumerate(stages) if not stage.unrun))
         decision = decide(stages, standing, config.evaluation)
         for note in decision.notes:
             say(f"  note: {note}")
