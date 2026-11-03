@@ -1,6 +1,6 @@
 """The repositories the README-at-a-glance evaluation reads: this repository and the adopters named in ``ESOI_GLANCE_ADOPTERS``
 (paths separated by the platform's path separator, in the order ``adopter-1``, ``adopter-2``). Nothing here writes to them and
-nothing calls a model. ``page(label, intent, layout, fresh)`` is what every arm of ``readme_at_a_glance`` wraps."""
+nothing calls a model. ``load`` and ``intent_of`` are what every arm of ``readme_at_a_glance`` reads through."""
 from __future__ import annotations
 
 import os
@@ -37,9 +37,3 @@ def intent_of(view, name: str):
     if not found:
         raise LookupError(f"no intent {name} here")
     return found[0]
-
-
-def page(label: str, name: str, layout: str, fresh: bool = False) -> dict:
-    cfg, loaded, view = load(label, fresh)
-    intent = intent_of(view, name)
-    return {"text": readme.render(loaded, intent, view, layout)}

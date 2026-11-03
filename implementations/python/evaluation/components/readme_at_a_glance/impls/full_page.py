@@ -1,8 +1,10 @@
-"""CURRENT: the record tables only, the page as it was before the at-a-glance standard. Zero model calls."""
+"""ALTERNATIVE: the record tables only, the page as it was before the at-a-glance standard (the rival `full` layout of ``esoi.readme``). Zero model calls."""
 import glance_fixture
+from esoi import readme
 
 
 def build(meter):
     def page(kind, args):
-        return glance_fixture.page(args["repo"], args["intent"], "full", bool(args.get("fresh")))
+        cfg, loaded, view = glance_fixture.load(args["repo"], bool(args.get("fresh")))
+        return {"text": readme.render(loaded, glance_fixture.intent_of(view, args["intent"]), view, "full")}
     return page
