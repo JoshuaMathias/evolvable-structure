@@ -2,7 +2,7 @@
 import re
 
 from conftest import fill_top_intent  # noqa: F401  (the cfg fixture fills the top intent)
-from esoi import besidecode, check, config, intents, readme, registry, tables
+from esoi import besidecode, check, config, implementedby, intents, readme, registry, tables
 from test_intents import add_solution, lines, write_intent
 
 
@@ -245,3 +245,66 @@ def test_the_layout_needs_no_declaration_in_code_and_the_python_scan_finds_nothi
     cfg = typescript_repo(repo)
     view = readme.view_of(cfg, registry.load(cfg))
     assert view.declared == {}
+
+
+def reference_to(cfg, name, text, solution_impl="greet-a-person:shout"):
+    """A reference file ``src/greet/<name>`` and the implementation record that points to it."""
+    (cfg.root / "src" / "greet" / name).write_text(text)
+    rewrite_rows(cfg.structure / "implementations.csv",
+                 lambda r: r["implementation_id"] == solution_impl and r.update(filepath=f"src/greet/{name}"))
+    return config.load(cfg.root)
+
+
+def test_a_registry_that_lists_a_path_that_does_not_resolve_is_a_finding_and_a_resolving_one_is_not(repo):
+    cfg = typescript_repo(repo)
+    cfg = reference_to(cfg, "registry.csv", "name,filepath\nGreeter,src/greet/greet.ts\nGone,src/greet/gone.ts\n")
+    toml = cfg.root / "esoi.toml"
+    toml.write_text(toml.read_text().replace("records.template_version", "rules.S40.enabled = true\nrecords.template_version", 1))
+    found = advice(config.load(cfg.root))
+    assert any("src/greet/registry.csv lists src/greet/gone.ts, which does not resolve" in ln and "next: " in ln for ln in found), found
+    assert not any("greet.ts, which" in ln for ln in found)
+    cfg = reference_to(config.load(cfg.root), "registry.csv", "name,filepath\nGreeter,src/greet/greet.ts\n")
+    assert advice(cfg) == []
+
+
+def test_a_registry_row_must_exist_and_a_markdown_reference_lists_the_files_it_links(repo):
+    cfg = typescript_repo(repo)
+    toml = cfg.root / "esoi.toml"
+    toml.write_text(toml.read_text().replace("records.template_version", "rules.S40.enabled = true\nrecords.template_version", 1))
+    cfg = reference_to(config.load(cfg.root), "services.csv", "id,filepath\nstripe,\n")
+    rewrite_rows(cfg.structure / "implementations.csv", lambda r: r["implementation_id"] == "greet-a-person:shout" and r.update(filepath="src/greet/services.csv::paypal"))
+    assert any("paypal is not a row of src/greet/services.csv" in ln for ln in advice(config.load(cfg.root)))
+    rewrite_rows(cfg.structure / "implementations.csv", lambda r: r["implementation_id"] == "greet-a-person:shout" and r.update(filepath="src/greet/services.csv::stripe"))
+    assert advice(config.load(cfg.root)) == []
+    cfg = reference_to(config.load(cfg.root), "how.md", "The greeter is [here](greet.ts) and [there](missing.ts).\n")
+    assert any("src/greet/missing.ts, which does not resolve" in ln for ln in advice(config.load(cfg.root)))
+    assert implementedby.form_of(config.load(cfg.root), "src/greet/how.md").listed == ["src/greet/greet.ts", "src/greet/missing.ts"]
+    assert implementedby.form_of(config.load(cfg.root), "src/greet/greet.ts").kind == "code"
+
+
+def test_code_that_declares_a_solution_is_reported_when_the_registry_leaves_it_out(repo):
+    cfg = config.load(repo)
+    (cfg.root / "demo" / "registry.csv").write_text("filepath\n")
+    rewrite_rows(cfg.structure / "implementations.csv", lambda r: r["implementation_id"] == "greet-a-person:shout" and r.update(filepath="demo/registry.csv"))
+    toml = cfg.root / "esoi.toml"
+    toml.write_text(toml.read_text().replace("records.template_version", "rules.S40.enabled = true\nrecords.template_version", 1))
+    assert any(ln.startswith("S40 greet-a-person: demo/greet.py declares it but demo/registry.csv does not list it") and "next: " in ln
+               for ln in advice(config.load(cfg.root)))
+
+
+def test_the_folder_page_lists_the_files_that_implement_each_solution_from_the_records_and_the_ownership_map(repo):
+    cfg = typescript_repo(repo)
+    toml = cfg.root / "esoi.toml"
+    toml.write_text(toml.read_text().replace("records.template_version", 'records.beside_code = ["src", "src/*"]\nrecords.template_version', 1))
+    rewrite_rows(cfg.structure / "components.csv", lambda r: r["component_id"] == "esoi-records" and r.update(solutions=r["solutions"]))
+    components = tables.read_csv(cfg.structure / "components.csv")
+    tables.write_csv(cfg.structure / "components.csv", tables.read_header(cfg.structure / "components.csv"),
+                     components + [dict(components[0], component_id="greeter-ts", layer="core", path="src/greet/*.ts", role="Greeters.", solutions="greet-a-person")])
+    after = config.load(cfg.root)
+    besidecode.apply(after, besidecode.plan(after))
+    after = config.load(cfg.root)
+    readme.write(after, registry.load(after), say=lambda text: None)
+    page = (cfg.root / "src" / "greet" / "README.md").read_text()
+    line = next(ln for ln in page.splitlines() if ln.startswith("- Implemented by:"))
+    assert "[`src/greet/greet.ts`](greet.ts)" in line and "[`src/greet/shout.ts`](shout.ts)" in line
+    assert readme.run_cli(after, check=True, say=lambda text: None) == 0

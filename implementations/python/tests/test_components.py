@@ -28,6 +28,11 @@ GRADED = {"spec_index": ("weighted_tfidf", "term_overlap")}
 LOCAL = {"readme_at_a_glance": ("at_a_glance", ("full_page", "links_page", "readme_at_a_glance.broken.no_readme:build"))}
 
 
+# Laid out from the records of every repository this one can read (ESOI_GLANCE_ADOPTERS names the others): the arm the measurement selected
+# passes more of the cases than the rival layout.
+LAYOUTS = {"navigable_records": ("beside_code", "esoi_folder")}
+
+
 def score_all(component, spec):
     score = importlib.import_module(f"{component}.score")
     fn = harness.load_impl(spec, component)(harness.CallMeter())
@@ -35,7 +40,7 @@ def score_all(component, spec):
 
 
 def test_every_component_has_a_live_implementation_listed_here():
-    assert set(COMPONENTS) == set(LIVE) | set(GRADED) | set(LOCAL)
+    assert set(COMPONENTS) == set(LIVE) | set(GRADED) | set(LOCAL) | set(LAYOUTS)
 
 
 @pytest.mark.parametrize("component", sorted(LIVE))
@@ -73,3 +78,10 @@ def test_the_selected_arm_passes_the_readable_cases_and_the_rivals_do_not(compon
     assert good and all(good), f"{component}: {good}"
     for rival in rivals:
         assert not all(score_local(component, rival)), f"{component}/{rival} passes every readable case"
+
+
+@pytest.mark.parametrize("component", sorted(LAYOUTS))
+def test_the_selected_layout_passes_more_cases_than_the_rival_layout(component):
+    selected, rival = LAYOUTS[component]
+    good, bad = score_local(component, selected), score_local(component, rival)
+    assert good and sum(good) > sum(bad), f"{component}: {selected} {sum(good)} does not beat {rival} {sum(bad)} of {len(good)}"

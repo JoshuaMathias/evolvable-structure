@@ -6,7 +6,10 @@ goes to ``esoi check --findings`` with its next action. The standard is ``docs/r
 * a solution whose spec row and code are in folders more than one link apart (the row is in one folder, the code of an
   implementation in another that is neither its parent nor its child);
 * a folder that holds the code of an implementation but has no ``README.md`` (the page is written from the records the folder holds);
-* a record kept in two places.
+* a record kept in two places;
+* a reference or registry implementation (a CSV or markdown file that lists the files, services or practices that implement a solution)
+  that lists a path that does not resolve or names a row that does not exist, and code that declares a solution but is missing from
+  the registry that lists its implementations (also where ``[rules.S40] enabled = true`` without ``beside_code``).
 
 A waiver excuses one key: the solution id, the folder's path from the repository root, or the record id.
 """
@@ -15,13 +18,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List
 
-from .. import besidecode, intents
+from .. import besidecode, declarations, implementedby, intents
 from .base import Context, RuleGroup
 
 SUMMARIES = {
-    "S40": "Opt-in by `[records] beside_code`: a solution's spec row and the code of its implementations are in the same folder or one "
-           "link apart; a folder that holds an implementation's code has a README.md; a record lives in one place (advisory; waive as the "
-           "solution id, the folder's path or the record id).",
+    "S40": "Opt-in by `[records] beside_code` (or `[rules.S40] enabled = true`): a solution's spec row and the code of its implementations are in the same folder or one "
+           "link apart; a folder that holds an implementation's code has a README.md; a record lives in one place; a reference or registry implementation lists only paths that resolve and every code file "
+           "that declares the solution (advisory; waive as the solution id, the folder's path, the implementation id or the record id).",
 }
 
 
@@ -65,10 +68,26 @@ def findings(ctx: Context) -> List[str]:
     return out
 
 
+def reference_findings(ctx: Context) -> List[str]:
+    """A reference or registry implementation that lists a path that does not resolve (or names a row that does not exist), and code
+    that declares a solution but is missing from the registry that lists its implementations."""
+    try:
+        declared = declarations.scan(ctx.config)
+    except (OSError, ValueError):
+        declared = None
+    return [line for key, line in implementedby.problems(ctx.config, ctx.registry, declared) if not ctx.waived("S40", key)]
+
+
 def run(ctx: Context) -> List[str]:
-    """The findings go to ``ctx.advisory``; none is a problem."""
-    if ctx.config.intent_mode and ctx.config.records.get("beside_code") and not ctx.config.is_disabled("S40"):
+    """The findings go to ``ctx.advisory``; none is a problem. The layout findings need ``beside_code``; the findings about what an
+    implementation lists run wherever S40 runs (``beside_code`` set, or ``[rules.S40] enabled = true``)."""
+    config = ctx.config
+    if not config.intent_mode or config.is_disabled("S40"):
+        return []
+    if config.records.get("beside_code"):
         ctx.advisory.extend(findings(ctx))
+    if config.records.get("beside_code") or config.enabled("S40"):
+        ctx.advisory.extend(reference_findings(ctx))
     return []
 
 

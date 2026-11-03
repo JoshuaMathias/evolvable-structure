@@ -5,6 +5,8 @@ arm lays out. A case passes when every check passes; ``aggregate`` reports how m
   link apart (parent and child). A solution with no code named has nothing to keep apart.
 * ``clicks``: from the repository's top README, following links between README pages, the page of the folder that holds the
   solution's row, naming it, is within ``CLICKS`` clicks.
+* ``implemented``: the page that names the solution links, in one hop, to each file that holds its implementations (a code file, or
+  the reference or registry file an implementation names).
 * ``unduplicated``: no record of the solution (its row, its implementations) is kept in two places.
 * ``readme``: every folder that holds the code of one of its implementations has a README.md.
 * ``pure``: laying the records out again writes the same READMEs (nothing hand-kept, no clock).
@@ -18,7 +20,7 @@ import navigable_fixture
 from esoi import besidecode, intents
 from esoi.rules.beside_rules import distance
 
-CHECKS = ("together", "clicks", "unduplicated", "readme", "pure")
+CHECKS = ("together", "clicks", "implemented", "unduplicated", "readme", "pure")
 CLICKS = 3
 LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s#]+)")
 
@@ -49,6 +51,14 @@ def clicks_to(root, goal_folder, solution_id):
     return None
 
 
+def hop(root, goal_folder, solution_id, files):
+    """Whether a README page in ``goal_folder`` that names the solution links to every file of ``files`` (repository-relative)."""
+    wanted = {(Path(root) / f).resolve() for f in files if f}
+    texts = [t for p, t in pages(root).items() if p.parent == goal_folder.resolve() and f"`{solution_id}`" in t]
+    reached = {(goal_folder / target).resolve() for text in texts for target in LINK.findall(text)}
+    return wanted <= reached
+
+
 def verdicts(arm, args, again):
     cfg, loaded = navigable_fixture.load(args["repo"], arm)
     root, digest = navigable_fixture.layout(args["repo"], arm)
@@ -62,6 +72,7 @@ def verdicts(arm, args, again):
     out = {"together": all(distance(spec, c) <= 1 for c in code)}
     reached = clicks_to(root, spec, sid)
     out["clicks"] = reached is not None and reached <= CLICKS
+    out["implemented"] = hop(root, spec, sid, [besidecode.root_relative_file(cfg, row.get("filepath", "")) for row, _ in mine])
     ids = {sid, *(row.get("implementation_id", "").strip() for row, _ in mine)}
     out["unduplicated"] = not any(ident in ids for _, ident, _ in intents.duplicate_rows(cfg))
     out["readme"] = all((c / "README.md").is_file() for c in code)

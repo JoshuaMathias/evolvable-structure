@@ -32,7 +32,8 @@ from . import diagram, intents, leaderboard
 from .config import Config
 from .intents import Intent
 from .registry import Registry, harness_arms
-from .tables import read_csv, written
+from . import implementedby
+from .tables import read_csv, repo_files, written
 
 FILE = "README.md"
 LAYOUTS = ("glance", "full", "links")
@@ -86,6 +87,8 @@ class View:
     intents: List[Intent] = field(default_factory=list)
     results: Dict[str, Dict[str, Dict[str, str]]] = field(default_factory=dict)
     declared: Dict[str, Any] = field(default_factory=dict)
+    files: Optional[List[str]] = None   # the repository's files (git's list), for the ownership map's globs
+    declared_all: Any = None   # every declaration the code makes (solutions and implementations), for the files that implement a solution
     beside: List[Tuple[str, Path]] = field(default_factory=list)   # (owning intent id, folder) of each solution folder kept beside the code
 
     def intent(self, intent_id: str) -> Optional[Intent]:
@@ -96,11 +99,13 @@ def view_of(config: Config, registry: Registry, results: Optional[Dict[str, Dict
     """The View of a repository (``results`` defaults to the latest rows of its results log)."""
     from . import declarations
     try:
-        declared = declarations.scan(config).solutions
+        scanned = declarations.scan(config)
+        declared = scanned.solutions
     except (OSError, ValueError):
-        declared = {}
+        scanned, declared = None, {}
     return View(config, intents.discover(config),
                 leaderboard.latest_results(config.results_path) if results is None else results, declared,
+                repo_files(config.root), scanned,
                 [(owner, folder) for owner, folder, has in intents.located(config) if not has])
 
 
@@ -247,6 +252,15 @@ def metric_lines(view: View, registry: Registry, intent: Intent) -> List[str]:
     return out + more(len(rows), "metrics")
 
 
+def where_cell(view: Optional[View], folder: Path, filepath: str) -> str:
+    """Where an implementation is: a link to the file (or registry) it names when that exists, else the path as written."""
+    shown = one_line(filepath)
+    entry = filepath.partition("::")[0].strip()
+    if view is not None and view.config is not None and entry and (view.config.root / entry).is_file():
+        return f"[{shown}]({link(folder, view.config.root / entry)})"
+    return shown
+
+
 def record_tables(registry: Registry, intent: Intent, level: str = "##", view: Optional[View] = None) -> List[str]:
     """The full record: every problem, ideal, solution, implementation and metric of the intent, by id."""
     iid = intent.intent_id
@@ -266,7 +280,7 @@ def record_tables(registry: Registry, intent: Intent, level: str = "##", view: O
     implementations = mine(registry.implementations, iid)
     if implementations:
         lines += [f"{level} Implementations", "", "| Implementation | Name | Where | Sub-intent |", "|---|---|---|---|"]
-        lines += [f"| `{r.get('implementation_id', '')}` | {one_line(r.get('name', ''))} | {one_line(r.get('filepath', ''))} | "
+        lines += [f"| `{r.get('implementation_id', '')}` | {one_line(r.get('name', ''))} | {where_cell(view, intent.folder, r.get('filepath', ''))} | "
                   f"{('[' + r['sub_intent'] + '](' + r['sub_intent'] + '/README.md)') if r.get('sub_intent') else ''} |"
                   for r in implementations] + [""]
     metrics = mine(registry.metrics, iid)
@@ -284,7 +298,7 @@ def render_full(registry: Registry, intent: Intent, view: View) -> str:
                   f"intent `{intent.parent}`. Opportunities: {one_line(intent.row.get('opportunities', ''))}", ""]
     if intent.row.get("solution_coherence", "").strip():
         lines += ["## How the solutions fit together", "", one_line(intent.row["solution_coherence"]), ""]
-    return "\n".join(lines + record_tables(registry, intent)).rstrip() + "\n"
+    return "\n".join(lines + record_tables(registry, intent, "##", view)).rstrip() + "\n"
 
 
 def render_glance(registry: Registry, intent: Intent, view: View) -> str:
@@ -314,7 +328,7 @@ def render_glance(registry: Registry, intent: Intent, view: View) -> str:
     if nav:
         lines += ["## Where to go next", ""] + nav + [""]
     lines += [DIVIDER, "", "## The full record", ""]
-    return "\n".join(lines + record_tables(registry, intent, "###")).rstrip() + "\n"
+    return "\n".join(lines + record_tables(registry, intent, "###", view)).rstrip() + "\n"
 
 
 def render_links(registry: Registry, intent: Intent, view: View) -> str:
@@ -344,6 +358,18 @@ def code_cell(view: View, folder: Path, filepath: str) -> str:
     if view.config is not None and (view.config.root / path).is_file():
         return f"[`{path}`]({link(folder, view.config.root / path)})"
     return f"`{one_line(path)}`"
+
+
+def implemented_line(registry: Registry, view: View, folder: Path, solution_id: str) -> List[str]:
+    """``- Implemented by: ...``: the files that implement a solution as links from the folder's page, generated from the records, the
+    declarations and the ownership map (never hand-kept), at most ``implementedby.CAP`` of them."""
+    files = implementedby.implemented_by(view.config, registry, solution_id, view.declared_all, view.files)
+    if not files:
+        return []
+    root = view.config.root
+    shown = [f"[`{f}`]({link(folder, root / f)})" for f in files[:implementedby.CAP]]
+    rest = len(files) - len(shown)
+    return ["- Implemented by: " + ", ".join(shown) + (f" and {rest} more" if rest > 0 else "")]
 
 
 def folder_diagram(registry: Registry, view: View, owner: str, folder: Path) -> List[str]:
@@ -396,7 +422,8 @@ def render_folder(registry: Registry, view: View, owner: str, folder: Path) -> s
         picked = one_line(r.get("selected", ""))
         lines += [f"- Entry call: {entry_call(view, config.package, sid, r)}",
                   f"- Selected implementation: {('`' + picked + '`') if picked else 'none selected'}",
-                  f"- Metric: {metric_names(r.get('metric', ''))}", ""]
+                  f"- Metric: {metric_names(r.get('metric', ''))}"]
+        lines += implemented_line(registry, view, folder, sid) + [""]
     picture = folder_diagram(registry, view, owner, folder)
     if picture:
         lines += ["## Diagram", "", "An arrow runs from the solution that provides to the solution that builds on it; its label is "

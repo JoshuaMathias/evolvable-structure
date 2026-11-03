@@ -32,6 +32,10 @@ A repository that keeps its records beside the code lists, in `esoi.toml`, the f
 
 A row never leaves the intent that owns it: the rows in and below a folder that holds an `intent.csv` belong to that sub-intent. `esoi records place` moves the records to these folders and `esoi records gather` moves them back.
 
+## What an implementation points to
+
+The `filepath` of an implementation names a source file in any language (code), a registry file that lists the files, services or practices that implement the solution (a reference), or `registry.csv::row-id` for a real-world system recorded as one row of a registry. See [forms of implementation](../../reference/records-beside-code.md#forms-of-implementation).
+
 ## The README of the folder
 
-Written by `esoi readmes` from the records of the folder, never edited: for each solution its name, purpose, entry call and selected implementation; the diagram when the folders below it hold solutions it builds on; the implementations it holds, each with a link to its code; the metrics with their leaders; problems and ideals in a line each; and links up to the folder above or the intent, down to the folders below, and out to the repository's top README.
+Written by `esoi readmes` from the records of the folder, never edited: for each solution its name, purpose, entry call and selected implementation and the files that implement it (from the records, the declarations and the ownership map); the diagram when the folders below it hold solutions it builds on; the implementations it holds, each with a link to its code; the metrics with their leaders; problems and ideals in a line each; and links up to the folder above or the intent, down to the folders below, and out to the repository's top README.

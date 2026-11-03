@@ -80,6 +80,23 @@ Each record lives once, in one folder. `esoi records place` (a dry run without `
 A row never leaves the intent that owns it: the rows in and below a sub-intent folder belong to that sub-intent, and `place` skips any
 move that would change the owner. An id is unique across the whole tree, so a link in one folder may name a record in another.
 
+## Forms of implementation
+
+What an implementation record's `filepath` points to says which form it takes (no new field; `description` and `uses_solution_ids`
+say the rest):
+
+| Form | `filepath` points to | Example |
+|---|---|---|
+| Code | A source file in any language: a declared class or function, optionally `path::symbol` | `src/greet/greet.ts`, `mypackage/recall/store.py::LocalStore` |
+| Reference | A registry file that lists the files, services or practices that implement the solution: a CSV whose `filepath`, `path`, `paths`, `file` or `files` column holds repository paths (`;` separated), or a markdown or text file whose relative links name them | `mypackage/registry/hub_integrations.csv` |
+| Registry row | `registry-file.csv::row-id`: a real-world system (an external service, an organization, a process) recorded as one row of a registry; the first column of the row is its id | `mypackage/registry/hub_integrations.csv::stripe` |
+
+The generated README of a solution folder shows "Implemented by" under each solution: the files its implementations name, the files
+the code declares it in (`@implementation`), the paths its reference registries list, and the files of the components that
+`components.csv` assigns to it (its ownership map), at most 8 with a count of the rest. It is generated from those sources and never
+hand-kept. Rule S40 informs when a reference or registry lists a path that does not resolve or a row that does not exist, and when code
+that declares a solution is missing from the registry that lists its implementations.
+
 ## Reading and generating
 
 The library reads the structure folder and every listed folder as one tree (`esoi.intents.folders`), so the rules, the cascade, the
@@ -101,6 +118,7 @@ solution folder. Rule S8 reports a page that is out of date. A page is never edi
 | Implementations | A table of the implementations this folder holds: id, name, a link to its code, and whether it is the selected one |
 | Metrics | Each metric of the folder with the implementation that leads it in the results log |
 | Problems and ideals | One line each |
+| Implemented by | Under each solution, the files that implement it, linked, generated from the records, the declarations and the ownership map |
 | Where to go next | Up to the folder above (or the intent), down to each folder below it, out to the repository's top README |
 
 The page states finished truth only (no `unconfirmed` marker, no em dash, no machine path), as in
@@ -117,6 +135,8 @@ adopting repositories (named by `ESOI_GLANCE_ADOPTERS`). Each arm lays the repos
   apart (parent and child);
 - `clicks`: from the repository's top README, following links between README pages, the page of the folder that holds the solution's
   row, naming it, is within 3 clicks;
+- `implemented`: the page that names the solution links, in one hop, to each file that holds its implementations (a code file, or the
+  reference or registry file an implementation names);
 - `unduplicated`: none of the solution's records is kept in two places;
 - `readme`: every folder that holds the code of one of its implementations has a `README.md`;
 - `pure`: laying the records out again writes the same pages.
@@ -134,5 +154,7 @@ next action. A waiver excuses one key.
 | A solution's spec is in one folder and its code in a folder more than one link apart | `esoi records place --apply`, or list the folder that holds the code under `beside_code` |
 | A folder holds the code of an implementation but has no `README.md` | `esoi records place --apply` (it moves the records there and writes the page), or list the folder under `beside_code` |
 | A record is kept in two places | Delete the copies that are not in the folder that holds its code |
+| A reference or registry lists a path that does not resolve, or a registry row does not exist | Correct or remove the entry (also reported where `[rules.S40] enabled = true` without `beside_code`) |
+| Code declares a solution but the registry that lists its implementations leaves it out | Add the file to the registry |
 
 How to adopt it, step by step: [keep records beside the code](../how-to/keep-records-beside-the-code.md).

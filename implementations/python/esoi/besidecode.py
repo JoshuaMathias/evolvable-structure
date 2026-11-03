@@ -91,6 +91,11 @@ def code_folder(config: Config, filepath: str) -> Optional[Path]:
     return path if config.root.resolve() in [path, *path.parents] else None
 
 
+def root_relative_file(config: Config, filepath: str) -> str:
+    """The repository-relative file an implementation's ``filepath`` names ('' when it names none): the part before ``::``."""
+    return (filepath or "").partition("::")[0].strip()
+
+
 def common(folders: List[Path]) -> Optional[Path]:
     """The lowest folder that holds every one of ``folders`` (None for none)."""
     return Path(os.path.commonpath([str(f) for f in folders])) if folders else None
