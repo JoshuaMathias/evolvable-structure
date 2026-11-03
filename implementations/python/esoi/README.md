@@ -379,14 +379,14 @@ flowchart LR
 - `metric-record-completeness`, Record completeness: leader `live_checker`, 11 of 14 cases
 - `metric-declaration-sync`, Declaration sync: leader `live_declarations`, 14 of 14 cases
 - `metric-readme-fidelity`, README fidelity: leader `live_readme`, 10 of 10 cases
-- `metric-readme-glanceability`, README glanceability: leader `at_a_glance`, 2 of 4 cases
+- `metric-readme-glanceability`, README glanceability: leader `at_a_glance`, 1 of 4 cases
 - `metric-promotion-correctness`, Promotion correctness: leader `live_promote`, 17 of 17 cases
 - `metric-spec-index-recall`, Specification recall at k: leader `weighted_tfidf`, 31 of 35 cases
 - `metric-keep-metric-record`, Metric record kept: leader `live_record`, 67 of 67 cases
 - `metric-spec-search`, Spec search correctness: leader `gated`, 6 of 6 cases
 - `metric-public-evidence`, Public evidence graded: leader `graded`, 11 of 11 cases
 - `metric-solution-coherence`, Intents whose solutions one paragraph and one diagram explain as the code builds them
-- `metric-navigable-records`, Navigable records: leader `beside_code`, 47 of 53 cases
+- `metric-navigable-records`, Navigable records: leader `beside_code`, 29 of 53 cases
 
 ## Problems
 
