@@ -36,6 +36,8 @@ def render(registry: Registry, intent: Intent) -> str:
     if not intent.is_top:
         lines += [f"This sub-intent arises as the implementation `{intent.row.get('implements', '')}` of its parent "
                   f"intent `{intent.parent}`. Opportunities: {one_line(intent.row.get('opportunities', ''))}", ""]
+    if intent.row.get("solution_coherence", "").strip():
+        lines += ["## How the solutions fit together", "", one_line(intent.row["solution_coherence"]), ""]
     problems = mine(registry.problems, iid)
     if problems:
         lines += ["## Problems", ""] + [f"- `{r.get('problem_id', '')}`: {one_line(r.get('problem', ''))}" for r in problems] + [""]

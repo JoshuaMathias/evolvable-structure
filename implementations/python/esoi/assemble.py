@@ -69,6 +69,7 @@ from . import hierarchy
 from . import registry as registry_module
 from . import requirements as requirements_module
 from . import runtime
+from . import variants
 from .fields import parse_tags
 from .select import default_name
 from .tables import ids, read_csv, read_header, write_csv
@@ -417,6 +418,7 @@ class Assembler:
             return Packaged({}, {}, "no records and no snapshot")
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
+            data = {sid: entry for sid, entry in data.items() if not sid.startswith("@")}   # "@intents" is the intent map, not a solution
             defaults = {sid: runtime.key(entry.get("default", "")) for sid, entry in data.items() if entry.get("default")}
             modules = {(sid, runtime.key(n)): str(m) for sid, entry in data.items() for n, m in entry.get("modules", {}).items()}
             evidence = {sid: entry["evidence"] for sid, entry in data.items() if isinstance(entry.get("evidence"), dict)}
@@ -636,7 +638,7 @@ class Assembler:
             packaged = one.packaged()
             default = packaged.defaults.get(solution_id, "")
             if default:
-                broken = "" if default in available else (
+                broken = "" if variants.base_of(default) in available else (
                     f"error: the default {default!r} of {solution_id!r} in scope {one.scope!r} (from {packaged.source}) is "
                     f"not an implementation that can be chosen; available: {', '.join(available) or 'none'}")
                 found.append(hierarchy.Layer(f"{one.scope} default", default, packaged.source, "default", one.scope, "",
@@ -686,6 +688,7 @@ class Assembler:
         """The implementation object for a name. A packaged arm's module is imported here, after the safe-loading check; an
         arm the package declared is refused if something else was registered over it behind ``register``'s back."""
         self.check_solution(solution_id)
+        picked = variants.base_of(picked)    # a variant (arm@option=value) loads its base arm; build() passes the options
         check_name(picked, f"implementation name for {solution_id!r}")
         holder = self.holder(solution_id, picked)
         if holder is not self:
@@ -969,8 +972,9 @@ class Assembler:
             picked = self.pick(sid, None, cfg)
             if picked is None:
                 raise need_error(chain, sid)
-            target = self.load(sid, picked.name)
-            options = dict(cfg.options.get(sid, {}))
+            base, variant_options = variants.split(picked.name)    # a selected variant (arm@option=value) is its base arm with options
+            target = self.load(sid, base)
+            options = {**variant_options, **dict(cfg.options.get(sid, {}))}
             filled = environ_fill(target, options, cfg.consumer_environ)
             options.update({option: str(cfg.consumer_environ[variable]).strip() for option, variable in filled.items()})
             kwargs = {param: build(need, chain + [(sid, picked.name)]) for param, need in self.needs_of(target).items()}

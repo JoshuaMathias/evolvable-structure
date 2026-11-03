@@ -322,6 +322,37 @@ def test_options_reach_the_constructor_and_unknown_options_fail(toy):
         parts.assemble(AssemblyConfig(solutions=base.solutions, selections=base.selections, options={INDEX: {"nope": 1}}))
 
 
+VARIANT_ARM = """
+
+@implementation("toy-store", "sized")
+class Sized:
+    def __init__(self, size: int = 0):
+        self.size = size
+
+    def put(self, key, value):
+        pass
+
+    def get(self, key):
+        return ""
+"""
+
+
+def test_a_selected_variant_loads_its_base_with_the_options(tmp_path):
+    site = tmp_path / "site"
+    write_package(site)
+    with (site / "esoitoy" / "arms.py").open("a", encoding="utf-8") as arms:
+        arms.write(VARIANT_ARM)
+    snapshot = {STORE: {"default": "sized@size=7", "modules": {"sized": "esoitoy.arms"}}}
+    (site / "esoitoy" / "esoi_selection.json").write_text(json.dumps(snapshot))
+    code = ATTEMPT.format(site=str(site), esoi_path=str(Path(esoi.__file__).resolve().parent.parent), marker=str(tmp_path / "m"),
+                          attacker=str(tmp_path / "a"), setup="",
+                          after="built = parts.assemble_defaults()[{store!r}]; print(json.dumps(dict(size=built.size, kind=type(built).__name__)))".format(store=STORE))
+    done = subprocess.run([sys.executable, "-c", code], cwd=tmp_path, capture_output=True, text=True, timeout=60)
+    assert done.returncode == 0, done.stderr
+    found = json.loads(done.stdout.strip().splitlines()[0])
+    assert found == {"size": 7, "kind": "Sized"}    # the variant loads its base arm and passes the option
+
+
 def test_the_reason_line_names_solution_arm_layer_version_and_hash(toy):
     system = toy[0].assemble(wire(toy))
     assert system.reason_by_solution[INDEX].startswith("toy-index -> acme-index (layer: consumer selections, package version ")

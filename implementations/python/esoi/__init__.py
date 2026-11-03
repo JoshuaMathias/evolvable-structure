@@ -24,4 +24,11 @@ See ``esoi.runtime`` for the cascade (call, context, environment, deployment, pr
 """
 from .runtime import SelectionError, implementation, override, register, resolve, solution
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
+
+
+def run(target, input=None, **overrides):
+    """One line for any solution or intent of esoi itself: ``esoi.run("structure-check", ".")``. Packages bind the same function
+    to their own Assembler (``esoi.entry.runner``); see ``esoi.entry``."""
+    from .entry import own_runner
+    return own_runner()(target, input, **overrides)
