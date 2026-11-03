@@ -89,7 +89,10 @@ sensible default. Offer inventive restructurings as options, not only cuts.
     ideals: what is recorded and on which cases. Write the cases now (inputs and what a good result looks like),
     including cases where the right result is to do less. The main solution's metric measures the outcome in the real
     world, not only task completion (10). Write down what the metric cannot see (7). Where it costs to run, order its
-    cascading conditionals cheapest first, each with the value needed to move on. A person confirms each metric and its
+    cascading conditionals cheapest first, each with the value needed to move on: a stage that costs nothing (a unit
+    test, or qualitative questions scored as a number), then one case or an end-to-end run (simulated if needed), then
+    more cases, and last the most objective measure. Each later stage includes what is useful from the earlier ones
+    without rerunning cases already run. A person confirms each metric and its
     cases, since this is where people steer from (4).
 14. **Check the metric before trusting it.** A metric is a solution too, with its own best: agreeing with what a
     person would judge. Show it can tell good from bad: a known-good result passes, a known-bad one and a do-nothing
@@ -110,7 +113,9 @@ sensible default. Offer inventive restructurings as options, not only cuts.
     once.
 18. **Measure.** Run every implementation on the same cases, as the run policy from step 14 allows, and record each
     result with the date, the implementation, the version measured and which cases were used. Run a stage of the
-    cascade only when its value is worth its cost; a stage not run stays empty (null), never estimated (10).
+    cascade only when its value is worth its cost; a stage not run stays empty (null), never estimated (10). Save every
+    run, including one stopped midway. While improving an implementation, fix it right after the first failing case,
+    rerun only the failing cases until they pass, and only then run the full set (11).
 19. **Select by the metric, and record it in one place.** The best implementation by the authoritative metric becomes
     the default, ideally used automatically (4): the highest result at the latest stage ever run, unless a rival
     scored higher at an earlier stage and has not reached it yet. Rerun or retire an implementation whose result has

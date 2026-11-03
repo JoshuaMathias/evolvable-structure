@@ -17,7 +17,28 @@ Part of `../principles.md`. Patterns 8, 9, 13, 14 and 15: one path from experime
    measured contributes nothing until it is. Default constants are measured from a corpus, and any
    set of parameters is tuned against one fixed metric. Re-measurement is enforced by a check, not
    left as advice. A general claim has to beat the real baseline
-   before it counts.
+   before it counts. **The highest-scoring implementation is used by default**, labelled with whether
+   its lead is statistically significant (a paired test on shared cases) or a best guess, so better
+   solutions are adopted right away, especially for a new solution without end users or before the
+   higher cascade stages run; the highest stage should be sized so a real difference can reach
+   significance. Requiring significance before switching is opt-in per solution or project (for
+   solutions with production end users), and consumers can lock selections and update on their own
+   schedule (Joshua, 2026-10-31: "where there isn't statistical significance, the highest scoring
+   implementation should still be used by default"). **Which alternatives to build
+   and compare** is guided first by public research and public evaluations on similar tasks (Joshua,
+   2026-10-31: "leverage public research and evals for what methods or combination of methods are most
+   likely effective on similar tasks to guide what implementations are compared or considered or
+   improved"), graded by who ran them, and never mixed into our own numbers. **Run our own evaluation
+   only where it differs from what is public**: when an independent public evaluation already measured
+   the same implementation on the same metric, use it as the stage instead of re-running it; run ours
+   only when our implementation, method (prompt, harness, settings) or metric differs. And **stop a
+   cascade at the ceiling**: once a cheaper arm passes every case, a costlier arm cannot win on that
+   metric and is not run (Joshua, 2026-10-31: "if haiku has perfect score then higher tier models aren't
+   necessary to consider ... you only need to do eval if the implementation/method or metric is
+   different than what's known publicly"). Never invent a fixed margin
+   or tie-break threshold: Joshua, 2026-10-31, on finding the library used one: "i never authorized
+   that ... it should be pragmatic for individual cases, metrics can be best guesses but
+   statistically significant improvement where possible to justify switching".
 
 13. **A stable interface, with changes announced.** What lets an implementation be swapped is a
     contract that does not move: the same inputs, outputs and style rules. Tests pin it, the author
