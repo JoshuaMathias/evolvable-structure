@@ -1,0 +1,532 @@
+[
+ {
+  "id": "NAV-001",
+  "kind": "layout",
+  "area": "the solution apply-esoi of this can be navigated from its spec to its code",
+  "description": "the solution apply-esoi of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "apply-esoi"
+  }
+ },
+ {
+  "id": "NAV-002",
+  "kind": "layout",
+  "area": "the solution intent-registry of this can be navigated from its spec to its code",
+  "description": "the solution intent-registry of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "intent-registry"
+  }
+ },
+ {
+  "id": "NAV-003",
+  "kind": "layout",
+  "area": "the solution template-sync of this can be navigated from its spec to its code",
+  "description": "the solution template-sync of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "template-sync"
+  }
+ },
+ {
+  "id": "NAV-004",
+  "kind": "layout",
+  "area": "the solution ownership-map of this can be navigated from its spec to its code",
+  "description": "the solution ownership-map of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "ownership-map"
+  }
+ },
+ {
+  "id": "NAV-005",
+  "kind": "layout",
+  "area": "the solution implementation-selection of this can be navigated from its spec to its code",
+  "description": "the solution implementation-selection of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "implementation-selection"
+  }
+ },
+ {
+  "id": "NAV-006",
+  "kind": "layout",
+  "area": "the solution measurement-harness of this can be navigated from its spec to its code",
+  "description": "the solution measurement-harness of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "measurement-harness"
+  }
+ },
+ {
+  "id": "NAV-007",
+  "kind": "layout",
+  "area": "the solution leaderboard of this can be navigated from its spec to its code",
+  "description": "the solution leaderboard of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "leaderboard"
+  }
+ },
+ {
+  "id": "NAV-008",
+  "kind": "layout",
+  "area": "the solution discriminating-cases of this can be navigated from its spec to its code",
+  "description": "the solution discriminating-cases of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "discriminating-cases"
+  }
+ },
+ {
+  "id": "NAV-009",
+  "kind": "layout",
+  "area": "the solution structure-check of this can be navigated from its spec to its code",
+  "description": "the solution structure-check of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "structure-check"
+  }
+ },
+ {
+  "id": "NAV-010",
+  "kind": "layout",
+  "area": "the solution structure-rules of this can be navigated from its spec to its code",
+  "description": "the solution structure-rules of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "structure-rules"
+  }
+ },
+ {
+  "id": "NAV-011",
+  "kind": "layout",
+  "area": "the solution review-tracker of this can be navigated from its spec to its code",
+  "description": "the solution review-tracker of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "review-tracker"
+  }
+ },
+ {
+  "id": "NAV-012",
+  "kind": "layout",
+  "area": "the solution consumer-check of this can be navigated from its spec to its code",
+  "description": "the solution consumer-check of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "consumer-check"
+  }
+ },
+ {
+  "id": "NAV-013",
+  "kind": "layout",
+  "area": "the solution the-standard of this can be navigated from its spec to its code",
+  "description": "the solution the-standard of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "the-standard"
+  }
+ },
+ {
+  "id": "NAV-014",
+  "kind": "layout",
+  "area": "the solution structure-budget of this can be navigated from its spec to its code",
+  "description": "the solution structure-budget of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "structure-budget"
+  }
+ },
+ {
+  "id": "NAV-015",
+  "kind": "layout",
+  "area": "the solution when-metrics-are-run of this can be navigated from its spec to its code",
+  "description": "the solution when-metrics-are-run of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "when-metrics-are-run"
+  }
+ },
+ {
+  "id": "NAV-016",
+  "kind": "layout",
+  "area": "the solution skill-distribution of this can be navigated from its spec to its code",
+  "description": "the solution skill-distribution of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "skill-distribution"
+  }
+ },
+ {
+  "id": "NAV-017",
+  "kind": "layout",
+  "area": "the solution esoi-for-ai of this can be navigated from its spec to its code",
+  "description": "the solution esoi-for-ai of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "esoi-for-ai"
+  }
+ },
+ {
+  "id": "NAV-018",
+  "kind": "layout",
+  "area": "the solution the-steps of this can be navigated from its spec to its code",
+  "description": "the solution the-steps of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "the-steps"
+  }
+ },
+ {
+  "id": "NAV-019",
+  "kind": "layout",
+  "area": "the solution docs-and-templates of this can be navigated from its spec to its code",
+  "description": "the solution docs-and-templates of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "docs-and-templates"
+  }
+ },
+ {
+  "id": "NAV-020",
+  "kind": "layout",
+  "area": "the solution follow-the-steps of this can be navigated from its spec to its code",
+  "description": "the solution follow-the-steps of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "follow-the-steps"
+  }
+ },
+ {
+  "id": "NAV-021",
+  "kind": "layout",
+  "area": "the solution local-application-index of this can be navigated from its spec to its code",
+  "description": "the solution local-application-index of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "local-application-index"
+  }
+ },
+ {
+  "id": "NAV-022",
+  "kind": "layout",
+  "area": "the solution esoi-behaviour-judge of this can be navigated from its spec to its code",
+  "description": "the solution esoi-behaviour-judge of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "esoi-behaviour-judge"
+  }
+ },
+ {
+  "id": "NAV-023",
+  "kind": "layout",
+  "area": "the solution behave-by-esoi of this can be navigated from its spec to its code",
+  "description": "the solution behave-by-esoi of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "behave-by-esoi"
+  }
+ },
+ {
+  "id": "NAV-024",
+  "kind": "layout",
+  "area": "the solution judge-esoi-behaviour of this can be navigated from its spec to its code",
+  "description": "the solution judge-esoi-behaviour of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "judge-esoi-behaviour"
+  }
+ },
+ {
+  "id": "NAV-025",
+  "kind": "layout",
+  "area": "the solution specify-from-code of this can be navigated from its spec to its code",
+  "description": "the solution specify-from-code of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "specify-from-code"
+  }
+ },
+ {
+  "id": "NAV-026",
+  "kind": "layout",
+  "area": "the solution readable-records of this can be navigated from its spec to its code",
+  "description": "the solution readable-records of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "readable-records"
+  }
+ },
+ {
+  "id": "NAV-027",
+  "kind": "layout",
+  "area": "the solution promote-the-winner of this can be navigated from its spec to its code",
+  "description": "the solution promote-the-winner of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "promote-the-winner"
+  }
+ },
+ {
+  "id": "NAV-028",
+  "kind": "layout",
+  "area": "the solution spec-index of this can be navigated from its spec to its code",
+  "description": "the solution spec-index of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "spec-index"
+  }
+ },
+ {
+  "id": "NAV-029",
+  "kind": "layout",
+  "area": "the solution keep-metric-record of this can be navigated from its spec to its code",
+  "description": "the solution keep-metric-record of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "keep-metric-record"
+  }
+ },
+ {
+  "id": "NAV-030",
+  "kind": "layout",
+  "area": "the solution spec-search of this can be navigated from its spec to its code",
+  "description": "the solution spec-search of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "spec-search"
+  }
+ },
+ {
+  "id": "NAV-031",
+  "kind": "layout",
+  "area": "the solution public-evidence of this can be navigated from its spec to its code",
+  "description": "the solution public-evidence of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "public-evidence"
+  }
+ },
+ {
+  "id": "NAV-032",
+  "kind": "layout",
+  "area": "the solution runtime-selection of this can be navigated from its spec to its code",
+  "description": "the solution runtime-selection of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "runtime-selection"
+  }
+ },
+ {
+  "id": "NAV-033",
+  "kind": "layout",
+  "area": "the solution assemble-by-name of this can be navigated from its spec to its code",
+  "description": "the solution assemble-by-name of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "this",
+   "solution": "assemble-by-name"
+  }
+ },
+ {
+  "id": "NAV-034",
+  "kind": "layout",
+  "area": "the solution take-in-the-world of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution take-in-the-world of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "take-in-the-world"
+  }
+ },
+ {
+  "id": "NAV-035",
+  "kind": "layout",
+  "area": "the solution remember-and-recall of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution remember-and-recall of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "remember-and-recall"
+  }
+ },
+ {
+  "id": "NAV-036",
+  "kind": "layout",
+  "area": "the solution reason-and-answer of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution reason-and-answer of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "reason-and-answer"
+  }
+ },
+ {
+  "id": "NAV-037",
+  "kind": "layout",
+  "area": "the solution choose-a-model-tier of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution choose-a-model-tier of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "choose-a-model-tier"
+  }
+ },
+ {
+  "id": "NAV-038",
+  "kind": "layout",
+  "area": "the solution know-the-world of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution know-the-world of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "know-the-world"
+  }
+ },
+ {
+  "id": "NAV-039",
+  "kind": "layout",
+  "area": "the solution think-critically of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution think-critically of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "think-critically"
+  }
+ },
+ {
+  "id": "NAV-040",
+  "kind": "layout",
+  "area": "the solution act-in-the-world of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution act-in-the-world of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "act-in-the-world"
+  }
+ },
+ {
+  "id": "NAV-041",
+  "kind": "layout",
+  "area": "the solution watch-for-risk of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution watch-for-risk of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "watch-for-risk"
+  }
+ },
+ {
+  "id": "NAV-042",
+  "kind": "layout",
+  "area": "the solution assemble-the-whole of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution assemble-the-whole of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "assemble-the-whole"
+  }
+ },
+ {
+  "id": "NAV-043",
+  "kind": "layout",
+  "area": "the solution stay-current of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution stay-current of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "stay-current"
+  }
+ },
+ {
+  "id": "NAV-044",
+  "kind": "layout",
+  "area": "the solution read-registry-freshness of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution read-registry-freshness of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "read-registry-freshness"
+  }
+ },
+ {
+  "id": "NAV-045",
+  "kind": "layout",
+  "area": "the solution keep-it-generic of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution keep-it-generic of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "keep-it-generic"
+  }
+ },
+ {
+  "id": "NAV-046",
+  "kind": "layout",
+  "area": "the solution connect-any-integration of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution connect-any-integration of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "connect-any-integration"
+  }
+ },
+ {
+  "id": "NAV-047",
+  "kind": "layout",
+  "area": "the solution score-hub-connections of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution score-hub-connections of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "score-hub-connections"
+  }
+ },
+ {
+  "id": "NAV-048",
+  "kind": "layout",
+  "area": "the solution card-store of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution card-store of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "card-store"
+  }
+ },
+ {
+  "id": "NAV-049",
+  "kind": "layout",
+  "area": "the solution model-call of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution model-call of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "model-call"
+  }
+ },
+ {
+  "id": "NAV-050",
+  "kind": "layout",
+  "area": "the solution search-backend of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution search-backend of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "search-backend"
+  }
+ },
+ {
+  "id": "NAV-051",
+  "kind": "layout",
+  "area": "the solution call-a-model of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution call-a-model of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "call-a-model"
+  }
+ },
+ {
+  "id": "NAV-052",
+  "kind": "layout",
+  "area": "the solution context-assembler of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution context-assembler of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "context-assembler"
+  }
+ },
+ {
+  "id": "NAV-053",
+  "kind": "layout",
+  "area": "the solution cards-from-files of adopter-1 can be navigated from its spec to its code",
+  "description": "the solution cards-from-files of the first adopting repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
+  "args": {
+   "repo": "adopter-1",
+   "solution": "cards-from-files"
+  }
+ }
+]

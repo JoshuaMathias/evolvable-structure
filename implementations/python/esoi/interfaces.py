@@ -89,14 +89,27 @@ class IntentRegistering(Protocol):
     def count(self, project: str) -> Dict[str, int]: ...
 
 
-@implementation("intent-registry", "csv-records-in-the-repository")
+def counted(found) -> Dict[str, int]:
+    return {"problems": len(found.problems), "ideals": len(found.ideals), "solutions": len(found.every_solution()),
+            "implementations": len(found.implementations), "metrics": len(found.metrics)}
+
+
+@implementation("intent-registry", "esoi_folder")
 class CsvRecords:
-    """CSV files in the repository's structure folder, one folder per intent."""
+    """Records kept in the structure folder, one folder per intent (the layout before records beside the code)."""
 
     def count(self, project: str) -> Dict[str, int]:
         cfg, found = loaded(project)
-        return {"problems": len(found.problems), "ideals": len(found.ideals), "solutions": len(found.every_solution()),
-                "implementations": len(found.implementations), "metrics": len(found.metrics)}
+        return counted(found)
+
+
+@implementation("intent-registry", "beside_code")
+class BesideCodeRecords:
+    """Records kept beside the code they describe (`[records] beside_code` in esoi.toml), read as one tree with the structure folder."""
+
+    def count(self, project: str) -> Dict[str, int]:
+        cfg, found = loaded(project)
+        return counted(found)
 
 
 @solution("template-sync", kind="evaluate", entry="fields", example=".")
