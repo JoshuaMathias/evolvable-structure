@@ -116,11 +116,20 @@ def link(folder: Path, target: Path) -> str:
     return Path(os.path.relpath(target, folder)).as_posix()
 
 
-def entry_call(view: View, config_package: str, solution_id: str) -> str:
-    """The one-line call of a solution (``package.run("id", example)``), or the plain statement that none is declared."""
+def recorded_call(row: Optional[Dict[str, str]]) -> str:
+    """The call a solution's own records give in its language: the first code span of its ``usage_notes`` ('' when there is none).
+    A repository of any language records its entry call there, so its page needs no Python declaration."""
+    found = re.search(r"`([^`\n]+)`", written((row or {}).get("usage_notes", "")))
+    return found.group(1).strip() if found else ""
+
+
+def entry_call(view: View, config_package: str, solution_id: str, row: Optional[Dict[str, str]] = None) -> str:
+    """The one-line call of a solution (``package.run("id", example)`` for Python code that declares it, or the call written in the
+    solution's ``usage_notes`` in any language), or the plain statement that none is declared."""
     decl = view.declared.get(solution_id)
     if decl is None or not getattr(decl, "entry", "") and not getattr(decl, "kind", ""):
-        return "no entry declared"
+        recorded = recorded_call(row)
+        return f"`{recorded}`".replace("|", "/") if recorded else "no entry declared"
     package = config_package or "package"
     if getattr(decl, "has_example", False) and decl.example is not None:
         shown = repr(decl.example)
@@ -197,7 +206,7 @@ def solutions_table(view: View, registry: Registry, intent: Intent) -> List[str]
     package = view.config.package if view.config else ""
     lines = ["| Solution | Entry call | Selected implementation | Metric |", "|---|---|---|---|"]
     for r in rows:
-        lines.append(f"| `{r.get('solution_id', '')}` | {entry_call(view, package, r.get('solution_id', ''))} | "
+        lines.append(f"| `{r.get('solution_id', '')}` | {entry_call(view, package, r.get('solution_id', ''), r)} | "
                      f"{('`' + one_line(r['selected']) + '`') if one_line(r.get('selected', '')) else 'none selected'} | "
                      f"{metric_names(r.get('metric', ''))} |")
     return lines
@@ -385,7 +394,7 @@ def render_folder(registry: Registry, view: View, owner: str, folder: Path) -> s
         if purpose:
             lines += [purpose, ""]
         picked = one_line(r.get("selected", ""))
-        lines += [f"- Entry call: {entry_call(view, config.package, sid)}",
+        lines += [f"- Entry call: {entry_call(view, config.package, sid, r)}",
                   f"- Selected implementation: {('`' + picked + '`') if picked else 'none selected'}",
                   f"- Metric: {metric_names(r.get('metric', ''))}", ""]
     picture = folder_diagram(registry, view, owner, folder)

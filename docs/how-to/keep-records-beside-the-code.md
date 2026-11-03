@@ -4,6 +4,10 @@ Use this when you want the specification of each solution in the folder that hol
 what it is for and a person opening a specification is one folder from its code. The standard is
 [records beside the code](../reference/records-beside-code.md).
 
+Any language works: records point to code by `filepath`, and a repository without Python records its entry call in the solution's
+`usage_notes`. If your build or framework fixes the folder structure, keep the `esoi/` folder instead; both are described in
+[the standard](../reference/records-beside-code.md#both-layouts-any-language).
+
 ## Adopt it
 
 1. List the folders that may hold records in `esoi.toml`:

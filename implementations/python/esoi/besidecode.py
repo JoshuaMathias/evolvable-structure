@@ -55,6 +55,21 @@ def hosts(config: Config) -> List[Path]:
     return found
 
 
+def code_hosts(config: Config) -> List[str]:
+    """Every folder that holds the code an implementation names, and every folder above it below the repository root, as
+    paths from the root: the folders a repository of any language could list under ``beside_code`` to keep its records beside
+    its code. It reads only the ``filepath`` column, never the code, so it needs no language."""
+    root = config.root.resolve()
+    found: Set[str] = set()
+    for _, folder in intents.folders(config):
+        for row in read_csv(folder / "implementations.csv"):
+            here = code_folder(config, row.get("filepath", ""))
+            while here is not None and here != root and root in here.parents:
+                found.add(here.relative_to(root).as_posix())
+                here = here.parent
+    return sorted(found)
+
+
 def host_for(allowed: Set[Path], folder: Optional[Path], root: Path) -> Optional[Path]:
     """The nearest folder at or above ``folder`` that may hold records, else None."""
     if folder is None:

@@ -180,3 +180,68 @@ def test_a_row_never_leaves_the_intent_that_owns_it(cfg):
     for move in besidecode.plan(after, "beside"):
         assert move.ident != "echo-a-greeting" or intents.owner_of(after, move.target, intents.named_folders(
             after, intents.discover_in_structure(after), intents.beside_folders(after))) == "voices"
+
+
+def typescript_repo(repo):
+    """The scaffold turned into a tiny TypeScript tree: no Python package at all, three source files, and records that name them by
+    `filepath`. The solution records its own entry call in `usage_notes`."""
+    import shutil
+    for name in ("demo", "tests", "evaluation"):
+        shutil.rmtree(repo / name)
+    files = {"src/greet/greet.ts": "export const greet = (name: string) => `Hello, ${name}!`;\n",
+             "src/greet/shout.ts": "export const shout = (name: string) => `HELLO, ${name}!`;\n",
+             "src/app/main.ts": "import { greet } from '../greet/greet';\nconsole.log(greet('Ada'));\n"}
+    for rel, text in files.items():
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text(text)
+    toml = repo / "esoi.toml"
+    toml.write_text(toml.read_text().replace('package = "demo"', 'package = ""').replace('code_paths = ["demo"]', 'code_paths = ["src"]'))
+    where = {"greet-a-person:greet": "src/greet/greet.ts", "greet-a-person:live": "src/greet/greet.ts",
+             "greet-a-person:shout": "src/greet/shout.ts", "project-purpose:the-project": "src/app/main.ts"}
+    rewrite_rows(repo / "esoi" / "implementations.csv", lambda r: r.update(filepath=where.get(r["implementation_id"], r["filepath"])))
+    rewrite_rows(repo / "esoi" / "solutions.csv", lambda r: r["solution_id"] == "greet-a-person" and r.update(
+        usage_notes='Call `greet("Ada")` wherever a greeting is needed instead of building the text inline.'))
+    return config.load(repo)
+
+
+def rewrite_rows(path, edit):
+    rows, cols = tables.read_csv(path), tables.read_header(path)
+    for row in rows:
+        edit(row)
+    tables.write_csv(path, cols, rows)
+
+
+def structure_problems(cfg):
+    return [ln for ln in check.check(cfg) if ln.split(" ")[0] in {"S26", "S28", "S29", "R1", "S40"}]
+
+
+def test_a_repository_with_no_python_uses_the_esoi_folder_layout_from_its_records_alone(repo):
+    cfg = typescript_repo(repo)
+    assert cfg.package == "" and not cfg.records.get("beside_code")
+    assert structure_problems(cfg) == []
+    text = dict(readme.pages(cfg, registry.load(cfg)))[cfg.structure / "README.md"]
+    assert '`greet("Ada")`' in text and "## Diagram" in text
+    assert advice(cfg) == []
+
+
+def test_a_repository_with_no_python_uses_the_beside_code_layout_from_its_records_alone(repo):
+    cfg = typescript_repo(repo)
+    toml = cfg.root / "esoi.toml"
+    toml.write_text(toml.read_text().replace("records.template_version", 'records.beside_code = ["src", "src/*"]\nrecords.template_version', 1))
+    after = config.load(cfg.root)
+    assert besidecode.code_hosts(after) == ["src", "src/app", "src/greet"]
+    moves = besidecode.plan(after)
+    assert {m.ident: m.target.relative_to(cfg.root).as_posix() for m in moves}["greet-a-person:shout"] == "src/greet"
+    besidecode.apply(after, moves)
+    after = config.load(cfg.root)
+    readme.write(after, registry.load(after), say=lambda text: None)
+    page = (cfg.root / "src" / "greet" / "README.md").read_text()
+    assert '`greet("Ada")`' in page and "[`src/greet/shout.ts`](shout.ts)" in page and "../../esoi/README.md" in page
+    assert structure_problems(after) == [] and advice(after) == []
+    assert not intents.duplicate_rows(after)
+
+
+def test_the_layout_needs_no_declaration_in_code_and_the_python_scan_finds_nothing(repo):
+    cfg = typescript_repo(repo)
+    view = readme.view_of(cfg, registry.load(cfg))
+    assert view.declared == {}

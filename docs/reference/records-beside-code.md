@@ -7,6 +7,26 @@ in [the intent folder template](templates/intent-layout.md) (`esoi_folder`) and 
 `metric-navigable-records` measures both on the same repositories, and the selected one is the library's default recommendation;
 a repository chooses with its own configuration. The fill-in version is [the solution folder template](templates/solution-folder.md).
 
+## Both layouts, any language
+
+Both layouts are arms of `intent-registry` and both stay available; a repository chooses in `esoi.toml` (the presence of
+`beside_code` is its choice), and `esoi select intent-registry` shows which arm the measurement favours. Neither depends on Python.
+A record reaches its code only through the `filepath` column (`path`, or `path::symbol`), never by importing or a decorator, so a
+JavaScript, TypeScript, Go or mixed repository uses either layout, and folders, READMEs and diagrams come from the records alone. What
+needs Python is optional and switches on only where the repository declares Python code (`package` in `esoi.toml`): the
+`@solution` and `@implementation` scan (`esoi records sync`), the typed `run(Interface)` call and the one-line entry check
+(rule S37). A repository in another language records its own entry call in the solution row, as the first code span of `usage_notes`
+(for example `` `greet("Ada")` ``), and its page shows that call.
+
+| The repository | Use |
+|---|---|
+| Its code can be organized by solution: a library, a service, a package that is free to put a folder where it likes | Records beside the code |
+| Its build or framework fixes its folder structure (an app framework, a monorepo with generated or shared folders, generated code), or its code folders must hold only code | The `esoi/` folder |
+| Unsure | Start with the `esoi/` folder and run the metric on both: `esoi run navigable_records --impl esoi_folder` and `--impl beside_code` with `ESOI_GLANCE_ADOPTERS` naming the repository; the layout that passes more solutions is the one to move to (`esoi records place`). |
+
+The metric lays the repository out both ways in a temporary tree from the records alone (every folder that holds an implementation's
+code may host records), so it is computed for any repository of any language, and the choice is measured, not assumed.
+
 ## Opting in
 
 In `esoi.toml`, list the folders (paths or globs from the repository root) that may hold records next to code:

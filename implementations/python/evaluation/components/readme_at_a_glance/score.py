@@ -60,7 +60,7 @@ def verdicts(text, loaded, view, intent, again):
     for r in rows:
         sid = r.get("solution_id", "")
         lines = [ln for ln in text.splitlines() if f"`{sid}`" in ln and ln.startswith("|")]
-        call = f'run("{sid}"' if sid in view.declared and (view.declared[sid].entry or view.declared[sid].kind) else "no entry declared"
+        call = f'run("{sid}"' if sid in view.declared and (view.declared[sid].entry or view.declared[sid].kind) else (readme.recorded_call(r) or "no entry declared")
         picked = readme.one_line(r.get("selected", "")) or "none selected"
         good = good and any(call in ln and picked in ln for ln in lines)
     out["solutions"] = good
