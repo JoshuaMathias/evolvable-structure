@@ -69,7 +69,15 @@ LEGACY_NOTE = ("note: this repository uses the legacy two-level layout (`overall
 
 def notes(config: Config) -> List[str]:
     """Lines that are information, not violations: they never change the exit code."""
-    return ([LEGACY_NOTE] if config.overall and not config.intent_mode else []) + versioning.note(config) + cascade_notes(config)
+    return ([LEGACY_NOTE] if config.overall and not config.intent_mode else []) + versioning.note(config) + cascade_notes(config) + coherence_notes(config)
+
+
+def coherence_notes(config: Config) -> List[str]:
+    """Notes for intents whose solution coherence paragraph leaves out solutions (``esoi.intents.coherence_notes``)."""
+    try:
+        return intents.coherence_notes(config, load_registry(config))
+    except Exception:   # noqa: BLE001  a note must never be the reason the check fails
+        return []
 
 
 def cascade_notes(config: Config) -> List[str]:
@@ -91,6 +99,8 @@ def write_docs(config: Config, say: Callable[[str], None] = print) -> None:
     if config.intent_mode:
         for intent in intents.discover(config):
             (intent.folder / "README.md").write_text(readme.render(registry, intent), encoding="utf-8")
+        from . import diagram
+        diagram.write(config, registry, say=lambda text: None)
     if config.tracker_dir.is_dir() or registry.solutions:
         tracker.write(config, registry, say=lambda text: None)
     ctx = build_context(config)

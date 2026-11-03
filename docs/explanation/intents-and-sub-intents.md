@@ -52,6 +52,22 @@ esoi/                       the folder that holds the top intent (the default; `
 
 When to create one is in [when-to-create-a-sub-intent.md](when-to-create-a-sub-intent.md).
 
+## How the solutions of an intent fit together
+
+An intent operates through a coherent, evolving set of solutions, and says so in two fields of its `intent.csv`.
+
+- **`solution_coherence`** (required): one paragraph on how all the intent's solutions fit together to accomplish its vision
+  statement. Write it in your own words; `esoi check` prints a note (not an error) for each solution of the intent that the
+  paragraph names neither by id nor by name, and a blank paragraph is reported like any other required field (S28).
+- **`solution_diagram`** (optional): how the solutions connect in the intent's implementation, what is transferred on each edge and
+  in which direction. The records already say most of it: an implementation builds on other solutions through their interfaces, so
+  `esoi diagram` draws the intent's solutions as nodes and, from the solution that provides to the one that builds on it, an edge
+  labelled with the provider's `outputs`, as Mermaid in `diagram.md` (GitHub renders it). Keep the hand-written field for what the
+  interfaces do not say: a flow no implementation declares yet, or why the edges are shaped as they are.
+
+Every solution is motivated by at least one problem of its own intent (rule R3 inside S26); it may also link problems of other
+intents or of the parent's network, but not only those.
+
 ## What has no children
 
 Problems, solutions, implementations, ideals and metrics have no direct children, except as a way to elaborate: a

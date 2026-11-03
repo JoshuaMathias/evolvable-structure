@@ -23,6 +23,7 @@ from typing import Callable, Dict, List, Optional
 
 from . import versioning
 from .config import Config
+from . import records
 from .records import FILES, PARENT_COLUMNS
 from .template import (ENTITIES, apply_section, parse, render_section, render_template_csv, standard_doc_path,
                        template_csv_path)
@@ -395,6 +396,8 @@ def sync(config: Config, source: Optional[str] = None, check: bool = False, say:
         say("nothing parsed; refusing to write")
         return 2
     wanted: Dict[Path, str] = {template_csv_path(config): render_template_csv(rows)}
+    if records.TEMPLATE_DATA.resolve().is_relative_to(config.root.resolve()):
+        wanted[records.TEMPLATE_DATA] = wanted[template_csv_path(config)]   # the library's own shipped copy follows the template
     stamp = versioning.stamp_path(config)
     if stamp is not None:
         before = template_csv_path(config)

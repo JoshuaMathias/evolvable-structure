@@ -113,6 +113,7 @@ tells you whether they are stale; a new field appears as a missing column in you
 | `esoi run --stale [--full] [--include-paid \| --include C/I]` | Re-runs and records every selected implementation, and the rivals beside it, whose result is stale; paid arms are skipped unless included |
 | `esoi leaderboard [--strict]` | Ranks implementations and prints a verdict per solution |
 | `esoi tracker build\|check` | Builds the review sheet tabs |
+| `esoi diagram [--check]` | Draws each intent's solution diagram (Mermaid, `diagram.md` beside its records) from the solutions' outputs and the implementations' `uses_solution_ids`; `--check` lists the ones out of date. `esoi check --write-docs` writes them too |
 | `esoi sheet-sync sync\|push\|pull\|check` | Syncs those tabs with a Google Sheet |
 | `esoi template sync\|check` | Parses the template source and regenerates the templates |
 | `esoi skill sync\|check\|install` | Generates and verifies the public copy of the skill, or installs it ([guide](install-the-skill.md)) |

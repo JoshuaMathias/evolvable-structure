@@ -33,7 +33,7 @@ def run(ctx: Context) -> List[str]:
         return []
     bad: List[str] = []
     found = intents.discover(config)
-    template = [r["field_key"] for r in ctx.template.get("intent", []) if r["group"] == "specify"]
+    template = [r["field_key"] for r in ctx.template.get("intent", []) if r["group"] == "specify" and r["required"] == "yes"]
     by_id: Dict[str, intents.Intent] = {}
     for intent in found:
         where = str(intent.folder.relative_to(config.root)) + "/intent.csv"

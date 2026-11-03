@@ -25,6 +25,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `rules-generated` | tools | The rules about generated files, the tracker and the records. | structure-rules, review-tracker, template-sync, readable-records |
 | `check-runner` | tools | Running every rule over a repository and reporting problems. | structure-check, readable-records |
 | `harness` | tools | Running one implementation over a component's cases and recording the result. | measurement-harness |
+| `diagram` | tools | Drawing each intent's solution diagram (Mermaid) from the solutions' outputs and the implementations' dependencies, and listing the diagrams out of date. | intent-registry, readable-records |
 | `run-guards` | tools | Refusing an esoi run that cannot inform a decision: a perfect arm already caps it, a public result already exists, or the cases that failed last have not been rerun to a pass. | measurement-harness |
 | `run-log` | tools | Saving every run case by case, even a stopped one, and reading it back to rerun only the failing cases and to reuse cases an earlier stage already ran. | measurement-harness, leaderboard |
 | `tracker` | tools | Building the review tracker tabs and syncing them with a sheet. | review-tracker |

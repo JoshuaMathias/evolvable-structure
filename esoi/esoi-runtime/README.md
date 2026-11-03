@@ -6,6 +6,11 @@ The esoi package is a dependency of other people's production code, which declar
 
 This sub-intent arises as the implementation `implementation-selection:declarations` of its parent intent `esoi`. Opportunities: The Python package can become a runtime dependency inside other people's production code, not only a tool run on a repository: selection at run time, graceful declarations of alternatives (decorators, for example) and embedding without forking. That is a creative space beyond selecting an implementation by a table in one repository.
 
+## Problems
+
+- `prob-selection-default-kept-twice`: The default implementation of a solution is written in the selection table and again in the records, and only a check holds the two equal. Choosing a winner means editing both, and a mismatch fails the build.
+- `prob-swappable-needs-ceremony`: Making a part swappable takes a port class, a table entry with an import path for every alternative, a wrapper file to measure each one, and edits wherever the choice is made, so most parts are never made swappable.
+
 ## Solutions
 
 | Solution | Name | Selected | Metric |

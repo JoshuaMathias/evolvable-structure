@@ -26,7 +26,7 @@ KEYS = {"problem": "problem_id", "ideal": "ideal_id", "solution": "solution_id",
         "metric": "metric_id"}
 
 SUMMARIES = {
-    "S8": "COMPONENTS.md matches components.csv, and each intent folder's README.md matches its records (esoi check "
+    "S8": "COMPONENTS.md matches components.csv, and each intent folder's README.md and diagram.md match its records (esoi check "
           "--write-docs regenerates them).",
     "S17": "The tracker tabs match what the registry and the results log now produce (only tracking_* columns are "
            "hand-edited). Checked when the tracker folder exists.",
@@ -68,6 +68,10 @@ def run(ctx: Context) -> List[str]:
             page = intent.folder / "README.md"
             if not page.exists() or page.read_text(encoding="utf-8") != readme.render(ctx.registry, intent):
                 bad.append(f"S8 {page.relative_to(config.root)}: out of date (run `esoi check --write-docs`)")
+
+        from .. import diagram
+        bad.extend(f"S8 {path.relative_to(config.root)}: out of date (run `esoi diagram` or `esoi check --write-docs`)"
+                   for path in diagram.stale(config, ctx.registry))
 
     if config.tracker_dir.is_dir():
         template = ctx.template

@@ -15,9 +15,9 @@ def add_sub_intent(cfg, opportunities="A creative space the parent solution does
     """A sub-intent folder that arises from the scaffold's greet-a-person:live implementation."""
     sub = cfg.structure / "voices"
     sub.mkdir()
-    tables.write_csv(sub / "intent.csv", ["intent_id", "name", "vision_statement", "implements", "opportunities"],
+    tables.write_csv(sub / "intent.csv", ["intent_id", "name", "vision_statement", "implements", "opportunities", "solution_coherence"],
                      [dict(intent_id="voices", name="Greeting voices", vision_statement="Every greeting is spoken warmly.",
-                           implements="greet-a-person:live", opportunities=opportunities)])
+                           implements="greet-a-person:live", opportunities=opportunities, solution_coherence="Its solutions fit together as one.")])
     rewrite(cfg.structure / "implementations.csv",
             lambda rows, cols: [r.update(sub_intent="voices" if r["implementation_id"] == "greet-a-person:live" else "")
                                 for r in rows])
@@ -26,16 +26,22 @@ def add_sub_intent(cfg, opportunities="A creative space the parent solution does
 
 def write_intent(folder, intent_id, implements, opportunities="A creative space the parent solution does not cover."):
     folder.mkdir(exist_ok=True)
-    tables.write_csv(folder / "intent.csv", ["intent_id", "name", "vision_statement", "implements", "opportunities"],
+    tables.write_csv(folder / "intent.csv", ["intent_id", "name", "vision_statement", "implements", "opportunities", "solution_coherence"],
                      [dict(intent_id=intent_id, name=intent_id.title(), vision_statement=f"The {intent_id} are spoken well.",
-                           implements=implements, opportunities=opportunities)])
+                           implements=implements, opportunities=opportunities, solution_coherence="Its solutions fit together as one.")])
 
 
 def add_solution(cfg, folder, solution_id, implementation, sub_intent=""):
     """A specification solution with one implementation in the intent folder ``folder``, linked both ways to the
     scaffold's problem, ideal and metric."""
     base = next(r for r in tables.read_csv(cfg.structure / "solutions.csv") if r["solution_id"] == "project-structure")
-    row = dict(base, solution_id=solution_id, problem_ids="greeting-by-hand", ideal_ids="consistent-greeting",
+    own = f"{solution_id}-needs-saying"   # a problem of the sub-intent itself: a solution is motivated by one of its own intent's problems
+    first = next(r for r in tables.read_csv(cfg.structure / "problems.csv") if r["problem_id"] == "greeting-by-hand")
+    tables.write_csv(folder / "problems.csv", tables.read_header(cfg.structure / "problems.csv"),
+                     [dict(first, problem_id=own, solution_ids=solution_id, ideal_ids="consistent-greeting")])
+    rewrite(cfg.structure / "ideals.csv", lambda rows, cols: [r.update(problem_ids=r["problem_ids"] + f";{own}")
+                                                              for r in rows if r["ideal_id"] == "consistent-greeting"])
+    row = dict(base, solution_id=solution_id, problem_ids=f"greeting-by-hand;{own}", ideal_ids="consistent-greeting",
                metric_ids="structure-coverage", implementations=implementation, selected=implementation)
     tables.write_csv(folder / "solutions.csv", tables.read_header(cfg.structure / "solutions.csv"), [row])
     impl = dict(implementation_id=f"{solution_id}:{implementation}", solution_id=solution_id, name="By voice", description="Spoken.",

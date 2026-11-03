@@ -95,3 +95,22 @@ def header_union(config: Config, name: str) -> List[str]:
             for column in read_header(path):
                 seen.setdefault(column, None)
     return list(seen)
+
+
+def coherence_notes(config: Config, registry) -> List[str]:
+    """One note per intent whose ``solution_coherence`` paragraph does not name every solution of the intent (by id or by name, ignoring
+    case). Notes, not errors: the paragraph's wording is free, and a name may be put in other words. A blank paragraph is reported as
+    an unfilled field by rule S28."""
+    out: List[str] = []
+    solutions = registry.every_solution()
+    for intent in discover(config):
+        text = " ".join(intent.row.get("solution_coherence", "").lower().split())
+        if not text or not intent.intent_id:
+            continue
+        missing = [r.get("solution_id", "") for r in solutions if r.get("intent_id", intent.intent_id) == intent.intent_id
+                   and r.get("solution_id", "").lower() not in text
+                   and " ".join(r.get("name", "").lower().split()) not in text]
+        if missing:
+            out.append(f"note: intent {intent.intent_id}: solution_coherence does not name {', '.join(missing)}; say how each fits "
+                       "(its id or its name)")
+    return out

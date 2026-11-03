@@ -20,9 +20,10 @@ def fill_top_intent(root):
         rows, cols = tables.read_csv(folder / name), tables.read_header(folder / name)
         for row in rows:
             change(row)
-        tables.write_csv(folder / name, cols, rows)
+        tables.write_csv(folder / name, cols + [k for k in (rows[0] if rows else {}) if k not in cols], rows)   # a column the change adds
 
-    edit("intent.csv", lambda r: r.update(name="Consistent greetings", vision_statement="Every person is greeted by their own name."))
+    edit("intent.csv", lambda r: r.update(name="Consistent greetings", vision_statement="Every person is greeted by their own name.",
+                                         solution_coherence="Greetings sent (project-purpose) is the purpose, greet-a-person does the greeting, and project-structure records how."))
     edit("solutions.csv", lambda r: r["solution_id"] == "project-purpose" and r.update(
         name="Greetings sent", description="Every greeting the project sends is the one it meant to send.",
         purpose="Greet people for this project.", approach="Send each greeting through the one greeting function.",

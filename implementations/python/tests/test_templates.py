@@ -94,3 +94,19 @@ def test_the_solutions_header_carries_every_column_the_rules_read():
     assert set(RULE_COLUMNS["solutions.csv"] + OPTIONAL_COLUMNS["solutions.csv"]) <= set(header)
     assert set(RULE_COLUMNS["components.csv"]) == set(templates.record_headers(rows)["components.csv"].strip().split(","))
     assert set(RULE_COLUMNS["waivers.csv"]) == set(templates.record_headers(rows)["waivers.csv"].strip().split(","))
+
+
+def test_the_librarys_own_shipped_copy_follows_the_template_when_it_lives_in_the_synced_repository(tmp_path, monkeypatch):
+    from esoi import records
+    shipped = tmp_path / "package" / "data" / "esoi_template.csv"
+    shipped.parent.mkdir(parents=True)
+    shipped.write_text("stale\n")
+    monkeypatch.setattr(records, "TEMPLATE_DATA", shipped)
+    cfg = make(tmp_path)
+    assert templates.sync(cfg, say=lambda text: None) == 0
+    assert shipped.read_text() == (tmp_path / "structure" / "esoi_template.csv").read_text()
+    elsewhere = tmp_path / "other"
+    elsewhere.mkdir()
+    monkeypatch.setattr(records, "TEMPLATE_DATA", tmp_path.parent / "outside_esoi_template.csv")   # a copy outside the repository is left alone
+    assert templates.sync(cfg, say=lambda text: None) == 0
+    assert not (tmp_path.parent / "outside_esoi_template.csv").exists()

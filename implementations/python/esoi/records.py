@@ -338,6 +338,11 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
         unknown(sid, "metric_ids", ids(row.get("metric_ids", "")), index["metric"])
         if not ids(row.get("problem_ids", "")) and not ids(row.get("parent_problem_ids", "")):
             bad.append(f"R3 {sid}: addresses no problem")
+        own = row.get("intent_id", "")
+        if own and (ids(row.get("problem_ids", "")) or ids(row.get("parent_problem_ids", ""))) and not any(
+                problems.get(pid, {}).get("intent_id", "") == own for pid in ids(row.get("problem_ids", ""))):
+            bad.append(f"R3 {sid}: addresses no problem of its own intent {own} (it may also link problems of other intents, "
+                       "but is motivated by at least one of its own)")
         if not ids(row.get("ideal_ids", "")) and not ids(row.get("parent_ideal_ids", "")):
             bad.append(f"R3 {sid}: has no ideal")
         if not ids(row.get("metric_ids", "")):
