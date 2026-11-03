@@ -1,14 +1,185 @@
-These are ESOI records (evolvable structure that optimizes intent): why this project exists, and its problems, solutions, implementations, ideals and metrics. This page is generated from the CSV files beside it by `esoi check --write-docs`; edit the CSV files, not this page.
-
 # Evolvable structure that optimizes intent (ESOI)
 
 Every intention is turned into a structure that optimizes the fulfilling of that intent while supporting changes to it, and the intent and the structure evolve together in a continual feedback loop.
+
+*ESOI records of this intent (evolvable structure that optimizes intent), generated from the CSV files beside this page by `esoi readmes`. Edit the CSV files, not this page.*
 
 ## How the solutions fit together
 
 esoi turns an intention into a structure that keeps fulfilling it while both change, and apply-esoi is how a project takes that up: apply-esoi teaches people through the-standard, guides AI agents through esoi-for-ai, holds the records and the code to their rules through structure-check, measures alternatives and moves the selection to the winner through promote-the-winner, chooses the implementation that serves each call through implementation-selection, finds the records a request concerns through spec-search, records one piece of work's metric before and after through keep-metric-record, finds which projects apply ESOI through local-application-index, and checks a project built on a library through consumer-check. the-standard explains ESOI and its fill-in templates in docs-and-templates, gives the order of the work in the-steps and ships the author's skill as a public folder through skill-distribution; the-steps is written down for readers in follow-the-steps. esoi-for-ai gives an agent the skill as standing instructions, behave-by-esoi measures case by case whether its replies act by the principles, and esoi-behaviour-judge grades the replies a pattern cannot settle, through judge-esoi-behaviour. structure-check applies every rule it holds through structure-rules, each rule kept only while structure-budget says it still pays and with ownership-map tying every file to a component, keeps the record fields in step with the template through template-sync, regenerates the pages of readable-records and the review-tracker sheet, and reads standings from leaderboard; template-sync parses the template that the intent-registry records follow. review-tracker puts the intent-registry records, the leaderboard standings and the fields kept in step by template-sync in front of a reviewer. promote-the-winner switches a solution's selected implementation when leaderboard shows a clear winner among the rows measurement-harness recorded, then updates the review-tracker sheet and the declarations that specify-from-code keeps in step with the intent-registry records; measurement-harness runs each implementation on its solution's cases, proves through discriminating-cases that those cases fail a naive implementation, follows when-metrics-are-run for when a stage may run and what it may spend, consults public-evidence before it pays to measure a candidate others have measured, and hands its rows to leaderboard, which public-evidence reads as well. implementation-selection chooses which implementation serves a solution by name, configuration or table default, and its declarations grow into the esoi-runtime sub-intent. spec-search ranks the records a request concerns over the narrowed set spec-index gives it. keep-metric-record reads the slice spec-index gives for the work it records. local-application-index says where to look first in each project. consumer-check scores a consumer's own implementations with the library's cases and shows its version lag.
 
-## Problems
+## Diagram
+
+An arrow runs from the solution that provides to the solution that builds on it; its label is what the provider outputs.
+
+```mermaid
+flowchart LR
+    s0["Apply ESOI to a project<br/>apply-esoi"]
+    s1["Intent registry<br/>intent-registry"]
+    s2["Template sync<br/>template-sync"]
+    s3["Ownership map<br/>ownership-map"]
+    s4["Implementation selection<br/>implementation-selection"]
+    s5["Measurement harness<br/>measurement-harness"]
+    s6["Leaderboard<br/>leaderboard"]
+    s7["Discriminating cases<br/>discriminating-cases"]
+    s8["Rule engine<br/>structure-check"]
+    s9["Structure rules<br/>structure-rules"]
+    s10["Review tracker<br/>review-tracker"]
+    s11["Consumer check<br/>consumer-check"]
+    s12["The standard<br/>the-standard"]
+    s13["Structure budget<br/>structure-budget"]
+    s14["When metrics are run<br/>when-metrics-are-run"]
+    s15["Skill distribution<br/>skill-distribution"]
+    s16["ESOI applied to AI behaviour<br/>esoi-for-ai"]
+    s17["The ESOI steps<br/>the-steps"]
+    s18["Documentation and templates<br/>docs-and-templates"]
+    s19["Follow the steps<br/>follow-the-steps"]
+    s20["Local ESOI index<br/>local-application-index"]
+    s21["ESOI behaviour judge<br/>esoi-behaviour-judge"]
+    s22["Behave by ESOI<br/>behave-by-esoi"]
+    s23["Judge ESOI behaviour<br/>judge-esoi-behaviour"]
+    s24["Specify from the code<br/>specify-from-code"]
+    s25["Readable records<br/>readable-records"]
+    s26["Promote the winner<br/>promote-the-winner"]
+    s27["Specification index<br/>spec-index"]
+    s28["keep-metric-record<br/>keep-metric-record"]
+    s29["Spec search<br/>spec-search"]
+    s30["Grade evidence<br/>public-evidence"]
+    s1 -->|"A linked intent network that the check, the tracker and the..."| s2
+    s1 -->|"A linked intent network that the check, the tracker and the..."| s10
+    s1 -->|"A linked intent network that the check, the tracker and the..."| s24
+    s2 -->|"A committed field list per type"| s8
+    s2 -->|"A committed field list per type"| s10
+    s3 -->|"File-to-solution links and the generated component index"| s9
+    s4 -->|"The chosen implementation's class and its configuration..."| s0
+    s5 -->|"A results row per run"| s26
+    s6 -->|"A verdict per solution and a ranked board"| s5
+    s6 -->|"A verdict per solution and a ranked board"| s8
+    s6 -->|"A verdict per solution and a ranked board"| s10
+    s6 -->|"A verdict per solution and a ranked board"| s26
+    s6 -->|"A verdict per solution and a ranked board"| s30
+    s7 -->|"A pass or fail per baseline"| s5
+    s8 -->|"A list of violations, each led by its rule id, and an exit..."| s0
+    s9 -->|"One problem line per violation, led by the rule id"| s8
+    s10 -->|"Generated tracker tables and the synced sheet"| s8
+    s10 -->|"Generated tracker tables and the synced sheet"| s26
+    s11 -->|"Violations and notes"| s0
+    s12 -->|"The standard document"| s0
+    s13 -->|"A periodic report of cost against catches"| s9
+    s14 -->|"A row per run in the results log with the commit and the..."| s5
+    s15 -->|"A public skill folder, a plugin manifest and marketplace..."| s12
+    s16 -->|"The agent's reply and, for a judged run, a verdict with a..."| s0
+    s17 -->|"Linked records, a checked metric, measured implementations..."| s0
+    s17 -->|"Linked records, a checked metric, measured implementations..."| s12
+    s18 -->|"Explanations, guides and generated templates"| s0
+    s18 -->|"Explanations, guides and generated templates"| s12
+    s19 -->|"The steps in the public skill and the guides that point to..."| s17
+    s20 -->|"The project containing the path with its first file to read..."| s0
+    s21 -->|"A verdict (pass or fail) and a one-line reason"| s16
+    s22 -->|"A reply per case, a pass or fail with a note, and a..."| s16
+    s23 -->|"A verdict and a reason, scored against the label"| s21
+    s24 -->|"Findings (rule S30), the rows written, and for a new..."| s26
+    s25 -->|"A README.md in the intent's folder"| s8
+    s26 -->|"Edits to selected, selected_by and the metric's command, or..."| s0
+    s27 -->|"An index (JSON-serializable: entries with id, kind, title..."| s28
+    s27 -->|"An index (JSON-serializable: entries with id, kind, title..."| s29
+    s28 --> s0
+    s29 -->|"A Selection: ranked items best first with their linked..."| s0
+    s30 -->|"Dict(Tuple(str, str), Estimate)"| s5
+```
+
+## Solutions at a glance
+
+| Solution | Entry call | Selected implementation | Metric |
+|---|---|---|---|
+| `apply-esoi` | `esoi.run("apply-esoi", '.')` | `documents-templates-and-tools` | Adoption effort, Intents whose solutions one paragraph and one diagram explain as the code builds them |
+| `intent-registry` | `esoi.run("intent-registry", '.')` | `csv-records-in-the-repository` | Record completeness |
+| `template-sync` | `esoi.run("template-sync", '.')` | `template-parser` | Template agreement |
+| `ownership-map` | `esoi.run("ownership-map", '.')` | `component-rows` | Trace completeness |
+| `implementation-selection` | `esoi.run("implementation-selection", 'structure-check')` | `declarations` | Resolution correctness |
+| `measurement-harness` | `esoi.run("measurement-harness", '.')` | `component-harness` | Provenance completeness |
+| `leaderboard` | `esoi.run("leaderboard", '.')` | `margin-leaderboard` | Ranking correctness |
+| `discriminating-cases` | `esoi.run("discriminating-cases", '.')` | `broken-baselines` | Case discrimination |
+| `structure-check` | `esoi.run("structure-check", '.')` | `rule-script` | Check dependability |
+| `structure-rules` | `esoi.run("structure-rules", '.')` | `rule-modules` | Violation detection |
+| `review-tracker` | `esoi.run("review-tracker", '.')` | `tracker-and-sheet` | Review coverage |
+| `consumer-check` | `esoi.run("consumer-check", 'esoi')` | `consumer-command` | Consumer soundness |
+| `the-standard` | `esoi.run("the-standard", '.')` | `standard-document` | Adoption effort |
+| `structure-budget` | `esoi.run("structure-budget", '.')` | `written-weighing-rule` | Structure cost against catches |
+| `when-metrics-are-run` | `esoi.run("when-metrics-are-run", '.')` | `on-every-change` | Decisions backed by current results |
+| `skill-distribution` | `esoi.run("skill-distribution", '.')` | `generated-public-copy` | Skill copy agreement and leaks |
+| `esoi-for-ai` | `esoi.run("esoi-for-ai", '.')` | `skill-as-standing-instructions` | Behaviour adherence |
+| `the-steps` | `esoi.run("the-steps", '.')` | `esoi-steps` | Steps followed |
+| `docs-and-templates` | `esoi.run("docs-and-templates", '.')` | `documentation-folder` | Newcomer effort |
+| `follow-the-steps` | `esoi.run("follow-the-steps", '.')` | `steps` | Steps trial |
+| `local-application-index` | `esoi.run("local-application-index", '.')` | `live_index` | Local index lookup cases |
+| `esoi-behaviour-judge` | `esoi.run("esoi-behaviour-judge", '.')` | `model-judge-on-the-rubric` | Judge agreement |
+| `behave-by-esoi` | `esoi.run("behave-by-esoi", '.')` | `standing-instructions` | ESOI behaviour cases |
+| `judge-esoi-behaviour` | `esoi.run("judge-esoi-behaviour", '.')` | `model-judge` | ESOI judge agreement cases |
+| `specify-from-code` | `esoi.run("specify-from-code", '.')` | `declarations-and-sync` | Declaration sync |
+| `readable-records` | `esoi.run("readable-records", '.')` | `at_a_glance` | README glanceability, README fidelity |
+| `promote-the-winner` | `esoi.run("promote-the-winner", '.')` | `margin-promotion` | Promotion correctness |
+| `spec-index` | `esoi.run("spec-index", ...)` | `weighted-tfidf` | Specification recall at k |
+| `keep-metric-record` | `esoi.run("keep-metric-record", '.')` | `library-modules` | Metric record kept |
+| `spec-search` | `esoi.run("spec-search", ...)` | `lexical-vector-gated` | Spec search correctness |
+| `public-evidence` | `esoi.run("public-evidence", {'evidence': []})` | `graded` | Public evidence graded |
+
+## Problems and ideals
+
+**Problems**
+
+- `prob-intent-lost-between-person-and-code`: What someone meant when they asked for a capability lives in their head, a chat or a task, and the code that answers it carries none of that meaning.
+- `prob-best-alternative-unknown`: Most parts of a system can be done several ways (a model tier, a router, a retrieval method), and the one in use was chosen by whoever wrote it, not by evidence.
+- `prob-measurements-untrusted`: A number recorded on uncommitted code, on a different case set, typed by hand, or copied into prose that is never updated looks like evidence but proves nothing.
+- `prob-switching-means-editing-code`: Switching a provider, runner or backend means finding and editing the call sites, often an `if` chain, and an embedding system cannot switch without forking.
+- `prob-purposeless-oversized-code`: Files no one can attribute to a purpose stay because deleting feels risky, and modules grow until no one reads them whole (one adapter file reached thousands of lines).
+- `prob-structure-rules-decay`: Rules written in prose (where files go, which way imports point, what must be documented) are followed by whoever read them and broken by the next agent, and generated documents drift from what they...
+- `prob-review-needs-implementations`: A person who wants to steer quality has to read implementations, because ideals, metrics and current results are not gathered anywhere they can read and correct.
+- `prob-evaluation-detached-from-shipped-code`: Evaluations built beside production code test copies, stubs or scripts of their own, so their results describe something that does not run.
+- `prob-embedding-soundness-unknown`: A system builds on a library's solutions with its own stores and prompts, but cannot see which library solution each of its parts serves, whether its parts meet the library's own cases, or how far...
+- `prob-template-copies-drift`: The intent template is being refined in the skill, and every registry and checker that copied its fields falls out of date.
+- and 17 more: all 27 are in [problems](#problems) of the full record below
+
+**Ideals**
+
+- `ideal-explicit-intent`, Explicit intent: Every built part traces to the problems it addresses and the ideals it pursues.
+- `ideal-metric-chosen-defaults`, Metric-chosen defaults: The implementation that runs is the one the solution's authoritative metric ranks best.
+- `ideal-trustworthy-evidence`, Trustworthy evidence: Every number can be reproduced from a commit and a case set, and only like is compared with like.
+- `ideal-effortless-substitution`, Effortless substitution: Switching the implementation of a solution is a change of data, not of code.
+- `ideal-purposeful-code`, Purposeful code: Nothing exists that serves no solution, and every part is small enough to understand in one reading.
+- `ideal-self-enforcing-structure`, Self-enforcing structure: A structural rule is enforced by the structure, at the moment it is broken.
+- `ideal-review-by-metric`, Review by metric: People can steer by reviewing problems, ideals, metrics and results alone, without needing to read implementations; anyone may still review or improve an implementation, and that still adds value.
+- `ideal-faithful-measurement`, Faithful measurement: What is measured is what ships.
+- `ideal-sound-integration`, Sound integration: A system built on a library meets the same standard as the library, through the library's own checks and cases.
+- `ideal-living-template`, Living template: The template's author changes it in one place and every record follows.
+- and 14 more: all 24 are in [ideals](#ideals) of the full record below
+
+## Metrics and their leaders
+
+- `metric-trace-completeness`, Trace completeness: leader `live_checker`, 12 of 16 cases
+- `metric-template-agreement`, Template agreement: leader `live_parser`, 11 of 11 cases
+- `metric-resolution-correctness`, Resolution correctness
+- `metric-provenance-completeness`, Provenance completeness: leader `live_harness`, 27 of 28 cases
+- `metric-ranking-correctness`, Ranking correctness: leader `live_leaderboard`, 54 of 54 cases
+- `metric-case-discrimination`, Case discrimination
+- `metric-violation-detection`, Violation detection: leader `live_checker`, 61 of 76 cases
+- `metric-check-dependability`, Check dependability: leader `live_checker`, 61 of 76 cases
+- `metric-review-coverage`, Review coverage: leader `live_tracker`, 10 of 10 cases
+- `metric-consumer-soundness`, Consumer soundness: leader `live_consumer_check`, 22 of 22 cases
+- and 22 more: all 32 are in [metrics](#metrics) of the full record below
+
+## Where to go next
+
+- Sub-intent: [ESOI inside other people's running code](esoi-runtime/README.md) (The esoi package is a dependency of other people's production code, which declares its alternatives gracefully and selects the best implementation while it runs.)
+- Repository: [top README](../README.md)
+- Records: [intent.csv](intent.csv), [problems.csv](problems.csv), [ideals.csv](ideals.csv), [solutions.csv](solutions.csv), [implementations.csv](implementations.csv), [metrics.csv](metrics.csv)
+- Diagram page: [diagram.md](diagram.md)
+
+---
+
+## The full record
+
+### Problems
 
 - `prob-intent-lost-between-person-and-code`: What someone meant when they asked for a capability lives in their head, a chat or a task, and the code that answers it carries none of that meaning. Months later nobody, human or AI, can tell what a module was for, which use cases it must serve, or what "better" would mean for it.
 - `prob-best-alternative-unknown`: Most parts of a system can be done several ways (a model tier, a router, a retrieval method), and the one in use was chosen by whoever wrote it, not by evidence. When a better alternative appears, nothing shows that it is better or makes it the default.
@@ -36,8 +207,9 @@ esoi turns an intention into a structure that keeps fulfilling it while both cha
 - `prob-intent-specs-not-found-for-new-input`: A new use case or input arrives, and nobody (human or AI) can tell which of a project's problems, ideals, solutions, implementations and metrics apply without reading all of them. The specifications exist, but finding the relevant few is left to whoever happens to remember them.
 - `prob-metric-measures-a-stand-in`: A metric scores a scripted judge, a mocked model or a canned answer instead of the real thing, so its number measures the plumbing around the thing and not the thing. A perfect scripted judge passes everything, and a decision built on the number is backed by nothing.
 - `prob-spec-search`: A system that finds a repository's records for a request, or finds them together with its own notes or documents, rebuilds the same stages inside its own code: lexical scoring, a semantic search, rank fusion, a confidence gate, one judging call and the way a ranked record brings its links. The copy in one product cannot be reused or improved by the next.
+- `prob-intent-folder-not-glanceable`: A person clicking into an intent folder cannot tell at a glance what it is, how its parts fit or where to go next: the page lists the records but shows no picture of how the solutions connect, no call that tries a solution, and no link down to the sub-intents, up to the parent intent or out to the repository.
 
-## Ideals
+### Ideals
 
 - `ideal-explicit-intent`, Explicit intent: Every built part traces to the problems it addresses and the ideals it pursues.
 - `ideal-metric-chosen-defaults`, Metric-chosen defaults: The implementation that runs is the one the solution's authoritative metric ranks best.
@@ -62,12 +234,13 @@ esoi turns an intention into a structure that keeps fulfilling it while both cha
 - `ideal-rules-earn-their-place`, Rules earn their place: Every rule can say which mistake it prevents, and is removed when it stops catching any.
 - `ideal-right-spec-at-the-right-time`, Right specification at the right time: For any new use case or input, the relevant specifications are found by looking at a small, cheap description first and reading in full only what was chosen.
 - `ideal-spec-search`, One search, written once: The stages of finding the specifications a request concerns are written once, in the library, and a product supplies only its vector search and its judge.
+- `ideal-glanceable-intent`, Glanceable intent: Anyone clicking into an intent folder sees on the first screen what the intent is, how its solutions fit together and where to go next.
 
-## Solutions
+### Solutions
 
 | Solution | Name | Selected | Metric |
 |---|---|---|---|
-| `apply-esoi` | Apply ESOI to a project | documents-templates-and-tools | Adoption effort;Intents whose solutions one paragraph and one diagram explain as the code builds them |
+| `apply-esoi` | Apply ESOI to a project | documents-templates-and-tools | Adoption effort, Intents whose solutions one paragraph and one diagram explain as the code builds them |
 | `intent-registry` | Intent registry | csv-records-in-the-repository | Record completeness |
 | `template-sync` | Template sync | template-parser | Template agreement |
 | `ownership-map` | Ownership map | component-rows | Trace completeness |
@@ -92,14 +265,14 @@ esoi turns an intention into a structure that keeps fulfilling it while both cha
 | `behave-by-esoi` | Behave by ESOI | standing-instructions | ESOI behaviour cases |
 | `judge-esoi-behaviour` | Judge ESOI behaviour | model-judge | ESOI judge agreement cases |
 | `specify-from-code` | Specify from the code | declarations-and-sync | Declaration sync |
-| `readable-records` | Readable records | generated-readme | README fidelity |
+| `readable-records` | Readable records | at_a_glance | README glanceability, README fidelity |
 | `promote-the-winner` | Promote the winner | margin-promotion | Promotion correctness |
 | `spec-index` | Specification index | weighted-tfidf | Specification recall at k |
 | `keep-metric-record` | keep-metric-record | library-modules | Metric record kept |
 | `spec-search` | Spec search | lexical-vector-gated | Spec search correctness |
 | `public-evidence` | Grade evidence | graded | Public evidence graded |
 
-## Implementations
+### Implementations
 
 | Implementation | Name | Where | Sub-intent |
 |---|---|---|---|
@@ -156,18 +329,20 @@ esoi turns an intention into a structure that keeps fulfilling it while both cha
 | `judge-esoi-behaviour:regex-only` | Regex only | implementations/python/evaluation/components/judge_esoi_behaviour/impls/regex_only.py |  |
 | `specify-from-code:declarations-and-sync` | Declarations read from the code, rows synced | implementations/python/esoi/interfaces.py |  |
 | `specify-from-code:hand-kept-records` | Records kept by hand |  |  |
-| `readable-records:generated-readme` | Generated README per intent folder | implementations/python/esoi/interfaces.py |  |
+| `readable-records:full_page` | Record tables only | implementations/python/esoi/interfaces.py |  |
+| `readable-records:at_a_glance` | At a glance, full record below | implementations/python/esoi/interfaces.py |  |
+| `readable-records:links_page` | Compact page of links | implementations/python/esoi/interfaces.py |  |
 | `readable-records:hand-written-readme` | README written by hand |  |  |
 | `promote-the-winner:margin-promotion` | Promotion on the leaderboard's verdict | implementations/python/esoi/interfaces.py |  |
 | `promote-the-winner:person-edits-the-records` | A person edits the records |  |  |
 | `spec-index:weighted-tfidf` | Field-weighted TF-IDF over the index | implementations/python/esoi/spec_index.py |  |
 | `spec-index:term-overlap` | Plain term overlap | implementations/python/esoi/spec_index.py |  |
-| `keep-metric-record:library-modules` | unconfirmed: for Joshua to confirm. | implementations/python/esoi/interfaces.py |  |
+| `keep-metric-record:library-modules` |  | implementations/python/esoi/interfaces.py |  |
 | `spec-search:lexical-only` | Lexical only | implementations/python/esoi/spec_search.py |  |
 | `spec-search:lexical-vector-gated` | Lexical vector gated | implementations/python/esoi/spec_search.py |  |
 | `public-evidence:graded` | Graded | implementations/python/esoi/evidence.py |  |
 
-## Metrics
+### Metrics
 
 - `metric-trace-completeness`, Trace completeness: `esoi run own_every_file --impl live_checker`
 - `metric-template-agreement`, Template agreement: `esoi run sync_the_template --impl live_parser`
@@ -194,6 +369,7 @@ esoi turns an intention into a structure that keeps fulfilling it while both cha
 - `metric-record-completeness`, Record completeness: `esoi run record_intent --impl live_checker`
 - `metric-declaration-sync`, Declaration sync: `esoi run specify_from_code --impl live_declarations`
 - `metric-readme-fidelity`, README fidelity: `esoi run readable_records --impl live_readme`
+- `metric-readme-glanceability`, README glanceability: `esoi run readme_at_a_glance --impl at_a_glance; esoi run readme_at_a_glance --impl full_page; esoi run readme_at_a_glance --impl links_page`
 - `metric-promotion-correctness`, Promotion correctness: `esoi run promote_the_winner --impl live_promote`
 - `metric-spec-index-recall`, Specification recall at k: `esoi run spec_index --impl weighted_tfidf; esoi run spec_index --impl term_overlap`
 - `metric-keep-metric-record`, Metric record kept: `esoi run keep_metric_record --impl live_record`

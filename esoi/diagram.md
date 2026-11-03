@@ -77,7 +77,7 @@ flowchart LR
     s26 -->|"Edits to selected, selected_by and the metric's command, or..."| s0
     s27 -->|"An index (JSON-serializable: entries with id, kind, title..."| s28
     s27 -->|"An index (JSON-serializable: entries with id, kind, title..."| s29
-    s28 -->|"unconfirmed: for Joshua to confirm"| s0
+    s28 --> s0
     s29 -->|"A Selection: ranked items best first with their linked..."| s0
     s30 -->|"Dict(Tuple(str, str), Estimate)"| s5
 ```
