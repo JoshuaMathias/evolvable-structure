@@ -16,6 +16,7 @@ import glance_fixture
 from esoi import besidecode, config, intents, readme, registry
 
 CACHE: Dict[Tuple[str, str], Tuple[Path, str]] = {}
+RECORDS: Dict[Tuple[str, str], dict] = {}   # the [records] table each laid-out tree is read with
 KEPT = ("intent.csv", *intents.RECORD_FILES)
 
 
@@ -63,17 +64,12 @@ def layout(label: str, arm: str, fresh: bool = False) -> Tuple[Path, str]:
             path.write_text(text, encoding="utf-8")
         digest = hashlib.sha256("".join(f"{p.relative_to(target)}\n{t}" for p, t in sorted(pages)).encode()).hexdigest()[:16]
         CACHE[(label, arm)] = (target, digest)
+        RECORDS[(label, arm)] = final.records
     return CACHE[(label, arm)]
 
 
 def load(label: str, arm: str, fresh: bool = False):
-    """``(config, registry)`` of the laid-out tree."""
+    """``(config, registry)`` of the laid-out tree, read with the same ``[records]`` table it was laid out with."""
     target, _ = layout(label, arm, fresh)
-    cfg = config.load(target)
-    records = dict(cfg.records)
-    if arm == "beside_code" and not records.get("beside_code"):
-        records["beside_code"] = besidecode.code_hosts(cfg)
-    if arm == "esoi_folder":
-        records["beside_code"] = []
-    cfg = dataclasses.replace(cfg, records=records)
+    cfg = dataclasses.replace(config.load(target), records=RECORDS[(label, arm)])
     return cfg, registry.load(cfg)
