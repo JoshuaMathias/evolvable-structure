@@ -112,7 +112,7 @@ def records_evidence(config: Any, loaded: Any = None) -> Dict[str, Dict[str, Any
         found = verdicts.get(sid)
         if not found or not found["component"]:
             continue
-        component, impl = leaderboard.first_arm(config, row.get("metric_command", ""))
+        component, impl = leaderboard.selected_arm(config, row, "", loaded)
         rows = results.get(component, {})
         decided = leaderboard.decisions(rows, impl, config.evaluation, history.get(component), per_case,
                                         leaderboard.policy_for(config, sid, component, per_case)) if impl in rows else []

@@ -20,7 +20,7 @@ from typing import Callable, Dict, List, Optional
 
 from . import evidence, leaderboard, stats
 from .config import Config
-from .registry import Registry, first_arm
+from .registry import Registry
 from .variants import base_of
 
 BEGIN = "<!-- esoi:evidence-table:begin -->"
@@ -108,7 +108,7 @@ def table_rows(config: Config, registry: Registry, today: Optional[datetime.date
     out: List[List[str]] = []
     for sol in registry.solutions:
         sid = sol["solution_id"]
-        component, selected = first_arm(config, sol.get("metric_command", ""))
+        component, selected = leaderboard.selected_arm(config, sol, "", registry)
         if not component or (solution and sid != solution) or component not in history:
             continue
         arms = {impl: [r for r in found if not leaderboard.is_partial(r)] for impl, found in history[component].items()}

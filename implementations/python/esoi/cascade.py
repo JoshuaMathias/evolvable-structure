@@ -7,8 +7,10 @@ the condition for moving on, joined by `` | ``::
     offline [sample=full | real=no | gate=all-pass] > staged [sample=sample | real=yes | gate=competitive | max-age-days=90 | when=a person approved the spend] > whole [sample=full | real=yes]
 
 * ``sample``: which results log rows are this stage: ``full`` (the whole set), ``sample`` (any ``--sample N`` run), an
-  exact label such as ``sample:10``, or omitted for any. ``real``: ``yes`` when the run calls a model, ``no`` when it does
-  not (a simulated model counts as no). A row belongs to the first stage it matches.
+  exact label such as ``sample:10``, or omitted for any. ``real``: ``yes`` when the stage runs a model, ``no`` when it is the free
+  stage (a simulated model counts as no). The case set and the sample place a row, not whether its arm called a model: a row that
+  called a model belongs to the first stage that takes it, and a row that called none is a result of every stage that takes its
+  cases (it is free, so it has done what each of them asks), so a free arm and a model arm on the same cases are at the same stage.
 * ``gate``: what a result must show before the next stage is worth running: ``all-pass`` (every case passed) or
   ``competitive`` (the selected implementation does not have a strictly better result at this stage). ``min-pass-rate`` (a fraction)
   adds a floor. Every stage but the last needs a gate or a floor, since nothing else says when to move on.
@@ -201,7 +203,9 @@ def load_stages(config, metric: Row) -> Tuple[List[Stage], List[str]]:
 
 
 def matches(stage: Stage, row: Row) -> bool:
-    """Whether a results row is a result of this stage."""
+    """Whether a results row is a result of this stage. The case set and the sample decide it, never whether the arm happened to call a
+    model: a ``real=no`` stage takes only rows that called no model (it is the free stage), while a stage that allows a model also takes a
+    row that called none, since an arm that needs no model has done everything that stage asks."""
     label = (row.get("sample") or "").strip()
     if stage.unrun:
         return False
@@ -211,7 +215,7 @@ def matches(stage: Stage, row: Row) -> bool:
         return False
     if stage.sample.startswith(("sample:", "only:")) and label != stage.sample:
         return False
-    return stage.real is None or leaderboard.is_sampled(row) == stage.real
+    return stage.real is not False or not leaderboard.is_sampled(row)   # a stage that allows a model also takes an arm that calls none
 
 
 def stage_index(stages: List[Stage], row: Row) -> Optional[int]:
@@ -257,8 +261,13 @@ def standings(stages: List[Stage], history: Dict[str, List[Row]], today: Optiona
             continue
         newest: Dict[int, Row] = {}
         for row in rows:
-            if (index := stage_index(stages, row)) is not None:
-                newest[index] = row
+            if leaderboard.is_sampled(row) or leaderboard.is_simulated(row):   # a row that called a model, or a simulated one, is a result of the first stage that takes it
+                if (index := stage_index(stages, row)) is not None:
+                    newest[index] = row
+            else:                             # an arm that calls none is a result of every stage that takes its cases, so it meets the
+                for index, stage in enumerate(stages):   # model arms at their stage and the comparison is on the same case set
+                    if matches(stage, row):
+                        newest[index] = row
         standing = Standing(impl)
         for index, row in newest.items():
             if why := expiry(stages[index], row, today, stale):
@@ -475,6 +484,9 @@ def run_cli(config, solution: str = "", strict: bool = False, say: Callable[[str
         for owner in owners:
             public_lines(evidence_module, config, loaded, owner, graded, stages, say)
         component, chosen = next(iter(registry_module.harness_arms(config, metric.get("command", ""))), ("", ""))
+        owner = next((s for s in loaded.solutions if s["solution_id"] in owners), None)
+        if owner is not None and component:
+            chosen = leaderboard.selected_arm(config, owner, component, loaded)[1] or chosen
         if not stages or not component or component not in history:
             say("  no results yet: every stage is not run" if stages else "  fix the list to read it")
             continue

@@ -207,7 +207,7 @@ def test_a_variant_row_finds_the_arm_kind_of_its_base(tmp_path):
     assert lb.arm_kind(row("guard@harness=native", 1), tmp_path) == "baseline"
 
 
-# ---- the rule: a significant one-sided paired test, else the selected arm stays; a best guess where no test is possible
+# ---- the rule: a significant two-sided paired test, else the selected arm stays; a best guess where no test is possible
 
 def per_case(impl, outcomes, sha="x", component="c", sample="", scores=None):
     return [{"component": component, "impl": impl, "cases_sha": sha, "sample": sample, "case_id": f"k{i}", "ok": "1" if ok else "0",
@@ -225,16 +225,16 @@ def test_a_significant_paired_gain_replaces_the_selected_arm():
     assert label == "LOSS" and "b is better than a" in detail and "12 of 40 cases disagree" in detail and "exact McNemar" in detail
     assert [r["impl"] for r in lb.challengers(data, "a", per_case=log)] == ["b"]
     found = lb.decisions(data, "a", per_case=log)[0]
-    assert found.basis == "significance" and found.p == pytest.approx(1 / 4096) and found.switch
+    assert found.basis == "significance" and found.p == pytest.approx(1 / 2048) and found.switch
 
 
 def test_a_lead_chance_could_explain_still_wins_by_default_and_says_it_is_a_best_guess():
     data, log = arms([True] * 21 + [False] * 9, [True] * 17 + [False] * 13)   # a alone passes 4, b alone none: a leads
     found = lb.decisions(data, "a", per_case=log)[0]
     assert found.outcome == "incumbent" and not found.significant and "best guess, not yet significant" in found.text
-    data, log = arms([True] * 17 + [False] * 13, [True] * 21 + [False] * 9)   # b alone passes 4: p = 0.0625, above 0.05
+    data, log = arms([True] * 17 + [False] * 13, [True] * 21 + [False] * 9)   # b alone passes 4: two-sided p = 0.125, above 0.05
     label, detail = lb.verdict(data, "a", per_case=log)
-    assert label == "LOSS" and "best guess, not yet significant" in detail and "p=0.0625" in detail and "4 of 30 cases disagree" in detail
+    assert label == "LOSS" and "best guess, not yet significant" in detail and "p=0.125" in detail and "4 of 30 cases disagree" in detail
     assert [r["impl"] for r in lb.challengers(data, "a", per_case=log)] == ["b"]
 
 
@@ -242,7 +242,7 @@ def test_require_significance_keeps_the_selected_arm_until_the_lead_is_significa
     data, log = arms([True] * 17 + [False] * 13, [True] * 21 + [False] * 9)
     strict = lb.Policy(require_significance=True)
     label, detail = lb.verdict(data, "a", per_case=log, policy=strict)
-    assert label == "TIE" and "is not shown better than a (p=0.0625, 4 of 30 cases disagree); more cases would settle it" in detail
+    assert label == "TIE" and "is not shown better than a (p=0.125, 4 of 30 cases disagree); more cases would settle it" in detail
     assert lb.challengers(data, "a", per_case=log, policy=strict) == []
 
 
@@ -262,15 +262,15 @@ def test_equal_arms_are_a_tie_whatever_they_cost():
 
 def test_holm_adjusts_across_the_rivals_of_the_selected_arm():
     a = [False] * 40
-    b = [True] * 5 + [False] * 35     # p = 1/32 alone
-    c = [True] * 5 + [False] * 35
-    data = rows(row("a", 0, 40), row("b", 5, 40), row("c", 5, 40))
+    b = [True] * 6 + [False] * 34     # two-sided p = 1/32 alone
+    c = [True] * 6 + [False] * 34
+    data = rows(row("a", 0, 40), row("b", 6, 40), row("c", 6, 40))
     log = per_case("a", a) + per_case("b", b) + per_case("c", c)
     found = {d.rival: d for d in lb.decisions(data, "a", per_case=log)}
     assert found["b"].p == pytest.approx(2 / 32) and not found["b"].significant   # 0.031 alone, 0.0625 after Holm over two rivals
     assert found["b"].outcome == "rival" and found["b"].switch   # still ahead, so it wins as a best guess
     assert lb.decisions(data, "a", per_case=log, policy=lb.Policy(require_significance=True))[0].outcome == "tie"
-    lone = rows(row("a", 0, 40), row("b", 5, 40))
+    lone = rows(row("a", 0, 40), row("b", 6, 40))
     assert lb.decisions(lone, "a", per_case=per_case("a", a) + per_case("b", b))[0].significant
 
 
@@ -288,7 +288,7 @@ def test_a_balanced_metric_is_tested_with_an_exact_sign_test_on_per_case_scores(
     ok = [True] * 20
     log = per_case("a", ok, scores=[0.80] * 20) + per_case("b", ok, scores=[0.80] * 4 + [0.85] * 16)   # same passes, b cheaper in 16
     found = lb.decisions(rows(a, b), "a", per_case=log)[0]
-    assert found.basis == "significance" and found.outcome == "rival" and "sign test" in found.text and found.p == pytest.approx(0.5 ** 16)
+    assert found.basis == "significance" and found.outcome == "rival" and "sign test" in found.text and found.p == pytest.approx(2 * 0.5 ** 16)
     nothing = lb.decisions(rows(a, b), "a", per_case=per_case("a", ok) + per_case("b", ok))[0]   # no per-case scores recorded
     assert nothing.basis == "best guess"
 
@@ -297,7 +297,7 @@ def test_aggregate_pass_counts_on_the_same_cases_get_fishers_exact_test():
     data = rows(row("a", 10, 40), row("b", 22, 40))
     found = lb.decisions(data, "a")[0]
     assert found.basis == "significance" and found.outcome == "rival" and "exact Fisher test" in found.text and found.switch
-    assert found.p == pytest.approx(stats.fisher_exact_greater(22, 40, 10, 40))
+    assert found.p == pytest.approx(stats.fisher_exact_two_sided(22, 40, 10, 40))
     label, detail = lb.verdict(rows(row("a", 20, 40), row("b", 24, 40)), "a")
     assert label == "LOSS" and "best guess, not yet significant" in detail   # ahead by 4 of 40, not significant: still the best guess
     assert lb.verdict(rows(row("a", 20, 40), row("b", 24, 40)), "a", policy=lb.Policy(require_significance=True))[0] == "TIE"

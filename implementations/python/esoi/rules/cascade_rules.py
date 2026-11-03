@@ -35,6 +35,9 @@ def run(ctx: Context) -> list:
                                      ctx.config.evaluation)
         decision = cascade.decide(stages, standing, ctx.config.evaluation)
         for sid in ids(metric.get("solution_ids", "")):
+            owner = next((s for s in ctx.registry.solutions if s["solution_id"] == sid), None)
+            if owner is not None:
+                selected = leaderboard.selected_arm(ctx.config, owner, component, ctx.registry)[1] or selected   # the records' `selected`
             if decision.winner and selected and selected != decision.winner and not ctx.waived("S33", sid):
                 bad.append(f"S33 {sid}: selected is {selected} but the cascade of {mid} chooses {decision.winner} "
                            f"({'; '.join(decision.notes) or 'the highest result at ' + stages[decision.stage].name}); "

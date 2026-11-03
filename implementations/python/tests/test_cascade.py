@@ -8,9 +8,15 @@ LIST = ("offline [sample=full | real=no | gate=all-pass] > staged [sample=sample
         "max-age-days=90 | when=a person approved the spend] > whole [sample=full | real=yes]")
 
 
-def row(impl, passed, cases=10, sample="", calls=0, date="2026-10-20", sha="x"):
+def row(impl, passed, cases=10, sample="", calls=0, date="2026-10-20", sha="x", model=""):
     return dict(date=date, component="c", impl=impl, passed=str(passed), cases=str(cases), cost_usd="0.0", cases_sha=sha,
-                model_calls=str(calls), tokens_in="0", tokens_out="0", heldout="0/0", sample=sample, model="m" if calls else "none")
+                model_calls=str(calls), tokens_in="0", tokens_out="0", heldout="0/0", sample=sample,
+                model=model or ("m" if calls else "none"))
+
+
+def offline(impl, passed):
+    """A whole-set run of an arm with a simulated model: a free first stage of an arm that does call a model later."""
+    return row(impl, passed, model="simulated")
 
 
 def fresh(result):
@@ -50,12 +56,21 @@ def test_a_row_belongs_to_the_first_stage_that_claims_it():
     assert cascade.stage_index(s, row("x", 10)) == 0                           # whole set, no model
     assert cascade.stage_index(s, row("x", 5, 5, sample="sample:5", calls=3)) == 1
     assert cascade.stage_index(s, row("x", 10, calls=3)) == 2                  # whole set with a model
-    assert cascade.stage_index(s, row("x", 5, 5, sample="sample:5")) is None  # sampled, no model: no stage claims it
+    assert cascade.stage_index(s, row("x", 5, 5, sample="sample:5")) == 1     # no model does not keep a sample out of the sampled stage
+
+
+def test_an_arm_that_calls_no_model_meets_the_model_arms_at_the_same_stage():
+    s = stages()
+    free, paid = row("free", 9), row("paid", 8, calls=3)
+    standing = cascade.standings(s, {"free": [free], "paid": [paid]}, TODAY, fresh)
+    assert sorted(standing["free"].rows) == [0, 2] and sorted(standing["paid"].rows) == [2]
+    decision = cascade.decide(s, standing)
+    assert (decision.winner, decision.stage) == ("free", 2)   # compared directly on the same cases, the higher result wins
 
 
 def test_a_stage_that_was_not_run_has_no_result_and_is_next():
     s = stages()
-    standing = cascade.standings(s, {"a": [row("a", 10)]}, TODAY, fresh)
+    standing = cascade.standings(s, {"a": [offline("a", 10)]}, TODAY, fresh)
     assert standing["a"].rows.keys() == {0}
     assert cascade.next_stage(s, standing["a"])[0] == 1
     assert cascade.next_stage(s, standing["a"])[1] == "not run"
@@ -88,20 +103,20 @@ def test_a_result_expires_when_it_is_stale_or_older_than_the_stage_allows():
 
 def test_the_latest_stage_run_decides_between_the_implementations_that_reached_it():
     s = stages()
-    history = {"a": [row("a", 10), row("a", 6, 10, "sample:10", 3)], "b": [row("b", 10), row("b", 9, 10, "sample:10", 3)]}
+    history = {"a": [offline("a", 10), row("a", 6, 10, "sample:10", 3)], "b": [offline("b", 10), row("b", 9, 10, "sample:10", 3)]}
     decision = cascade.decide(s, cascade.standings(s, history, TODAY, fresh))
     assert (decision.winner, decision.stage, decision.pending) == ("b", 1, [])
 
 
 def test_one_that_led_at_a_shared_earlier_stage_stays_chosen_until_run_at_the_latest():
     s = stages()
-    base = {"a": [row("a", 7), row("a", 6, 10, "sample:10", 3)], "b": [row("b", 7), row("b", 8, 10, "sample:10", 3)]}
+    base = {"a": [offline("a", 7), row("a", 6, 10, "sample:10", 3)], "b": [offline("b", 7), row("b", 8, 10, "sample:10", 3)]}
     assert cascade.decide(s, cascade.standings(s, base, TODAY, fresh)).winner == "b"       # b leads the latest stage
-    held = cascade.decide(s, cascade.standings(s, {**base, "c": [row("c", 10)]}, TODAY, fresh))
+    held = cascade.decide(s, cascade.standings(s, {**base, "c": [offline("c", 10)]}, TODAY, fresh))
     # c scored higher than b at offline, the stage they share, and has not been run at staged
     assert held.winner == "c" and held.pending == ["c"] and held.leader == "b"
     assert any("run it there" in n for n in held.notes)
-    run = {**base, "c": [row("c", 10), row("c", 3, 10, "sample:10", 3)]}                   # once run, its later score decides
+    run = {**base, "c": [offline("c", 10), row("c", 3, 10, "sample:10", 3)]}                   # once run, its later score decides
     settled = cascade.decide(s, cascade.standings(s, run, TODAY, fresh))
     assert settled.winner == "b" and settled.pending == []
 

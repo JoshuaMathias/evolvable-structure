@@ -4,7 +4,8 @@
 selected implementation (the same cases, the same sample, by the rule of ``leaderboard.decisions``: a significant one-sided paired
 test where per-case rows exist for both arms, else a best guess where the solution allows it), it either
 
-* switches the solution's ``selected`` in the records to the winner, points the metric's command at it, and writes the
+* switches the solution's ``selected`` in the records to the winner (the metric's command lists the arms to measure and is never
+  rewritten: the choice lives in ``selected``), and writes the
   evidence into ``selected_by`` where the project has that approved column, else prints it (the date of each results row,
   the commit, the cases hash, the pass counts), when the
   solution's ``promotion`` cell says ``automatic``; or
@@ -20,7 +21,7 @@ disagree), or on a solution that is not an evaluated one.
 from __future__ import annotations
 
 import datetime
-import re
+import dataclasses
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
@@ -29,7 +30,7 @@ from . import cascade, leaderboard
 from .config import Config
 from .declarations import intent_folder
 from .harness import stale_reason
-from .registry import Registry, first_arm
+from .registry import Registry
 from .select import load_table
 from .tables import ids, read_csv, read_header, write_csv
 
@@ -47,8 +48,6 @@ class Proposal:
     reason: str = ""
     selected: str = ""               # the new `selected` cell
     selected_by: str = ""            # the evidence written beside it
-    command: str = ""                # the metric command after the switch
-    metric_id: str = ""
     edits: List[str] = field(default_factory=list)
 
 
@@ -77,14 +76,6 @@ def cascade_evidence(own: Row, rival: Row, current: str, winner: str, today: str
             f"latest stage run; at their latest shared stage (cases_sha {rival.get('cases_sha', '')}) {winner} "
             f"{rival.get('passed', '')}/{rival.get('cases', '')} run {rival.get('date', '')} at {rival.get('git_sha', '')}; "
             f"{current} {own.get('passed', '')}/{own.get('cases', '')} run {own.get('date', '')} at {own.get('git_sha', '')}" + (f"; rule: {why}" if why else ""))
-
-
-def switch_command(config: Config, command: str, current: str, winner: str) -> str:
-    """``command`` with its first harness arm pointed at ``winner``."""
-    match = next(iter(re.finditer(config.metric_command, command or "")), None)
-    if match is None or match.group(2) != current:
-        return ""
-    return command[:match.start(2)] + winner + command[match.end(2):]
 
 
 def first_choice(config: Config, registry: Registry, solution: Row, component: str, command_arm: str,
@@ -137,13 +128,6 @@ def first_choice(config: Config, registry: Registry, solution: Row, component: s
                             f"{leader.get('passed', '')}/{leader.get('cases', '')} at {where} (cases_sha {leader.get('cases_sha', '')}, "
                             f"run {leader.get('date', '')} at {leader.get('git_sha', '')}); {others}")
     proposal.edits = [f"solutions.csv {sid}: selected '' -> {proposal.selected!r}", f"evidence: {proposal.selected_by}"]
-    linked = [by_id[m] for m in ids(solution.get("metric_ids", "")) if m in by_id]
-    for metric in linked:
-        match = next(iter(re.finditer(config.metric_command, metric.get("command", ""))), None)
-        if match is not None and match.group(2) != proposal.winner:
-            proposal.metric_id, proposal.command = metric["metric_id"], metric["command"][:match.start(2)] + proposal.winner + metric["command"][match.end(2):]
-            proposal.edits.append(f"metrics.csv {metric['metric_id']}: command {metric['command']!r} -> {proposal.command!r}")
-            break
     proposal.reason = "the solution's `promotion` is automatic" if (solution.get("promotion") or "").strip().lower() == AUTOMATIC \
         else "the solution's `promotion` is not automatic: a person applies this (esoi select --promote --apply)"
     if (solution.get("promotion") or "").strip().lower() == AUTOMATIC:
@@ -185,29 +169,37 @@ def propose(config: Config, registry: Registry, today: Optional[str] = None,
         table = {}
     for solution in registry.solutions:
         sid = solution["solution_id"]
-        component, current = first_arm(config, solution.get("metric_command", ""))
+        component, current = leaderboard.selected_arm(config, solution, "", registry)
         if not component:
             continue
         arms = history.get(component, {})
         if not (solution.get("selected") or "").strip():   # nothing selected yet: the metric makes the first choice, or names a tie
             out.append(first_choice(config, registry, solution, component, current, arms, stale, today))
             continue
-        rows = {impl: rs[-1] for impl, rs in arms.items()}
-        via = cascade.solution_choice(config, registry, solution, component, current, arms, stale)
+        claim_policy = chosen.get(component) or leaderboard.Policy()
+        fraction = claim_policy.holdout
+        pick_policy = dataclasses.replace(claim_policy, holdout=0.0)   # the leader is chosen on the selection part; claims use the held-out part
+        pick_arms = {impl: [part for r in rs if (part := leaderboard.part_row(per_case, r, fraction, False)) is not None]
+                     for impl, rs in arms.items()} if fraction else arms
+        pick_arms = {impl: rs for impl, rs in pick_arms.items() if rs}
+        if current not in pick_arms:
+            continue
+        rows = {impl: rs[-1] for impl, rs in pick_arms.items()}
+        via = cascade.solution_choice(config, registry, solution, component, current, pick_arms, stale)
         if via is not None:   # the metric has cascading conditionals: the latest stage run decides (esoi.cascade)
             winner, pair = via
             if winner is None:
                 continue
             if pair is not None:   # a cascade names the leader at its latest stage; switching still takes a shown (or allowed guessed) gain
-                shown = leaderboard.decisions({current: pair[0], winner: pair[1]}, current, config.evaluation, None, per_case, chosen.get(component))
+                shown = leaderboard.decisions({current: pair[0], winner: pair[1]}, current, config.evaluation, None, per_case, pick_policy)
                 if not any(d.outcome == "rival" and d.switch for d in shown):
                     continue
         else:
-            beaten = leaderboard.challengers(rows, current, config.evaluation, arms, per_case, chosen.get(component))
+            beaten = leaderboard.challengers(rows, current, config.evaluation, pick_arms, per_case, pick_policy)
             if not beaten:
                 continue
             winner = leaderboard.rank({r["impl"]: r for r in beaten})[0]["impl"]
-            pair = next(((own, rival) for own, rival in leaderboard.rival_pairs(rows, current, config.evaluation, arms)[0]
+            pair = next(((own, rival) for own, rival in leaderboard.rival_pairs(rows, current, config.evaluation, pick_arms)[0]
                          if rival["impl"] == winner), None)
         proposal = Proposal(sid, "blocked", current, winner)
         out.append(proposal)
@@ -215,6 +207,9 @@ def propose(config: Config, registry: Registry, today: Optional[str] = None,
             proposal.reason = "no run of the two on the same cases and sample"
             continue
         own, rival = pair
+        chosen_on = (f"chosen on the selection part ({own.get('cases')} cases, a held-out share of {fraction:g} kept out): {winner} "
+                     f"{rival.get('passed')}/{rival.get('cases')}, {current} {own.get('passed')}/{own.get('cases')}") if fraction else ""
+        own, rival = leaderboard.whole_row(own), leaderboard.whole_row(rival)
         why = next((f"{name}: {text}" for name, row in ((current, own), (winner, rival))
                     if (text := "its row has no cases_sha" if leaderboard.unverified(row) else stale(config, component, row, True))),
                    "")
@@ -235,19 +230,18 @@ def propose(config: Config, registry: Registry, today: Optional[str] = None,
         if not selected:
             proposal.reason = f"no implementation record or impls file of {winner} to point `selected` at"
             continue
-        linked = [metrics[m] for m in ids(solution.get("metric_ids", "")) if m in metrics]
-        target = next((m for m in linked if switch_command(config, m.get("command", ""), current, winner)), None)
         proposal.selected = selected
-        decided = next((d for d in leaderboard.decisions(rows, current, config.evaluation, arms, per_case, chosen.get(component))
+        whole = {impl: rs[-1] for impl, rs in arms.items()}
+        decided = next((d for d in leaderboard.decisions(whole, current, config.evaluation, arms, per_case, claim_policy)
                         if d.rival == winner), None)
+        if fraction and decided is not None:   # the evidence names the held-out numbers the claim rests on
+            own, rival = decided.own, decided.other
         reason = f"{decided.rule}: {decided.text}" if decided else ""
+        if fraction:
+            reason = f"{chosen_on}; its claim is the held-out result, {reason}"
         proposal.selected_by = (cascade_evidence if via is not None else evidence)(own, rival, current, winner, today, reason)
         proposal.edits = [f"solutions.csv {sid}: selected {solution.get('selected', '')!r} -> {selected!r}",
                           f"evidence: {proposal.selected_by}"]
-        if target is not None:
-            proposal.metric_id = target["metric_id"]
-            proposal.command = switch_command(config, target["command"], current, winner)
-            proposal.edits.append(f"metrics.csv {target['metric_id']}: command {target['command']!r} -> {proposal.command!r}")
         proposal.status = "promote" if (solution.get("promotion") or "").strip().lower() == AUTOMATIC else "propose"
         proposal.reason = ("the solution's `promotion` is automatic" if proposal.status == "promote"
                            else "the solution's `promotion` is not automatic: a person applies this")
@@ -272,10 +266,6 @@ def apply(config: Config, registry: Registry, proposal: Proposal) -> None:
     if "selected_by" in read_header(folder / "solutions.csv"):   # the evidence is stored only where the project approved that column
         changes["selected_by"] = proposal.selected_by
     edit_row(folder, "solutions.csv", "solution_id", proposal.solution_id, changes)
-    if proposal.metric_id:
-        metric = next(m for m in registry.metrics if m.get("metric_id") == proposal.metric_id)
-        edit_row(intent_folder(config, metric.get("intent_id") or None), "metrics.csv", "metric_id", proposal.metric_id,
-                 {"command": proposal.command})
 
 
 def run_cli(config: Config, solution_id: str = "", dry_run: bool = False, apply_proposals: bool = False, say: Callable[[str], None] = print) -> int:

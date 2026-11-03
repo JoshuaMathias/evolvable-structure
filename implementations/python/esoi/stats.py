@@ -11,6 +11,9 @@ Three standard tools, each small enough to check by hand:
   McNemar's test for pass or fail per case and the sign test on paired per-case score differences are the same binomial tail.
 * ``fisher_exact_greater(passed_a, cases_a, passed_b, cases_b)``: the exact one-sided Fisher test on two arms' aggregate pass counts, for
   when only totals exist (unpaired, so weaker than the paired test, but still a test).
+* ``fisher_exact_two_sided``, ``bonferroni_alpha``, ``in_heldout`` and ``split_cases``: the two-sided unpaired test for totals only, the
+  alpha one of several looks at the same pair may spend, and the deterministic selection and held-out parts of a case set (a hash of
+  the case id, so a case never changes part when cases are added).
 * ``holm(p_values)``: Holm's correction, which keeps the chance of any false lead below the stated level when one arm is
   compared with several rivals.
 
@@ -19,6 +22,7 @@ No model, no network, no third-party package.
 """
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from fractions import Fraction
 from math import comb
@@ -78,6 +82,40 @@ def fisher_exact_greater(passed_a: int, cases_a: int, passed_b: int, cases_b: in
         return 1.0
     tail = sum(comb(cases_a, k) * comb(cases_b, passes - k) for k in range(passed_a, min(cases_a, passes) + 1))
     return float(min(Fraction(1), Fraction(tail, comb(total, passes))))
+
+
+def fisher_exact_two_sided(passed_a: int, cases_a: int, passed_b: int, cases_b: int) -> float:
+    """Exact two-sided Fisher p-value on the 2 by 2 table of passed and failed cases: the total probability of the tables at most as
+    likely as the one seen, given the margins."""
+    if min(passed_a, cases_a - passed_a, passed_b, cases_b - passed_b) < 0:
+        raise ValueError("pass counts must lie between 0 and the number of cases")
+    total, passes = cases_a + cases_b, passed_a + passed_b
+    if total == 0:
+        return 1.0
+    denominator = comb(total, passes)
+    seen = comb(cases_a, passed_a) * comb(cases_b, passes - passed_a)
+    tail = sum(w for k in range(max(0, passes - cases_b), min(cases_a, passes) + 1)
+               if (w := comb(cases_a, k) * comb(cases_b, passes - k)) <= seen)
+    return float(min(Fraction(1), Fraction(tail, denominator)))
+
+
+def bonferroni_alpha(alpha: float, looks: int) -> float:
+    """The alpha one claim may spend when it is one of ``looks`` looks at the same pair (stages run at 3, 10 and 30 cases are three looks)."""
+    return alpha / max(1, int(looks))
+
+
+def in_heldout(case_id: str, fraction: float) -> bool:
+    """Whether a case belongs to the held-out part: a hash of its id decides, so the split is the same on every machine and run."""
+    if fraction <= 0:
+        return False
+    digest = hashlib.sha256(str(case_id).encode("utf-8")).digest()
+    return int.from_bytes(digest[:8], "big") / 2 ** 64 < fraction
+
+
+def split_cases(case_ids: Iterable[str], fraction: float) -> Tuple[List[str], List[str]]:
+    """``(selection part, held-out part)`` of the case ids, each in the order given."""
+    ids = [str(c) for c in case_ids]
+    return [c for c in ids if not in_heldout(c, fraction)], [c for c in ids if in_heldout(c, fraction)]
 
 
 def holm(p_values: List[float]) -> List[float]:

@@ -29,11 +29,11 @@ The rule is pragmatic and statistical. The authoritative metric is the pass rate
 ``[balance.<component>]`` (so cost and speed count only through the metric, with its own weights). By default the arm with the
 highest result on the authoritative metric at the latest comparable stage wins and is selected, significant or not: a new solution
 with no end users yet, or a lead at a cascade stage that is not the highest, should still use the best it has. The verdict states
-whether the lead is significant (a one-sided exact paired test: McNemar for pass or fail per case, an exact sign test on the paired
-per-case balanced scores, Holm-adjusted across the rivals, at ``alpha`` 0.05; with the test, p and the disagreeing cases named) or
+whether the lead is significant (a two-sided exact paired test: McNemar for pass or fail per case, an exact sign test on the paired
+per-case balanced scores, Holm-adjusted across the rivals, at ``alpha`` 0.05, divided by the number of looks when the pair was run at several stages; with the test, p and the disagreeing cases named) or
 "best guess, not yet significant". Without per-case rows, aggregate pass counts on the same cases and sample get Fisher's exact
-one-sided test; where no test is possible (a balanced aggregate, a figure with no case count) the lead is a best guess on the point
-estimate. Exactly equal estimates keep the selected arm. The way to turn a best guess into evidence is more cases (size the highest
+two-sided test; where no test is possible (a balanced aggregate, a figure with no case count) the lead is a best guess on the point
+estimate. With ``[selection] holdout = F`` each case set is split by a hash of the case id: the leader is chosen on the selection part and every claim is computed on the held-out part alone. Exactly equal estimates keep the selected arm. The way to turn a best guess into evidence is more cases (size the highest
 cascade stage so a meaningful difference can reach significance), never a margin. The library specifies nothing else: cost, speed and
 dependencies enter only through the authoritative metric, which is responsible for them. A project (``[switching]``) or a solution
 (``[switching.<solution id>]``, which overrides the project) may opt into a stricter policy: ``require_significance = true`` (the
@@ -162,12 +162,34 @@ def latest_results(path: Path, whole: bool = False) -> Dict[str, Rows]:
             for comp, impls in all_results(path).items()}
 
 
-def selected_impls(config: Config, solutions: List[Row]) -> Dict[str, str]:
-    """{component: selected impl name} for solutions whose metric is one or more harness commands."""
+def selected_arm(config: Config, row: Row, component: str = "", registry: Optional[Registry] = None) -> Tuple[str, str]:
+    """``(component, arm)`` the solution's selection means on ``component`` (default: the first component of its metric command).
+    The command lists the arms to measure; the choice is the solution's ``selected`` in the records: a name, ``solution:name`` or
+    the path of the implementation's file, read as an arm when the command lists it or the results log holds a run of it on the component. The
+    registry maps a file path to its arm name. With no such ``selected`` it is the first arm the command lists for the component. Promotion therefore changes
+    ``selected`` and never the command."""
+    arms = harness_arms(config, row.get("metric_command", ""))
+    if not arms:
+        return "", ""
+    component = component or arms[0][0]
+    listed = [impl for comp, impl in arms if comp == component]
+    cell = (row.get("selected") or "").strip()
+    sid = row.get("solution_id", "")
+    records = {r.get("implementation_id", ""): r for r in (registry.implementations if registry is not None else [])}
+    chosen = ""
+    if cell:
+        by_path = next((i.split(":", 1)[-1] for i, r in records.items() if i.startswith(f"{sid}:") and (r.get("filepath") or "").strip() == cell), "")
+        chosen = by_path or cell.split(":", 1)[-1]
+    known = chosen in listed or chosen in all_results(config.results_path).get(component, {})
+    return component, chosen if chosen and known else (listed[0] if listed else "")
+
+
+def selected_impls(config: Config, solutions: List[Row], registry: Optional[Registry] = None) -> Dict[str, str]:
+    """{component: selected impl name} for solutions whose metric is one or more harness commands (see ``selected_arm``)."""
     out: Dict[str, str] = {}
     for row in solutions:
-        for comp, impl in harness_arms(config, row.get("metric_command", "")):
-            out.setdefault(comp, impl)   # a row may name more than one arm: each is that arm's selection
+        for comp, _ in harness_arms(config, row.get("metric_command", "")):
+            out.setdefault(comp, selected_arm(config, row, comp, registry)[1])
     return out
 
 
@@ -355,7 +377,7 @@ def per_case_rows(config: Config, every: bool = False) -> List[Row]:
 @dataclass(frozen=True)
 class Policy:
     """How one solution is judged. The default: a rival with a higher result on the authoritative metric replaces the selected arm,
-    and the verdict says whether that lead is significant (one-sided paired test, ``alpha`` 0.05, Holm across rivals) or a best guess.
+    and the verdict says whether that lead is significant (two-sided paired test, ``alpha`` 0.05 divided by the looks at the pair, Holm across rivals) or a best guess.
     A project or a solution may opt into a stricter policy: ``require_significance`` (the selected arm stays until a rival is
     significantly better), a lower ``alpha``, a minimum number of shared cases (``min_cases``) and a cascade stage that must have been
     reached (``require_stage``, applied when promoting). ``origin`` says which level (``project`` or ``solution``) set each
@@ -365,6 +387,7 @@ class Policy:
     require_stage: str = ""
     require_significance: bool = False
     origin: Tuple[Tuple[str, str], ...] = ()
+    holdout: float = 0.0   # [selection] holdout: the share of each case set kept out of the choice; claims are computed on it alone
 
     def source(self, key: str) -> str:
         return dict(self.origin).get(key, "configuration")
@@ -391,7 +414,81 @@ def policy_for(config: Config, solution_id: str, component: str = "", per_case: 
                 origin.append((key, level))
     return Policy(alpha=min(float(chosen.get("alpha", ALPHA)), ALPHA), min_cases=max(int(chosen.get("min_cases", 0)), 0),
                   require_stage=str(chosen.get("require_stage", "")),
-                  require_significance=bool(chosen.get("require_significance", False)), origin=tuple(origin))
+                  require_significance=bool(chosen.get("require_significance", False)), origin=tuple(origin),
+                  holdout=holdout_fraction(config))
+
+
+def holdout_fraction(config: Config) -> float:
+    """``[selection] holdout`` as a fraction between 0 and 1 (0, the default, keeps no case out: every claim is on the cases the choice used)."""
+    table = getattr(config, "selection", None)
+    try:
+        value = float(table.get("holdout", 0)) if isinstance(table, dict) else 0.0
+    except (TypeError, ValueError):
+        return 0.0
+    return value if 0 < value < 1 else 0.0
+
+
+def part_of(row: Row) -> str:
+    """``"selection"`` or ``"heldout"`` for a row made by ``part_row``, else ``""`` (the whole case set)."""
+    return (row.get("part") or "").strip()
+
+
+def part_row(per_case: Optional[List[Row]], row: Row, fraction: float, heldout: bool) -> Optional[Row]:
+    """A copy of a results row restricted to the selection part or the held-out part of its cases (``stats.in_heldout``), with the
+    case count and pass count of that part, or ``None`` when the per-case log does not hold exactly that run. Cost and calls stay
+    those of the whole run; the row is marked with ``part`` so the tests read only that part."""
+    found = case_outcomes(per_case, row)
+    if found is None:
+        return None
+    mine = {c: ok for c, ok in found.items() if stats.in_heldout(c, fraction) == heldout}
+    out = dict(row)
+    out.update({"cases": str(len(mine)), "passed": str(sum(mine.values())), "part": "heldout" if heldout else "selection",
+                "split": f"{fraction:g}", "balanced": "", "balanced_all": row.get("balanced", ""), "cases_all": row.get("cases", ""), "passed_all": row.get("passed", "")})
+    return out
+
+
+def whole_row(row: Row) -> Row:
+    """The results row a ``part_row`` was made from (its whole case set again)."""
+    if not part_of(row):
+        return row
+    out = {k: v for k, v in row.items() if k not in ("part", "split", "cases_all", "passed_all", "balanced_all")}
+    out.update({"cases": row.get("cases_all", ""), "passed": row.get("passed_all", ""), "balanced": row.get("balanced_all", "")})
+    return out
+
+
+def selection_view(history: Dict[str, List[Row]], per_case: Optional[List[Row]], policy: Policy) -> Tuple[Dict[str, List[Row]], Policy]:
+    """``(history, policy)`` to choose a leader with: with a holdout, every run restricted to the selection part of its cases (a run the
+    per-case log cannot split is left out) and the policy without the holdout, since the choice is made on that part; without one, the
+    history and policy as given."""
+    if not policy.holdout:
+        return history, policy
+    part = {impl: [p for r in rs if (p := part_row(per_case, r, policy.holdout, False)) is not None] for impl, rs in history.items()}
+    return {impl: rs for impl, rs in part.items() if rs}, Policy(policy.alpha, policy.min_cases, policy.require_stage,
+                                                                  policy.require_significance, policy.origin, 0.0)
+
+
+def selection_leader(rows: Rows, per_case: Optional[List[Row]], fraction: float, selected: str, eval_dir: Optional[Path] = None) -> Optional[str]:
+    """The arm with the highest result on the selection part of the cases the selected arm was scored on (the standing rule applied to
+    that part: an exact tie keeps ``selected``), or ``None`` when the selected arm has no per-case rows to split."""
+    parts = {impl: part_row(per_case, r, fraction, False) for impl, r in rows.items() if not is_partial(r) and not is_ablation(r, eval_dir)}
+    parts = {impl: p for impl, p in parts.items() if p is not None}
+    own = parts.get(selected)
+    if own is None:
+        return None
+    same = {impl: p for impl, p in parts.items() if comparable(p, own)}
+    best = max(estimate(p) for p in same.values())
+    top = {impl: p for impl, p in same.items() if estimate(p) == best}
+    return selected if selected in top else rank(top)[0]["impl"]
+
+
+def looks_between(history: Optional[Dict[str, List[Row]]], first: str, second: str, cases_sha: str) -> int:
+    """How many looks two arms had at the same case file: the distinct samples (3, 10, 30 cases, the full set) both have a run of.
+    A claim at one of several looks spends a share of alpha (Bonferroni over looks)."""
+    if not history:
+        return 1
+    def samples(impl: str) -> set:
+        return {(r.get("sample") or "").strip() for r in history.get(impl, []) if r.get("cases_sha") == cases_sha and not is_partial(r)}
+    return max(1, len(samples(first) & samples(second)))
 
 
 def policies(config: Config, registry: Registry, per_case: Optional[List[Row]]) -> Dict[str, Policy]:
@@ -413,6 +510,8 @@ def case_outcomes(per_case: Optional[List[Row]], row: Row) -> Optional[Dict[str,
     found = {r["case_id"]: stats.passed(r.get("ok")) for r in per_case
              if r.get("component") == row.get("component") and r.get("impl") == row.get("impl")
              and r.get("cases_sha") == row.get("cases_sha") and (r.get("sample") or "").strip() == sample}
+    if part_of(row):   # a part of the run: the cases of that part must be all the row counts
+        found = {c: ok for c, ok in found.items() if stats.in_heldout(c, float(row.get("split") or 0)) == (part_of(row) == "heldout")}
     try:
         total, passed = int(float(row.get("cases") or 0)), int(float(row.get("passed") or 0))
     except ValueError:
@@ -430,6 +529,8 @@ def case_numbers(per_case: Optional[List[Row]], row: Row) -> Optional[Dict[str, 
     for r in per_case or []:
         if (r.get("component"), r.get("impl"), r.get("cases_sha"), (r.get("sample") or "").strip()) == \
                 (row.get("component"), row.get("impl"), row.get("cases_sha"), sample):
+            if part_of(row) and stats.in_heldout(r["case_id"], float(row.get("split") or 0)) != (part_of(row) == "heldout"):
+                continue
             try:
                 found[r["case_id"]] = float(r.get("score") or "")
             except ValueError:
@@ -483,7 +584,7 @@ def best_guess(rows: Rows, eval_dir: Optional[Path] = None) -> Tuple[Optional[st
 class Decision:
     """How one rival stands against the selected arm. ``outcome``: ``rival`` (higher on the metric), ``incumbent`` (the selected
     arm is higher) or ``tie`` (exactly equal, or the policy requires significance and there is none; the selected arm stays).
-    ``basis`` is ``significance`` (a one-sided exact test on shared cases was possible) or ``best guess`` (point estimates only).
+    ``basis`` is ``significance`` (a two-sided exact test on shared cases was possible) or ``best guess`` (point estimates only).
     ``significant`` says whether the test passed. ``switch`` says whether a ``rival`` outcome replaces the selected arm."""
     rival: str
     outcome: str
@@ -491,18 +592,18 @@ class Decision:
     text: str
     own: Row
     other: Row
-    p: Optional[float] = None          # Holm-adjusted one-sided p that the rival is better
+    p: Optional[float] = None          # Holm-adjusted two-sided p of the pair
     disagree: int = 0                  # cases where the two differ
     shared: int = 0
     switch: bool = False
-    significant: bool = False          # the lead (or deficit) passed the one-sided test at the policy's alpha
-    p_incumbent: Optional[float] = None   # Holm-adjusted one-sided p that the selected arm is better than this rival
+    significant: bool = False          # the lead (or deficit) passed the two-sided test at the policy's alpha
+    p_incumbent: Optional[float] = None   # the same two-sided p, read from the selected arm's side
 
     @property
     def rule(self) -> str:
         if self.basis != "significance":
             return "best guess"
-        return "one-sided exact Fisher test" if "Fisher" in self.text else "one-sided paired test"
+        return "two-sided exact Fisher test" if "Fisher" in self.text else "two-sided paired test"
 
 
 def disagreements(per_case: Optional[List[Row]], own: Row, rival: Row) -> Optional[Tuple[int, int, int, str]]:
@@ -536,7 +637,7 @@ def decisions(rows: Rows, selected: str, eval_dir: Optional[Path] = None, histor
               per_case: Optional[List[Row]] = None, policy: Optional[Policy] = None) -> List[Decision]:
     """One ``Decision`` per rival scored on the same cases as ``selected``, on the solution's authoritative metric.
 
-    The test is one-sided and exact and says whether a lead is significant: its Holm-adjusted p-value (across the rivals) is below
+    The test is two-sided and exact (the direction is read from the data, so it is not tested one-sided) and says whether a lead is significant: its Holm-adjusted p-value (across the rivals) is below
     ``policy.alpha`` (default 0.05). With per-case rows for both arms the test is paired (McNemar for pass or fail per case, a
     sign test on per-case balanced scores). With only aggregate pass counts on the same cases and sample it is Fisher's exact test on
     the 2 by 2 table of passed and failed cases. Otherwise (a balanced aggregate, a figure with no case count) the point estimates are
@@ -545,24 +646,31 @@ def decisions(rows: Rows, selected: str, eval_dir: Optional[Path] = None, histor
     Exactly equal estimates keep the selected arm."""
     policy = policy or Policy()
     pairs = rival_pairs(rows, selected, eval_dir, history)[0]
+    if policy.holdout:   # claims rest on the held-out part alone; a pair with no per-case rows has no held-out part and is a best guess on its whole set
+        pairs = [(a, b) for own, rival in pairs
+                 for a, b in [(part_row(per_case, own, policy.holdout, True), part_row(per_case, rival, policy.holdout, True))]
+                 for a, b in [((a, b) if a is not None and b is not None else (own, rival))]]
     tested = []   # (own, rival, p rival better, p selected better, cases that differ, shared, test name, how the evidence reads)
     for own, rival in pairs:
         name = rival["impl"]
-        found = disagreements(per_case, own, rival)
+        found = disagreements(per_case, own, rival) if not policy.holdout or part_of(own) else None
         if found is not None:
             ahead, behind, shared, test = found
-            tested.append((own, rival, stats.sign_test_greater(ahead, behind), stats.sign_test_greater(behind, ahead), ahead + behind, shared,
-                           test, f"{ahead + behind} of {shared} cases disagree"))
+            two = stats.mcnemar_exact(ahead, behind)   # two-sided: a direction picked from the data is not tested one-sided
+            tested.append((own, rival, two, two, ahead + behind, shared, test.replace("exact", "two-sided exact"),
+                           f"{ahead + behind} of {shared} cases disagree"))
             continue
-        agg = aggregate_counts(own, rival)
+        agg = aggregate_counts(own, rival) if not policy.holdout else None
         if agg is not None:
             xr, nr, xo, no = agg
-            tested.append((own, rival, stats.fisher_exact_greater(xr, nr, xo, no), stats.fisher_exact_greater(xo, no, xr, nr), 0, min(nr, no),
-                           "exact Fisher test on the pass counts (no per-case rows)", f"{name} passed {xr} of {nr}, {selected} {xo} of {no}"))
+            two = stats.fisher_exact_two_sided(xr, nr, xo, no)
+            tested.append((own, rival, two, two, 0, min(nr, no),
+                           "two-sided exact Fisher test on the pass counts (no per-case rows)", f"{name} passed {xr} of {nr}, {selected} {xo} of {no}"))
         else:
             tested.append((own, rival, None, None, 0, 0, "", ""))
     better = iter(stats.holm([t[2] for t in tested if t[2] is not None]))
     worse = iter(stats.holm([t[3] for t in tested if t[3] is not None]))
+    looked = {}
     out: List[Decision] = []
     for own, rival, raw, _, differ, shared, test, counted in tested:
         name = rival["impl"]
@@ -581,10 +689,14 @@ def decisions(rows: Rows, selected: str, eval_dir: Optional[Path] = None, histor
                 out.append(Decision(name, "tie", "best guess", note + f"; exactly equal, so {selected} stays", own, rival))
             continue
         p, q = next(better), next(worse)
+        looks = looks_between(history, selected, name, own.get("cases_sha", ""))
+        alpha = stats.bonferroni_alpha(policy.alpha, looks)
+        if looks > 1:
+            counted += f"; one of {looks} looks, alpha {alpha:.3g}"
         args = (own, rival, p, differ, shared)
         mark = len(out)
         enough = shared >= policy.min_cases
-        if theirs > mine and p < policy.alpha and enough:
+        if theirs > mine and p < alpha and enough:
             out.append(Decision(name, "rival", "significance", f"{name} is better than {selected} ({test}, Holm-adjusted p={p:.3g}, {counted})",
                                 *args, switch=True, significant=True))
         elif theirs > mine:
@@ -602,7 +714,7 @@ def decisions(rows: Rows, selected: str, eval_dir: Optional[Path] = None, histor
                     reason = f"the {policy.source('require_significance')} requires a significant lead"
                 out.append(Decision(name, "tie", "significance", f"{name} is not shown better than {selected} (p={p:.3g}, {counted}); more cases "
                                     f"would settle it: {reason}, so {selected} stays", *args))
-        elif q < policy.alpha:
+        elif q < alpha:
             out.append(Decision(name, "incumbent", "significance", f"{selected} is better than {name} ({test}, Holm-adjusted p={q:.3g}, {counted})",
                                 *args, significant=True))
         elif mine > theirs:
@@ -657,7 +769,7 @@ def solution_verdicts(config: Config, solutions: List[Row], results: Optional[Di
     per_case = per_case_rows(config) if per_case is None else per_case
     out = {}
     for row in solutions:
-        comp, impl = first_arm(config, row.get("metric_command", ""))
+        comp, impl = selected_arm(config, row, "", registry)
         if not comp:
             out[row["solution_id"]] = dict(verdict="UNMEASURED", detail="no harness metric", component="",
                                            selected_by=row.get("selected_by", ""))
@@ -698,7 +810,7 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
     only the cases are compared)."""
     history = all_results(config.results_path)
     results = {comp: {impl: rows[-1] for impl, rows in impls.items()} for comp, impls in history.items()}
-    selected = selected_impls(config, registry.solutions)
+    selected = selected_impls(config, registry.solutions, registry)
     per_case = per_case_rows(config)
     chosen = policies(config, registry, per_case)
     flagged = 0

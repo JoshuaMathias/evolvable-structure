@@ -132,13 +132,16 @@ def run(ctx: Context) -> List[str]:
         arms = ctx.harness_arms(r.get("metric_command", ""))
         if not arms:
             continue
-        comp, sel = arms[0]
+        comp, sel = leaderboard.selected_arm(config, r, "", ctx.registry)   # the records' `selected`, not the command's order
         rows = results.get(comp, {})
         if sel not in rows:
             if not ctx.waived("S10", f"{r['solution_id']}:unmeasured"):
                 bad.append(f"S10 {r['solution_id']}: selected {sel} has no row in the results log (run with --record)")
             continue
-        better = [x["impl"] for x in leaderboard.challengers(rows, sel, evaluation, ctx.history.get(comp), per_case, chosen.get(comp))]
+        pick_history, pick_policy = leaderboard.selection_view(ctx.history.get(comp, {}), per_case, chosen.get(comp) or leaderboard.Policy())
+        if sel not in pick_history:
+            continue
+        better = [x["impl"] for x in leaderboard.challengers({i: rs[-1] for i, rs in pick_history.items()}, sel, evaluation, pick_history, per_case, pick_policy)]
         if better and not ctx.waived("S10", f"{r['solution_id']}:{','.join(sorted(better))}"):
             bad.append(f"S10 {r['solution_id']}: {', '.join(better)} beat the selected {sel} in the results log; "
                        "adopt the winner or add a waiver naming the pending decision")

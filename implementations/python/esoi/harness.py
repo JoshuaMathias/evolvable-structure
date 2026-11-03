@@ -818,11 +818,12 @@ def stale_arms(config: Config) -> List[Tuple[str, str]]:
     ablation or validity arm is no rival). A rival recorded on other cases or another sample is included: it is not compared until it is
     re-run on the selected arm's cases and sample."""
     from . import leaderboard
-    from .registry import first_arm, load
+    from .registry import load
     latest = leaderboard.latest_results(config.results_path)   # every arm, even one recorded only on named cases
     arms: List[Tuple[str, str]] = []
-    for row in load(config).solutions:
-        comp, impl = first_arm(config, row.get("metric_command", ""))
+    registry = load(config)
+    for row in registry.solutions:
+        comp, impl = leaderboard.selected_arm(config, row, "", registry)
         if not comp:
             continue
         for arm in [(comp, impl)] + [(comp, name) for name, r in sorted(latest.get(comp, {}).items())
@@ -847,10 +848,11 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
     arm in flight and the next ``--stale`` starts at it, skipping what is already current. ``plan`` lists each arm with its
     decision (current, would run, skipped as paid or capped) and runs nothing."""
     from . import leaderboard
-    from .registry import first_arm, load
+    from .registry import load
     prepare_path(config)
     latest = leaderboard.latest_results(config.results_path, whole=True)   # staleness is judged on the newest whole run, not an only: row
-    selected_arms = {first_arm(config, r.get("metric_command", "")) for r in load(config).solutions}
+    registry = load(config)
+    selected_arms = {leaderboard.selected_arm(config, r, "", registry) for r in registry.solutions}
     skipped: List[str] = []
     skipped_ceiling: List[str] = []
     failed = 0
