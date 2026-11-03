@@ -1,22 +1,46 @@
 {
  "format": 1,
- "history": [],
+ "history": [
+  {
+   "changes": [
+    "baseline: the first recorded template version; earlier changes are in CHANGELOG.md"
+   ],
+   "date": "2026-11-02",
+   "sha256": "d6f3843a430c",
+   "skill_commit": "655a3d5dd6986d140661cb71fd2f1f3be6c54064",
+   "skill_committed": true,
+   "skill_md_sha256": "0852557cb90962abdeb0d5cc541eeefe66a38808610f23d600a8728d45e8d5b2",
+   "version": 1
+  },
+  {
+   "changes": [
+    "metric.cascading_conditionals: question reworded",
+    "metric.expiration: added (optional)"
+   ],
+   "date": "2026-11-02",
+   "sha256": "f6f84647c995",
+   "skill_commit": "655a3d5dd6986d140661cb71fd2f1f3be6c54064",
+   "skill_committed": false,
+   "skill_md_sha256": "4f1428fc1e928540f6993bfa40cd60cd15f1ab905bec6f296682da3e7e7b608f",
+   "version": 2
+  }
+ ],
  "skill": {
-  "commit": "4432aee8c07d0e1d550499e7c03fb2e441780ff9",
+  "commit": "655a3d5dd6986d140661cb71fd2f1f3be6c54064",
   "committed": false,
-  "copy_sha256": "af239dbed5156a9c3d04fc6019e6028c036b86247f096b7f4b8f03cc9ee1c7a3",
+  "copy_sha256": "6520cda40b0b68ad1fa4b5722de55ffae6f1a0145bfbbcdfe2ab4d115bb9b802",
   "date": "2026-11-02",
-  "skill_md_sha256": "0852557cb90962abdeb0d5cc541eeefe66a38808610f23d600a8728d45e8d5b2"
+  "skill_md_sha256": "8aa1e0173dfbf8ff9b713fd8e9a80491a6df787a5d62b7ffb104498349960b90"
  },
  "template": {
   "changes": [
-   "baseline: the first recorded template version; earlier changes are in CHANGELOG.md"
+   "metric.expiration: question reworded"
   ],
   "date": "2026-11-02",
-  "sha256": "d6f3843a430c",
+  "sha256": "0be3839bc992",
   "skill_commit": "655a3d5dd6986d140661cb71fd2f1f3be6c54064",
-  "skill_committed": true,
-  "skill_md_sha256": "0852557cb90962abdeb0d5cc541eeefe66a38808610f23d600a8728d45e8d5b2",
-  "version": 1
+  "skill_committed": false,
+  "skill_md_sha256": "8aa1e0173dfbf8ff9b713fd8e9a80491a6df787a5d62b7ffb104498349960b90",
+  "version": 3
  }
 }

@@ -36,6 +36,12 @@ _What can the metric not see, or what could it reward wrongly?_
 
 ## Cascading conditionals
 
-_If specified, this ordered list is used when running the authoritative metric and cheaper or prioritized metrics are earlier in the list to determine whether it's worth running subsequent metrics. Each item in the list defines (1) the parameters of one of the solution's metrics (e.g. scale, or simulation vs real) and (2) the required value of the metric in order to move onto the next scale, and optionally (3) other conditions required before it's worth running the metric for that stage of the list. If the metric parameters are the same across items, then the next item is not run._
+_If specified, this ordered list is used when running the authoritative metric and cheaper or prioritized metrics are earlier in the list to determine whether it's worth running subsequent metrics. Each item (conditional) in the list defines (1) the parameters of one of the solution's metrics (e.g. scale, or simulation vs real) and (2) the required value of the metric in order to move onto the next conditional, and optionally (3) other conditions required before it's worth running the metric for that stage of the list. If the metrics are reused with the same parameters across conditionals (each conditional may combine multiple metrics), then this metric is not rerun when executing the subsequent conditional._
+
+<!-- your answer -->
+
+## Expiration
+
+_When do metrics need to be rerun? Never by default, and ESOI projects can have a default which individual metrics can override._
 
 <!-- your answer -->
