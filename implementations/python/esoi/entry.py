@@ -270,7 +270,8 @@ def seat_reasons(assembler: Any, sid: str, cfg: Any, line: str) -> List[Reason]:
                 and par.kind not in (par.VAR_POSITIONAL, par.VAR_KEYWORD) and not out:
             out.append(Reason(sid, picked.name, "option", line))
             break
-    return out or [Reason(sid, picked.name, "needs", line, tuple(needs.values()))]
+    lazy = assembler.lazy_needs_of(target)     # a Lazy need is built on first use, so the seat does not wait on it
+    return out or [Reason(sid, picked.name, "needs", line, tuple(need for param, need in needs.items() if param not in lazy))]
 
 
 def blockers(assembler: Any, cfg: Any, pending: Mapping[str, str], sid: str, given: Mapping[str, Any]) -> Tuple[List[str], List[Reason]]:
@@ -496,12 +497,21 @@ def chain_of_errors(error: BaseException) -> List[BaseException]:
 def pending_outcome(reasons: Sequence[Reason]) -> str:
     """The outcome of a ``Pending`` read from its reasons by their leaves: a ``needs`` reason is settled by the reasons of the seats it
     waits on, so the result is the worst leaf (load-error, then needs-option for an option or an object to pass, then
-    pending-install, then pending-key). A ``needs`` with no leaf under it is needs-option."""
+    pending-install, then pending-key). The leaves are found through any chain of ``needs`` reasons. A ``needs`` with no leaf
+    under it is needs-option."""
+    settled = {one.seat for one in reasons if one.kind != "needs"}      # seats that end in a leaf
+    grown = True
+    while grown:    # a needs reason is settled once a seat it waits on is: a leaf, or a needs reason that is itself settled
+        grown = False
+        for one in reasons:
+            if one.kind == "needs" and one.seat not in settled and any(seat in settled for seat in one.waits):
+                settled.add(one.seat)
+                grown = True
     kinds = set()
     for one in reasons:
         if one.kind != "needs":
             kinds.add(one.kind)
-        elif not any(other.seat in one.waits and other.kind != "needs" for other in reasons):
+        elif one.seat not in settled:
             kinds.add("option")
     if "load" in kinds:
         return "load-error"

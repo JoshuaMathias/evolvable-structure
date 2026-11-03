@@ -230,6 +230,9 @@ def test_a_composite_that_waits_on_a_child_key_is_pending_key_by_its_leaves():
     assert pending_outcome([composite, Reason("part", "a", "option", "pass options"), key]) == "needs-option"
     assert pending_outcome([composite]) == "needs-option"                      # nothing under it settles it
     assert pending_outcome([composite, Reason("other", "a", "key", "set KEY")]) == "needs-option"
+    outer = Reason("everything", "arm", "needs", "everything: needs whole; see those lines", ("whole",))
+    assert pending_outcome([outer, composite, key]) == "pending-key"           # the leaf is found through a chain of composites
+    assert pending_outcome([outer, composite]) == "needs-option"
     assert classify(Pending("whole", [composite.need, key.need], [composite, key]))[0] == "pending-key"
     block = (">>> from esoi.entry import Pending, Reason\n>>> raise Pending('whole', ['w', 'k'], [Reason('whole', 'a', 'needs', 'w', ('part',)), "
              "Reason('part', 'a', 'key', 'k')])\n")
