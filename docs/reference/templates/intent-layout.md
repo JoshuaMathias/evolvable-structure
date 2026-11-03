@@ -21,6 +21,8 @@ An intent is a folder. Its record is `intent.csv` (one row) and its specificatio
 | `name` | you | What is a specific phrase which distinguishes the topic of the intent from other intents? |
 | `vision_statement` | you | What is this intent manifesting in present tense? e.g. "I am ..." or "The world is ..." Any subject and verb can be used. |
 | `opportunities` | you | What are potentials inspired by this intent? |
+| `solution_coherence` | you | What is a paragraph which describes how all the intent's solutions fit together to accomplish the intent's vision statement? |
+| `solution_diagram` | you | How are solutions connected in the intent's implementation, what is transferred in each edge, and in what direction? |
 | `implements` | you | Sub-intent only: the full id of the parent intent's implementation it arises from (`<solution_id>:<name>`). Empty for the top intent. |
 
 ## What it is not

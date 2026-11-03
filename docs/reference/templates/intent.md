@@ -28,6 +28,18 @@ _What are potentials inspired by this intent?_
 
 <!-- your answer -->
 
+## Solution coherence
+
+_What is a paragraph which describes how all the intent's solutions fit together to accomplish the intent's vision statement?_
+
+<!-- your answer -->
+
+## Solution diagram
+
+_How are solutions connected in the intent's implementation, what is transferred in each edge, and in what direction?_
+
+<!-- your answer -->
+
 ## What it is not
 
 A general category like "parenting" or "career." An intent is also not an organization itself, rather the container of specification that clarifies why the organization exists (as a solution and implementation within an intent). In this example, different versions of the same organization can be documented as separate alternative implementations.
