@@ -120,10 +120,16 @@ def stage_notes(text):
     return cascade.expectation_notes(found)
 
 
-def test_the_cascade_expectations_are_notes_about_a_free_first_stage_growing_stages_and_the_whole_set_last():
+def test_a_free_full_set_stage_then_one_real_case_then_more_is_the_expected_order():
+    assert stage_notes("free [sample=full | real=no | gate=all-pass] > one [sample=sample:1 | real=yes | gate=all-pass] > "
+                       "three [sample=sample:3 | real=yes | gate=all-pass] > real-use [real=yes | when=used in production]") == []
+    assert stage_notes("free [sample=full | real=no | gate=all-pass] > one [sample=sample:1 | real=yes]") == []
+
+
+def test_the_cascade_expectations_are_notes_about_a_free_first_stage_and_growing_model_stages():
     assert stage_notes("free [sample=full | real=no | gate=all-pass] > one [sample=sample:1 | real=yes | gate=all-pass] > "
                        "ten [sample=sample:10 | real=yes | gate=all-pass] > all [sample=full | real=yes]") == []
     assert stage_notes("one [sample=full | real=no]") == []
-    assert len(stage_notes("a [sample=sample:3 | real=yes | gate=all-pass] > b [sample=sample:10 | real=yes]")) == 2
+    assert len(stage_notes("a [sample=sample:3 | real=yes | gate=all-pass] > b [sample=sample:10 | real=yes]")) == 1
     shrinking = stage_notes("free [real=no | gate=all-pass] > a [sample=sample:10 | real=yes | gate=all-pass] > b [sample=sample:3 | real=yes | gate=all-pass] > c [sample=full]")
     assert len(shrinking) == 1 and "fewer cases" in shrinking[0]

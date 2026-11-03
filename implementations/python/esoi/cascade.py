@@ -25,7 +25,7 @@ The rules this module carries out, from the skill:
   test), or when it is older than the stage's ``max-age-days``. An expired result counts as not run.
 * A stage that was run for an implementation version is not run again for a later stage: ``esoi run`` reuses the cases already run
   for the same implementation and cases (``esoi.run_log.reusable``), and runs them again only when the implementation changed.
-  ``expectation_notes`` says when a list departs from the expected order (free first stage, growing stages, whole set last).
+  ``expectation_notes`` says when a list departs from the expected order (a free first stage, cases growing among the stages that call a model, the last stage no narrower than they are).
 * Downstream users take the implementation with the highest result at the latest stage that has ever been run, unless
   another implementation scored higher at an earlier stage the two share and has not yet been run at the latest one: that
   implementation stays chosen until it is run there. The first implementation is compared with the others only on rows
@@ -315,8 +315,10 @@ def breadth(stage: Stage) -> Optional[float]:
 def expectation_notes(stages: List[Stage]) -> List[str]:
     """What a list does not do of the skill's expectations for cascading conditionals, as notes (never errors: a cascade that
     differs may have a reason). The first stage costs nothing (it needs no model, so it says ``real=no``); later stages are
-    progressively more comprehensive (no stage that calls a model runs fewer cases than the one before); the last is the most comprehensive and
-    as objective as possible, which this reads as the whole set. A one-stage list, and a stage named ``public``, are not judged."""
+    progressively more comprehensive (no stage that calls a model runs fewer cases than the one before; a free stage may cover the
+    whole set and be followed by a single real case, because cases only need to grow among stages of the same cost kind); the last is
+    the most comprehensive and as objective as possible, which is read as covering no fewer cases than any earlier model stage (it
+    need not be the whole set: it may be a real-use or public measure). A one-stage list, and a stage named ``public``, are not judged."""
     own = [s for s in stages if not s.public]
     notes: List[str] = []
     if len(own) < 2:
@@ -329,8 +331,11 @@ def expectation_notes(stages: List[Stage]) -> List[str]:
         low, high = breadth(before), breadth(after)
         if low is not None and high is not None and high < low:
             notes.append(f"stage {after.name} runs fewer cases than {before.name} before it; later stages should be progressively more comprehensive")
-    if breadth(own[-1]) != float("inf"):
-        notes.append(f"the last stage, {own[-1].name}, should be the most comprehensive and as objective as possible (sample=full)")
+    widest = max((b for b in (breadth(s) for s in paid[:-1]) if b is not None), default=None)
+    last = breadth(own[-1])
+    if own[-1].real is not False and widest is not None and last is not None and last < widest:
+        notes.append(f"the last stage, {own[-1].name}, should be the most comprehensive and as objective as possible, "
+                     "yet an earlier stage that calls a model covers more cases")
     return notes
 
 

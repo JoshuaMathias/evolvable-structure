@@ -107,7 +107,7 @@ another version, so nothing is reused and the stage is run in full again, which 
 uncommitted changes, or of no known version, is never reused. Pass `--fresh` to run every case anyway.
 
 `esoi check` prints a note (never an error) for a metric whose cascade departs from the skill's expected order: a first stage that
-may call a model, a later stage covering fewer cases than the one before, or a last stage that is not the whole set. See
+may call a model, a later model-calling stage covering fewer cases than the one before (a free full-set stage followed by a single real case is as expected: cases only need to grow among stages of the same cost kind), or a last stage narrower than an earlier model-calling stage. See
 [The first stage needs no model](first-stage-needs-no-model.md).
 
 ### Someone approves spend
