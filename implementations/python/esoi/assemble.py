@@ -65,7 +65,7 @@ from types import MappingProxyType
 from typing import Any, Callable, Dict, Generic, List, Mapping, Optional, Sequence, Set, Tuple, TypeVar
 
 from . import config as config_module
-from . import hierarchy
+from . import hierarchy, intents
 from . import registry as registry_module
 from . import requirements as requirements_module
 from . import runtime
@@ -829,20 +829,21 @@ class Assembler:
 
     def uses_problems(self, folder: Path) -> List[str]:
         """Every disagreement between the records in ``folder`` and the needs the code declares. Empty means sound."""
-        rows = read_csv(Path(folder) / "implementations.csv")
+        rows = intents.read_tree(Path(folder), "implementations.csv")
         needs, findings = self.declared_needs(rows)
-        return findings + problems(read_csv(Path(folder) / "solutions.csv"), rows, needs)
+        return findings + problems(intents.read_tree(Path(folder), "solutions.csv"), rows, needs)
 
     def sync_uses(self, folder: Path) -> List[str]:
         """Write the ``uses_solution_ids`` column of ``implementations.csv`` in ``folder`` from the constructor parameters.
-        A row whose arm cannot be loaded keeps its cell and is returned as a finding."""
-        path = Path(folder) / "implementations.csv"
-        rows = read_csv(path)
-        needs, findings = self.declared_needs(rows)
-        for row in rows:
-            if row["implementation_id"] in needs:
-                row["uses_solution_ids"] = ";".join(sorted(needs[row["implementation_id"]]))
-        write_csv(path, read_header(path), rows)
+        Records beside the code are read and written where they live. A row whose arm cannot be loaded keeps its cell and is returned as a finding."""
+        held = {each: read_csv(each / "implementations.csv") for each in intents.tree_folders(Path(folder))}
+        needs, findings = self.declared_needs([row for rows in held.values() for row in rows])
+        for each, rows in held.items():
+            for row in rows:
+                if row["implementation_id"] in needs:
+                    row["uses_solution_ids"] = ";".join(sorted(needs[row["implementation_id"]]))
+            if (each / "implementations.csv").is_file():
+                write_csv(each / "implementations.csv", read_header(each / "implementations.csv"), rows)
         return findings
 
     # assembly

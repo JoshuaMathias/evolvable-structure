@@ -202,3 +202,22 @@ def duplicate_rows(config: Config) -> List[Tuple[str, str, List[Path]]]:
                     where.setdefault(ident, []).append(folder)
         out += [(name, ident, found) for ident, found in where.items() if len(found) > 1]
     return out
+
+
+def tree_folders(folder: Path) -> List[Path]:
+    """The folders of records that belong with ``folder``, a repository's structure folder: itself and every intent folder below it
+    and every folder beside the code that its repository's ``esoi.toml`` (in ``folder`` or the folder above it, never searched
+    further) lists. A folder with no configuration is just itself. For a program that is handed a records folder, not a Config."""
+    from . import config as config_module
+    folder = Path(folder).resolve()
+    for candidate in (folder, folder.parent):
+        if (candidate / config_module.CONFIG_NAME).is_file():
+            cfg = config_module.load(candidate / config_module.CONFIG_NAME)
+            if cfg.structure.resolve() == folder or candidate == folder:
+                return [f for _, f in folders(cfg)] or [folder]
+    return [folder]
+
+
+def read_tree(folder: Path, name: str) -> List[Row]:
+    """The rows of one record file across ``tree_folders(folder)``, in reading order (raw rows, no ``intent_id``)."""
+    return [row for each in tree_folders(folder) for row in read_csv(each / name)]

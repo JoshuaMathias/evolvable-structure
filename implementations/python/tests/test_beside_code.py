@@ -308,3 +308,11 @@ def test_the_folder_page_lists_the_files_that_implement_each_solution_from_the_r
     line = next(ln for ln in page.splitlines() if ln.startswith("- Implemented by:"))
     assert "[`src/greet/greet.ts`](greet.ts)" in line and "[`src/greet/shout.ts`](shout.ts)" in line
     assert readme.run_cli(after, check=True, say=lambda text: None) == 0
+
+
+def test_a_program_handed_the_structure_folder_reads_and_writes_the_whole_tree(cfg):
+    folder, after = beside(cfg)
+    names = {r["solution_id"] for r in intents.read_tree(cfg.structure, "solutions.csv")}
+    assert "speak-a-greeting" in names and "greet-a-person" in names
+    assert folder in intents.tree_folders(cfg.structure) and cfg.structure.resolve() in intents.tree_folders(cfg.structure)
+    assert intents.tree_folders(folder.parent.parent / "nowhere") == [(folder.parent.parent / "nowhere").resolve()]
