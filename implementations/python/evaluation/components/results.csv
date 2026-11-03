@@ -756,3 +756,7 @@ date,component,impl,cases,passed,dev,heldout,model_calls,tokens_in,tokens_out,co
 2026-11-03,readme_at_a_glance,full_page,4,0,0/4,0/0,0,0,0,0.0,6.3,ae4d742,90612f4c,none,"vision 4/4, coherence 4/4, diagram 0/4, solutions 0/4, links 0/4, finished 4/4, pure 4/4, size 0/4",,
 2026-11-03,readme_at_a_glance,links_page,4,0,0/4,0/0,0,0,0,0.0,6.3,ae4d742,90612f4c,none,"vision 4/4, coherence 0/4, diagram 0/4, solutions 0/4, links 4/4, finished 4/4, pure 4/4, size 4/4",,
 2026-11-03,readable_records,live_readme,10,10,10/10,0/0,0,0,0,0.0,0.3,ae4d742,2a872872,none,"check 5/5, readme 4/4, sub 1/1",,
+2026-11-03,navigable_records,esoi_folder,53,0,0/53,0/0,0,0,0,0.0,2.6,154f943,715d2a67,none,"together 0/53, clicks 53/53, unduplicated 53/53, readme 0/53, pure 53/53 | forced past unsolved failures: the first full recorded run of this arm on the committed cases; earlier development runs stopped at a failing case by design",,
+2026-11-03,navigable_records,beside_code,53,47,47/53,0/0,0,0,0,0.0,13.5,154f943,715d2a67,none,"together 47/53, clicks 53/53, unduplicated 53/53, readme 53/53, pure 53/53",,
+2026-11-03,navigable_records,beside_code,53,47,47/53,0/0,0,0,0,0.0,14.8,17323c7,715d2a67,none,"together 47/53, clicks 53/53, implemented 53/53, unduplicated 53/53, readme 53/53, pure 53/53",,
+2026-11-03,navigable_records,esoi_folder,53,0,0/53,0/0,0,0,0,0.0,4.5,17323c7,715d2a67,none,"together 0/53, clicks 53/53, implemented 53/53, unduplicated 53/53, readme 0/53, pure 53/53",,
