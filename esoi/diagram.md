@@ -8,30 +8,30 @@ An arrow runs from the solution that provides to the solution that builds on it;
 
 ```mermaid
 flowchart LR
-    s0["Apply ESOI to a project<br/>apply-esoi"]
-    s1["Intent registry<br/>intent-registry"]
-    s2["Template sync<br/>template-sync"]
-    s3["Ownership map<br/>ownership-map"]
-    s4["Implementation selection<br/>implementation-selection"]
-    s5["Measurement harness<br/>measurement-harness"]
-    s6["Leaderboard<br/>leaderboard"]
-    s7["Discriminating cases<br/>discriminating-cases"]
-    s8["Rule engine<br/>structure-check"]
-    s9["Structure rules<br/>structure-rules"]
-    s10["Review tracker<br/>review-tracker"]
-    s11["Consumer check<br/>consumer-check"]
-    s12["The standard<br/>the-standard"]
-    s13["Structure budget<br/>structure-budget"]
-    s14["When metrics are run<br/>when-metrics-are-run"]
-    s15["Skill distribution<br/>skill-distribution"]
-    s16["ESOI applied to AI behaviour<br/>esoi-for-ai"]
-    s17["The ESOI steps<br/>the-steps"]
-    s18["Documentation and templates<br/>docs-and-templates"]
-    s19["Follow the steps<br/>follow-the-steps"]
-    s20["Local ESOI index<br/>local-application-index"]
-    s21["ESOI behaviour judge<br/>esoi-behaviour-judge"]
-    s22["Behave by ESOI<br/>behave-by-esoi"]
-    s23["Judge ESOI behaviour<br/>judge-esoi-behaviour"]
+    s0["Follow the steps<br/>follow-the-steps"]
+    s1["Local ESOI index<br/>local-application-index"]
+    s2["Behave by ESOI<br/>behave-by-esoi"]
+    s3["Judge ESOI behaviour<br/>judge-esoi-behaviour"]
+    s4["Apply ESOI to a project<br/>apply-esoi"]
+    s5["Intent registry<br/>intent-registry"]
+    s6["Template sync<br/>template-sync"]
+    s7["Ownership map<br/>ownership-map"]
+    s8["Implementation selection<br/>implementation-selection"]
+    s9["Measurement harness<br/>measurement-harness"]
+    s10["Leaderboard<br/>leaderboard"]
+    s11["Discriminating cases<br/>discriminating-cases"]
+    s12["Rule engine<br/>structure-check"]
+    s13["Structure rules<br/>structure-rules"]
+    s14["Review tracker<br/>review-tracker"]
+    s15["Consumer check<br/>consumer-check"]
+    s16["The standard<br/>the-standard"]
+    s17["Structure budget<br/>structure-budget"]
+    s18["When metrics are run<br/>when-metrics-are-run"]
+    s19["Skill distribution<br/>skill-distribution"]
+    s20["ESOI applied to AI behaviour<br/>esoi-for-ai"]
+    s21["The ESOI steps<br/>the-steps"]
+    s22["Documentation and templates<br/>docs-and-templates"]
+    s23["ESOI behaviour judge<br/>esoi-behaviour-judge"]
     s24["Specify from the code<br/>specify-from-code"]
     s25["Readable records<br/>readable-records"]
     s26["Promote the winner<br/>promote-the-winner"]
@@ -39,45 +39,45 @@ flowchart LR
     s28["keep-metric-record<br/>keep-metric-record"]
     s29["Spec search<br/>spec-search"]
     s30["Grade evidence<br/>public-evidence"]
-    s1 -->|"A linked intent network that the check, the tracker and the..."| s2
-    s1 -->|"A linked intent network that the check, the tracker and the..."| s10
-    s1 -->|"A linked intent network that the check, the tracker and the..."| s24
-    s2 -->|"A committed field list per type"| s8
-    s2 -->|"A committed field list per type"| s10
-    s3 -->|"File-to-solution links and the generated component index"| s9
-    s4 -->|"The chosen implementation's class and its configuration..."| s0
-    s5 -->|"A results row per run"| s26
-    s6 -->|"A verdict per solution and a ranked board"| s5
-    s6 -->|"A verdict per solution and a ranked board"| s8
-    s6 -->|"A verdict per solution and a ranked board"| s10
-    s6 -->|"A verdict per solution and a ranked board"| s26
-    s6 -->|"A verdict per solution and a ranked board"| s30
-    s7 -->|"A pass or fail per baseline"| s5
-    s8 -->|"A list of violations, each led by its rule id, and an exit..."| s0
-    s9 -->|"One problem line per violation, led by the rule id"| s8
-    s10 -->|"Generated tracker tables and the synced sheet"| s8
-    s10 -->|"Generated tracker tables and the synced sheet"| s26
-    s11 -->|"Violations and notes"| s0
-    s12 -->|"The standard document"| s0
-    s13 -->|"A periodic report of cost against catches"| s9
-    s14 -->|"A row per run in the results log with the commit and the..."| s5
-    s15 -->|"A public skill folder, a plugin manifest and marketplace..."| s12
-    s16 -->|"The agent's reply and, for a judged run, a verdict with a..."| s0
-    s17 -->|"Linked records, a checked metric, measured implementations..."| s0
-    s17 -->|"Linked records, a checked metric, measured implementations..."| s12
-    s18 -->|"Explanations, guides and generated templates"| s0
-    s18 -->|"Explanations, guides and generated templates"| s12
-    s19 -->|"The steps in the public skill and the guides that point to..."| s17
-    s20 -->|"The project containing the path with its first file to read..."| s0
-    s21 -->|"A verdict (pass or fail) and a one-line reason"| s16
-    s22 -->|"A reply per case, a pass or fail with a note, and a..."| s16
-    s23 -->|"A verdict and a reason, scored against the label"| s21
+    s0 -->|"The steps in the public skill and the guides that point to..."| s21
+    s1 -->|"The project containing the path with its first file to read..."| s4
+    s2 -->|"A reply per case, a pass or fail with a note, and a..."| s20
+    s3 -->|"A verdict and a reason, scored against the label"| s23
+    s5 -->|"A linked intent network that the check, the tracker and the..."| s6
+    s5 -->|"A linked intent network that the check, the tracker and the..."| s14
+    s5 -->|"A linked intent network that the check, the tracker and the..."| s24
+    s6 -->|"A committed field list per type"| s12
+    s6 -->|"A committed field list per type"| s14
+    s7 -->|"File-to-solution links and the generated component index"| s13
+    s8 -->|"The chosen implementation's class and its configuration..."| s4
+    s9 -->|"A results row per run"| s26
+    s10 -->|"A verdict per solution and a ranked board"| s9
+    s10 -->|"A verdict per solution and a ranked board"| s12
+    s10 -->|"A verdict per solution and a ranked board"| s14
+    s10 -->|"A verdict per solution and a ranked board"| s26
+    s10 -->|"A verdict per solution and a ranked board"| s30
+    s11 -->|"A pass or fail per baseline"| s9
+    s12 -->|"A list of violations, each led by its rule id, and an exit..."| s4
+    s13 -->|"One problem line per violation, led by the rule id"| s12
+    s14 -->|"Generated tracker tables and the synced sheet"| s12
+    s14 -->|"Generated tracker tables and the synced sheet"| s26
+    s15 -->|"Violations and notes"| s4
+    s16 -->|"The standard document"| s4
+    s17 -->|"A periodic report of cost against catches"| s13
+    s18 -->|"A row per run in the results log with the commit and the..."| s9
+    s19 -->|"A public skill folder, a plugin manifest and marketplace..."| s16
+    s20 -->|"The agent's reply and, for a judged run, a verdict with a..."| s4
+    s21 -->|"Linked records, a checked metric, measured implementations..."| s4
+    s21 -->|"Linked records, a checked metric, measured implementations..."| s16
+    s22 -->|"Explanations, guides and generated templates"| s4
+    s22 -->|"Explanations, guides and generated templates"| s16
+    s23 -->|"A verdict (pass or fail) and a one-line reason"| s20
     s24 -->|"Findings (rule S30), the rows written, and for a new..."| s26
-    s25 -->|"A README.md in the intent's folder"| s8
-    s26 -->|"Edits to selected, selected_by and the metric's command, or..."| s0
+    s25 -->|"A README.md in the intent's folder"| s12
+    s26 -->|"Edits to selected, selected_by and the metric's command, or..."| s4
     s27 -->|"An index (JSON-serializable: entries with id, kind, title..."| s28
     s27 -->|"An index (JSON-serializable: entries with id, kind, title..."| s29
-    s28 --> s0
-    s29 -->|"A Selection: ranked items best first with their linked..."| s0
-    s30 -->|"Dict(Tuple(str, str), Estimate)"| s5
+    s28 --> s4
+    s29 -->|"A Selection: ranked items best first with their linked..."| s4
+    s30 -->|"Dict(Tuple(str, str), Estimate)"| s9
 ```

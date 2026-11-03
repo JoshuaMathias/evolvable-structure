@@ -33,7 +33,7 @@ An adopter that moved its own generic assembly code here is told in [examples/ad
 
 ## What an application may keep
 
-Its records (`esoi/*.csv`), its Protocol classes and arms, its configuration, its domain logic, and thin names that bind the
+Its records (`esoi/intent.csv` and the record files beside its code), its Protocol classes and arms, its configuration, its domain logic, and thin names that bind the
 library to its package (for example, one `Assembler` object and the public names it exports). A thin binding is a few lines.
 If an application module grows a function that would read the same with the domain words removed, it has drifted: move it.
 
@@ -47,4 +47,4 @@ owner's prompt changes the library.
 
 Each adopting application can add a small test that fails when one of its modules defines a function the library already
 provides (a name validator, a dependency-graph walk). The library's own records say which part serves which solution: a
-new general part is a component in `esoi/components.csv` that serves a solution in `esoi/solutions.csv`.
+new general part is a component in `esoi/components.csv` that serves a solution in the records beside the code (`implementations/python/esoi/solutions.csv`).

@@ -21,11 +21,13 @@ specified as sub-intents, and implementations that build on solutions of this or
 
 ## How a repository records intents
 
-ESOI does not require folders. A repository records its intents as folders, which is the selected implementation of the
-`intent-registry` solution; its rival, records kept beside the code they describe, stays listed beside it in this
-repository's own [records](../../esoi/solutions.csv). The specifications stay apart from the code they describe, in
-a structure folder, and esoi helps keep the two in step: the ownership map ties every file to a solution, and the check
-names a file with no solution and a record with no file.
+ESOI does not require folders. A repository records its intents in one of two layouts, both implementations of the `intent-registry`
+solution and both measured by `metric-navigable-records`: the `esoi/` folder below, with every record in the structure folder, or
+[records beside the code](../reference/records-beside-code.md), where each solution's records live once in the folder that holds its
+code and each such folder has a generated README. The measurement selected records beside the code, and this repository's own
+[records](../../implementations/python/esoi/README.md) use it; a repository whose build or framework fixes its folder structure keeps
+the `esoi/` folder. Either way esoi helps keep the specifications and the code in step: the ownership map ties every file to a
+solution, and the check names a file with no solution and a record with no file. The layout of the `esoi/` folder:
 
 ```text
 esoi/                       the folder that holds the top intent (the default; `structure/` and `docs/structure/` work when configured)

@@ -73,7 +73,7 @@ def test_check_write_docs_writes_the_same_page_as_the_command(cfg):
 
 def test_generating_twice_gives_the_same_text_and_the_page_has_no_em_dash_or_machine_path(cfg):
     assert page(cfg) == page(cfg)
-    assert "—" not in page(cfg) and "/home/" not in page(cfg)
+    assert chr(0x2014) not in page(cfg) and "/home/" not in page(cfg)
 
 
 def test_a_cell_that_holds_only_an_unconfirmed_marker_is_left_out_of_the_page(cfg):

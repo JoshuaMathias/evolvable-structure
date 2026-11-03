@@ -11,9 +11,9 @@ prose view.
 ## The tree
 
 ```text
-esoi/                            top intent esoi: Evolvable structure that optimizes intent (ESOI)
-  intent.csv  problems.csv  ideals.csv  solutions.csv  implementations.csv  metrics.csv
-  esoi-runtime/                  sub-intent esoi-runtime, implements implementation-selection:declarations
+esoi/                            top intent esoi: Evolvable structure that optimizes intent (ESOI); its intent.csv
+implementations/python/esoi/     the package folder: the records of the solutions whose code it holds, and a generated README
+  esoi-runtime/                  sub-intent esoi-runtime, beside the code it arises from, implements implementation-selection:declarations
 ```
 
 Hierarchy is only between intents, and a sub-intent is not a direct child of its parent intent: it arises as an
@@ -46,7 +46,7 @@ them in step with the code (the ownership map ties every file to a solution and 
 intents as folders is the selected implementation of the `intent-registry` solution; its rival,
 `records-beside-the-code`, stays listed.
 
-### Sub-intent `esoi-runtime` (folder `esoi-runtime/`)
+### Sub-intent `esoi-runtime` (folder `implementations/python/esoi/esoi-runtime/`)
 
 - **Arises as:** the `declarations` implementation of `implementation-selection`.
 - **Opportunity that justifies it:** the Python package can become a runtime

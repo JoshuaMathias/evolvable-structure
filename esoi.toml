@@ -4,7 +4,10 @@ package = "esoi"
 package_dir = "implementations/python/esoi"
 python_path = ["implementations/python"]
 # The bundled skill copy is text, not measured code: editing it must not stale every metric.
-code_paths = ["implementations/python/esoi", ":(exclude)implementations/python/esoi/data"]
+code_paths = ["implementations/python/esoi", ":(exclude)implementations/python/esoi/data", ":(exclude,glob)implementations/python/esoi/**/*.md",
+              ":(exclude,glob)implementations/python/esoi/**/problems.csv", ":(exclude,glob)implementations/python/esoi/**/ideals.csv",
+              ":(exclude,glob)implementations/python/esoi/**/solutions.csv", ":(exclude,glob)implementations/python/esoi/**/implementations.csv",
+              ":(exclude,glob)implementations/python/esoi/**/metrics.csv", ":(exclude,glob)implementations/python/esoi/**/intent.csv"]
 layers = ["core", "tools", "cli"]
 structure_dir = "esoi"
 evaluation_dir = "implementations/python/evaluation/components"
@@ -43,6 +46,9 @@ reason = "The sentence names the absolute folder of the author's private copy. I
 allow_mailboxes = ["joshuamonkey"]
 
 [records]
+# This repository keeps each solution's records beside its code (docs/reference/records-beside-code.md): the package folder holds the
+# solutions of the code it holds, and esoi-runtime, a sub-intent, sits there beside the code it arises from.
+beside_code = ["implementations/python/esoi", "implementations/python/esoi/*"]
 # The version of the intent template this repository's own records follow (`esoi version --record`).
 template_version = 4
 

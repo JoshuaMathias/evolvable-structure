@@ -4,7 +4,7 @@ The esoi package is a dependency of other people's production code, which declar
 
 *ESOI records of this intent (evolvable structure that optimizes intent), generated from the CSV files beside this page by `esoi readmes`. Edit the CSV files, not this page.*
 
-This sub-intent arises as the implementation `implementation-selection:declarations` of its parent intent [`esoi`](../README.md). Opportunities: The Python package can become a runtime dependency inside other people's production code, not only a tool run on a repository: selection at run time, graceful declarations of alternatives (decorators, for example) and embedding without forking. That is a creative space beyond selecting an implementation by a table in one repository.
+This sub-intent arises as the implementation `implementation-selection:declarations` of its parent intent [`esoi`](../../../../esoi/README.md). Opportunities: The Python package can become a runtime dependency inside other people's production code, not only a tool run on a repository: selection at run time, graceful declarations of alternatives (decorators, for example) and embedding without forking. That is a creative space beyond selecting an implementation by a table in one repository.
 
 ## How the solutions fit together
 
@@ -42,8 +42,8 @@ flowchart LR
 
 ## Where to go next
 
-- Parent intent: [Evolvable structure that optimizes intent (ESOI)](../README.md)
-- Repository: [top README](../../README.md)
+- Parent intent: [Evolvable structure that optimizes intent (ESOI)](../../../../esoi/README.md)
+- Repository: [top README](../../../../README.md)
 - Records: [intent.csv](intent.csv), [problems.csv](problems.csv), [solutions.csv](solutions.csv), [implementations.csv](implementations.csv), [metrics.csv](metrics.csv)
 - Diagram page: [diagram.md](diagram.md)
 
@@ -67,9 +67,9 @@ flowchart LR
 
 | Implementation | Name | Where | Sub-intent |
 |---|---|---|---|
-| `runtime-selection:select` | Selector class and table | [implementations/python/esoi/select.py](../../implementations/python/esoi/select.py) |  |
-| `runtime-selection:declarations-and-cascade` | Declarations in code with one cascade | [implementations/python/esoi/interfaces.py](../../implementations/python/esoi/interfaces.py) |  |
-| `assemble-by-name:assembler` | assemble-by-name:assembler | [implementations/python/esoi/interfaces.py](../../implementations/python/esoi/interfaces.py) |  |
+| `runtime-selection:select` | Selector class and table | [implementations/python/esoi/select.py](../select.py) |  |
+| `runtime-selection:declarations-and-cascade` | Declarations in code with one cascade | [implementations/python/esoi/interfaces.py](../interfaces.py) |  |
+| `assemble-by-name:assembler` | assemble-by-name:assembler | [implementations/python/esoi/interfaces.py](../interfaces.py) |  |
 
 ### Metrics
 

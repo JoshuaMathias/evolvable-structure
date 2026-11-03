@@ -72,7 +72,7 @@ def verdicts(text, loaded, view, intent, again):
     if (view.config.root / readme.FILE).is_file():
         wanted.append(readme.link(intent.folder, view.config.root / readme.FILE))
     out["links"] = all(resolves(view, intent.folder, t) for t in targets) and all(w in targets for w in wanted)
-    out["finished"] = bool(text) and not re.search(r"—|unconfirmed|TODO|TBD|/home/", text, re.I)
+    out["finished"] = bool(text) and not re.search(r"\u2014|unconfirmed|TODO|TBD|/home/", text, re.I)
     out["pure"] = bool(text) and text == again
     top = summary(text)
     tables = [ln for ln in top.splitlines() if ln.startswith("| Implementation |") or ln.startswith("| Solution | Name |")]

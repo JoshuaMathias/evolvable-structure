@@ -1,7 +1,7 @@
 component_id,layer,path,role,solutions
 documentation,docs,docs/**,"Explanation, guides and non-code templates (the main feature of the repository).",docs-and-templates;follow-the-steps
 examples,docs,examples/**,Adopters as short examples and testimonials.,docs-and-templates
-structure-registry,docs,esoi/**,This repository's own overall network and detailed records.,intent-registry
+structure-registry,docs,esoi/**;implementations/python/esoi/*.csv;implementations/python/esoi/*.md;implementations/python/esoi/esoi-runtime/**,This repository's own overall network and detailed records.,intent-registry
 project-files,project,*,"Files at the repository root: readme, configuration, contributing, licence.",docs-and-templates
 wiki,scripts,scripts/docs_to_wiki.py,A thin wrapper that generates this repository's GitHub wiki from docs/ through esoi docs wiki.,docs-and-templates
 docs-standard,tools,implementations/python/esoi/docs.py,"Checking the four-category docs standard and generating a wiki from docs/, so the docs stay the one source.",docs-and-templates

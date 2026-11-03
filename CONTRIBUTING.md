@@ -27,4 +27,4 @@ python -m esoi check                              # ESOI applied to this reposit
 ```
 
 A new part of the package joins a component in `esoi/components.csv` and serves a solution in
-`esoi/solutions.csv`; a new rule needs a mutation case in the `check_the_structure` evaluation component.
+`implementations/python/esoi/solutions.csv`; a new rule needs a mutation case in the `check_the_structure` evaluation component.
