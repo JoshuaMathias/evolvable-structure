@@ -60,3 +60,41 @@ def test_existing_code_is_not_flagged(tmp_path):
     (root / "README.md").write_text("changed\n")
     subprocess.run(["git", "-C", str(root), "add", "README.md"], check=True)
     assert nav.check_staged(root) == []
+
+
+def test_rules_without_a_check_are_listed_for_the_staged_files(tmp_path):
+    root = repo(tmp_path)
+    (root / "docs/standards/manual.md").write_text(
+        "# Manual\n\n**Tags:** low-quality-code\n**Paths:** app/routes/**/*.py\n**Rule:** Log a warning when you fall back.\n")
+    text = nav.advisory(root)
+    assert "Log a warning when you fall back" in text and "A route delegates" not in text
+
+
+def test_the_hook_is_written_where_git_looks_and_never_overwrites_another(tmp_path):
+    root = repo(tmp_path)
+    path = nav.install_hook(root)
+    assert path.name == "pre-commit" and "check-staged" in path.read_text()
+    assert nav.install_hook(root) == path
+    path.write_text("#!/bin/sh\necho other\n")
+    try:
+        nav.install_hook(root)
+    except FileExistsError:
+        return
+    raise AssertionError("another hook was overwritten")
+
+
+def test_a_described_task_finds_standards_by_tag_keywords_and_a_vague_task_finds_none(tmp_path):
+    root = repo(tmp_path)
+    (root / "docs/standards/tags.csv").write_text(
+        "tag,mitigates,meaning,keywords\nlogic-in-entry-layer,p1,Risk of logic in a route because it was written there,route;handler;ranking\n"
+        "low-quality-code,p1,Risk of a change that breaks structure because a rule was missed,quality\n")
+    assert "A route delegates" in nav.for_task(root, "add a route that does ranking of results")
+    assert nav.for_task(root, "fix the typo in an email") == ""
+
+
+def test_lint_enforces_the_standard_for_writing_standards(tmp_path):
+    root = repo(tmp_path)
+    assert any("not a row of tags.csv" in p for p in nav.lint(root))
+    (root / "docs/standards/tags.csv").write_text(
+        "tag,mitigates,meaning,keywords\nlogic-in-entry-layer,p1,A thing,route\nlow-quality-code,p1,Risk of x because y,quality\n")
+    assert any("starts 'Risk of" in p for p in nav.lint(root))

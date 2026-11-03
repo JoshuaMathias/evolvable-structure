@@ -49,4 +49,8 @@ The main feature is explanation and templates that need no code; Python is one e
   `esoi check`; after committing measured code or cases, `esoi run --stale` (it skips paid arms) and commit the results log. The
   paid arms (those that call a model, declared `PAID = True`) need a cost estimate, a staged sample (3, 10, 30), a call budget and
   Joshua's approval first; never run one without it.
+- **Standards by risk tag.** Before writing code run `python -m esoi.standards_nav for-task "<what you will build>"` and,
+  for each file you will edit, `for-file <path>`; they print only the rules that apply (`esoi/standards/`). A pre-commit
+  hook runs `check-staged` (install: `install-hook`); fix a finding or waive it at its line with a reason. How:
+  `docs/how-to/navigate-standards-by-risk-tag.md`.
 - **Commit by explicit path**, never `git add -A`; do not rewrite pushed history.

@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
-STANDARDS_DIR = "docs/standards"
+STANDARDS_DIRS = ("docs/standards", "esoi/standards")   # the first that exists in a repository
 WAIVER = "standards-waive:"
 MAX_SHOWN = 4
 
@@ -49,6 +49,8 @@ class Standard:
     paths: Tuple[str, ...]
     rule: str
     checks: Tuple[Check, ...] = ()
+    when: str = ""          # optional regex on the file's content: the standard is shown only when the file matches it
+    read_when: str = ""
 
 
 @dataclass(frozen=True)
@@ -112,20 +114,26 @@ def parse_standard(root: Path, path: Path) -> Optional[Standard]:
     checks = tuple(c for c in (parse_check(r) for r in header_line(text, "Check")) if c)
     return Standard(id=path.stem, file=str(path.relative_to(root)), title=title,
                     tags=tuple(t.strip() for t in tags[0].split(",") if t.strip()),
-                    paths=tuple(p.strip() for p in re.split(r"[;]", paths[0]) if p.strip()), rule=rule[0], checks=checks)
+                    paths=tuple(p.strip() for p in re.split(r"[;]", paths[0]) if p.strip()), rule=rule[0], checks=checks,
+                    when=(header_line(text, "When") or [""])[0], read_when=(header_line(text, "Read when") or [""])[0])
+
+
+def standards_dir(root: Path) -> Optional[Path]:
+    return next((root / d for d in STANDARDS_DIRS if (root / d).is_dir()), None)
 
 
 def find_root(start: Path) -> Optional[Path]:
     """The nearest folder above ``start`` that has a standards folder."""
     here = start if start.is_dir() else start.parent
     for folder in (here, *here.parents):
-        if (folder / STANDARDS_DIR).is_dir():
+        if standards_dir(folder):
             return folder
     return None
 
 
 def load(root: Path) -> List[Standard]:
-    found = (parse_standard(root, p) for p in sorted((root / STANDARDS_DIR).glob("*.md")))
+    folder = standards_dir(root)
+    found = (parse_standard(root, p) for p in sorted(folder.glob("*.md"))) if folder else ()
     return [s for s in found if s]
 
 
@@ -136,14 +144,91 @@ def for_file(file: Path, tags: Optional[Set[str]] = None) -> str:
     if root is None:
         return ""
     relative = str(file.relative_to(root))
-    hits = [s for s in load(root) if matches(relative, s.paths) and (not tags or tags & set(s.tags))]
+    content = file.read_text(encoding="utf-8", errors="replace") if file.is_file() else ""
+    hits = [s for s in load(root) if matches(relative, s.paths) and (not tags or tags & set(s.tags))
+            and (not s.when or not content or re.search(s.when, content))]
     if not hits:
         return ""
     lines = [f"Standards for {relative} (full text only if you need it):"]
     lines += [f"- [{', '.join(s.tags)}] {s.rule} ({s.file})" for s in hits[:MAX_SHOWN]]
     if len(hits) > MAX_SHOWN:
-        lines.append(f"- and {len(hits) - MAX_SHOWN} more under {STANDARDS_DIR}/")
+        lines.append(f"- and {len(hits) - MAX_SHOWN} more in the standards folder")
     return "\n".join(lines)
+
+
+@dataclass(frozen=True)
+class Tag:
+    tag: str
+    mitigates: str     # the id of the problem in the repository's records that the tag is a handle on
+    meaning: str       # "Risk of X because Y", one sentence
+    keywords: Tuple[str, ...]   # task-language words that suggest the risk, for matching before any code exists
+
+
+def load_tags(root: Path) -> Dict[str, Tag]:
+    folder = standards_dir(root)
+    path = folder / "tags.csv" if folder else None
+    if not path or not path.is_file():
+        return {}
+    import csv
+    with path.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    return {r["tag"]: Tag(r["tag"], r.get("mitigates", ""), r.get("meaning", ""),
+                          tuple(w.strip().lower() for w in (r.get("keywords") or "").split(";") if w.strip())) for r in rows}
+
+
+WORD = re.compile(r"[a-z][a-z0-9-]+")
+
+
+def for_task(root: Path, task: str) -> str:
+    """Before any code exists: the standards a described task is likely to meet, found lexically (no model).
+
+    A standard scores one point per task word that is a keyword of one of its tags, and a half point per task word found in
+    its own title, rule or read-when line. Nothing under a point is shown, so a vague task shows nothing rather than a guess."""
+    words = set(WORD.findall(task.lower()))
+    tags = load_tags(root)
+    scored = []
+    for std in load(root):
+        keyword_hits = {k for t in std.tags for k in (tags[t].keywords if t in tags else ()) if k in words or any(w.startswith(k) for w in words)}
+        own = words & set(WORD.findall(f"{std.title} {std.rule} {std.read_when}".lower())) - STOP
+        score = len(keyword_hits) + 0.5 * len(own)
+        if score >= 1:
+            scored.append((score, std, sorted(keyword_hits)))
+    scored.sort(key=lambda item: -item[0])
+    if not scored:
+        return ""
+    lines = ["Standards this task is likely to meet (open the file only for detail):"]
+    lines += [f"- [{', '.join(std.tags)}] {std.rule} ({std.file}; matched {', '.join(hit) or 'its own wording'})" for _, std, hit in scored[:MAX_SHOWN]]
+    return "\n".join(lines)
+
+
+STOP = {"the", "and", "for", "that", "with", "this", "from", "into", "each", "when", "are", "not", "any", "can", "all", "one"}
+HEDGES = ("should", "try to", "consider", "ideally", "if possible")
+
+
+def lint(root: Path) -> List[str]:
+    """The standard for writing standards, checked: every tag is defined, and rule and message text is plain and short."""
+    tags, problems = load_tags(root), []
+    for std in load(root):
+        for t in std.tags:
+            if t not in tags:
+                problems.append(f"{std.file}: tag '{t}' is not a row of tags.csv")
+        words = len(std.rule.split())
+        if words > 40 or not std.rule.rstrip().endswith("."):
+            problems.append(f"{std.file}: the Rule is one sentence of at most 40 words ({words} here) ending in a full stop")
+        if any(h in std.rule.lower() for h in HEDGES):
+            problems.append(f"{std.file}: the Rule states what to do, with no hedge words ({', '.join(HEDGES)})")
+        for check in std.checks:
+            if len(check.message.split()) > 45:
+                problems.append(f"{std.file}: a Check message is at most 45 words and says what to do instead")
+        for text in (std.rule, *[c.message for c in std.checks]):
+            if "\u2014" in text:
+                problems.append(f"{std.file}: no em dash in rule or message text")
+    for t in tags.values():
+        if not (t.mitigates and t.meaning and t.keywords):
+            problems.append(f"tags.csv: tag '{t.tag}' needs mitigates, meaning and keywords")
+        elif not t.meaning.lower().startswith("risk of"):
+            problems.append(f"tags.csv: tag '{t.tag}' meaning starts 'Risk of ...' (the risk the tag mitigates)")
+    return problems
 
 
 def git(root: Path, *args: str) -> str:
@@ -204,11 +289,12 @@ def check_one(std: Standard, check: Check, root: Path, file: str, added: Dict[in
 def check_staged(root: Path) -> List[Finding]:
     """Run every standard's checks over the lines the staged change adds."""
     standards = [s for s in load(root) if s.checks]
-    if not standards:
-        return []
     diff = added_lines(git(root, "diff", "--cached", "-U0", "--no-color", "--diff-filter=ACMR"))
     staged = sorted(diff)
     findings: List[Finding] = []
+    folder = standards_dir(root)
+    if folder and any(f.startswith(str(folder.relative_to(root))) for f in staged):
+        findings += [Finding("standards-lint", str(folder.relative_to(root)), 0, p) for p in lint(root)]
     for std in standards:
         in_scope = [f for f in staged if matches(f, std.paths)]
         for check in std.checks:
@@ -222,6 +308,20 @@ def check_staged(root: Path) -> List[Finding]:
     return findings
 
 
+def unchecked(root: Path) -> List[Standard]:
+    """Standards that apply to the staged files but have no automatic check, so the author confirms them by hand."""
+    staged = sorted(added_lines(git(root, "diff", "--cached", "-U0", "--no-color", "--diff-filter=ACMR")))
+    return [s for s in load(root) if not s.checks and any(matches(f, s.paths) for f in staged)]
+
+
+def advisory(root: Path) -> str:
+    rules = unchecked(root)
+    if not rules:
+        return ""
+    return "\n".join(["Rules for this change with no automatic check (confirm each by hand before committing):",
+                      *[f"  - [{', '.join(s.tags)}] {s.rule} ({s.file})" for s in rules]])
+
+
 def report(findings: List[Finding]) -> str:
     if not findings:
         return ""
@@ -231,22 +331,64 @@ def report(findings: List[Finding]) -> str:
     return "\n".join([head, *[f"  {f}" for f in findings], tail])
 
 
+HOOK = """#!/bin/sh
+# Installed by `python -m esoi.standards_nav install-hook`. Checks the staged change against the repository's standards
+# (docs/standards or esoi/standards): a finding blocks the commit, rules with no automatic check are listed.
+# Fails open when esoi is not importable, so a checkout without it (a server) still commits.
+root=$(git rev-parse --show-toplevel)
+for py in "$root/venv/bin/python3" "$root/.venv/bin/python3" python3; do
+  "$py" -c "import esoi.standards_nav" 2>/dev/null && exec "$py" -m esoi.standards_nav check-staged "$root"
+done
+echo "standards check skipped: esoi is not installed here" >&2
+exit 0
+"""
+
+
+def install_hook(root: Path) -> Path:
+    """Write the pre-commit hook where git looks for hooks (``core.hooksPath`` is honoured); never overwrites another hook."""
+    folder = Path(git(root, "rev-parse", "--path-format=absolute", "--git-path", "hooks").strip())
+    target = folder / "pre-commit"
+    if target.exists() and target.read_text() != HOOK:
+        raise FileExistsError(f"{target} exists and is not this hook; add `python -m esoi.standards_nav check-staged` to it")
+    folder.mkdir(parents=True, exist_ok=True)
+    target.write_text(HOOK)
+    target.chmod(0o755)
+    return target
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     import argparse
     ap = argparse.ArgumentParser(prog="esoi.standards_nav", description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     f = sub.add_parser("for-file", help="print the rules that apply to editing a file")
-    f.add_argument("file")
+    f.add_argument("file", nargs="+")
     f.add_argument("--tag", action="append", default=[])
     c = sub.add_parser("check-staged", help="check the staged change against the standards' Check lines")
     c.add_argument("repo", nargs="?", default=".")
+    t = sub.add_parser("for-task", help="print the standards a described task is likely to meet, before any code exists")
+    t.add_argument("task", nargs="+")
+    t.add_argument("--repo", default=".")
+    sub.add_parser("lint", help="check the standards folder against the standard for writing standards").add_argument("repo", nargs="?", default=".")
+    i = sub.add_parser("install-hook", help="write the pre-commit hook for a repository")
+    i.add_argument("repo", nargs="?", default=".")
     args = ap.parse_args(argv)
     if args.cmd == "for-file":
-        print(for_file(Path(args.file), set(args.tag) or None))
+        for file in args.file:
+            print(for_file(Path(file), set(args.tag) or None))
         return 0
     root = find_root(Path(args.repo).resolve())
+    if args.cmd == "for-task" and root:
+        print(for_task(root, " ".join(args.task)))
+        return 0
+    if args.cmd == "lint" and root:
+        problems = lint(root)
+        print("\n".join(problems))
+        return 1 if problems else 0
+    if args.cmd == "install-hook":
+        print(install_hook(root or Path(args.repo).resolve()))
+        return 0
     text = report(check_staged(root)) if root else ""
-    print(text)
+    print(text or (advisory(root) if root else ""))
     return 1 if text else 0
 
 
