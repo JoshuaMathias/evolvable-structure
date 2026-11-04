@@ -65,12 +65,12 @@ enabled = true
 # interfaces.py counted as named by every other one (881 of 1079 non-edges showed the same evidence, lift 1.14); evidence is now
 # attributed per solution, so they are lowered to what the code shows: the records state a composition of documents, commands and
 # judges (the-standard, esoi-for-ai, the-steps, structure-budget and the rest) that the one-fact probes in interfaces.py do not call,
-# and 24 of the 40 recorded edges are seen (E5 sees two document edges through the `documents` column of components.csv) (docs/explanation/why-prose-is-not-code-evidence.md lists the rest and why).
+# and 29 of the 40 recorded edges are seen (E5 sees seven document edges through the `documents` column of components.csv) (docs/explanation/why-prose-is-not-code-evidence.md lists the rest and why).
 [rules.S38]
 enabled = true
 
 [rules.S38.floors.esoi]
-precision = 0.6
+precision = 0.725
 coverage = 1.0
 
 # The sub-intent's two edges are runtime-selection and assemble-by-name composing in assemble.py, runtime.py and lock.py, while the

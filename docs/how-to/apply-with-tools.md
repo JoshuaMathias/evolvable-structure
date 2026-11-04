@@ -12,6 +12,11 @@ pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git
 Add `@<commit>` after `.git` to pin a version. Python 3.11 or later; no dependencies in the core. For Google Sheets sync add
 the extra: `esoi[sheets]`.
 
+The tools check the records against [the repository standard](../reference/templates/repository-standard.md). An AI agent that applies
+them follows [ESOI applied to AI behaviour](../explanation/esoi-for-ai.md); a piece of work records its metric before and after as in
+[keep a metric's value before and after](measure-before-and-after.md); a program built on a library is kept in step as in
+[keep a consumer current with an AI agent](keep-a-consumer-current-with-an-ai-agent.md).
+
 ## The graceful path: declare, call, measure, promote
 
 State each fact once, where the code is ([the full page](../explanation/graceful-selection.md)):

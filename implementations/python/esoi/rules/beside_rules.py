@@ -38,12 +38,25 @@ def distance(a: Path, b: Path) -> int:
     return (len(a.parts) - shared) + (len(b.parts) - shared)
 
 
-def reach(arms: Dict[Path, list], spec: Path, code: Path, row_folder: Path) -> int:
+def reach(arms: Dict[Path, list], spec: Path, code: Path, row_folder: Path, shared: bool = False) -> int:
     """The link distance from a solution's spec folder to its code. A folder of arms owned by an intent has a generated README that
-    links to the owner's README, so its code is one link past the folder that holds the row."""
+    links to the owner's README, so its code is one link past the folder that holds the row. Code in a shared layer the intent's own
+    code imports (``shared``, see ``besidecode.shared_layer_reaches``) is one link from the intent."""
+    if shared:
+        return 1
     if code in arms and any(folder.resolve() == row_folder.resolve() for _, folder in arms[code]):
         return distance(spec, row_folder) + 1
     return distance(spec, code)
+
+
+def shared_in(config, spec: Path, code_file: str, graph: Dict[str, set], intent_code: Dict[Path, set],
+              solution_id: str = "", interface: str = "") -> bool:
+    """Whether ``code_file`` is in a shared layer that the code of the intent holding ``spec`` imports."""
+    if not graph or not code_file:
+        return False
+    package = config.root / (config.package_dir or config.package or "")
+    mine = {rel_file for rel_file in graph if (config.root / rel_file).resolve().is_relative_to(spec.resolve())} | intent_code.get(spec.resolve(), set())
+    return besidecode.shared_layer_reaches(config, spec, code_file, graph, mine, solution_id, interface)
 
 
 def rel(config, path: Path) -> str:
@@ -59,13 +72,17 @@ def findings(ctx: Context) -> List[str]:
                        "next: delete the copies that are not in the folder that holds its code")
     held = besidecode.rows_by_file(config)
     solution_folder = {r.get("solution_id", "").strip(): folder for r, folder, _ in held["solutions.csv"]}
+    interfaces = {r.get("solution_id", "").strip(): (r.get("interface_name", "") or "").strip() for r, _, _ in held["solutions.csv"]}
     moves = {(m.file, m.ident): m.target for m in besidecode.plan(config)}
     arms = besidecode.arm_folders(config)
-    codes: Dict[str, List[Tuple[Path, Path]]] = {}
+    codes: Dict[str, List[Tuple[Path, Path, str]]] = {}
+    graph = besidecode.import_graph(config) if config.package else {}
+    intent_code: Dict[Path, set] = {}
     for row, folder, _ in held["implementations.csv"]:
         here = besidecode.code_folder(config, row.get("filepath", ""))
         if here is not None:
-            codes.setdefault(row.get("solution_id", "").strip(), []).append((here, folder))
+            codes.setdefault(row.get("solution_id", "").strip(), []).append((here, folder, besidecode.root_relative_file(config, row.get("filepath", ""))))
+            intent_code.setdefault(folder.resolve(), set()).add(besidecode.root_relative_file(config, row.get("filepath", "")))
             if not (here / "README.md").is_file() and not ctx.waived("S40", rel(config, here)):
                 if here in arms:
                     owners = ", ".join(sorted({o for o, _ in arms[here]}))
@@ -78,7 +95,10 @@ def findings(ctx: Context) -> List[str]:
                                "belongs to an intent elsewhere)")
     out = list(dict.fromkeys(out))
     for sid, folder in sorted(solution_folder.items()):
-        far = sorted({rel(config, c) for c, row_folder in codes.get(sid, []) if reach(arms, folder, c, row_folder) > 1})
+        near: Dict[Path, bool] = {}
+        for c, row_folder, code_file in codes.get(sid, []):   # one file of the solution in a shared layer the intent reaches covers its arms there
+            near[c] = near.get(c, False) or shared_in(config, folder, code_file, graph, intent_code, sid, interfaces.get(sid, ""))
+        far = sorted({rel(config, c) for c, row_folder, code_file in codes.get(sid, []) if reach(arms, folder, c, row_folder, near[c]) > 1})
         if far and not ctx.waived("S40", sid):
             target = moves.get(("solutions.csv", sid))
             action = (f"run `esoi records place --apply` (it moves the row to {rel(config, target)})" if target is not None

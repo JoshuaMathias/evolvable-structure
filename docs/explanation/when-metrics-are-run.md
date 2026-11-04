@@ -176,7 +176,8 @@ The first three can be checked by a tool and should be. The last needs a person 
 `know-what-a-result-measures`, with three arms scored by `esoi run staleness_precision` over a fixture of commits: any file of
 the repository's code paths or the evaluation folder (`repo_wide`, the baseline: safe, and every commit makes every component's
 rows stale), the files the ownership map gives the arm's solution and implementation (`component_paths`), and the files the arm's
-module imports, found by reading the source without running it (`import_closure`). A rule must never keep a row whose measured
+own code: its implementation module and the helper code it imports that belongs to no implementation, found by reading the source
+without running it (`import_closure`). A rule must never keep a row whose measured
 code changed (a false-fresh is a hard fail that disqualifies the arm); among the rest, the one that calls a result stale for
 nothing least often is selected. The measurement selected `import_closure`, and disqualified `component_paths`, because a shared
 utility the arm imports may be owned by another component, which the ownership map does not say. Every arm falls back, per
@@ -184,6 +185,13 @@ component, to a safer rule: a non-Python arm or a computed import falls back to 
 ownership entry keeps `repo_wide`, so a result is never silently fresh. A file in the code paths that no component owns counts for
 every arm. [Choose when a result is stale](../how-to/choose-when-a-result-is-stale.md) says how to set the rule and read why a row
 is stale.
+
+**A result goes stale only when the arm's own code changes.** Not a test file or shared test fixture (`tests/`, `test_*.py`,
+`conftest.py`, `evaluation/components/test_components.py`), not the scorer, its datasets or anything else in the evaluation folder
+that is not the arm's file, not a package `__init__`, and not code that belongs to any other implementation (another arm of the
+component, or another solution's implementation), even when the arm imports it. A dependency on another solution's code is
+answered by that solution's own recorded selection, never by staling this result. `repo_wide` and `component_paths` stay as the
+safer, coarser rules.
 
 **A stale row is information, not an order to re-run.** `esoi run --stale` reports each stale row with the changed file and the
 component that owns it, and re-runs only what is worth running: a selected arm that was never measured, a selected arm whose

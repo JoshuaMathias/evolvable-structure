@@ -34,10 +34,12 @@ def test_repo_wide_is_safe_and_calls_every_change_stale():
     assert got["false_fresh"] == 0 and got["false_stale"] > 20
 
 
-def test_component_paths_keeps_a_row_when_an_undeclared_shared_utility_changes_so_it_is_disqualified():
-    rows = run_arm("component_paths")
-    assert SCORE.aggregate(rows)["false_fresh"] == 2
-    assert "false-fresh" in SCORE.disqualify(rows)
+def test_another_solutions_code_and_a_shared_fixture_never_stale_a_result_under_any_rule_that_reads_ownership():
+    for rule in ("component_paths", "import_closure"):
+        assert SCORE.aggregate(run_arm(rule))["false_fresh"] == 0
+        assert decide(rule, "touch-the-shared-utility", "alpha")["stale"] is False        # util.py is sol-util's implementation
+        assert decide(rule, "touch-a-shared-evaluation-fixture", "alpha")["stale"] is False   # a shared test fixture
+    assert decide("repo_wide", "touch-the-shared-utility", "alpha")["stale"] is True
 
 
 def test_import_closure_never_keeps_a_changed_row_and_is_more_precise_than_repo_wide():
@@ -62,10 +64,12 @@ def test_an_unowned_component_falls_back_to_the_whole_repository_never_silently_
 
 
 def test_the_reason_names_the_changed_file_and_who_owns_it():
-    why = decide("import_closure", "touch-the-shared-utility", "alpha")["why"]
-    assert "pkg/util.py" in why and "imported by the arm" in why
+    why = decide("import_closure", "touch-the-measured-file", "alpha")["why"]
+    assert "pkg/alpha.py" in why and "own code" in why
     assert "owned by component util" in staleness.explain(
         *explain_args("component_paths", "touch-the-shared-utility", "beta"))["ignored"][0]
+    assert any("pkg/util.py" in line and "not the arm's code" not in line for line in staleness.explain(
+        *explain_args("import_closure", "touch-the-shared-utility", "alpha"))["ignored"])
 
 
 def explain_args(rule, step, component):
@@ -123,7 +127,6 @@ def test_a_rival_that_does_not_import_the_changed_file_stays_current_under_the_d
     sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=repo, capture_output=True, text=True).stdout.strip()
     (repo / "demo" / "greet.py").write_text((repo / "demo" / "greet.py").read_text() + "\n# changed\n")
     rows = {impl: dict(impl=impl, git_sha=sha, cases_sha=harness.cases_digest("greet_a_person", cfg.evaluation)) for impl in ("live", "shout")}
-    assert "demo/greet.py" in harness.stale_reason(cfg, "greet_a_person", rows["live"])
     assert harness.stale_reason(cfg, "greet_a_person", rows["shout"]) == ""   # shout never imports demo/greet.py
     cfg.staleness_rule = "repo_wide"
     assert "demo/greet.py" in harness.stale_reason(cfg, "greet_a_person", rows["shout"])
@@ -133,11 +136,12 @@ def test_a_scan_that_meets_a_computed_import_still_counts_the_files_it_found(tmp
     built = staleness_fixture.build("touch-the-shared-utility")
     cfg = config_module.load(built.root / "esoi.toml")
     live = built.root / "evaluation/components/beta_eval/impls/live.py"
-    live.write_text(live.read_text() + "\nimport importlib\nfrom pkg import util\n\n\ndef late(name):\n    return importlib.import_module(name)\n")
+    live.write_text(live.read_text() + "\nimport importlib\nfrom pkg import unowned_helper\n\n\ndef late(name):\n    return importlib.import_module(name)\n")
     cfg.staleness_rule = "import_closure"
     scope = staleness.scope_for(cfg, "beta_eval", "live", "import_closure")
     assert scope.rule == "component_paths" and not scope.complete
-    assert staleness.judge(cfg, scope, "pkg/util.py") == (True, "imported by the arm")   # found by the partial scan, though component_paths alone would miss it
+    assert staleness.judge(cfg, scope, "pkg/unowned_helper.py") == (True, "imported by the arm")   # found by the partial scan, though component_paths alone would miss it
+    assert staleness.judge(cfg, scope, "pkg/util.py")[0] is False                        # another solution's implementation is never this arm's code
     assert staleness.judge(cfg, scope, "pkg/alpha.py")[0] is False                       # owned by another component and not seen importing
 
 
@@ -154,3 +158,42 @@ def test_the_offline_guard_sets_the_variable_a_provider_reads_and_restores_it(mo
     guard.start()
     guard.stop()
     assert os.environ["ESOI_OFFLINE"] == "0"
+
+
+def judged(rule_step, path, component="alpha"):
+    built = staleness_fixture.build(rule_step)
+    cfg = config_module.load(built.root / "esoi.toml")
+    cfg.staleness_rule = "import_closure"
+    return staleness.judge(cfg, staleness.scope_for(cfg, f"{component}_eval", "live", "import_closure"), path)
+
+
+def test_editing_the_arms_own_code_stales_it_and_nothing_else_does():
+    step = "touch-the-measured-file"
+    assert judged(step, "pkg/alpha.py")[0] is True                                           # the record's implementation file
+    assert judged(step, "evaluation/components/alpha_eval/impls/live.py")[0] is True         # the wrapper
+    assert judged(step, "pkg/util.py")[0] is False                                           # another solution's implementation, though imported
+    assert judged(step, "evaluation/components/fixture_shared.py")[0] is False               # a shared fixture the wrapper imports
+    assert judged(step, "evaluation/components/alpha_eval/score.py")[0] is False             # the scorer
+    assert judged(step, "evaluation/components/alpha_eval/cases.json")[0] is False           # the dataset
+    assert judged(step, "evaluation/components/beta_eval/impls/live.py")[0] is False         # another arm
+    assert judged(step, "pkg/beta.py")[0] is False                                           # another solution's code
+    assert judged(step, "tests/test_alpha.py")[0] is False and judged(step, "pkg/conftest.py")[0] is False
+    assert judged(step, "pkg/unowned_helper.py")[0] is False                                 # a plain helper the arm does not import
+
+
+def test_a_helper_that_belongs_to_no_implementation_counts_when_the_arm_imports_it():
+    built = staleness_fixture.build("touch-the-measured-file")
+    cfg = config_module.load(built.root / "esoi.toml")
+    live = built.root / "evaluation/components/alpha_eval/impls/live.py"
+    live.write_text(live.read_text() + "\nfrom pkg import unowned_helper\n")
+    cfg.staleness_rule = "import_closure"
+    scope = staleness.scope_for(cfg, "alpha_eval", "live", "import_closure")
+    assert "pkg/unowned_helper.py" in scope.closure and "pkg/util.py" not in scope.closure
+    assert staleness.judge(cfg, scope, "pkg/unowned_helper.py") == (True, "imported by the arm")
+
+
+def test_test_files_are_recognised_by_name_and_folder():
+    for path in ("tests/test_a.py", "pkg/test_b.py", "pkg/c_test.py", "pkg/conftest.py", "pkg/fixtures/x.py", "evaluation/components/test_components.py"):
+        assert staleness.is_test_file(path), path
+    for path in ("pkg/contest.py", "pkg/testing_utils.py", "pkg/latest.py"):
+        assert not staleness.is_test_file(path), path

@@ -23,7 +23,7 @@ Set `staleness_rule` in `esoi.toml` to one of:
 |---|---|---|
 | `repo_wide` | any file of `code_paths` or the evaluation folder changed | you want the safest and simplest rule, or the repository has no ownership map |
 | `component_paths` | a file the arm's solution and implementation own in `components.csv` changed, or a file no component owns, or the component's evaluation folder or a shared fixture | the arms are not Python, or you can declare every shared dependency in the ownership map |
-| `import_closure` | a file the arm's module imports (transitively, found by reading the source) changed, or the component's evaluation folder, or, for a changed file that is not Python, the `component_paths` test says so | the arms are Python modules inside the repository |
+| `import_closure` | the arm's own code changed: its implementation module (the wrapper in `impls/` and the file its record names) or helper code it imports (transitively, found by reading the source) that belongs to no implementation. Never a test or shared fixture, the scorer or datasets, a package `__init__`, or another implementation's file, even if imported. For a changed file that is not Python, the `component_paths` test says so | the arms are Python modules inside the repository |
 
 With no `staleness_rule`, the library uses the arm the repository's records select for the solution `know-what-a-result-measures`
 if it has that solution, else the library default, `import_closure`, which is the arm the staleness precision metric selected.

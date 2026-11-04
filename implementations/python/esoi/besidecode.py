@@ -106,6 +106,113 @@ def arm_folders(config: Config) -> Dict[Path, List[Tuple[str, Path]]]:
     return out
 
 
+def package_files(config: Config) -> Dict[str, str]:
+    """{dotted module name: repository-relative file} of every Python module of the package (``__init__`` is the package itself)."""
+    base = config.root / (config.package_dir or config.package or "")
+    out: Dict[str, str] = {}
+    if not config.package or not base.is_dir():
+        return out
+    for path in sorted(base.rglob("*.py")):
+        if "__pycache__" in path.parts:
+            continue
+        parts = [config.package] + list(path.relative_to(base).with_suffix("").parts)
+        if parts[-1] == "__init__":
+            parts = parts[:-1]
+        out[".".join(parts)] = path.relative_to(config.root).as_posix()
+    return out
+
+
+def import_graph(config: Config) -> Dict[str, Set[str]]:
+    """{file: files of the package it imports directly}, read from the syntax trees (nothing is run). A file that does not parse
+    imports nothing here."""
+    import ast
+    modules = package_files(config)
+    by_file = {v: k for k, v in modules.items()}
+    graph: Dict[str, Set[str]] = {}
+    for dotted, rel in modules.items():
+        try:
+            tree = ast.parse((config.root / rel).read_text(encoding="utf-8", errors="replace"))
+        except (OSError, SyntaxError, ValueError):
+            graph[rel] = set()
+            continue
+        is_pkg = rel.endswith("__init__.py")
+        found: Set[str] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                names = [a.name for a in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                base = node.module or ""
+                if node.level:
+                    parts = dotted.split(".")
+                    parts = parts if is_pkg else parts[:-1]
+                    parts = parts[: len(parts) - (node.level - 1)] if node.level > 1 else parts
+                    base = ".".join(parts + ([base] if base else []))
+                names = [base] + [f"{base}.{a.name}" for a in node.names]
+            else:
+                continue
+            found.update(modules[n] for n in names if n in modules)
+        found.discard(rel)
+        graph[rel] = found
+    return graph
+
+
+def area_rank(config: Config, folder: Path, areas: List[Path]) -> Optional[int]:
+    """The layer rank of an area folder (a folder of records directly under the package): its own when ``layers`` names it, else the
+    rank most listed record folders share (an area is not named in ``layers`` until it holds code)."""
+    ranks = config.layer_rank
+    if folder.name in ranks:
+        return ranks[folder.name]
+    listed = [ranks[a.name] for a in areas if a.name in ranks]
+    if not listed:
+        return None
+    return max(set(listed), key=lambda rank: (listed.count(rank), rank))   # the rank most record folders share: the areas, not core
+
+
+def names_solution(config: Config, files: Set[str], solution_id: str, interface: str) -> bool:
+    """Whether the executable code of ``files`` names the solution: its id or its interface class (an identifier, annotation,
+    imported name or a string used as a value; a docstring or comment never counts), as an area wires its members by name
+    through typed needs rather than by importing them."""
+    import ast
+    import re
+    from . import coherence
+    for rel in sorted(files):
+        path = config.root / rel
+        if not rel.endswith(".py") or not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        try:
+            tree = ast.parse(text)
+        except SyntaxError:
+            continue
+        for token in coherence.executable_tokens(text, tree):
+            if coherence.position(solution_id, {}, token) >= 0 or (interface and re.search(r"\b" + re.escape(interface) + r"\b", token)):
+                return True
+    return False
+
+
+def shared_layer_reaches(config: Config, spec: Path, code_file: str, graph: Dict[str, Set[str]], intent_files: Set[str],
+                         solution_id: str = "", interface: str = "") -> bool:
+    """Whether ``code_file`` sits in a layer of the package that is shared infrastructure of the intent at ``spec`` (a layer ranked
+    below the area folders by ``layers``) and is imported by that intent's code (or named by its executable code through the solution's id or interface class, as an area wires
+    its members by typed need): the spec folder's modules and the code of the implementations its rows name. Code in a layer at or above the area, or one the intent's code never imports, does not reach."""
+    package = (config.root / (config.package_dir or config.package or "")).resolve()
+    spec = spec.resolve()
+    if not config.package or package not in spec.parents or spec == package:
+        return False
+    code = (config.root / code_file).resolve()
+    if package not in code.parents:
+        return False
+    layer = code.relative_to(package).parts[0]
+    ranks = config.layer_rank
+    areas = [p for p in package.iterdir() if p.is_dir() and any((p / n).is_file() for n in ("intent.csv", "solutions.csv", "implementations.csv"))]
+    mine = area_rank(config, package / spec.relative_to(package).parts[0], areas)
+    if layer not in ranks or mine is None or ranks[layer] >= mine:
+        return False
+    if any(code_file in graph.get(g, ()) for g in intent_files):
+        return True
+    return bool(solution_id) and names_solution(config, intent_files, solution_id, interface)
+
+
 def host_for(allowed: Set[Path], folder: Optional[Path], root: Path) -> Optional[Path]:
     """The nearest folder at or above ``folder`` that may hold records, else None."""
     if folder is None:

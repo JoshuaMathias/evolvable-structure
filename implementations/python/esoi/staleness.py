@@ -9,10 +9,15 @@ alternatives, measured like any other (the ``staleness_precision`` component):
   globs mapped to solutions, the implementation records' files, the beside-code folder of a solution whose code is alone in it,
   the component's evaluation folder and the fixtures shared by all of them). A file of ``code_paths`` that no component owns
   counts for every arm (never silently fresh). A component with no ownership entry falls back to ``repo_wide``.
-* ``import_closure``: for a Python arm, the files of the repository that its implementation module imports, transitively,
-  found by reading the source (no execution), plus the component's evaluation folder. A changed file that is not Python is
-  judged by ``component_paths``. When the arm is not Python, or the scan meets a dynamic import it cannot read, it falls
-  back to ``component_paths`` plus the files the scan did find (a module that is loaded only by a computed name and that
+* ``import_closure``: a result goes stale only when the arm's OWN code changes. For a Python arm that is its implementation
+  module (the wrapper in ``impls/`` or the file its record names) and the helper code it imports, transitively, found by reading
+  the source (no execution), that belongs to no implementation of any solution. Not in it, whatever the arm imports: test files
+  and shared fixtures (``tests/``, ``test_*.py``, ``conftest.py``, everything else in the evaluation folder), the scorer and its
+  datasets, a package ``__init__``, and any file another implementation owns (another arm of the component, or another
+  solution's code: that solution's own recorded selection answers for it). A changed file that is not Python is judged by
+  ``component_paths``, except that anything in the evaluation folder that is not the arm's file is not its code. When the arm
+  is not Python, or the scan meets a dynamic import it cannot read, it falls back to ``component_paths`` plus the files the
+  scan did find, still without tests, fixtures, scorers and datasets (a module that is loaded only by a computed name and that
   another component owns is not seen: see ``docs/how-to/choose-when-a-result-is-stale.md``).
 
 ``rule_for`` picks the rule: ``staleness_rule`` in ``esoi.toml``, else the arm the repository's records select for the
@@ -61,6 +66,8 @@ class Scope:
     component: str = ""
     closure: Optional[Set[str]] = None   # the files the static scan found
     complete: bool = False               # whether the scan saw every import (else the files it found only add to the component's)
+    own_files: Set[str] = field(default_factory=set)   # the arm's own implementation files (import_closure)
+    foreign: Set[str] = field(default_factory=set)     # files other implementations own (import_closure): never this arm's code
 
 
 def glob_pattern(text: str) -> re.Pattern:
@@ -253,7 +260,41 @@ def import_names(tree: ast.Module, here: Path, roots: List[Path]) -> Tuple[Set[s
     return names, complete
 
 
-def closure_of(config: Config, starts: List[Path]) -> Tuple[Set[str], bool]:
+TEST_NAMES = re.compile(r"(^test_.*|.*_test|^conftest)\.py$")
+TEST_FOLDERS = {"tests", "test", "fixtures", "__pycache__"}
+
+
+def is_test_file(rel: str) -> bool:
+    """A test file or a shared test fixture: a ``tests`` or ``fixtures`` folder, ``test_*.py``, ``*_test.py`` or ``conftest.py``."""
+    parts = rel.split("/")
+    return bool(TEST_FOLDERS & set(parts[:-1])) or bool(TEST_NAMES.match(parts[-1]))
+
+
+def foreign_files(config: Config, index: Index, own: Set[str]) -> Set[str]:
+    """Files that belong to another implementation: every file an implementation record names (any solution), and every module in
+    an ``impls`` folder of the evaluation folder, except the arm's own."""
+    found: Set[str] = set()
+    for row in index.implementations:
+        path = (row.get("filepath") or "").partition("::")[0].strip()
+        if path and not path.startswith("@"):
+            found.add(path)
+    root = config.root.resolve()
+    for path in config.evaluation.glob("*/impls/*.py"):
+        found.add(path.resolve().relative_to(root).as_posix())
+    return found - own
+
+
+def not_own_code(config: Config, rel: str, foreign: Set[str], own: Set[str]) -> bool:
+    """Whether a file the scan reaches is left out of an arm's closure: a test or fixture, a package ``__init__``, anything else in
+    the evaluation folder (scorer, datasets, shared fixtures), or a file another implementation owns."""
+    if rel in own:
+        return False
+    evaluation = config.evaluation.resolve().relative_to(config.root.resolve()).as_posix() if config.evaluation.resolve().is_relative_to(config.root.resolve()) else config.evaluation_dir
+    return (is_test_file(rel) or rel.endswith("/__init__.py") or rel == "__init__.py" or rel.startswith(evaluation + "/")
+            or rel in foreign)
+
+
+def closure_of(config: Config, starts: List[Path], skip=None) -> Tuple[Set[str], bool]:
     """``(files, complete)``: the repository files the start files import, transitively, from their source, and whether the scan was
     complete. It is not when a file cannot be read, is not Python, or imports a module by a computed name; the files found so far
     are still returned, for the rule that falls back."""
@@ -282,24 +323,25 @@ def closure_of(config: Config, starts: List[Path]) -> Tuple[Set[str], bool]:
         names, whole = found
         complete = complete and whole
         for dotted in names:
-            queue.extend(p for p in module_files(roots, dotted) if p not in seen and root in p.parents)
+            queue.extend(p for p in module_files(roots, dotted) if p not in seen and root in p.parents
+                         and not (skip is not None and skip(p.relative_to(root).as_posix())))
     return {p.relative_to(root).as_posix() for p in seen}, complete
 
 
 def start_files(config: Config, index: Index, component: str, impl: str, solutions: List[str]) -> Optional[List[Path]]:
-    """The modules an arm runs from: its scorer and implementation file, or the file the records name for a declared implementation."""
-    folder = config.evaluation / component
-    starts = [folder / "score.py", folder / "__init__.py"]
-    wrapper = folder / "impls" / f"{impl}.py"
-    if wrapper.is_file():
-        return starts + [wrapper, folder / "impls" / "__init__.py"]
+    """The arm's own implementation files: the wrapper in ``impls/`` when there is one, and the files its records name (those of the
+    implementation of that name, else of the solution's implementations). None when it has neither, or a record names a file that is
+    not Python and there is no wrapper."""
+    wrapper = config.evaluation / component / "impls" / f"{impl}.py"
     named = [r for r in index.implementations if r.get("solution_id") in solutions]
     mine = [r for r in named if normal(r.get("implementation_id", "")) == normal(impl)] or named
     files = [(r.get("filepath") or "").partition("::")[0].strip() for r in mine]
     files = [f for f in files if f and not f.startswith("@")]
+    if wrapper.is_file():
+        return [wrapper] + [config.root / f for f in files if f.endswith(".py")]
     if not files or any(not f.endswith(".py") for f in files):
         return None
-    return starts + [config.root / f for f in files]
+    return [config.root / f for f in files]
 
 
 def file_stats(config: Config, scope: Scope) -> tuple:
@@ -351,7 +393,9 @@ def build_scope(config: Config, component: str, impl: str, rule: str) -> Scope:
     if rule == "import_closure":
         starts = start_files(config, index, component, impl, solutions)
         if starts:
-            scope.closure, scope.complete = closure_of(config, starts)
+            scope.own_files = {p.resolve().relative_to(root).as_posix() for p in starts if p.resolve().is_relative_to(root)}
+            foreign = scope.foreign = foreign_files(config, index, scope.own_files)
+            scope.closure, scope.complete = closure_of(config, starts, lambda rel: not_own_code(config, rel, foreign, scope.own_files))
         if scope.closure is None or not scope.complete:
             scope.note = ("its imports cannot be read completely (not Python, or a computed import), so the files it does import "
                           "and its component's files count")
@@ -369,7 +413,15 @@ def judge(config: Config, scope: Scope, path: str) -> Tuple[bool, str]:
     if scope.rule == "repo_wide":
         return True, "the whole repository's code counts"
     inside = scope.evaluation + "/"
-    if path.startswith(inside):
+    if scope.requested == "import_closure":
+        if path in scope.own_files or (scope.closure is not None and path in scope.closure and path.endswith(".py")):
+            return True, "the arm's own code" if path in scope.own_files else "imported by the arm"
+        if is_test_file(path):
+            return False, "a test or shared test fixture, not the arm's code"
+        if path in scope.foreign:
+            return False, "another implementation's code: its own recorded selection answers for it, not this result"
+        if path.startswith(inside):
+            return False, "the evaluation folder holds the scorer, datasets and fixtures, not the arm's code"
         rest = path[len(inside):]
         if rest.startswith(scope.component + "/"):
             return True, f"in the evaluation folder of {scope.component}"
@@ -382,7 +434,7 @@ def judge(config: Config, scope: Scope, path: str) -> Tuple[bool, str]:
         if path in scope.closure:
             return True, "imported by the arm"
         if scope.rule == "import_closure":
-            return False, "not imported by the arm"
+            return False, "not the arm's own code (not imported, or owned by another implementation)"
     owner = first_match(scope.own, path)
     if owner:
         return True, f"owned by {owner}"

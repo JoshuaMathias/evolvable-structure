@@ -121,6 +121,16 @@ that holds no records of its own, is not at or around the row's folder and whose
 arms anywhere else, or of no known owner, are still reported. The link distance of a solution's code in such a folder is measured
 through the owner link: one past the folder that holds the row.
 
+## Code in a shared layer
+
+Modules that several areas import stay in a shared layer (`core`, `adapters`), not in each area's folder. A solution whose spec is in
+an area folder and whose code is in a layer that `layers` ranks below the areas is measured **one link** from its intent when the
+intent's own code reaches that file: a module of the area folder or the code of an implementation its rows name imports the file, or
+names the solution (its id or its interface class, in executable code, as an area does when it wires members by typed need). An area
+folder that `layers` does not name has the rank the named area folders share. Code in a layer at or above the area, in a layer
+`layers` does not declare, in `docs`, `examples`, `scripts` or `tests`, or that the intent's code never reaches, is still reported
+as more than one link apart. Python only: the imports are read from the syntax trees.
+
 ## The README of a solution folder
 
 | Part | What it holds |
@@ -167,6 +177,7 @@ next action. A waiver excuses one key.
 | A solution's spec is in one folder and its code in a folder more than one link apart | `esoi records place --apply`, or list the folder that holds the code under `beside_code` |
 | A folder holds the code of an implementation but has no `README.md` | `esoi records place --apply` (it moves the records there and writes the page), or list the folder under `beside_code` (or under `arm_folders` when the record belongs to an intent elsewhere) |
 | A folder of arms owned by an intent has no generated `README.md` yet | `esoi readmes` |
+| A solution's code is in a shared layer the intent's code does not reach | Import or wire it from the intent's code, move the code, or record the solution where the code is |
 | A record is kept in two places | Delete the copies that are not in the folder that holds its code |
 | A reference or registry lists a path that does not resolve, or a registry row does not exist | Correct or remove the entry (also reported where `[rules.S40] enabled = true` without `beside_code`) |
 | Code declares a solution but the registry that lists its implementations leaves it out | Add the file to the registry |

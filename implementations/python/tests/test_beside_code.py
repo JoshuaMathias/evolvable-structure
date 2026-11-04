@@ -374,3 +374,63 @@ def test_a_missing_arm_page_is_not_a_failed_check_but_a_stale_one_is(cfg):
     assert any("impls/README.md" in p and p.startswith("S8") for p in check.check(config.load(cfg.root)))
     (cfg.root / "evaluation/components/voice/impls/README.md").unlink()
     assert not [p for p in check.check(config.load(cfg.root)) if "impls/README.md" in p]
+
+
+# ---- code in a shared layer the intent's own code imports is one link from the intent -------------------------------------------
+
+def shared_setup(cfg, layer="core", importer='from demo.core import arm\n'):
+    """Solution `speak-a-greeting` kept in demo/voice (an area ranked with `echo` in `layers`), its arm in demo/<layer>/arm.py, and
+    a module of the area that holds ``importer``."""
+    toml = cfg.root / "esoi.toml"
+    text = toml.read_text()
+    assert 'layers = ["core"]' in text
+    toml.write_text(text.replace('layers = ["core"]', 'layers = ["core", "adapters", ["voice", "echo"], "cli"]', 1))
+    folder, after = beside(cfg)
+    code = cfg.root / cfg.package_dir / layer
+    code.mkdir(exist_ok=True)
+    (code / "__init__.py").write_text("")
+    (code / "arm.py").write_text("VALUE = 1\n")
+    (folder / "__init__.py").write_text("")
+    (folder / "use.py").write_text(importer)
+    rewrite_implementation(cfg, "speak-a-greeting", f"{cfg.package_dir}/{layer}/arm.py")
+    return config.load(cfg.root)
+
+
+def ours(found):
+    return [ln for ln in found if ln.startswith("S40 speak-a-greeting")]
+
+
+def test_code_in_a_shared_layer_that_the_intents_code_imports_is_one_link_from_it(cfg):
+    after = shared_setup(cfg)
+    assert "demo/core/arm.py" in besidecode.import_graph(after)["demo/voice/use.py"]
+    assert ours(advice(after)) == []
+
+
+def test_code_in_a_shared_layer_the_intent_never_imports_is_still_flagged(cfg):
+    after = shared_setup(cfg, importer="VALUE = 2\n")
+    assert any("more than one link apart" in ln for ln in ours(advice(after)))
+
+
+def test_a_docstring_or_a_string_naming_the_module_is_not_an_import(cfg):
+    after = shared_setup(cfg, importer='"""Uses demo.core.arm."""\nNAME = "demo.core.arm"\n')
+    assert any("more than one link apart" in ln for ln in ours(advice(after)))
+
+
+def test_code_in_a_layer_above_the_area_is_not_shared_infrastructure(cfg):
+    after = shared_setup(cfg, layer="cli", importer="from demo.cli import arm\n")
+    assert any("more than one link apart" in ln for ln in ours(advice(after)))
+
+
+def test_a_layer_the_configuration_does_not_declare_is_not_shared(cfg):
+    after = shared_setup(cfg, layer="stuff", importer="from demo.stuff import arm\n")
+    assert any("more than one link apart" in ln for ln in ours(advice(after)))
+
+
+def test_an_area_that_wires_a_shared_member_by_name_reaches_it_and_a_docstring_does_not(cfg):
+    wired = shared_setup(cfg, importer='MEMBERS = ("speak-a-greeting",)\n')
+    assert ours(advice(wired)) == []
+
+
+def test_a_docstring_naming_the_solution_is_not_wiring(cfg):
+    after = shared_setup(cfg, importer='"""It uses speak-a-greeting."""\nVALUE = 1\n')
+    assert any("more than one link apart" in ln for ln in ours(advice(after)))
