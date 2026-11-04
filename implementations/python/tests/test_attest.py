@@ -110,5 +110,5 @@ def test_the_leaderboard_shows_current_by_attestation_and_staleness_never_blocks
     cfg, row, comp = project(tmp_path)
     attest.attest(cfg, comp, "live", "refactor that keeps behaviour")
     lines = []
-    leaderboard.board(cfg, __import__("esoi.registry", fromlist=["load"]).load(cfg), say=lines.append, stale=harness.stale_reason)
+    leaderboard.board(cfg, __import__("esoi.registry", fromlist=["load"]).load(cfg), say=lines.append, stale=harness.stale_reason, attested=attest.note)
     assert any("live: current by attestation (refactor that keeps behaviour)" in line for line in lines)

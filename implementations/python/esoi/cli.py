@@ -733,8 +733,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("usage: esoi stale --explain COMPONENT [--rule RULE] | esoi stale --count")
         return 2
     if args.cmd == "leaderboard":
-        from . import harness, leaderboard, registry
-        return leaderboard.board(config, registry.load(config), args.strict, stale=harness.stale_reason)
+        from . import attest, harness, leaderboard, registry
+        return leaderboard.board(config, registry.load(config), args.strict, stale=harness.stale_reason, attested=attest.note)
     if args.cmd == "select":
         return select_command(config, args)
     if args.cmd == "cascade":

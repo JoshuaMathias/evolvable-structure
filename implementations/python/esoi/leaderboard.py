@@ -820,8 +820,9 @@ def unmeasured_candidates(registry: Registry, history: Dict[str, Dict[str, List[
 
 
 def board(config: Config, registry: Registry, strict: bool = False, say: Callable[[str], None] = print,
-          stale: Optional[Callable[[Config, str, Row, bool], str]] = None) -> int:
-    """Print the leaderboard. Returns 1 when ``strict`` and a challenger beats a selected implementation, or a verdict
+          stale: Optional[Callable[[Config, str, Row, bool], str]] = None,
+          attested: Optional[Callable[[Config, str, str, str], str]] = None) -> int:
+    """Print the leaderboard. ``attested`` (``attest.note``) says, for a row, ``current by attestation (reason)`` or ''. Returns 1 when ``strict`` and a challenger beats a selected implementation, or a verdict
     rests on a rival recorded before the measured code changed (``stale`` is ``harness.stale_reason``; without it
     only the cases are compared)."""
     history = all_results(config.results_path)
@@ -839,10 +840,9 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
         say(f"{component} (selected: {sel or 'none recorded'}) {label}: {detail}")
         for line in format_rows(rows, sel, config.evaluation):
             say(line)
-        if stale:
-            from . import attest
+        if stale and attested:
             for impl, r in sorted(rows.items()):
-                if (said := attest.note(config, component, impl, r.get("git_sha", ""))) and not stale(config, component, r, True):
+                if (said := attested(config, component, impl, r.get("git_sha", ""))) and not stale(config, component, r, True):
                     say(f"  = {impl}: {said}")
         for own, rival in (rival_pairs(rows, sel, config.evaluation, history[component])[0] if sel else []):
             if own is not rows.get(sel) or rival is not rows.get(rival["impl"]):
