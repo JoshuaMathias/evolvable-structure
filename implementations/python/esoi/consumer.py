@@ -335,7 +335,8 @@ def check_solutions(report: ConsumerReport, rows: List[Dict[str, str]], solution
             report.notes.append(f"{sid}: latest result {res.get('passed')}/{res.get('cases')} is not all passing")
         files = [f for f in sol.get("metric_files", "").split(";") if f.strip()]
         if files and all((root / f).exists() for f in files) and cases_hash(files, root) != res.get("cases_sha", ""):
-            report.problems.append(f"C10 {sid}: stale result, the metric files changed since it was recorded")
+            report.notes.append(f"C10 {sid}: stale result, the metric files changed since it was recorded (advice: run the metric when "
+                                f"what it teaches is worth its cost; a stale result informs and never blocks)")
     for sid in sorted(used):
         sol = sols[sid]
         comp, impl = sol.get("component", "").strip(), sol.get("component_impl", "").strip()

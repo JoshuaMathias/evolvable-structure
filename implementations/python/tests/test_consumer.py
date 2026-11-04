@@ -93,7 +93,11 @@ def test_solution_and_result_tables(tmp_path):
     assert report.problems == []
     (tmp_path / "cases.json").write_text("[1]")
     report = consumer.check_consumer(tmp_path / "r.csv", tmp_path, options, solutions=tmp_path / "s.csv", results=tmp_path / "res.csv")
-    assert any(p.startswith("C10") and "stale" in p for p in report.problems)
+    assert report.problems == []                       # a stale result informs, it never blocks
+    assert any(n.startswith("C10") and "stale" in n for n in report.notes)
+    (tmp_path / "res.csv").write_text("solution_id,cases,passed,git_sha,cases_sha\ns,1,1,,\n")
+    report = consumer.check_consumer(tmp_path / "r.csv", tmp_path, options, solutions=tmp_path / "s.csv", results=tmp_path / "res.csv")
+    assert any(p.startswith("C10") and "lacks a git sha" in p for p in report.problems)   # a malformed record still blocks
 
 
 def test_the_library_solutions_come_from_the_default_folder_else_a_previous_one(tmp_path):
