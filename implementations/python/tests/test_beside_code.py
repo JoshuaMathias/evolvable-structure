@@ -316,3 +316,61 @@ def test_a_program_handed_the_structure_folder_reads_and_writes_the_whole_tree(c
     assert "speak-a-greeting" in names and "greet-a-person" in names
     assert folder in intents.tree_folders(cfg.structure) and cfg.structure.resolve() in intents.tree_folders(cfg.structure)
     assert intents.tree_folders(folder.parent.parent / "nowhere") == [(folder.parent.parent / "nowhere").resolve()]
+
+
+# ---- arms whose code lives in an evaluation/impls folder while their record belongs to the owning intent -----------------------
+
+def arm_in(cfg, where):
+    """A solution beside the code in demo/voice whose implementation's code is the module ``where`` (a path from the root)."""
+    folder, after = beside(cfg)
+    code = cfg.root / where
+    code.parent.mkdir(parents=True)
+    code.write_text("VALUE = 1\n")
+    rewrite_implementation(cfg, "speak-a-greeting", where)
+    return folder, config.load(cfg.root)
+
+
+def test_an_impls_folder_of_arms_owned_by_an_intent_is_covered_by_a_generated_readme_and_measured_through_the_owner(cfg):
+    where = "evaluation/components/voice/impls/arm.py"
+    folder, after = arm_in(cfg, where)
+    found = advice(after)
+    assert any("evaluation/components/voice/impls" in ln and "arms owned by" in ln and "esoi readmes" in ln for ln in found)
+    assert not any("S40 speak-a-greeting" in ln for ln in found)                     # one link past the folder that holds the row
+    assert besidecode.plan(after) == [] or all(m.ident != "speak-a-greeting:by-voice" for m in besidecode.plan(after))
+    readme.write(after, registry.load(after), say=lambda text: None)
+    page = (cfg.root / "evaluation/components/voice/impls/README.md").read_text()
+    assert "speak-a-greeting:by-voice" in page and "arm.py" in page and "../../../../demo/voice/README.md" in page
+    assert [ln for ln in advice(config.load(cfg.root)) if "evaluation" in ln or "speak-a-greeting" in ln] == []
+    assert readme.stale(after, registry.load(after)) == []
+
+
+def test_a_folder_that_is_not_an_arm_folder_is_still_flagged_until_it_is_listed_as_one(cfg):
+    where = "tools/far/arm.py"
+    folder, after = arm_in(cfg, where)
+    found = advice(after)
+    assert any("tools/far" in ln and "no README.md" in ln for ln in found) and any("S40 speak-a-greeting" in ln and "more than one link apart" in ln for ln in found)
+    toml = cfg.root / "esoi.toml"
+    toml.write_text(toml.read_text().replace("records.template_version", 'records.arm_folders = ["tools/*"]\nrecords.template_version', 1))
+    listed = advice(config.load(cfg.root))
+    assert any("tools/far" in ln and "arms owned by" in ln for ln in listed) and not any("S40 speak-a-greeting" in ln for ln in listed)
+
+
+def test_a_readme_nobody_generated_keeps_covering_its_arm_folder(cfg):
+    where = "evaluation/components/voice/impls/arm.py"
+    folder, after = arm_in(cfg, where)
+    (cfg.root / "evaluation/components/voice/impls/README.md").write_text("# Hand written\n")
+    readme.write(after, registry.load(after), say=lambda text: None)
+    assert (cfg.root / "evaluation/components/voice/impls/README.md").read_text() == "# Hand written\n"
+    assert not any("evaluation" in ln for ln in advice(config.load(cfg.root)))
+
+
+def test_a_missing_arm_page_is_not_a_failed_check_but_a_stale_one_is(cfg):
+    where = "evaluation/components/voice/impls/arm.py"
+    folder, after = arm_in(cfg, where)
+    readme.write(after, registry.load(after), say=lambda text: None)
+    assert not [p for p in check.check(config.load(cfg.root)) if "impls/README.md" in p]
+    (cfg.root / "evaluation/components/voice/impls/README.md").write_text(
+        (cfg.root / "evaluation/components/voice/impls/README.md").read_text() + "\nedited\n")
+    assert any("impls/README.md" in p and p.startswith("S8") for p in check.check(config.load(cfg.root)))
+    (cfg.root / "evaluation/components/voice/impls/README.md").unlink()
+    assert not [p for p in check.check(config.load(cfg.root)) if "impls/README.md" in p]

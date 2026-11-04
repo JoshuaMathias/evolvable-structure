@@ -108,6 +108,19 @@ spec index (`esoi spec index`), not a CSV file.
 `esoi readmes` (also `esoi check --write-docs`) writes `README.md` in the top intent folder, in every sub-intent folder and in every
 solution folder. Rule S8 reports a page that is out of date. A page is never edited: edit the records and generate again.
 
+## Arms whose code lives in an `impls` folder
+
+An implementation's code may live in a folder of arms, `<evaluation_dir>/*/impls` by default, while its record belongs to the
+intent that owns it (a sub-intent folder beside the package code). `esoi records place` never moves a record out of its intent,
+so such a folder holds no records. Instead it is covered by a README that `esoi readmes` generates in it: a table of the arms
+whose code it holds, each with its code, and a link to the README of every owning intent. The page says it is generated and is
+kept current by rule S8 once written. A README in that folder that `esoi readmes` did not write is left alone and covers it.
+
+More folders are named under `[records] arm_folders` (globs from the repository root). Only a folder matching those patterns
+that holds no records of its own, is not at or around the row's folder and whose rows have a known owning intent is covered;
+arms anywhere else, or of no known owner, are still reported. The link distance of a solution's code in such a folder is measured
+through the owner link: one past the folder that holds the row.
+
 ## The README of a solution folder
 
 | Part | What it holds |
@@ -152,7 +165,8 @@ next action. A waiver excuses one key.
 | Finding | Next action |
 |---|---|
 | A solution's spec is in one folder and its code in a folder more than one link apart | `esoi records place --apply`, or list the folder that holds the code under `beside_code` |
-| A folder holds the code of an implementation but has no `README.md` | `esoi records place --apply` (it moves the records there and writes the page), or list the folder under `beside_code` |
+| A folder holds the code of an implementation but has no `README.md` | `esoi records place --apply` (it moves the records there and writes the page), or list the folder under `beside_code` (or under `arm_folders` when the record belongs to an intent elsewhere) |
+| A folder of arms owned by an intent has no generated `README.md` yet | `esoi readmes` |
 | A record is kept in two places | Delete the copies that are not in the folder that holds its code |
 | A reference or registry lists a path that does not resolve, or a registry row does not exist | Correct or remove the entry (also reported where `[rules.S40] enabled = true` without `beside_code`) |
 | Code declares a solution but the registry that lists its implementations leaves it out | Add the file to the registry |

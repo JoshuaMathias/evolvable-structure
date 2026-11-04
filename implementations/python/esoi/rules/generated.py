@@ -64,7 +64,7 @@ def run(ctx: Context) -> List[str]:
         bad.append(f"S8 {config.structure_dir}/COMPONENTS.md: out of date (run `esoi check --write-docs`)")
 
     if config.intent_mode:
-        for page, text in readme.pages(config, ctx.registry, ctx.results):
+        for page, text in readme.pages(config, ctx.registry, ctx.results, written_arm_pages_only=True):
             if not page.exists() or page.read_text(encoding="utf-8") != text:
                 bad.append(f"S8 {page.relative_to(config.root)}: out of date (run `esoi readmes`)")
 

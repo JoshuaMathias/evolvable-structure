@@ -70,6 +70,42 @@ def code_hosts(config: Config) -> List[str]:
     return sorted(found)
 
 
+def arm_folder_patterns(config: Config) -> List[str]:
+    """The folders (globs from the repository root) that hold the code of arms whose records belong to an intent elsewhere: the
+    harness convention ``<evaluation_dir>/*/impls`` and every glob listed under ``[records] arm_folders``."""
+    listed = config.records.get("arm_folders", []) if isinstance(config.records, dict) else []
+    return [f"{config.evaluation_dir}/*/impls"] + ([listed] if isinstance(listed, str) else [str(p) for p in listed])
+
+
+def arm_folders(config: Config) -> Dict[Path, List[Tuple[str, Path]]]:
+    """``{code folder: [(owning intent id, folder of the intent that holds the row)]}`` for every folder of arms owned by an intent.
+
+    An implementation arm's code may live in an evaluation ``impls`` folder (or one listed under ``[records] arm_folders``) while
+    its record belongs to the owning intent; ``esoi records place`` rightly never moves the record out of that intent. Such a folder
+    is covered by a README ``esoi readmes`` generates, which lists the arms and links to the owning intent's README. A folder
+    qualifies only when it matches those patterns, holds no records of its own, is not at or around the row's folder, and the row
+    has a known owning intent: arms of no known owner are not covered."""
+    import fnmatch
+    root = config.root.resolve()
+    patterns = arm_folder_patterns(config)
+    holders = {folder.resolve() for _, folder in intents.folders(config)}
+    out: Dict[Path, List[Tuple[str, Path]]] = {}
+    for row, folder, owner in rows_by_file(config)["implementations.csv"]:
+        here = code_folder(config, row.get("filepath", ""))
+        if here is None or not owner or here in holders:
+            continue
+        folder = folder.resolve()
+        if here == folder or folder in here.parents or here in folder.parents:
+            continue
+        rel_here = here.relative_to(root).as_posix() if root in here.parents else ""
+        if not any(fnmatch.fnmatchcase(rel_here, pattern) for pattern in patterns):
+            continue
+        pair = (owner, folder)
+        if pair not in out.setdefault(here, []):
+            out[here].append(pair)
+    return out
+
+
 def host_for(allowed: Set[Path], folder: Optional[Path], root: Path) -> Optional[Path]:
     """The nearest folder at or above ``folder`` that may hold records, else None."""
     if folder is None:

@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from . import diagram, intents, leaderboard
+from . import besidecode, diagram, intents, leaderboard
 from .config import Config
 from .intents import Intent
 from .registry import Registry, harness_arms
@@ -456,6 +456,52 @@ def render_folder(registry: Registry, view: View, owner: str, folder: Path) -> s
     return "\n".join(lines).rstrip() + "\n"
 
 
+ARM_MARK = "ESOI arms kept in"
+
+
+def render_arms(registry: Registry, view: View, folder: Path, owners: List[Tuple[str, Path]]) -> str:
+    """The README of a folder of arm code whose records belong to an intent elsewhere: the arms it holds, each with its code and
+    the intent that owns it, and a link to every owning intent's README."""
+    config = view.config
+    where = folder.relative_to(config.root).as_posix()
+    here = {f.resolve(): owner for owner, f in owners}
+    mine = []
+    for row in registry.implementations:
+        path = (row.get("filepath", "") or "").split("::")[0].strip()
+        if path and (config.root / path).resolve().parent == folder.resolve():
+            mine.append(row)
+    lines = [f"# Arms in {folder.name}", "",
+             f"*{ARM_MARK} `{where}`, generated from the records of the intents that own them by `esoi readmes`. Edit those records, not this page.*", ""]
+    chosen = {r.get("solution_id", ""): one_line(r.get("selected", "")) for r in registry.every_solution()}
+    lines += ["| Implementation | Name | Code | Selected |", "|---|---|---|---|"]
+    for r in sorted(mine, key=lambda r: r.get("implementation_id", "")):
+        name = r.get("implementation_id", "").split(":", 1)[-1]
+        lines.append(f"| `{r.get('implementation_id', '')}` | {one_line(r.get('name', ''))} | {code_cell(view, folder, r.get('filepath', ''))} | "
+                     f"{'selected' if chosen.get(r.get('solution_id', '')) in (name, r.get('implementation_id', '')) else ''} |")
+    lines += ["", "## Where to go next", ""]
+    for owner, owner_folder in owners:
+        intent = view.intent(owner)
+        label = (one_line(intent.row.get("name", "")) if intent is not None else "") or owner
+        lines.append(f"- Owning intent: [{label}]({link(folder, owner_folder / FILE)})")
+    if (config.root / FILE).is_file():
+        lines.append(f"- Repository: [top README]({link(folder, config.root / FILE)})")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def arm_pages(config: Config, registry: Registry, view: View, existing_only: bool = False) -> List[Tuple[Path, str]]:
+    """``(path, text)`` for the README of each folder of arms owned by an intent elsewhere. A folder that already has a README this
+    command did not write keeps it (it covers the folder); ``existing_only`` leaves out the ones not written yet."""
+    out: List[Tuple[Path, str]] = []
+    for folder, owners in sorted(besidecode.arm_folders(config).items()):
+        path = folder / FILE
+        if path.is_file() and ARM_MARK not in path.read_text(encoding="utf-8")[:600]:
+            continue
+        if existing_only and not path.is_file():
+            continue
+        out.append((path, render_arms(registry, view, folder, owners)))
+    return out
+
+
 RENDERERS: Dict[str, Callable[[Registry, Intent, View], str]] = {"glance": render_glance, "full": render_full, "links": render_links}
 
 
@@ -466,13 +512,14 @@ def render(registry: Registry, intent: Intent, view: Optional[View] = None, layo
 
 
 def pages(config: Config, registry: Registry, results: Optional[Dict[str, Dict[str, Dict[str, str]]]] = None,
-          layout: Optional[str] = None) -> List[Tuple[Path, str]]:
+          layout: Optional[str] = None, written_arm_pages_only: bool = False) -> List[Tuple[Path, str]]:
     """``(path, expected text)`` for every intent folder's README (none in the legacy layout, which has no intent folders)."""
     if not config.intent_mode:
         return []
     view = view_of(config, registry, results)
     return ([(i.folder / FILE, render(registry, i, view, layout)) for i in view.intents]
-            + [(folder / FILE, render_folder(registry, view, owner, folder)) for owner, folder in view.beside])
+            + [(folder / FILE, render_folder(registry, view, owner, folder)) for owner, folder in view.beside]
+            + arm_pages(config, registry, view, existing_only=written_arm_pages_only))
 
 
 def stale(config: Config, registry: Registry, results: Optional[Dict[str, Dict[str, Dict[str, str]]]] = None) -> List[Path]:

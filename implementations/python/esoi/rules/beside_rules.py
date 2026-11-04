@@ -5,7 +5,10 @@ goes to ``esoi check --findings`` with its next action. The standard is ``docs/r
 
 * a solution whose spec row and code are in folders more than one link apart (the row is in one folder, the code of an
   implementation in another that is neither its parent nor its child);
-* a folder that holds the code of an implementation but has no ``README.md`` (the page is written from the records the folder holds);
+* a folder that holds the code of an implementation but has no ``README.md`` (the page is written from the records the folder holds).
+  A folder of arms owned by an intent elsewhere (``<evaluation_dir>/*/impls``, or a glob under ``[records] arm_folders``) is covered
+  by the README ``esoi readmes`` generates for it, which lists the arms and links to the owner's README; the finding then only asks
+  to run ``esoi readmes``, and the link distance of its code is measured through that owner link;
 * a record kept in two places;
 * a reference or registry implementation (a CSV or markdown file that lists the files, services or practices that implement a solution)
   that lists a path that does not resolve or names a row that does not exist, and code that declares a solution but is missing from
@@ -16,7 +19,7 @@ A waiver excuses one key: the solution id, the folder's path from the repository
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from .. import besidecode, declarations, implementedby, intents
 from .base import Context, RuleGroup
@@ -35,6 +38,14 @@ def distance(a: Path, b: Path) -> int:
     return (len(a.parts) - shared) + (len(b.parts) - shared)
 
 
+def reach(arms: Dict[Path, list], spec: Path, code: Path, row_folder: Path) -> int:
+    """The link distance from a solution's spec folder to its code. A folder of arms owned by an intent has a generated README that
+    links to the owner's README, so its code is one link past the folder that holds the row."""
+    if code in arms and any(folder.resolve() == row_folder.resolve() for _, folder in arms[code]):
+        return distance(spec, row_folder) + 1
+    return distance(spec, code)
+
+
 def rel(config, path: Path) -> str:
     return besidecode.relative_to_root(config, path)
 
@@ -49,17 +60,25 @@ def findings(ctx: Context) -> List[str]:
     held = besidecode.rows_by_file(config)
     solution_folder = {r.get("solution_id", "").strip(): folder for r, folder, _ in held["solutions.csv"]}
     moves = {(m.file, m.ident): m.target for m in besidecode.plan(config)}
-    codes: Dict[str, List[Path]] = {}
+    arms = besidecode.arm_folders(config)
+    codes: Dict[str, List[Tuple[Path, Path]]] = {}
     for row, folder, _ in held["implementations.csv"]:
         here = besidecode.code_folder(config, row.get("filepath", ""))
         if here is not None:
-            codes.setdefault(row.get("solution_id", "").strip(), []).append(here)
+            codes.setdefault(row.get("solution_id", "").strip(), []).append((here, folder))
             if not (here / "README.md").is_file() and not ctx.waived("S40", rel(config, here)):
-                out.append(f"S40 {rel(config, here)}: holds the code of {row.get('implementation_id', '')} but has no README.md; "
-                           "next: run `esoi records place --apply`, which moves the records here and writes the page, "
-                           "or list this folder under [records] beside_code")
+                if here in arms:
+                    owners = ", ".join(sorted({o for o, _ in arms[here]}))
+                    out.append(f"S40 {rel(config, here)}: holds arms owned by {owners} but its generated README.md is not written; "
+                               "next: run `esoi readmes`")
+                else:
+                    out.append(f"S40 {rel(config, here)}: holds the code of {row.get('implementation_id', '')} but has no README.md; "
+                               "next: run `esoi records place --apply`, which moves the records here and writes the page, "
+                               "or list this folder under [records] beside_code (or [records] arm_folders when the record "
+                               "belongs to an intent elsewhere)")
+    out = list(dict.fromkeys(out))
     for sid, folder in sorted(solution_folder.items()):
-        far = sorted({rel(config, c) for c in codes.get(sid, []) if distance(folder, c) > 1})
+        far = sorted({rel(config, c) for c, row_folder in codes.get(sid, []) if reach(arms, folder, c, row_folder) > 1})
         if far and not ctx.waived("S40", sid):
             target = moves.get(("solutions.csv", sid))
             action = (f"run `esoi records place --apply` (it moves the row to {rel(config, target)})" if target is not None
