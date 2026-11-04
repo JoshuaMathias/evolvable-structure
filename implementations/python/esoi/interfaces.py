@@ -471,10 +471,14 @@ class EsoiBehaviourJudging(Protocol):
 
 @implementation("esoi-behaviour-judge", "model-judge-on-the-rubric")
 class ModelJudgeOnTheRubric:
-    """The judge graded against the labelled cases of its component."""
+    """The judge graded against the labelled cases of its component: the cases the model judge it is built on (``judge-esoi-behaviour``)
+    is scored against."""
+
+    def __init__(self, judge: JudgingEsoiBehaviour):
+        self.judge = judge
 
     def describe(self, project: str) -> Dict[str, int]:
-        return count_cases(project, "judge_esoi_behaviour")
+        return self.judge.describe(project)
 
 
 @solution("local-application-index", kind="event", entry="describe", example=".")

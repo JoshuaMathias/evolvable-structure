@@ -27,6 +27,8 @@ uses are an alternative, not the structure). Per intent folder:
                              value. A docstring, a comment and any bare string statement are prose and never count   (strong)
                          E3  the user's implementation class takes a parameter typed with the used's interface: a need the
                              esoi Assembler injects                                               (strong)
+                         E4  a module that components.csv gives only to the user (or to the user among others) imports a module
+                             it gives only to the used: the user's code reaches the used through its own module   (strong)
                          W1  a module of the user imports one that imports the used               (weak, reported)
                          W2  a module of the user builds an esoi Assembler over a scope that declares the used (weak)
                          W3  a third module imports both ends                                     (weak)
@@ -60,10 +62,11 @@ from typing import Dict, List, Set, Tuple
 
 from esoi import config as esoi_config
 from esoi import intents as esoi_intents
+from esoi.tables import glob_re
 
 DEFAULTS = {"max_fan_out": 9, "max_depth": 4, "code_floor": 1.0, "coverage_floor": 0.0, "min_lift": 1.0}
 MIN_CLAUSE_WORDS = 3          # words between the user and the used, names aside ("a uses b" has one: not enough)
-STRONG = ("E1", "E2", "E3")
+STRONG = ("E1", "E2", "E3", "E4")
 WEAK = ("W1", "W2", "W3")
 WORD = re.compile(r"[A-Za-z][A-Za-z'-]*")
 
@@ -153,7 +156,7 @@ class Code:
     """Modules of the package, their imports, and which solutions each module carries."""
 
     def __init__(self, cfg, solutions: Dict[str, Dict[str, str]], implementations: List[Dict[str, str]],
-                 selected: Dict[str, Dict[str, str]]):
+                 selected: Dict[str, Dict[str, str]], components: List[Dict[str, str]] = ()):
         self.root = cfg.root
         pkg_dir = cfg.root / (cfg.package_dir or cfg.package or "")
         self.files: Dict[str, Path] = {}
@@ -195,10 +198,28 @@ class Code:
             if m in self.shared:
                 self.region_tokens[(m, sid)] = executable_tokens(self.source[m], self.trees[m], nodes)
                 self.region_imports[(m, sid)] = self.imports_of(m, nodes)
+        self.owned = self.ownership(cfg, components)
         self.selected_module = {sid: self.module_of(r.get("filepath", "")) for sid, r in selected.items() if r}
         self.interface = {sid: (r.get("interface_name") or "").strip() for sid, r in solutions.items()}
         self.declared = {sid for text in self.source.values() for sid in re.findall(r"@solution\(\s*[\"']([\w.-]+)[\"']", text)}
         self.assemblers = {m for m, text in self.source.items() if "Assembler(" in text or "assemble_defaults(" in text}
+
+    def ownership(self, cfg, components) -> Dict[str, Set[str]]:
+        """{module: solutions its components.csv rows list}, by the same path globs the structure check uses. The package's own
+        ``__init__`` is left out: every ``from . import x`` reaches it, so it says nothing about one solution."""
+        out: Dict[str, Set[str]] = defaultdict(set)
+        for row in components or ():
+            patterns = [glob_re(p) for p in ids(row.get("path", ""))]
+            owners = set(ids(row.get("solutions", "")))
+            if not owners:
+                continue
+            for m, f in self.files.items():
+                if m != cfg.package and any(rx.match(f.relative_to(self.root).as_posix()) for rx in patterns):
+                    out[m] |= owners
+        return out
+
+    def owned_by(self, solution: str) -> Set[str]:
+        return {m for m, owners in self.owned.items() if solution in owners}
 
     def module_of(self, filepath: str) -> str:
         filepath = (filepath or "").strip().split("::")[0]
@@ -297,6 +318,8 @@ class Code:
                 return "E2"
         if self.typed_need(user, used):
             return "E3"
+        if any(self.through_owned(user, m, used, mc) for m in mu):
+            return "E4"
         if any(self.imports.get(y, set()) & mc for m in mu for y in self.own_imports(user, m)):
             return "W1"
         if mu & self.assemblers and used in self.declared:
@@ -305,6 +328,16 @@ class Code:
             if w not in mu and w not in mc and imported & mu and imported & mc:
                 return "W3"
         return ""
+
+    def through_owned(self, user: str, module: str, used: str, used_modules: Set[str]) -> bool:
+        """``user``'s part of ``module`` imports a module that only the user's component owns, and that module imports one that only
+        the used's component owns (or one the used implements in a file no other solution shares). components.csv is the record that
+        says whose a module is; a module owned by several solutions, a chain through someone else's module and the package
+        ``__init__`` are not evidence, because there the import does not say which solution is meant."""
+        mine = self.owned_by(user)
+        theirs = {m for m in self.owned_by(used) if self.owned[m] == {used}} | {m for m in used_modules if m not in self.shared}
+        theirs -= self.owned_by(user)
+        return any(self.imports.get(x, set()) & theirs for x in self.own_imports(user, module) if x in mine and x != module)
 
     def import_edges(self, among: Set[str]) -> Set[Tuple[str, str]]:
         return {(a, b) for a in among for b in among
@@ -369,7 +402,8 @@ def check(root: Path, pairs: bool = True) -> Dict[str, object]:
     impl_by_id = {r["implementation_id"]: r for r in every_impl}
     selected = {sid: selected_record(sid, r, every_impl) for sid, r in every_solution.items()}
     uses = {sid: [t for t in ids(rec.get("uses_solution_ids", "")) if t != sid] for sid, rec in selected.items()}
-    code = Code(cfg, every_solution, every_impl, selected)
+    components = [r for _, folder in esoi_intents.folders(cfg) for r in read(folder / "components.csv")]
+    code = Code(cfg, every_solution, every_impl, selected, components)
     edges_all = {(a, b) for a in uses for b in uses[a] if b in every_solution}
     base = Counter()
     if pairs:

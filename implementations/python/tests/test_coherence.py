@@ -286,3 +286,47 @@ def test_a_per_intent_min_lift_lets_that_intent_pass_with_the_reason_written(pro
     toml.write_text(toml.read_text().replace("floors.demo", f"floors.{name}"), encoding="utf-8")
     intent = lift_zero_project(project, monkeypatch)
     assert not any("lift" in line for line in intent["problems"].get("code", []))
+
+
+# ---- E4: through a module the ownership map gives the user, to one it gives only the used --------------------------------------
+
+def owned_code(tmp_path: Path, mid_owners: str = "user", leaf_owners: str = "used", mid_source: str = "from . import leaf\n"):
+    """Package `pk`: the user's implementation file imports `mid`, which imports `leaf`; components.csv says who owns `mid` and `leaf`.
+    The used solution's implementation file is `used.py`, which nothing imports."""
+    pkg = tmp_path / "pk"
+    pkg.mkdir(parents=True)
+    for name, source in {"__init__": "", "user": "from . import mid\n", "mid": mid_source, "leaf": "value = 1\n", "used": "class Finder:\n    pass\n"}.items():
+        (pkg / f"{name}.py").write_text(source, encoding="utf-8")
+    cfg = SimpleNamespace(root=tmp_path, package="pk", package_dir="pk")
+    solutions = {"user": {"solution_id": "user", "interface_name": "Runner"}, "used": {"solution_id": "used", "interface_name": "Finder"}}
+    impls = [{"solution_id": "user", "implementation_id": "u1", "filepath": "pk/user.py"},
+             {"solution_id": "used", "implementation_id": "c1", "filepath": "pk/used.py"}]
+    components = [{"component_id": "m", "path": "pk/mid.py", "solutions": mid_owners},
+                  {"component_id": "l", "path": "pk/leaf.py", "solutions": leaf_owners}]
+    return coherence.Code(cfg, solutions, impls, {"user": impls[0], "used": impls[1]}, components)
+
+
+def test_an_import_through_the_users_own_module_to_the_used_ones_is_strong_evidence_e4(tmp_path):
+    code = owned_code(tmp_path)
+    assert code.evidence("user", "used") == "E4"
+    assert "E4" in coherence.STRONG
+
+
+def test_a_module_owned_with_other_solutions_is_not_evidence_on_the_used_side(tmp_path):
+    assert owned_code(tmp_path, leaf_owners="used;other").evidence("user", "used") != "E4"
+
+
+def test_a_middle_module_the_user_does_not_own_is_not_evidence(tmp_path):
+    assert owned_code(tmp_path, mid_owners="other").evidence("user", "used") != "E4"
+    assert owned_code(tmp_path / "b", mid_owners="user;other").evidence("user", "used") == "E4"   # shared by the user is still the user's
+
+
+def test_a_docstring_or_comment_naming_the_owned_module_is_not_evidence(tmp_path):
+    code = owned_code(tmp_path, mid_source='"""Uses leaf and used."""\n# from . import leaf\nvalue = "leaf"\n')
+    assert code.evidence("user", "used") == ""
+
+
+def test_a_chain_the_ownership_map_does_not_give_the_user_is_not_evidence(tmp_path):
+    code = owned_code(tmp_path)
+    code.owned.clear()                                   # no record says whose any module is
+    assert code.evidence("user", "used") != "E4"
