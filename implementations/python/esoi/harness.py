@@ -112,6 +112,30 @@ def declared_live(config: Config, component: str, impl: str, max_calls: Optional
     return max_calls is not None or f"{component}/{base}" in config.paid_arms or declares_paid(impl_path(config, component, base))
 
 
+def as_number(value: Any) -> float:
+    """A counter's value as a number: a plain number as is, an object that defines ``__float__`` (or a ``value`` attribute)
+    through that, anything else (None, missing, unreadable) as 0."""
+    for read in (lambda v: v if isinstance(v, (int, float)) else None, lambda v: float(v), lambda v: float(v.value)):
+        try:
+            got = read(value)
+            if got is not None:
+                return got
+        except Exception:   # noqa: BLE001
+            continue
+    return 0
+
+
+def read_counters(provider: Any) -> Tuple[float, float, float]:
+    """The provider's ``tokens_in``, ``tokens_out`` and ``cost_usd`` as numbers; a missing or non-numeric one reads as 0."""
+    out = []
+    for name in ("tokens_in", "tokens_out", "cost_usd"):
+        try:
+            out.append(as_number(getattr(provider, name, 0)))
+        except Exception:   # noqa: BLE001
+            out.append(0)
+    return out[0], out[1], out[2]
+
+
 class CallMeter:
     """Counts model calls. ``wrap(provider)`` instruments the named methods in place."""
 
@@ -133,6 +157,9 @@ class CallMeter:
         ``tokens_in``, ``tokens_out`` and ``cost_usd`` attributes, are added up from their per-call change."""
         if getattr(provider, "meter_wrapped", False):
             return provider
+        if inspect.isclass(provider):
+            raise TypeError(f"CallMeter.wrap needs a provider instance, got the class {provider.__name__}: its methods would be "
+                            "called unbound (self missing) and its counters are class descriptors, not numbers")
         for name in methods:
             original = getattr(provider, name, None)
             if original is None:
@@ -142,13 +169,17 @@ class CallMeter:
                 @functools.wraps(fn)   # keeps the signature: callers may inspect it for optional kwargs
                 def counted(*args, **kwargs):
                     self.record()
-                    t_in, t_out, cost = (getattr(provider, n, 0) or 0 for n in ("tokens_in", "tokens_out", "cost_usd"))
+                    before = read_counters(provider)
                     try:
                         return fn(*args, **kwargs)
                     finally:
-                        self.tokens_in += (getattr(provider, "tokens_in", 0) or 0) - t_in
-                        self.tokens_out += (getattr(provider, "tokens_out", 0) or 0) - t_out
-                        self.cost_usd += (getattr(provider, "cost_usd", 0) or 0) - cost
+                        try:
+                            after = read_counters(provider)
+                            self.tokens_in += int(after[0] - before[0])
+                            self.tokens_out += int(after[1] - before[1])
+                            self.cost_usd += after[2] - before[2]
+                        except Exception:   # noqa: BLE001, metering must never change what the provider returns or raises
+                            pass
                 return counted
             setattr(provider, name, make(original))
         provider.meter_wrapped = True
