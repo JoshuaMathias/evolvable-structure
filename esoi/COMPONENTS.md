@@ -87,7 +87,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `one-line-entry` | tools | One line for any solution or intent: run(id, input) through the declared interface, and its offline check. | implementation-selection, structure-check, apply-esoi |
 | `standards-navigation` | tools | Showing an author only the standards whose risk tags and paths match the file in hand, and checking a commit against them on the lines it adds. | esoi-for-ai |
 | `beside-code-records` | tools | Records kept beside the code: where each record belongs, the moves that put it there or back, and the advisory rule S40. | intent-registry |
-| `staleness` | tools | Which changed files make a recorded result stale: the whole repository, the files the arm's component owns, or the files its module imports. | know-what-a-result-measures |
+| `staleness` | tools | Which changed files make a recorded result stale: the whole repository, the files the arm's component owns, or the files its module imports,  and the attestations that a change to the arm did not move what its result measures. | know-what-a-result-measures |
 | `eval-staleness-precision` | evaluation | A fixture of commits to a small repository, the hand-written verdict per component and the three rules. | know-what-a-result-measures |
 | `rules-one-criterion` | tools | The advisory rules about a cascade running one criterion: stages that score several components (S41), separate leaderboards for one solution (S42), a selected baseline (S43) and balance weights changed after scoring (S44). | structure-rules, leaderboard |
 | `selection` | core | Resolving an implementation of a solution from a selection table. | runtime-selection |

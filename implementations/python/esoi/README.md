@@ -81,7 +81,7 @@ Apply a set of rules to a repository on each change and report every violation b
 - Entry call: `esoi.run("structure-check", '.')`
 - Selected implementation: `rule-script`
 - Metric: Check dependability
-- Implemented by: [`implementations/python/conftest.py`](../conftest.py), [`implementations/python/docs/configuration.md`](../docs/configuration.md), [`implementations/python/docs/evaluation-components.md`](../docs/evaluation-components.md), [`implementations/python/docs/rules.md`](../docs/rules.md), [`implementations/python/esoi/__main__.py`](__main__.py), [`implementations/python/esoi/check.py`](check.py), [`implementations/python/esoi/cli.py`](cli.py), [`implementations/python/esoi/coherence.py`](coherence.py) and 96 more
+- Implemented by: [`implementations/python/conftest.py`](../conftest.py), [`implementations/python/docs/configuration.md`](../docs/configuration.md), [`implementations/python/docs/evaluation-components.md`](../docs/evaluation-components.md), [`implementations/python/docs/rules.md`](../docs/rules.md), [`implementations/python/esoi/__main__.py`](__main__.py), [`implementations/python/esoi/check.py`](check.py), [`implementations/python/esoi/cli.py`](cli.py), [`implementations/python/esoi/coherence.py`](coherence.py) and 97 more
 
 ## Structure rules (`structure-rules`)
 
@@ -90,7 +90,7 @@ Decide which structural rules a repository is held to, each with the mistake tha
 - Entry call: `esoi.run("structure-rules", '.')`
 - Selected implementation: `rule-modules`
 - Metric: Violation detection
-- Implemented by: [`implementations/python/esoi/interfaces.py`](interfaces.py), [`implementations/python/esoi/rules/cascade_rules.py`](rules/cascade_rules.py), [`implementations/python/esoi/rules/generated.py`](rules/generated.py), [`implementations/python/esoi/rules/hierarchy_rules.py`](rules/hierarchy_rules.py), [`implementations/python/esoi/rules/intents.py`](rules/intents.py), [`implementations/python/esoi/rules/layout.py`](rules/layout.py), [`implementations/python/esoi/rules/measurement.py`](rules/measurement.py), [`implementations/python/esoi/rules/one_criterion.py`](rules/one_criterion.py) and 75 more
+- Implemented by: [`implementations/python/esoi/interfaces.py`](interfaces.py), [`implementations/python/esoi/rules/cascade_rules.py`](rules/cascade_rules.py), [`implementations/python/esoi/rules/generated.py`](rules/generated.py), [`implementations/python/esoi/rules/hierarchy_rules.py`](rules/hierarchy_rules.py), [`implementations/python/esoi/rules/intents.py`](rules/intents.py), [`implementations/python/esoi/rules/layout.py`](rules/layout.py), [`implementations/python/esoi/rules/measurement.py`](rules/measurement.py), [`implementations/python/esoi/rules/one_criterion.py`](rules/one_criterion.py) and 76 more
 
 ## Review tracker (`review-tracker`)
 
@@ -171,7 +171,7 @@ Explain ESOI and give fill-in templates that need no code so anyone can apply it
 - Entry call: `esoi.run("docs-and-templates", '.')`
 - Selected implementation: `documentation-folder`
 - Metric: Newcomer effort
-- Implemented by: [`.gitignore`](../../../.gitignore), [`CHANGELOG.md`](../../../CHANGELOG.md), [`CLAUDE.md`](../../../CLAUDE.md), [`CONTRIBUTING.md`](../../../CONTRIBUTING.md), [`LICENSE`](../../../LICENSE), [`NOTICE`](../../../NOTICE), [`SECURITY.md`](../../../SECURITY.md), [`docs/explanation/a-cascade-runs-one-criterion.md`](../../../docs/explanation/a-cascade-runs-one-criterion.md) and 80 more
+- Implemented by: [`.gitignore`](../../../.gitignore), [`CHANGELOG.md`](../../../CHANGELOG.md), [`CLAUDE.md`](../../../CLAUDE.md), [`CONTRIBUTING.md`](../../../CONTRIBUTING.md), [`LICENSE`](../../../LICENSE), [`NOTICE`](../../../NOTICE), [`SECURITY.md`](../../../SECURITY.md), [`docs/explanation/a-cascade-runs-one-criterion.md`](../../../docs/explanation/a-cascade-runs-one-criterion.md) and 81 more
 
 ## ESOI behaviour judge (`esoi-behaviour-judge`)
 
@@ -252,7 +252,7 @@ Tell, for one recorded result, whether the code, cases or circumstances it measu
 - Entry call: `esoi stale --explain COMPONENT`
 - Selected implementation: `import_closure`
 - Metric: Staleness precision
-- Implemented by: [`implementations/python/esoi/staleness.py`](staleness.py), [`implementations/python/evaluation/components/staleness_precision/__init__.py`](../evaluation/components/staleness_precision/__init__.py), [`implementations/python/evaluation/components/staleness_precision/broken/__init__.py`](../evaluation/components/staleness_precision/broken/__init__.py), [`implementations/python/evaluation/components/staleness_precision/broken/never_stale.py`](../evaluation/components/staleness_precision/broken/never_stale.py), [`implementations/python/evaluation/components/staleness_precision/cases.json`](../evaluation/components/staleness_precision/cases.json), [`implementations/python/evaluation/components/staleness_precision/datasets/fixture.json`](../evaluation/components/staleness_precision/datasets/fixture.json), [`implementations/python/evaluation/components/staleness_precision/impls/__init__.py`](../evaluation/components/staleness_precision/impls/__init__.py), [`implementations/python/evaluation/components/staleness_precision/impls/component_paths.py`](../evaluation/components/staleness_precision/impls/component_paths.py) and 4 more
+- Implemented by: [`implementations/python/esoi/attest.py`](attest.py), [`implementations/python/esoi/staleness.py`](staleness.py), [`implementations/python/evaluation/components/staleness_precision/__init__.py`](../evaluation/components/staleness_precision/__init__.py), [`implementations/python/evaluation/components/staleness_precision/broken/__init__.py`](../evaluation/components/staleness_precision/broken/__init__.py), [`implementations/python/evaluation/components/staleness_precision/broken/never_stale.py`](../evaluation/components/staleness_precision/broken/never_stale.py), [`implementations/python/evaluation/components/staleness_precision/cases.json`](../evaluation/components/staleness_precision/cases.json), [`implementations/python/evaluation/components/staleness_precision/datasets/fixture.json`](../evaluation/components/staleness_precision/datasets/fixture.json), [`implementations/python/evaluation/components/staleness_precision/impls/__init__.py`](../evaluation/components/staleness_precision/impls/__init__.py) and 5 more
 
 ## Diagram
 

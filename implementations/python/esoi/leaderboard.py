@@ -839,6 +839,11 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
         say(f"{component} (selected: {sel or 'none recorded'}) {label}: {detail}")
         for line in format_rows(rows, sel, config.evaluation):
             say(line)
+        if stale:
+            from . import attest
+            for impl, r in sorted(rows.items()):
+                if (said := attest.note(config, component, impl, r.get("git_sha", ""))) and not stale(config, component, r, True):
+                    say(f"  = {impl}: {said}")
         for own, rival in (rival_pairs(rows, sel, config.evaluation, history[component])[0] if sel else []):
             if own is not rows.get(sel) or rival is not rows.get(rival["impl"]):
                 say(f"  = compared on {describe_cases(own)}: {sel} {own['passed']}/{own['cases']} ({own.get('date', '')}) "

@@ -30,6 +30,7 @@
     esoi requirements [--package P | --scope S] [--solution ID] [--check] [--json] [--env-template FILE] [--install-script FILE]   what the implementations need from their environment
     esoi install [--package P | --scope S] [--solution ID ...] [--assembly] [--yes]   install only what the solutions in use need (dry run without --yes)
     esoi lock [--package P | --scope S] [--file esoi.lock.json] [--update [--safe|--latest]] [--diff] [--status] [--solution ID ...] [--json]   pin the selected implementations; see and take newer ones on your schedule
+    esoi attest COMPONENT IMPL --reason TEXT [--through SHA] [--author NAME]   record that an arm's own code changed but not what its result measures
     esoi docs check|wiki [--out DIR] [--repo-url URL] [--push WIKI_GIT_URL]   the four-category docs standard; generate the wiki from docs/
     esoi sheet-sync sync|push|pull|check   two-way sync of the tracker with a Google Sheet (esoi[sheets])
 
@@ -103,6 +104,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--explain", metavar="COMPONENT", default="", help="the changed files that count for each arm of the component, and the ones that are ignored")
     p.add_argument("--rule", default="", help="judge by this staleness rule instead of the configured one (repo_wide, component_paths, import_closure)")
     p.add_argument("--count", action="store_true", help="count the rows each rule calls stale now (measured code changed)")
+    p = sub.add_parser("attest", help="record that an arm's own code changed but not what its result measures (the result counts as current for that commit range)")
+    p.add_argument("component")
+    p.add_argument("impl")
+    p.add_argument("--reason", default="", help="required: what changed and why the result still measures the same thing")
+    p.add_argument("--through", default="", help="the last commit the attestation covers (default HEAD)")
+    p.add_argument("--author", default="", help="who attests (default: git user.name and user.email)")
     p = sub.add_parser("leaderboard", help="rank implementations")
     p.add_argument("--strict", action="store_true", help="exit 1 when a rival beats a selected implementation")
     p = sub.add_parser("select", help="show which implementation runs, or promote a winner")
@@ -708,6 +715,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.cmd == "cassette":
         from . import cassette
         return cassette.run_cli(args.rest, str(config.harness.get("cassette", "")), config.root)
+    if args.cmd == "attest":
+        from . import attest
+        return attest.run_cli(config, args.component, args.impl, args.reason, args.through, args.author)
     if args.cmd == "stale":
         from . import staleness
         if args.rule and args.rule not in staleness.RULES:

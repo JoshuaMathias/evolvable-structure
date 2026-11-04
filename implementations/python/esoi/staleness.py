@@ -451,19 +451,20 @@ def measured_paths(config: Config) -> List[str]:
             f":(exclude){config.runs_log}"]
 
 
-def changed_files(config: Config, sha: str) -> Optional[List[str]]:
+def changed_files(config: Config, sha: str, until: str = "") -> Optional[List[str]]:
     """Tracked files of the measured code folders and the evaluation folder that differ from the working tree since ``sha``, a
     rename listed under both names; ``None`` when the commit is not known here."""
     base = sha.removesuffix("-dirty")
-    done = subprocess.run(["git", "diff", "--name-only", "--no-renames", base, "--", *measured_paths(config)],
+    done = subprocess.run(["git", "diff", "--name-only", "--no-renames", base, *([until] if until else []), "--", *measured_paths(config)],
                           cwd=config.root, capture_output=True, text=True)
     return done.stdout.split("\n") and [p for p in done.stdout.split("\n") if p] if done.returncode == 0 else None
 
 
-def explain(config: Config, component: str, impl: str, sha: str, rule: Optional[str] = None) -> Optional[Dict[str, List[str]]]:
+def explain(config: Config, component: str, impl: str, sha: str, rule: Optional[str] = None,
+            until: str = "") -> Optional[Dict[str, List[str]]]:
     """``{"counts": [...], "ignored": [...], "rule": [rule in force, fallback note]}``, each file as ``path (why)``, for the files
     changed since ``sha``; ``None`` when the commit is unknown."""
-    changed = changed_files(config, sha)
+    changed = changed_files(config, sha, until)
     if changed is None:
         return None
     scope = scope_for(config, component, impl, rule)

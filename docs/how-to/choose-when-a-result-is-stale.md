@@ -63,3 +63,18 @@ builds a small git repository in a temporary folder with several components and 
 verdict written by hand per component and commit. A false-fresh decision (a kept result whose measured code changed) disqualifies the
 rule; among the rest, fewer needless re-runs win. Add cases of your own to the library's fixture when a repository has a dependency the
 fixture does not model.
+
+## When a change cannot move the number
+
+A rename, a comment or a refactor that keeps behaviour still changes the arm's own code, so its result goes stale. If you know it
+does not change what the result measures, attest it instead of re-running:
+
+```
+esoi attest <component> <impl> --reason "renamed two locals; behaviour unchanged"
+git add <evaluation>/attestations.csv && git commit
+```
+
+The result then counts as current for that commit range, `esoi leaderboard` says `current by attestation (reason)`, and the arm goes
+stale again on any later change to its own code outside the range. The command refuses an empty reason, and refuses when the arm's
+own code changed outside the range (an uncommitted edit, or a commit after `--through`). Staleness only informs: it never fails
+`esoi check` or starts a re-run by itself. Details: [`esoi attest`](../reference/attest.md).

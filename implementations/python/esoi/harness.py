@@ -587,7 +587,8 @@ def code_changed_reason(config: Config, component: str, row: Dict[str, str]) -> 
     """Why the code a row measured changed since its commit, naming the changed file and who owns it, or an empty string. The
     files that count are the ones the staleness rule says the arm measures (``esoi.staleness``); under ``repo_wide`` any file
     of the measured folders."""
-    sha = row["git_sha"]
+    from . import attest
+    sha = attest.covered_base(config, component, row.get("impl", ""), row["git_sha"])   # an attested range is not counted
     if staleness.rule_for(config) == "repo_wide":
         changed = changed_since(config, sha)
         return f"the measured code changed since its commit {sha} ({changed[0]}{' and others' if len(changed) > 1 else ''})" if changed else ""
