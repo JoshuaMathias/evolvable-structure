@@ -1,0 +1,772 @@
+[
+ {
+  "id": "STP-000",
+  "area": "touch-another-components-file",
+  "kind": "decide",
+  "description": "touch-another-components-file: is alpha stale",
+  "args": {
+   "step": "touch-another-components-file",
+   "component": "alpha"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "beta.py is read only by beta"
+ },
+ {
+  "id": "STP-001",
+  "area": "touch-another-components-file",
+  "kind": "decide",
+  "description": "touch-another-components-file: is beta stale",
+  "args": {
+   "step": "touch-another-components-file",
+   "component": "beta"
+  },
+  "expect": {
+   "stale": true
+  },
+  "note": "beta.py is read only by beta"
+ },
+ {
+  "id": "STP-002",
+  "area": "touch-another-components-file",
+  "kind": "decide",
+  "description": "touch-another-components-file: is gamma stale",
+  "args": {
+   "step": "touch-another-components-file",
+   "component": "gamma"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "beta.py is read only by beta"
+ },
+ {
+  "id": "STP-003",
+  "area": "touch-another-components-file",
+  "kind": "decide",
+  "description": "touch-another-components-file: is delta stale",
+  "args": {
+   "step": "touch-another-components-file",
+   "component": "delta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "beta.py is read only by beta"
+ },
+ {
+  "id": "STP-004",
+  "area": "touch-another-components-file",
+  "kind": "decide",
+  "description": "touch-another-components-file: is orphan stale",
+  "args": {
+   "step": "touch-another-components-file",
+   "component": "orphan"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "beta.py is read only by beta"
+ },
+ {
+  "id": "STP-005",
+  "area": "touch-the-shared-utility",
+  "kind": "decide",
+  "description": "touch-the-shared-utility: is alpha stale",
+  "args": {
+   "step": "touch-the-shared-utility",
+   "component": "alpha"
+  },
+  "expect": {
+   "stale": true
+  },
+  "note": "util.py is imported by alpha and gamma, not beta, delta or orphan"
+ },
+ {
+  "id": "STP-006",
+  "area": "touch-the-shared-utility",
+  "kind": "decide",
+  "description": "touch-the-shared-utility: is beta stale",
+  "args": {
+   "step": "touch-the-shared-utility",
+   "component": "beta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "util.py is imported by alpha and gamma, not beta, delta or orphan"
+ },
+ {
+  "id": "STP-007",
+  "area": "touch-the-shared-utility",
+  "kind": "decide",
+  "description": "touch-the-shared-utility: is gamma stale",
+  "args": {
+   "step": "touch-the-shared-utility",
+   "component": "gamma"
+  },
+  "expect": {
+   "stale": true
+  },
+  "note": "util.py is imported by alpha and gamma, not beta, delta or orphan"
+ },
+ {
+  "id": "STP-008",
+  "area": "touch-the-shared-utility",
+  "kind": "decide",
+  "description": "touch-the-shared-utility: is delta stale",
+  "args": {
+   "step": "touch-the-shared-utility",
+   "component": "delta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "util.py is imported by alpha and gamma, not beta, delta or orphan"
+ },
+ {
+  "id": "STP-009",
+  "area": "touch-the-shared-utility",
+  "kind": "decide",
+  "description": "touch-the-shared-utility: is orphan stale",
+  "args": {
+   "step": "touch-the-shared-utility",
+   "component": "orphan"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "util.py is imported by alpha and gamma, not beta, delta or orphan"
+ },
+ {
+  "id": "STP-010",
+  "area": "touch-the-measured-file",
+  "kind": "decide",
+  "description": "touch-the-measured-file: is alpha stale",
+  "args": {
+   "step": "touch-the-measured-file",
+   "component": "alpha"
+  },
+  "expect": {
+   "stale": true
+  },
+  "note": "alpha.py is run only by alpha"
+ },
+ {
+  "id": "STP-011",
+  "area": "touch-the-measured-file",
+  "kind": "decide",
+  "description": "touch-the-measured-file: is beta stale",
+  "args": {
+   "step": "touch-the-measured-file",
+   "component": "beta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "alpha.py is run only by alpha"
+ },
+ {
+  "id": "STP-012",
+  "area": "touch-the-measured-file",
+  "kind": "decide",
+  "description": "touch-the-measured-file: is gamma stale",
+  "args": {
+   "step": "touch-the-measured-file",
+   "component": "gamma"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "alpha.py is run only by alpha"
+ },
+ {
+  "id": "STP-013",
+  "area": "touch-the-measured-file",
+  "kind": "decide",
+  "description": "touch-the-measured-file: is delta stale",
+  "args": {
+   "step": "touch-the-measured-file",
+   "component": "delta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "alpha.py is run only by alpha"
+ },
+ {
+  "id": "STP-014",
+  "area": "touch-the-measured-file",
+  "kind": "decide",
+  "description": "touch-the-measured-file: is orphan stale",
+  "args": {
+   "step": "touch-the-measured-file",
+   "component": "orphan"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "alpha.py is run only by alpha"
+ },
+ {
+  "id": "STP-015",
+  "area": "change-a-case-file",
+  "kind": "decide",
+  "description": "change-a-case-file: is alpha stale",
+  "args": {
+   "step": "change-a-case-file",
+   "component": "alpha"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "delta's own cases changed, so its cases_sha differs"
+ },
+ {
+  "id": "STP-016",
+  "area": "change-a-case-file",
+  "kind": "decide",
+  "description": "change-a-case-file: is beta stale",
+  "args": {
+   "step": "change-a-case-file",
+   "component": "beta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "delta's own cases changed, so its cases_sha differs"
+ },
+ {
+  "id": "STP-017",
+  "area": "change-a-case-file",
+  "kind": "decide",
+  "description": "change-a-case-file: is gamma stale",
+  "args": {
+   "step": "change-a-case-file",
+   "component": "gamma"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "delta's own cases changed, so its cases_sha differs"
+ },
+ {
+  "id": "STP-018",
+  "area": "change-a-case-file",
+  "kind": "decide",
+  "description": "change-a-case-file: is delta stale",
+  "args": {
+   "step": "change-a-case-file",
+   "component": "delta"
+  },
+  "expect": {
+   "stale": true
+  },
+  "note": "delta's own cases changed, so its cases_sha differs"
+ },
+ {
+  "id": "STP-019",
+  "area": "change-a-case-file",
+  "kind": "decide",
+  "description": "change-a-case-file: is orphan stale",
+  "args": {
+   "step": "change-a-case-file",
+   "component": "orphan"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "delta's own cases changed, so its cases_sha differs"
+ },
+ {
+  "id": "STP-020",
+  "area": "add-a-dirty-edit",
+  "kind": "decide",
+  "description": "add-a-dirty-edit: is alpha stale",
+  "args": {
+   "step": "add-a-dirty-edit",
+   "component": "alpha"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "an uncommitted edit to gamma.py"
+ },
+ {
+  "id": "STP-021",
+  "area": "add-a-dirty-edit",
+  "kind": "decide",
+  "description": "add-a-dirty-edit: is beta stale",
+  "args": {
+   "step": "add-a-dirty-edit",
+   "component": "beta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "an uncommitted edit to gamma.py"
+ },
+ {
+  "id": "STP-022",
+  "area": "add-a-dirty-edit",
+  "kind": "decide",
+  "description": "add-a-dirty-edit: is gamma stale",
+  "args": {
+   "step": "add-a-dirty-edit",
+   "component": "gamma"
+  },
+  "expect": {
+   "stale": true
+  },
+  "note": "an uncommitted edit to gamma.py"
+ },
+ {
+  "id": "STP-023",
+  "area": "add-a-dirty-edit",
+  "kind": "decide",
+  "description": "add-a-dirty-edit: is delta stale",
+  "args": {
+   "step": "add-a-dirty-edit",
+   "component": "delta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "an uncommitted edit to gamma.py"
+ },
+ {
+  "id": "STP-024",
+  "area": "add-a-dirty-edit",
+  "kind": "decide",
+  "description": "add-a-dirty-edit: is orphan stale",
+  "args": {
+   "step": "add-a-dirty-edit",
+   "component": "orphan"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "an uncommitted edit to gamma.py"
+ },
+ {
+  "id": "STP-025",
+  "area": "rename-a-file",
+  "kind": "decide",
+  "description": "rename-a-file: is alpha stale",
+  "args": {
+   "step": "rename-a-file",
+   "component": "alpha"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "delta imports the renamed helper; nothing else does"
+ },
+ {
+  "id": "STP-026",
+  "area": "rename-a-file",
+  "kind": "decide",
+  "description": "rename-a-file: is beta stale",
+  "args": {
+   "step": "rename-a-file",
+   "component": "beta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "delta imports the renamed helper; nothing else does"
+ },
+ {
+  "id": "STP-027",
+  "area": "rename-a-file",
+  "kind": "decide",
+  "description": "rename-a-file: is gamma stale",
+  "args": {
+   "step": "rename-a-file",
+   "component": "gamma"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "delta imports the renamed helper; nothing else does"
+ },
+ {
+  "id": "STP-028",
+  "area": "rename-a-file",
+  "kind": "decide",
+  "description": "rename-a-file: is delta stale",
+  "args": {
+   "step": "rename-a-file",
+   "component": "delta"
+  },
+  "expect": {
+   "stale": true
+  },
+  "note": "delta imports the renamed helper; nothing else does"
+ },
+ {
+  "id": "STP-029",
+  "area": "rename-a-file",
+  "kind": "decide",
+  "description": "rename-a-file: is orphan stale",
+  "args": {
+   "step": "rename-a-file",
+   "component": "orphan"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "delta imports the renamed helper; nothing else does"
+ },
+ {
+  "id": "STP-030",
+  "area": "touch-a-doc",
+  "kind": "decide",
+  "description": "touch-a-doc: is alpha stale",
+  "args": {
+   "step": "touch-a-doc",
+   "component": "alpha"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "docs/ is outside the measured code and nothing reads it"
+ },
+ {
+  "id": "STP-031",
+  "area": "touch-a-doc",
+  "kind": "decide",
+  "description": "touch-a-doc: is beta stale",
+  "args": {
+   "step": "touch-a-doc",
+   "component": "beta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "docs/ is outside the measured code and nothing reads it"
+ },
+ {
+  "id": "STP-032",
+  "area": "touch-a-doc",
+  "kind": "decide",
+  "description": "touch-a-doc: is gamma stale",
+  "args": {
+   "step": "touch-a-doc",
+   "component": "gamma"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "docs/ is outside the measured code and nothing reads it"
+ },
+ {
+  "id": "STP-033",
+  "area": "touch-a-doc",
+  "kind": "decide",
+  "description": "touch-a-doc: is delta stale",
+  "args": {
+   "step": "touch-a-doc",
+   "component": "delta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "docs/ is outside the measured code and nothing reads it"
+ },
+ {
+  "id": "STP-034",
+  "area": "touch-a-doc",
+  "kind": "decide",
+  "description": "touch-a-doc: is orphan stale",
+  "args": {
+   "step": "touch-a-doc",
+   "component": "orphan"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "docs/ is outside the measured code and nothing reads it"
+ },
+ {
+  "id": "STP-035",
+  "area": "touch-a-file-outside-any-component",
+  "kind": "decide",
+  "description": "touch-a-file-outside-any-component: is alpha stale",
+  "args": {
+   "step": "touch-a-file-outside-any-component",
+   "component": "alpha"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "unowned_helper.py is in the package but no arm imports it"
+ },
+ {
+  "id": "STP-036",
+  "area": "touch-a-file-outside-any-component",
+  "kind": "decide",
+  "description": "touch-a-file-outside-any-component: is beta stale",
+  "args": {
+   "step": "touch-a-file-outside-any-component",
+   "component": "beta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "unowned_helper.py is in the package but no arm imports it"
+ },
+ {
+  "id": "STP-037",
+  "area": "touch-a-file-outside-any-component",
+  "kind": "decide",
+  "description": "touch-a-file-outside-any-component: is gamma stale",
+  "args": {
+   "step": "touch-a-file-outside-any-component",
+   "component": "gamma"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "unowned_helper.py is in the package but no arm imports it"
+ },
+ {
+  "id": "STP-038",
+  "area": "touch-a-file-outside-any-component",
+  "kind": "decide",
+  "description": "touch-a-file-outside-any-component: is delta stale",
+  "args": {
+   "step": "touch-a-file-outside-any-component",
+   "component": "delta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "unowned_helper.py is in the package but no arm imports it"
+ },
+ {
+  "id": "STP-039",
+  "area": "touch-a-file-outside-any-component",
+  "kind": "decide",
+  "description": "touch-a-file-outside-any-component: is orphan stale",
+  "args": {
+   "step": "touch-a-file-outside-any-component",
+   "component": "orphan"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "unowned_helper.py is in the package but no arm imports it"
+ },
+ {
+  "id": "STP-040",
+  "area": "touch-a-data-file-the-code-reads",
+  "kind": "decide",
+  "description": "touch-a-data-file-the-code-reads: is alpha stale",
+  "args": {
+   "step": "touch-a-data-file-the-code-reads",
+   "component": "alpha"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "beta.py opens beta_prompt.txt when it runs"
+ },
+ {
+  "id": "STP-041",
+  "area": "touch-a-data-file-the-code-reads",
+  "kind": "decide",
+  "description": "touch-a-data-file-the-code-reads: is beta stale",
+  "args": {
+   "step": "touch-a-data-file-the-code-reads",
+   "component": "beta"
+  },
+  "expect": {
+   "stale": true
+  },
+  "note": "beta.py opens beta_prompt.txt when it runs"
+ },
+ {
+  "id": "STP-042",
+  "area": "touch-a-data-file-the-code-reads",
+  "kind": "decide",
+  "description": "touch-a-data-file-the-code-reads: is gamma stale",
+  "args": {
+   "step": "touch-a-data-file-the-code-reads",
+   "component": "gamma"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "beta.py opens beta_prompt.txt when it runs"
+ },
+ {
+  "id": "STP-043",
+  "area": "touch-a-data-file-the-code-reads",
+  "kind": "decide",
+  "description": "touch-a-data-file-the-code-reads: is delta stale",
+  "args": {
+   "step": "touch-a-data-file-the-code-reads",
+   "component": "delta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "beta.py opens beta_prompt.txt when it runs"
+ },
+ {
+  "id": "STP-044",
+  "area": "touch-a-data-file-the-code-reads",
+  "kind": "decide",
+  "description": "touch-a-data-file-the-code-reads: is orphan stale",
+  "args": {
+   "step": "touch-a-data-file-the-code-reads",
+   "component": "orphan"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "beta.py opens beta_prompt.txt when it runs"
+ },
+ {
+  "id": "STP-045",
+  "area": "touch-a-shared-evaluation-fixture",
+  "kind": "decide",
+  "description": "touch-a-shared-evaluation-fixture: is alpha stale",
+  "args": {
+   "step": "touch-a-shared-evaluation-fixture",
+   "component": "alpha"
+  },
+  "expect": {
+   "stale": true
+  },
+  "note": "fixture_shared.py is imported by alpha's implementation only"
+ },
+ {
+  "id": "STP-046",
+  "area": "touch-a-shared-evaluation-fixture",
+  "kind": "decide",
+  "description": "touch-a-shared-evaluation-fixture: is beta stale",
+  "args": {
+   "step": "touch-a-shared-evaluation-fixture",
+   "component": "beta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "fixture_shared.py is imported by alpha's implementation only"
+ },
+ {
+  "id": "STP-047",
+  "area": "touch-a-shared-evaluation-fixture",
+  "kind": "decide",
+  "description": "touch-a-shared-evaluation-fixture: is gamma stale",
+  "args": {
+   "step": "touch-a-shared-evaluation-fixture",
+   "component": "gamma"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "fixture_shared.py is imported by alpha's implementation only"
+ },
+ {
+  "id": "STP-048",
+  "area": "touch-a-shared-evaluation-fixture",
+  "kind": "decide",
+  "description": "touch-a-shared-evaluation-fixture: is delta stale",
+  "args": {
+   "step": "touch-a-shared-evaluation-fixture",
+   "component": "delta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "fixture_shared.py is imported by alpha's implementation only"
+ },
+ {
+  "id": "STP-049",
+  "area": "touch-a-shared-evaluation-fixture",
+  "kind": "decide",
+  "description": "touch-a-shared-evaluation-fixture: is orphan stale",
+  "args": {
+   "step": "touch-a-shared-evaluation-fixture",
+   "component": "orphan"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "fixture_shared.py is imported by alpha's implementation only"
+ },
+ {
+  "id": "STP-050",
+  "area": "touch-a-file-no-component-owns-that-one-arm-imports",
+  "kind": "decide",
+  "description": "touch-a-file-no-component-owns-that-one-arm-imports: is alpha stale",
+  "args": {
+   "step": "touch-a-file-no-component-owns-that-one-arm-imports",
+   "component": "alpha"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "orphan_mod.py is imported by the orphan arm, which has no ownership entry; no other arm imports it"
+ },
+ {
+  "id": "STP-051",
+  "area": "touch-a-file-no-component-owns-that-one-arm-imports",
+  "kind": "decide",
+  "description": "touch-a-file-no-component-owns-that-one-arm-imports: is beta stale",
+  "args": {
+   "step": "touch-a-file-no-component-owns-that-one-arm-imports",
+   "component": "beta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "orphan_mod.py is imported by the orphan arm, which has no ownership entry; no other arm imports it"
+ },
+ {
+  "id": "STP-052",
+  "area": "touch-a-file-no-component-owns-that-one-arm-imports",
+  "kind": "decide",
+  "description": "touch-a-file-no-component-owns-that-one-arm-imports: is gamma stale",
+  "args": {
+   "step": "touch-a-file-no-component-owns-that-one-arm-imports",
+   "component": "gamma"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "orphan_mod.py is imported by the orphan arm, which has no ownership entry; no other arm imports it"
+ },
+ {
+  "id": "STP-053",
+  "area": "touch-a-file-no-component-owns-that-one-arm-imports",
+  "kind": "decide",
+  "description": "touch-a-file-no-component-owns-that-one-arm-imports: is delta stale",
+  "args": {
+   "step": "touch-a-file-no-component-owns-that-one-arm-imports",
+   "component": "delta"
+  },
+  "expect": {
+   "stale": false
+  },
+  "note": "orphan_mod.py is imported by the orphan arm, which has no ownership entry; no other arm imports it"
+ },
+ {
+  "id": "STP-054",
+  "area": "touch-a-file-no-component-owns-that-one-arm-imports",
+  "kind": "decide",
+  "description": "touch-a-file-no-component-owns-that-one-arm-imports: is orphan stale",
+  "args": {
+   "step": "touch-a-file-no-component-owns-that-one-arm-imports",
+   "component": "orphan"
+  },
+  "expect": {
+   "stale": true
+  },
+  "note": "orphan_mod.py is imported by the orphan arm, which has no ownership entry; no other arm imports it"
+ }
+]

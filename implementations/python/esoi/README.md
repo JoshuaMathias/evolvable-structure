@@ -54,7 +54,7 @@ Run each implementation of a solution against that solution's cases through the 
 - Entry call: `esoi.run("measurement-harness", '.')`
 - Selected implementation: `component-harness`
 - Metric: Provenance completeness
-- Implemented by: [`implementations/python/esoi/__main__.py`](__main__.py), [`implementations/python/esoi/balance.py`](balance.py), [`implementations/python/esoi/cli.py`](cli.py), [`implementations/python/esoi/expect.py`](expect.py), [`implementations/python/esoi/harness.py`](harness.py), [`implementations/python/esoi/hermetic.py`](hermetic.py), [`implementations/python/esoi/interfaces.py`](interfaces.py), [`implementations/python/esoi/run_guards.py`](run_guards.py) and 20 more
+- Implemented by: [`implementations/python/esoi/__main__.py`](__main__.py), [`implementations/python/esoi/balance.py`](balance.py), [`implementations/python/esoi/cli.py`](cli.py), [`implementations/python/esoi/expect.py`](expect.py), [`implementations/python/esoi/harness.py`](harness.py), [`implementations/python/esoi/hermetic.py`](hermetic.py), [`implementations/python/esoi/interfaces.py`](interfaces.py), [`implementations/python/esoi/run_guards.py`](run_guards.py) and 21 more
 
 ## Leaderboard (`leaderboard`)
 
@@ -81,7 +81,7 @@ Apply a set of rules to a repository on each change and report every violation b
 - Entry call: `esoi.run("structure-check", '.')`
 - Selected implementation: `rule-script`
 - Metric: Check dependability
-- Implemented by: [`implementations/python/conftest.py`](../conftest.py), [`implementations/python/docs/configuration.md`](../docs/configuration.md), [`implementations/python/docs/evaluation-components.md`](../docs/evaluation-components.md), [`implementations/python/docs/rules.md`](../docs/rules.md), [`implementations/python/esoi/__main__.py`](__main__.py), [`implementations/python/esoi/check.py`](check.py), [`implementations/python/esoi/cli.py`](cli.py), [`implementations/python/esoi/coherence.py`](coherence.py) and 87 more
+- Implemented by: [`implementations/python/conftest.py`](../conftest.py), [`implementations/python/docs/configuration.md`](../docs/configuration.md), [`implementations/python/docs/evaluation-components.md`](../docs/evaluation-components.md), [`implementations/python/docs/rules.md`](../docs/rules.md), [`implementations/python/esoi/__main__.py`](__main__.py), [`implementations/python/esoi/check.py`](check.py), [`implementations/python/esoi/cli.py`](cli.py), [`implementations/python/esoi/coherence.py`](coherence.py) and 90 more
 
 ## Structure rules (`structure-rules`)
 
@@ -90,7 +90,7 @@ Decide which structural rules a repository is held to, each with the mistake tha
 - Entry call: `esoi.run("structure-rules", '.')`
 - Selected implementation: `rule-modules`
 - Metric: Violation detection
-- Implemented by: [`implementations/python/esoi/interfaces.py`](interfaces.py), [`implementations/python/esoi/rules/cascade_rules.py`](rules/cascade_rules.py), [`implementations/python/esoi/rules/generated.py`](rules/generated.py), [`implementations/python/esoi/rules/hierarchy_rules.py`](rules/hierarchy_rules.py), [`implementations/python/esoi/rules/intents.py`](rules/intents.py), [`implementations/python/esoi/rules/layout.py`](rules/layout.py), [`implementations/python/esoi/rules/measurement.py`](rules/measurement.py), [`implementations/python/esoi/rules/registry_rules.py`](rules/registry_rules.py) and 66 more
+- Implemented by: [`implementations/python/esoi/interfaces.py`](interfaces.py), [`implementations/python/esoi/rules/cascade_rules.py`](rules/cascade_rules.py), [`implementations/python/esoi/rules/generated.py`](rules/generated.py), [`implementations/python/esoi/rules/hierarchy_rules.py`](rules/hierarchy_rules.py), [`implementations/python/esoi/rules/intents.py`](rules/intents.py), [`implementations/python/esoi/rules/layout.py`](rules/layout.py), [`implementations/python/esoi/rules/measurement.py`](rules/measurement.py), [`implementations/python/esoi/rules/registry_rules.py`](rules/registry_rules.py) and 68 more
 
 ## Review tracker (`review-tracker`)
 
@@ -108,7 +108,7 @@ Let a system built on a library record which library solution each of its parts 
 - Entry call: `esoi.run("consumer-check", 'esoi')`
 - Selected implementation: `consumer-command`
 - Metric: Consumer soundness
-- Implemented by: [`implementations/python/esoi/__main__.py`](__main__.py), [`implementations/python/esoi/cli.py`](cli.py), [`implementations/python/esoi/consumer.py`](consumer.py), [`implementations/python/esoi/interfaces.py`](interfaces.py), [`implementations/python/evaluation/components/assemble_fixture.py`](../evaluation/components/assemble_fixture.py), [`implementations/python/evaluation/components/check_a_consumer/__init__.py`](../evaluation/components/check_a_consumer/__init__.py), [`implementations/python/evaluation/components/check_a_consumer/broken/__init__.py`](../evaluation/components/check_a_consumer/broken/__init__.py), [`implementations/python/evaluation/components/check_a_consumer/broken/columns_only.py`](../evaluation/components/check_a_consumer/broken/columns_only.py) and 15 more
+- Implemented by: [`implementations/python/esoi/__main__.py`](__main__.py), [`implementations/python/esoi/cli.py`](cli.py), [`implementations/python/esoi/consumer.py`](consumer.py), [`implementations/python/esoi/interfaces.py`](interfaces.py), [`implementations/python/evaluation/components/assemble_fixture.py`](../evaluation/components/assemble_fixture.py), [`implementations/python/evaluation/components/check_a_consumer/__init__.py`](../evaluation/components/check_a_consumer/__init__.py), [`implementations/python/evaluation/components/check_a_consumer/broken/__init__.py`](../evaluation/components/check_a_consumer/broken/__init__.py), [`implementations/python/evaluation/components/check_a_consumer/broken/columns_only.py`](../evaluation/components/check_a_consumer/broken/columns_only.py) and 16 more
 
 ## The standard (`the-standard`)
 
@@ -135,7 +135,7 @@ Decide when each metric is run, in what stages, with what limit, who approves th
 - Entry call: `esoi.run("when-metrics-are-run", '.')`
 - Selected implementation: `on-every-change`
 - Metric: Decisions backed by current results
-- Implemented by: [`.github/workflows/check.yml`](../../../.github/workflows/check.yml), [`implementations/python/esoi/interfaces.py`](interfaces.py), [`implementations/python/evaluation/components/assemble_fixture.py`](../evaluation/components/assemble_fixture.py), [`implementations/python/evaluation/components/consumer_fixture.py`](../evaluation/components/consumer_fixture.py), [`implementations/python/evaluation/components/glance_fixture.py`](../evaluation/components/glance_fixture.py), [`implementations/python/evaluation/components/harness_fixture.py`](../evaluation/components/harness_fixture.py), [`implementations/python/evaluation/components/index_world.py`](../evaluation/components/index_world.py), [`implementations/python/evaluation/components/know_stale_results/__init__.py`](../evaluation/components/know_stale_results/__init__.py) and 13 more
+- Implemented by: [`.github/workflows/check.yml`](../../../.github/workflows/check.yml), [`implementations/python/esoi/interfaces.py`](interfaces.py), [`implementations/python/evaluation/components/assemble_fixture.py`](../evaluation/components/assemble_fixture.py), [`implementations/python/evaluation/components/consumer_fixture.py`](../evaluation/components/consumer_fixture.py), [`implementations/python/evaluation/components/glance_fixture.py`](../evaluation/components/glance_fixture.py), [`implementations/python/evaluation/components/harness_fixture.py`](../evaluation/components/harness_fixture.py), [`implementations/python/evaluation/components/index_world.py`](../evaluation/components/index_world.py), [`implementations/python/evaluation/components/know_stale_results/__init__.py`](../evaluation/components/know_stale_results/__init__.py) and 14 more
 
 ## Skill distribution (`skill-distribution`)
 
@@ -189,7 +189,7 @@ Keep the records of a solution and its alternatives in step with the code that d
 - Entry call: `esoi.run("specify-from-code", '.')`
 - Selected implementation: `declarations-and-sync`
 - Metric: Declaration sync
-- Implemented by: [`implementations/python/esoi/__main__.py`](__main__.py), [`implementations/python/esoi/cli.py`](cli.py), [`implementations/python/esoi/declarations.py`](declarations.py), [`implementations/python/esoi/interfaces.py`](interfaces.py), [`implementations/python/esoi/newsolution.py`](newsolution.py), [`implementations/python/esoi/rules/declarations.py`](rules/declarations.py), [`implementations/python/evaluation/components/assemble_fixture.py`](../evaluation/components/assemble_fixture.py), [`implementations/python/evaluation/components/consumer_fixture.py`](../evaluation/components/consumer_fixture.py) and 17 more
+- Implemented by: [`implementations/python/esoi/__main__.py`](__main__.py), [`implementations/python/esoi/cli.py`](cli.py), [`implementations/python/esoi/declarations.py`](declarations.py), [`implementations/python/esoi/interfaces.py`](interfaces.py), [`implementations/python/esoi/newsolution.py`](newsolution.py), [`implementations/python/esoi/rules/declarations.py`](rules/declarations.py), [`implementations/python/evaluation/components/assemble_fixture.py`](../evaluation/components/assemble_fixture.py), [`implementations/python/evaluation/components/consumer_fixture.py`](../evaluation/components/consumer_fixture.py) and 18 more
 
 ## Readable records (`readable-records`)
 
@@ -198,7 +198,7 @@ Give every intent folder a generated page that says what the intent is and lists
 - Entry call: `esoi.run("readable-records", '.')`
 - Selected implementation: `at_a_glance`
 - Metric: README glanceability, README fidelity
-- Implemented by: [`implementations/python/esoi/check.py`](check.py), [`implementations/python/esoi/coherence.py`](coherence.py), [`implementations/python/esoi/diagram.py`](diagram.py), [`implementations/python/esoi/interfaces.py`](interfaces.py), [`implementations/python/esoi/ratchet.py`](ratchet.py), [`implementations/python/esoi/readme.py`](readme.py), [`implementations/python/esoi/rules/entry_rules.py`](rules/entry_rules.py), [`implementations/python/esoi/rules/generated.py`](rules/generated.py) and 29 more
+- Implemented by: [`implementations/python/esoi/check.py`](check.py), [`implementations/python/esoi/coherence.py`](coherence.py), [`implementations/python/esoi/diagram.py`](diagram.py), [`implementations/python/esoi/interfaces.py`](interfaces.py), [`implementations/python/esoi/ratchet.py`](ratchet.py), [`implementations/python/esoi/readme.py`](readme.py), [`implementations/python/esoi/rules/entry_rules.py`](rules/entry_rules.py), [`implementations/python/esoi/rules/generated.py`](rules/generated.py) and 30 more
 
 ## Promote the winner (`promote-the-winner`)
 
@@ -207,7 +207,7 @@ Switch the selected implementation of an evaluated solution to the rival that cl
 - Entry call: `esoi.run("promote-the-winner", '.')`
 - Selected implementation: `margin-promotion`
 - Metric: Promotion correctness
-- Implemented by: [`implementations/python/esoi/__main__.py`](__main__.py), [`implementations/python/esoi/cascade.py`](cascade.py), [`implementations/python/esoi/cli.py`](cli.py), [`implementations/python/esoi/interfaces.py`](interfaces.py), [`implementations/python/esoi/promote.py`](promote.py), [`implementations/python/evaluation/components/assemble_fixture.py`](../evaluation/components/assemble_fixture.py), [`implementations/python/evaluation/components/consumer_fixture.py`](../evaluation/components/consumer_fixture.py), [`implementations/python/evaluation/components/glance_fixture.py`](../evaluation/components/glance_fixture.py) and 16 more
+- Implemented by: [`implementations/python/esoi/__main__.py`](__main__.py), [`implementations/python/esoi/cascade.py`](cascade.py), [`implementations/python/esoi/cli.py`](cli.py), [`implementations/python/esoi/interfaces.py`](interfaces.py), [`implementations/python/esoi/promote.py`](promote.py), [`implementations/python/evaluation/components/assemble_fixture.py`](../evaluation/components/assemble_fixture.py), [`implementations/python/evaluation/components/consumer_fixture.py`](../evaluation/components/consumer_fixture.py), [`implementations/python/evaluation/components/glance_fixture.py`](../evaluation/components/glance_fixture.py) and 17 more
 
 ## Specification index (`spec-index`)
 
@@ -245,6 +245,15 @@ Grade what others measured: one ``Estimate`` per candidate and dimension, with i
 - Metric: Public evidence graded
 - Implemented by: [`implementations/python/esoi/evidence.py`](evidence.py), [`implementations/python/evaluation/components/public_evidence/__init__.py`](../evaluation/components/public_evidence/__init__.py), [`implementations/python/evaluation/components/public_evidence/broken/__init__.py`](../evaluation/components/public_evidence/broken/__init__.py), [`implementations/python/evaluation/components/public_evidence/broken/trust_the_number.py`](../evaluation/components/public_evidence/broken/trust_the_number.py), [`implementations/python/evaluation/components/public_evidence/cases.json`](../evaluation/components/public_evidence/cases.json), [`implementations/python/evaluation/components/public_evidence/impls/__init__.py`](../evaluation/components/public_evidence/impls/__init__.py), [`implementations/python/evaluation/components/public_evidence/impls/graded.py`](../evaluation/components/public_evidence/impls/graded.py), [`implementations/python/evaluation/components/public_evidence/impls/live.py`](../evaluation/components/public_evidence/impls/live.py) and 2 more
 
+## Know what a result measures (`know-what-a-result-measures`)
+
+Tell, for one recorded result, whether the code, cases or circumstances it measures changed since its commit, and say which changed file and which component's ownership explains the answer.
+
+- Entry call: `esoi stale --explain COMPONENT`
+- Selected implementation: `repo-wide`
+- Metric: Staleness precision
+- Implemented by: [`implementations/python/esoi/staleness.py`](staleness.py), [`implementations/python/evaluation/components/staleness_precision/__init__.py`](../evaluation/components/staleness_precision/__init__.py), [`implementations/python/evaluation/components/staleness_precision/broken/__init__.py`](../evaluation/components/staleness_precision/broken/__init__.py), [`implementations/python/evaluation/components/staleness_precision/broken/never_stale.py`](../evaluation/components/staleness_precision/broken/never_stale.py), [`implementations/python/evaluation/components/staleness_precision/cases.json`](../evaluation/components/staleness_precision/cases.json), [`implementations/python/evaluation/components/staleness_precision/datasets/fixture.json`](../evaluation/components/staleness_precision/datasets/fixture.json), [`implementations/python/evaluation/components/staleness_precision/impls/__init__.py`](../evaluation/components/staleness_precision/impls/__init__.py), [`implementations/python/evaluation/components/staleness_precision/impls/component_paths.py`](../evaluation/components/staleness_precision/impls/component_paths.py) and 4 more
+
 ## Diagram
 
 An arrow runs from the solution that provides to the solution that builds on it; its label is what the provider outputs.
@@ -278,6 +287,7 @@ flowchart LR
     s24["keep-metric-record<br/>keep-metric-record"]
     s25["Spec search<br/>spec-search"]
     s26["Grade evidence<br/>public-evidence"]
+    s27["Know what a result measures<br/>know-what-a-result-measures"]
     s1 -->|"A linked intent network that the check, the tracker and the..."| s2
     s1 -->|"A linked intent network that the check, the tracker and the..."| s10
     s1 -->|"A linked intent network that the check, the tracker and the..."| s20
@@ -315,6 +325,7 @@ flowchart LR
     s24 -->|"From begin, the NEXT PRIORITY block for the brief; from..."| s0
     s25 -->|"A Selection: ranked items best first with their linked..."| s0
     s26 -->|"Dict(Tuple(str, str), Estimate)"| s5
+    s27 -->|"Stale or current for the row, the reason naming the changed..."| s5
 ```
 
 ## Implementations
@@ -357,6 +368,9 @@ flowchart LR
 | `spec-search:lexical-only` | Lexical only | [`implementations/python/esoi/spec_search.py`](spec_search.py) |  |
 | `spec-search:lexical-vector-gated` | Lexical vector gated | [`implementations/python/esoi/spec_search.py`](spec_search.py) | selected |
 | `public-evidence:graded` | Graded | [`implementations/python/esoi/evidence.py`](evidence.py) | selected |
+| `know-what-a-result-measures:repo-wide` | Repo wide | [`implementations/python/esoi/staleness.py`](staleness.py) | selected |
+| `know-what-a-result-measures:component-paths` | Component paths | [`implementations/python/esoi/staleness.py`](staleness.py) |  |
+| `know-what-a-result-measures:import-closure` | Import closure | [`implementations/python/esoi/staleness.py`](staleness.py) |  |
 
 ## Metrics
 
@@ -389,6 +403,7 @@ flowchart LR
 - `metric-public-evidence`, Public evidence graded: leader `graded`, 11 of 11 cases
 - `metric-solution-coherence`, Intents whose solutions one paragraph and one diagram explain as the code builds them
 - `metric-navigable-records`, Navigable records: leader `beside_code`, 29 of 53 cases
+- `metric-staleness-precision`, Staleness precision: no result recorded
 
 ## Problems
 
@@ -416,6 +431,7 @@ flowchart LR
 - `prob-spec-search`: A system that finds a repository's records for a request, or finds them together with its own notes or documents, rebuilds the same stages inside its own code: lexical scoring, a semantic search...
 - `prob-intent-folder-not-glanceable`: A person clicking into an intent folder cannot tell at a glance what it is, how its parts fit or where to go next: the page lists the records but shows no picture of how the solutions connect, no...
 - `prob-spec-far-from-code`: A person reading the code of a solution cannot find its specification without leaving the code tree: the records sit in a separate folder, a code folder carries no page that says what it is for, and...
+- `prob-results-stale-when-nothing-measured-changed`: A recorded result is called stale when any file of the repository's measured code changed, so every component's metrics are re-run after every commit although what most of them measure did not change.
 
 ## Ideals
 
@@ -440,6 +456,7 @@ flowchart LR
 - `ideal-spec-search`: The stages of finding the specifications a request concerns are written once, in the library, and a product supplies only its vector search and its judge.
 - `ideal-glanceable-intent`: Anyone clicking into an intent folder sees on the first screen what the intent is, how its solutions fit together and where to go next.
 - `ideal-navigable-records`: A person opening a code folder finds the specification of what it holds beside it, and a person opening a specification finds its code one folder away.
+- `ideal-stale-only-when-measured-changed`: A recorded result goes stale if and only if the code, cases or circumstances it measures changed.
 
 ## Where to go next
 

@@ -1,0 +1,169 @@
+{
+ "files": {
+  "esoi.toml": "package = \"pkg\"\npackage_dir = \"pkg\"\ncode_paths = [\"pkg\"]\npython_path = [\".\"]\nstructure_dir = \"esoi\"\nevaluation_dir = \"evaluation/components\"\n",
+  "pkg/__init__.py": "",
+  "pkg/util.py": "def helper():\n    return 1\n",
+  "pkg/alpha.py": "from pkg import util\n\n\ndef run():\n    return util.helper()\n",
+  "pkg/beta.py": "def run():\n    return open('pkg/beta_prompt.txt').read()\n",
+  "pkg/beta_prompt.txt": "say hello\n",
+  "pkg/gamma.py": "from pkg.util import helper\n\n\ndef run():\n    return helper()\n",
+  "pkg/delta.py": "from pkg import delta_helper\n\n\ndef run():\n    return delta_helper.value()\n",
+  "pkg/delta_helper.py": "def value():\n    return 4\n",
+  "pkg/orphan_mod.py": "def run():\n    return 5\n",
+  "pkg/unowned_helper.py": "def unused():\n    return 6\n",
+  "docs/notes.md": "notes\n",
+  "evaluation/components/fixture_shared.py": "SHARED = 1\n",
+  "esoi/components.csv": "component_id,layer,path,role,solutions\nalpha,core,pkg/alpha.py,Alpha.,sol-alpha\neval-alpha,evaluation,evaluation/components/alpha_eval/**,Alpha cases.,sol-alpha\nbeta,core,pkg/beta.py;pkg/beta_prompt.txt,Beta.,sol-beta\neval-beta,evaluation,evaluation/components/beta_eval/**,Beta cases.,sol-beta\ngamma,core,pkg/gamma.py,Gamma.,sol-gamma\neval-gamma,evaluation,evaluation/components/gamma_eval/**,Gamma cases.,sol-gamma\ndelta,core,pkg/delta*.py,Delta.,sol-delta\neval-delta,evaluation,evaluation/components/delta_eval/**,Delta cases.,sol-delta\nutil,core,pkg/util.py,Shared utility.,sol-util\neval-shared,evaluation,evaluation/components/*.py,Shared fixtures.,\n",
+  "esoi/solutions.csv": "solution_id,name,metric_ids,implementations,selected\nsol-alpha,alpha,m-alpha,live,live\nsol-beta,beta,m-beta,live,live\nsol-gamma,gamma,m-gamma,live,live\nsol-delta,delta,m-delta,live,live\nsol-util,util,,live,live\n",
+  "esoi/metrics.csv": "metric_id,name,command,solution_ids\nm-alpha,alpha,esoi run alpha_eval --impl live,sol-alpha\nm-beta,beta,esoi run beta_eval --impl live,sol-beta\nm-gamma,gamma,esoi run gamma_eval --impl live,sol-gamma\nm-delta,delta,esoi run delta_eval --impl live,sol-delta\n",
+  "esoi/implementations.csv": "implementation_id,solution_id,filepath\nsol-alpha:live,sol-alpha,pkg/alpha.py\nsol-beta:live,sol-beta,pkg/beta.py\nsol-gamma:live,sol-gamma,pkg/gamma.py\nsol-delta:live,sol-delta,pkg/delta.py\nsol-util:live,sol-util,pkg/util.py\n",
+  "esoi/problems.csv": "problem_id,problem\n",
+  "esoi/ideals.csv": "ideal_id,name\n",
+  "evaluation/components/alpha_eval/__init__.py": "",
+  "evaluation/components/alpha_eval/score.py": "def score_case(fn, case):\n    return dict(ok=True)\n",
+  "evaluation/components/alpha_eval/cases.json": "[]\n",
+  "evaluation/components/alpha_eval/impls/__init__.py": "",
+  "evaluation/components/alpha_eval/impls/live.py": "from pkg import alpha\nimport fixture_shared\n\n\ndef build(meter):\n    return lambda kind, args: {}\n",
+  "evaluation/components/beta_eval/__init__.py": "",
+  "evaluation/components/beta_eval/score.py": "def score_case(fn, case):\n    return dict(ok=True)\n",
+  "evaluation/components/beta_eval/cases.json": "[]\n",
+  "evaluation/components/beta_eval/impls/__init__.py": "",
+  "evaluation/components/beta_eval/impls/live.py": "from pkg import beta\n\n\ndef build(meter):\n    return lambda kind, args: {}\n",
+  "evaluation/components/gamma_eval/__init__.py": "",
+  "evaluation/components/gamma_eval/score.py": "def score_case(fn, case):\n    return dict(ok=True)\n",
+  "evaluation/components/gamma_eval/cases.json": "[]\n",
+  "evaluation/components/gamma_eval/impls/__init__.py": "",
+  "evaluation/components/gamma_eval/impls/live.py": "from pkg import gamma\n\n\ndef build(meter):\n    return lambda kind, args: {}\n",
+  "evaluation/components/delta_eval/__init__.py": "",
+  "evaluation/components/delta_eval/score.py": "def score_case(fn, case):\n    return dict(ok=True)\n",
+  "evaluation/components/delta_eval/cases.json": "[]\n",
+  "evaluation/components/delta_eval/impls/__init__.py": "",
+  "evaluation/components/delta_eval/impls/live.py": "from pkg import delta\n\n\ndef build(meter):\n    return lambda kind, args: {}\n",
+  "evaluation/components/orphan_eval/__init__.py": "",
+  "evaluation/components/orphan_eval/score.py": "def score_case(fn, case):\n    return dict(ok=True)\n",
+  "evaluation/components/orphan_eval/cases.json": "[]\n",
+  "evaluation/components/orphan_eval/impls/__init__.py": "",
+  "evaluation/components/orphan_eval/impls/live.py": "from pkg import orphan_mod\n\n\ndef build(meter):\n    return lambda kind, args: {}\n"
+ },
+ "components": [
+  "alpha",
+  "beta",
+  "gamma",
+  "delta",
+  "orphan"
+ ],
+ "steps": {
+  "touch-another-components-file": [
+   [
+    "write",
+    "pkg/beta.py",
+    "def run():\n    return open('pkg/beta_prompt.txt').read().strip()\n"
+   ],
+   [
+    "commit"
+   ]
+  ],
+  "touch-the-shared-utility": [
+   [
+    "write",
+    "pkg/util.py",
+    "def helper():\n    return 2\n"
+   ],
+   [
+    "commit"
+   ]
+  ],
+  "touch-the-measured-file": [
+   [
+    "write",
+    "pkg/alpha.py",
+    "from pkg import util\n\n\ndef run():\n    return util.helper() + 1\n"
+   ],
+   [
+    "commit"
+   ]
+  ],
+  "change-a-case-file": [
+   [
+    "write",
+    "evaluation/components/delta_eval/cases.json",
+    "[{\"id\": \"D1\"}]\n"
+   ],
+   [
+    "commit"
+   ]
+  ],
+  "add-a-dirty-edit": [
+   [
+    "write",
+    "pkg/gamma.py",
+    "from pkg.util import helper\n\n\ndef run():\n    return helper() * 2\n"
+   ]
+  ],
+  "rename-a-file": [
+   [
+    "rename",
+    "pkg/delta_helper.py",
+    "pkg/delta_support.py"
+   ],
+   [
+    "write",
+    "pkg/delta.py",
+    "from pkg import delta_support\n\n\ndef run():\n    return delta_support.value()\n"
+   ],
+   [
+    "commit"
+   ]
+  ],
+  "touch-a-doc": [
+   [
+    "write",
+    "docs/notes.md",
+    "more notes\n"
+   ],
+   [
+    "commit"
+   ]
+  ],
+  "touch-a-file-outside-any-component": [
+   [
+    "write",
+    "pkg/unowned_helper.py",
+    "def unused():\n    return 7\n"
+   ],
+   [
+    "commit"
+   ]
+  ],
+  "touch-a-data-file-the-code-reads": [
+   [
+    "write",
+    "pkg/beta_prompt.txt",
+    "say hello twice\n"
+   ],
+   [
+    "commit"
+   ]
+  ],
+  "touch-a-shared-evaluation-fixture": [
+   [
+    "write",
+    "evaluation/components/fixture_shared.py",
+    "SHARED = 2\n"
+   ],
+   [
+    "commit"
+   ]
+  ],
+  "touch-a-file-no-component-owns-that-one-arm-imports": [
+   [
+    "write",
+    "pkg/orphan_mod.py",
+    "def run():\n    return 8\n"
+   ],
+   [
+    "commit"
+   ]
+  ]
+ }
+}

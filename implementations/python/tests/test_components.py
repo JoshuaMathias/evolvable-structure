@@ -32,6 +32,9 @@ LOCAL = {"readme_at_a_glance": ("at_a_glance", ("full_page", "links_page", "read
 # passes more of the cases than the rival layout.
 LAYOUTS = {"navigable_records": ("beside_code", "esoi_folder")}
 
+# Judged on false-fresh (a hard fail) and false-stale: see tests/test_staleness.py for what each arm must and must not do.
+STALENESS = {"staleness_precision": ("import_closure", "repo_wide", "component_paths")}
+
 
 def score_all(component, spec):
     score = importlib.import_module(f"{component}.score")
@@ -40,7 +43,7 @@ def score_all(component, spec):
 
 
 def test_every_component_has_a_live_implementation_listed_here():
-    assert set(COMPONENTS) == set(LIVE) | set(GRADED) | set(LOCAL) | set(LAYOUTS)
+    assert set(COMPONENTS) == set(LIVE) | set(GRADED) | set(LOCAL) | set(LAYOUTS) | set(STALENESS)
 
 
 @pytest.mark.parametrize("component", sorted(LIVE))

@@ -129,7 +129,7 @@ def run_cli(config: Config, strict: bool, write: bool, say: Callable[[str], None
         for line in advisory:
             counts[rule_id(line)] = counts.get(rule_id(line), 0) + 1
         total = ", ".join(f"{rule} {n}" for rule, n in sorted(counts.items()))
-        say(f"to do: {len(advisory)} finding(s) of the opt-in rules ({total}); they never fail the check")
+        say(f"to do: {len(advisory)} finding(s) of the advisory rules ({total}); they inform and never fail the check")
         if findings:
             for line in advisory:
                 say("  " + line)

@@ -6,7 +6,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 
 ## How the solutions fit together
 
-esoi turns an intention into a structure that keeps fulfilling it while both change, and apply-esoi is how a project takes that up: apply-esoi teaches people through the-standard, guides AI agents through esoi-for-ai, holds the records and the code to their rules through structure-check, measures alternatives and moves the selection to the winner through promote-the-winner, chooses the implementation that serves each call through implementation-selection, finds the records a request concerns through spec-search, records one piece of work's metric before and after through keep-metric-record, finds which projects apply ESOI through local-application-index, and checks a project built on a library through consumer-check. the-standard explains ESOI and its fill-in templates in docs-and-templates, gives the order of the work in the-steps and ships the author's skill as a public folder through skill-distribution; the-steps is written down for readers in follow-the-steps. esoi-for-ai gives an agent the skill as standing instructions, behave-by-esoi measures case by case whether its replies act by the principles, and esoi-behaviour-judge grades the replies a pattern cannot settle, through judge-esoi-behaviour. structure-check applies every rule it holds through structure-rules, each rule kept only while structure-budget says it still pays and with ownership-map tying every file to a component, keeps the record fields in step with the template through template-sync, regenerates the pages of readable-records and the review-tracker sheet, and reads standings from leaderboard; template-sync parses the template that the intent-registry records follow. review-tracker puts the intent-registry records, the leaderboard standings and the fields kept in step by template-sync in front of a reviewer. promote-the-winner switches a solution's selected implementation when leaderboard shows a clear winner among the rows measurement-harness recorded, then updates the review-tracker sheet and the declarations that specify-from-code keeps in step with the intent-registry records; measurement-harness runs each implementation on its solution's cases, proves through discriminating-cases that those cases fail a naive implementation, follows when-metrics-are-run for when a stage may run and what it may spend, consults public-evidence before it pays to measure a candidate others have measured, and hands its rows to leaderboard, which public-evidence reads as well. implementation-selection chooses which implementation serves a solution by name, configuration or table default, and its declarations grow into the esoi-runtime sub-intent. spec-search ranks the records a request concerns over the narrowed set spec-index gives it. keep-metric-record reads the slice spec-index gives for the work it records. local-application-index says where to look first in each project. consumer-check scores a consumer's own implementations with the library's cases and shows its version lag.
+esoi turns an intention into a structure that keeps fulfilling it while both change, and apply-esoi is how a project takes that up: apply-esoi teaches people through the-standard, guides AI agents through esoi-for-ai, holds the records and the code to their rules through structure-check, measures alternatives and moves the selection to the winner through promote-the-winner, chooses the implementation that serves each call through implementation-selection, finds the records a request concerns through spec-search, records one piece of work's metric before and after through keep-metric-record, finds which projects apply ESOI through local-application-index, and checks a project built on a library through consumer-check. the-standard explains ESOI and its fill-in templates in docs-and-templates, gives the order of the work in the-steps and ships the author's skill as a public folder through skill-distribution; the-steps is written down for readers in follow-the-steps. esoi-for-ai gives an agent the skill as standing instructions, behave-by-esoi measures case by case whether its replies act by the principles, and esoi-behaviour-judge grades the replies a pattern cannot settle, through judge-esoi-behaviour. structure-check applies every rule it holds through structure-rules, each rule kept only while structure-budget says it still pays and with ownership-map tying every file to a component, keeps the record fields in step with the template through template-sync, regenerates the pages of readable-records and the review-tracker sheet, and reads standings from leaderboard; template-sync parses the template that the intent-registry records follow. review-tracker puts the intent-registry records, the leaderboard standings and the fields kept in step by template-sync in front of a reviewer. promote-the-winner switches a solution's selected implementation when leaderboard shows a clear winner among the rows measurement-harness recorded, then updates the review-tracker sheet and the declarations that specify-from-code keeps in step with the intent-registry records; measurement-harness runs each implementation on its solution's cases, proves through discriminating-cases that those cases fail a naive implementation, follows when-metrics-are-run for when a stage may run and what it may spend, consults public-evidence before it pays to measure a candidate others have measured, asks know-what-a-result-measures which changed files make a recorded row stale, and hands its rows to leaderboard, which public-evidence reads as well. implementation-selection chooses which implementation serves a solution by name, configuration or table default, and its declarations grow into the esoi-runtime sub-intent. spec-search ranks the records a request concerns over the narrowed set spec-index gives it. keep-metric-record reads the slice spec-index gives for the work it records. local-application-index says where to look first in each project. consumer-check scores a consumer's own implementations with the library's cases and shows its version lag.
 
 ## Diagram
 
@@ -45,6 +45,7 @@ flowchart LR
     s28["keep-metric-record<br/>keep-metric-record"]
     s29["Spec search<br/>spec-search"]
     s30["Grade evidence<br/>public-evidence"]
+    s31["Know what a result measures<br/>know-what-a-result-measures"]
     s0 -->|"The steps in the public skill and the guides that point to..."| s21
     s1 -->|"The project containing the path with its first file to read..."| s4
     s2 -->|"A reply per case, a pass or fail with a note, and a..."| s20
@@ -86,6 +87,7 @@ flowchart LR
     s28 -->|"From begin, the NEXT PRIORITY block for the brief; from..."| s4
     s29 -->|"A Selection: ranked items best first with their linked..."| s4
     s30 -->|"Dict(Tuple(str, str), Estimate)"| s9
+    s31 -->|"Stale or current for the row, the reason naming the changed..."| s9
 ```
 
 ## Solutions at a glance
@@ -123,6 +125,7 @@ flowchart LR
 | `keep-metric-record` | `esoi.run("keep-metric-record", '.')` | `library-modules` | Metric record kept |
 | `spec-search` | `esoi.run("spec-search", ...)` | `lexical-vector-gated` | Spec search correctness |
 | `public-evidence` | `esoi.run("public-evidence", {'evidence': []})` | `graded` | Public evidence graded |
+| `know-what-a-result-measures` | `esoi stale --explain COMPONENT` | `repo-wide` | Staleness precision |
 
 ## Problems and ideals
 
@@ -138,7 +141,7 @@ flowchart LR
 - `prob-switching-means-editing-code`: Switching a provider, runner or backend means finding and editing the call sites, often an `if` chain, and an embedding system cannot switch without forking.
 - `prob-purposeless-oversized-code`: Files no one can attribute to a purpose stay because deleting feels risky, and modules grow until no one reads them whole (one adapter file reached thousands of lines).
 - `prob-structure-rules-decay`: Rules written in prose (where files go, which way imports point, what must be documented) are followed by whoever read them and broken by the next agent, and generated documents drift from what they...
-- and 18 more: all 28 are in [problems](#problems) of the full record below
+- and 19 more: all 29 are in [problems](#problems) of the full record below
 
 **Ideals**
 
@@ -152,7 +155,7 @@ flowchart LR
 - `ideal-effortless-substitution`, Effortless substitution: Switching the implementation of a solution is a change of data, not of code.
 - `ideal-purposeful-code`, Purposeful code: Nothing exists that serves no solution, and every part is small enough to understand in one reading.
 - `ideal-self-enforcing-structure`, Self-enforcing structure: A structural rule is enforced by the structure, at the moment it is broken.
-- and 15 more: all 25 are in [ideals](#ideals) of the full record below
+- and 16 more: all 26 are in [ideals](#ideals) of the full record below
 
 ## Metrics and their leaders
 
@@ -166,7 +169,7 @@ flowchart LR
 - `metric-provenance-completeness`, Provenance completeness: leader `live_harness`, 27 of 28 cases
 - `metric-ranking-correctness`, Ranking correctness: leader `live_leaderboard`, 54 of 54 cases
 - `metric-case-discrimination`, Case discrimination
-- and 23 more: all 33 are in [metrics](#metrics) of the full record below
+- and 24 more: all 34 are in [metrics](#metrics) of the full record below
 
 ## Where to go next
 
@@ -210,6 +213,7 @@ flowchart LR
 - `prob-spec-search`: A system that finds a repository's records for a request, or finds them together with its own notes or documents, rebuilds the same stages inside its own code: lexical scoring, a semantic search, rank fusion, a confidence gate, one judging call and the way a ranked record brings its links. The copy in one product cannot be reused or improved by the next.
 - `prob-intent-folder-not-glanceable`: A person clicking into an intent folder cannot tell at a glance what it is, how its parts fit or where to go next: the page lists the records but shows no picture of how the solutions connect, no call that tries a solution, and no link down to the sub-intents, up to the parent intent or out to the repository.
 - `prob-spec-far-from-code`: A person reading the code of a solution cannot find its specification without leaving the code tree: the records sit in a separate folder, a code folder carries no page that says what it is for, and a change to the code and to its spec happen in two places.
+- `prob-results-stale-when-nothing-measured-changed`: A recorded result is called stale when any file of the repository's measured code changed, so every component's metrics are re-run after every commit although what most of them measure did not change. The reruns cost time and money, and people learn to ignore the staleness test or to stop running metrics.
 
 ### Ideals
 
@@ -238,6 +242,7 @@ flowchart LR
 - `ideal-spec-search`, One search, written once: The stages of finding the specifications a request concerns are written once, in the library, and a product supplies only its vector search and its judge.
 - `ideal-glanceable-intent`, Glanceable intent: Anyone clicking into an intent folder sees on the first screen what the intent is, how its solutions fit together and where to go next.
 - `ideal-navigable-records`, Navigable records: A person opening a code folder finds the specification of what it holds beside it, and a person opening a specification finds its code one folder away.
+- `ideal-stale-only-when-measured-changed`, Stale only when what it measures changed: A recorded result goes stale if and only if the code, cases or circumstances it measures changed.
 
 ### Solutions
 
@@ -274,6 +279,7 @@ flowchart LR
 | `keep-metric-record` | keep-metric-record | library-modules | Metric record kept |
 | `spec-search` | Spec search | lexical-vector-gated | Spec search correctness |
 | `public-evidence` | Grade evidence | graded | Public evidence graded |
+| `know-what-a-result-measures` | Know what a result measures | repo-wide | Staleness precision |
 
 ### Implementations
 
@@ -344,6 +350,9 @@ flowchart LR
 | `spec-search:lexical-only` | Lexical only | [implementations/python/esoi/spec_search.py](../implementations/python/esoi/spec_search.py) |  |
 | `spec-search:lexical-vector-gated` | Lexical vector gated | [implementations/python/esoi/spec_search.py](../implementations/python/esoi/spec_search.py) |  |
 | `public-evidence:graded` | Graded | [implementations/python/esoi/evidence.py](../implementations/python/esoi/evidence.py) |  |
+| `know-what-a-result-measures:repo-wide` | Repo wide | [implementations/python/esoi/staleness.py](../implementations/python/esoi/staleness.py) |  |
+| `know-what-a-result-measures:component-paths` | Component paths | [implementations/python/esoi/staleness.py](../implementations/python/esoi/staleness.py) |  |
+| `know-what-a-result-measures:import-closure` | Import closure | [implementations/python/esoi/staleness.py](../implementations/python/esoi/staleness.py) |  |
 
 ### Metrics
 
@@ -380,3 +389,4 @@ flowchart LR
 - `metric-public-evidence`, Public evidence graded: `esoi run public_evidence --impl graded`
 - `metric-solution-coherence`, Intents whose solutions one paragraph and one diagram explain as the code builds them: `python3 -m esoi.coherence --gate`
 - `metric-navigable-records`, Navigable records: `esoi run navigable_records --impl beside_code; esoi run navigable_records --impl esoi_folder`
+- `metric-staleness-precision`, Staleness precision: `esoi run staleness_precision --impl repo_wide; esoi run staleness_precision --impl component_paths; esoi run staleness_precision --impl import_closure`
