@@ -25,15 +25,15 @@ flowchart LR
 
 | Solution | Handle | Entry call | Selected implementation | Metric |
 |---|---|---|---|---|
-| Select an implementation while the program runs | `runtime-selection` | `esoi.run("runtime-selection", 'structure-check')` | `declarations-and-cascade` | Python selector cases |
-| Assemble parts by name | `assemble-by-name` | `esoi.run("assemble-by-name", 'structure-check')` | `assembler` | Assembly by name cases |
+| Select an implementation while the program runs | `runtime-selection` | `esoi.run("runtime-selection", 'structure-check')` | Declarations in code with one cascade (`declarations-and-cascade`) | Python selector cases |
+| Assemble parts by name | `assemble-by-name` | `esoi.run("assemble-by-name", 'structure-check')` | Dependency-ordered assembler (`assembler`) | Assembly by name cases |
 
 ## Problems and ideals
 
 **Problems**
 
-- `prob-selection-default-kept-twice`: The default implementation of a solution is written in the selection table and again in the records, and only a check holds the two equal.
-- `prob-swappable-needs-ceremony`: Making a part swappable takes a port class, a table entry with an import path for every alternative, a wrapper file to measure each one, and edits wherever the choice is made, so most parts are never...
+- Selection default kept twice (`prob-selection-default-kept-twice`): The default implementation of a solution is written in the selection table and again in the records, and only a check holds the two equal.
+- Swappable needs ceremony (`prob-swappable-needs-ceremony`): Making a part swappable takes a port class, a table entry with an import path for every alternative, a wrapper file to measure each one, and edits wherever the choice is made, so most parts are never...
 
 ## Metrics and their leaders
 
@@ -53,15 +53,15 @@ flowchart LR
 
 ### Problems
 
-- `prob-selection-default-kept-twice`: The default implementation of a solution is written in the selection table and again in the records, and only a check holds the two equal. Choosing a winner means editing both, and a mismatch fails the build.
-- `prob-swappable-needs-ceremony`: Making a part swappable takes a port class, a table entry with an import path for every alternative, a wrapper file to measure each one, and edits wherever the choice is made, so most parts are never made swappable.
+- Selection default kept twice (`prob-selection-default-kept-twice`): The default implementation of a solution is written in the selection table and again in the records, and only a check holds the two equal.
+- Swappable needs ceremony (`prob-swappable-needs-ceremony`): Making a part swappable takes a port class, a table entry with an import path for every alternative, a wrapper file to measure each one, and edits wherever the choice is made, so most parts are never made swappable.
 
 ### Solutions
 
 | Solution | Handle | Selected | Metric |
 |---|---|---|---|
-| Select an implementation while the program runs | `runtime-selection` | declarations-and-cascade | Python selector cases |
-| Assemble parts by name | `assemble-by-name` | assembler | Assembly by name cases |
+| Select an implementation while the program runs | `runtime-selection` | Declarations in code with one cascade (`declarations-and-cascade`) | Python selector cases |
+| Assemble parts by name | `assemble-by-name` | Dependency-ordered assembler (`assembler`) | Assembly by name cases |
 
 ### Implementations
 

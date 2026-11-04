@@ -348,13 +348,13 @@ def record_headers(rows: List[Dict[str, str]]) -> Dict[str, str]:
     out: Dict[str, str] = {}
     for entity, (name, key) in FILES.items():
         fields = [r["field_key"] for r in template.get(entity, []) if r["group"] in ("specify", "interface")]
-        cols = [key] + fields + LINKS[entity] + PARENT_CELLS[entity]
+        cols = [key] + (["name"] if entity == "problem" else []) + fields + LINKS[entity] + PARENT_CELLS[entity]
         if entity == "implementation":
             cols = [key, "solution_id", "filepath"] + fields + PARENT_CELLS[entity]
         out[name] = ",".join(dict.fromkeys(cols)) + "\n"
     intent_fields = [r["field_key"] for r in template.get("intent", []) if r["group"] in ("specify", "interface")]
     out["intent.csv"] = ",".join(["intent_id"] + intent_fields + INTENT_COLUMNS[1:]) + "\n"
-    out["components.csv"] = "component_id,layer,path,role,solutions\n"
+    out["components.csv"] = "component_id,name,layer,path,role,solutions\n"
     out["waivers.csv"] = "rule,path,reason\n"
     out["metric_runs.csv"] = ",".join(RUN_TABLE_COLUMNS) + "\n"
     out["results.csv"] = ("date,component,impl,cases,passed,dev,heldout,model_calls,tokens_in,tokens_out,cost_usd,"

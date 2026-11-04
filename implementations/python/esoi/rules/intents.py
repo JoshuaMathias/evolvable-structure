@@ -27,7 +27,7 @@ SUMMARIES = {
            "@project_id/solution_id for a solution of another project (listed in the local ESOI index, not read here).",
     "S46": "Advisory: a record's `name` is the human-readable label that leads every generated page, not its handle: a name that is missing, equals its "
            "own id (or the arm part of it), is the id with a suffix or after a colon, or is written kebab-case or snake_case is informed, for intents, "
-           "solutions, implementations, metrics, ideals and problems (waive as the record id).",
+           "solutions, implementations, metrics, ideals, problems and components (waive as the record id).",
 }
 
 HANDLE_STYLE = re.compile(r"^[a-z0-9]+(?:[-_][a-z0-9]+)+$")
@@ -39,11 +39,12 @@ def handle_names(ctx: Context) -> List[str]:
     registry = ctx.registry
     kinds = (("intent", [i.row for i in intents.discover(ctx.config)], "intent_id"), ("solution", registry.every_solution(), "solution_id"),
              ("implementation", registry.implementations, "implementation_id"), ("metric", registry.metrics, "metric_id"),
-             ("ideal", registry.ideals, "ideal_id"), ("problem", registry.problems, "problem_id"))
+             ("ideal", registry.ideals, "ideal_id"), ("problem", registry.problems, "problem_id"),
+             ("component", registry.components, "component_id"))
     for kind, rows, key in kinds:
         for row in rows:
             ident, name = row.get(key, "").strip(), " ".join(row.get("name", "").split())
-            if not ident or ctx.waived("S46", ident) or (kind == "problem" and "name" not in row):
+            if not ident or ctx.waived("S46", ident):
                 continue
             tail = ident.split(":", 1)[-1].lower()
             low = name.lower()

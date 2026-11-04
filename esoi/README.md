@@ -94,53 +94,53 @@ flowchart LR
 
 | Solution | Handle | Entry call | Selected implementation | Metric |
 |---|---|---|---|---|
-| Follow the steps | `follow-the-steps` | `esoi.run("follow-the-steps", '.')` | `steps` | Steps trial |
-| Local ESOI index | `local-application-index` | `esoi.run("local-application-index", '.')` | `live_index` | Local index lookup cases |
-| Behave by ESOI | `behave-by-esoi` | `esoi.run("behave-by-esoi", '.')` | `standing-instructions` | ESOI behaviour cases |
-| Judge ESOI behaviour | `judge-esoi-behaviour` | `esoi.run("judge-esoi-behaviour", '.')` | `model-judge` | ESOI judge agreement cases |
-| Apply ESOI to a project | `apply-esoi` | `esoi.run("apply-esoi", '.')` | `documents-templates-and-tools` | Adoption effort, Intents whose solutions one paragraph and one diagram explain as the code builds them |
-| Intent registry | `intent-registry` | `esoi.run("intent-registry", '.')` | `beside_code` | Navigable records, Record completeness |
-| Template sync | `template-sync` | `esoi.run("template-sync", '.')` | `template-parser` | Template agreement |
-| Ownership map | `ownership-map` | `esoi.run("ownership-map", '.')` | `component-rows` | Trace completeness |
-| Implementation selection | `implementation-selection` | `esoi.run("implementation-selection", 'structure-check')` | `declarations` | Resolution correctness |
-| Measurement harness | `measurement-harness` | `esoi.run("measurement-harness", '.')` | `component-harness` | Provenance completeness |
-| Implementation leaderboard | `leaderboard` | `esoi.run("leaderboard", '.')` | `margin-leaderboard` | Ranking correctness |
-| Discriminating cases | `discriminating-cases` | `esoi.run("discriminating-cases", '.')` | `broken-baselines` | Case discrimination |
-| Rule engine | `structure-check` | `esoi.run("structure-check", '.')` | `rule-script` | Check dependability |
-| Structure rules | `structure-rules` | `esoi.run("structure-rules", '.')` | `rule-modules` | Violation detection |
-| Review tracker | `review-tracker` | `esoi.run("review-tracker", '.')` | `tracker-and-sheet` | Review coverage |
-| Consumer check | `consumer-check` | `esoi.run("consumer-check", 'esoi')` | `consumer-command` | Consumer soundness |
-| The standard | `the-standard` | `esoi.run("the-standard", '.')` | `standard-document` | Adoption effort |
-| Structure budget | `structure-budget` | `esoi.run("structure-budget", '.')` | `written-weighing-rule` | Structure cost against catches |
-| When metrics are run | `when-metrics-are-run` | `esoi.run("when-metrics-are-run", '.')` | `on-every-change` | Decisions backed by current results |
-| Skill distribution | `skill-distribution` | `esoi.run("skill-distribution", '.')` | `generated-public-copy` | Skill copy agreement and leaks |
-| ESOI applied to AI behaviour | `esoi-for-ai` | `esoi.run("esoi-for-ai", '.')` | `skill-as-standing-instructions` | Behaviour adherence |
-| The ESOI steps | `the-steps` | `esoi.run("the-steps", '.')` | `esoi-steps` | Steps followed |
-| Documentation and templates | `docs-and-templates` | `esoi.run("docs-and-templates", '.')` | `documentation-folder` | Newcomer effort |
-| ESOI behaviour judge | `esoi-behaviour-judge` | `esoi.run("esoi-behaviour-judge", '.')` | `model-judge-on-the-rubric` | Judge agreement |
-| Specify from the code | `specify-from-code` | `esoi.run("specify-from-code", '.')` | `declarations-and-sync` | Declaration sync |
-| Readable records | `readable-records` | `esoi.run("readable-records", '.')` | `at_a_glance` | README glanceability, README fidelity |
-| Promote the winner | `promote-the-winner` | `esoi.run("promote-the-winner", '.')` | `margin-promotion` | Promotion correctness |
-| Specification index | `spec-index` | `esoi.run("spec-index", ...)` | `weighted-tfidf` | Specification recall at k |
-| Keep a metric record | `keep-metric-record` | `esoi.run("keep-metric-record", '.')` | `library-modules` | Metric record kept |
-| Spec search | `spec-search` | `esoi.run("spec-search", ...)` | `lexical-vector-gated` | Spec search correctness |
-| Grade evidence | `public-evidence` | `esoi.run("public-evidence", {'evidence': []})` | `graded` | Public evidence graded |
-| Know what a result measures | `know-what-a-result-measures` | `esoi stale --explain COMPONENT` | `import_closure` | Staleness precision |
+| Follow the steps | `follow-the-steps` | `esoi.run("follow-the-steps", '.')` | The ESOI steps (`steps`) | Steps trial |
+| Local ESOI index | `local-application-index` | `esoi.run("local-application-index", '.')` | Index folder in the user's home (`live_index`) | Local index lookup cases |
+| Behave by ESOI | `behave-by-esoi` | `esoi.run("behave-by-esoi", '.')` | Skill as standing instructions (`standing-instructions`) | ESOI behaviour cases |
+| Judge ESOI behaviour | `judge-esoi-behaviour` | `esoi.run("judge-esoi-behaviour", '.')` | Model judge (`model-judge`) | ESOI judge agreement cases |
+| Apply ESOI to a project | `apply-esoi` | `esoi.run("apply-esoi", '.')` | Documents, templates and tools together (`documents-templates-and-tools`) | Adoption effort, Intents whose solutions one paragraph and one diagram explain as the code builds them |
+| Intent registry | `intent-registry` | `esoi.run("intent-registry", '.')` | Records beside the code (`beside_code`) | Navigable records, Record completeness |
+| Template sync | `template-sync` | `esoi.run("template-sync", '.')` | Template parser (`template-parser`) | Template agreement |
+| Ownership map | `ownership-map` | `esoi.run("ownership-map", '.')` | Component rows (`component-rows`) | Trace completeness |
+| Implementation selection | `implementation-selection` | `esoi.run("implementation-selection", 'structure-check')` | Declarations in code (`declarations`) | Resolution correctness |
+| Measurement harness | `measurement-harness` | `esoi.run("measurement-harness", '.')` | Component harness (`component-harness`) | Provenance completeness |
+| Implementation leaderboard | `leaderboard` | `esoi.run("leaderboard", '.')` | Margin leaderboard (`margin-leaderboard`) | Ranking correctness |
+| Discriminating cases | `discriminating-cases` | `esoi.run("discriminating-cases", '.')` | Broken baselines (`broken-baselines`) | Case discrimination |
+| Rule engine | `structure-check` | `esoi.run("structure-check", '.')` | Rule script (`rule-script`) | Check dependability |
+| Structure rules | `structure-rules` | `esoi.run("structure-rules", '.')` | Numbered rule modules (`rule-modules`) | Violation detection |
+| Review tracker | `review-tracker` | `esoi.run("review-tracker", '.')` | Tracker and sheet (`tracker-and-sheet`) | Review coverage |
+| Consumer check | `consumer-check` | `esoi.run("consumer-check", 'esoi')` | Consumer command (`consumer-command`) | Consumer soundness |
+| The standard | `the-standard` | `esoi.run("the-standard", '.')` | Standard document (`standard-document`) | Adoption effort |
+| Structure budget | `structure-budget` | `esoi.run("structure-budget", '.')` | Written weighing rule (`written-weighing-rule`) | Structure cost against catches |
+| When metrics are run | `when-metrics-are-run` | `esoi.run("when-metrics-are-run", '.')` | On every change (`on-every-change`) | Decisions backed by current results |
+| Skill distribution | `skill-distribution` | `esoi.run("skill-distribution", '.')` | Generated public copy (`generated-public-copy`) | Skill copy agreement and leaks |
+| ESOI applied to AI behaviour | `esoi-for-ai` | `esoi.run("esoi-for-ai", '.')` | Skill as standing instructions (`skill-as-standing-instructions`) | Behaviour adherence |
+| The ESOI steps | `the-steps` | `esoi.run("the-steps", '.')` | The ESOI steps (`esoi-steps`) | Steps followed |
+| Documentation and templates | `docs-and-templates` | `esoi.run("docs-and-templates", '.')` | Documentation folder (`documentation-folder`) | Newcomer effort |
+| ESOI behaviour judge | `esoi-behaviour-judge` | `esoi.run("esoi-behaviour-judge", '.')` | Model judge on the rubric (`model-judge-on-the-rubric`) | Judge agreement |
+| Specify from the code | `specify-from-code` | `esoi.run("specify-from-code", '.')` | Declarations read from the code, rows synced (`declarations-and-sync`) | Declaration sync |
+| Readable records | `readable-records` | `esoi.run("readable-records", '.')` | At a glance, full record below (`at_a_glance`) | README glanceability, README fidelity |
+| Promote the winner | `promote-the-winner` | `esoi.run("promote-the-winner", '.')` | Promotion on the leaderboard's verdict (`margin-promotion`) | Promotion correctness |
+| Specification index | `spec-index` | `esoi.run("spec-index", ...)` | Field-weighted TF-IDF over the index (`weighted-tfidf`) | Specification recall at k |
+| Keep a metric record | `keep-metric-record` | `esoi.run("keep-metric-record", '.')` | Library modules (`library-modules`) | Metric record kept |
+| Spec search | `spec-search` | `esoi.run("spec-search", ...)` | Lexical vector gated (`lexical-vector-gated`) | Spec search correctness |
+| Grade evidence | `public-evidence` | `esoi.run("public-evidence", {'evidence': []})` | Letter grades by weighted evidence (`graded`) | Public evidence graded |
+| Know what a result measures | `know-what-a-result-measures` | `esoi stale --explain COMPONENT` | Import closure (`import_closure`) | Staleness precision |
 
 ## Problems and ideals
 
 **Problems**
 
-- `prob-ai-behaviour-drifts-from-principles`: An AI agent asked to do work applies the principles inconsistently, and nothing shows how often.
-- `prob-no-order-to-follow`: People who want to apply ESOI have the five record types and the principles but no order to follow.
-- `prob-applied-structure-is-rediscovered`: Where ESOI is already applied, how those projects relate and where to look in each is rediscovered in every session.
-- `prob-behaviour-verdicts-uncalibrated`: A model that grades whether a reply acts by the principles can disagree with the people whose intent the principles express, can favour its own phrasing when it wrote the reply, and can pass a reply...
-- `prob-intent-lost-between-person-and-code`: What someone meant when they asked for a capability lives in their head, a chat or a task, and the code that answers it carries none of that meaning.
-- `prob-best-alternative-unknown`: Most parts of a system can be done several ways (a model tier, a router, a retrieval method), and the one in use was chosen by whoever wrote it, not by evidence.
-- `prob-measurements-untrusted`: A number recorded on uncommitted code, on a different case set, typed by hand, or copied into prose that is never updated looks like evidence but proves nothing.
-- `prob-switching-means-editing-code`: Switching a provider, runner or backend means finding and editing the call sites, often an `if` chain, and an embedding system cannot switch without forking.
-- `prob-purposeless-oversized-code`: Files no one can attribute to a purpose stay because deleting feels risky, and modules grow until no one reads them whole (one adapter file reached thousands of lines).
-- `prob-structure-rules-decay`: Rules written in prose (where files go, which way imports point, what must be documented) are followed by whoever read them and broken by the next agent, and generated documents drift from what they...
+- AI behaviour drifts from the principles (`prob-ai-behaviour-drifts-from-principles`): An AI agent asked to do work applies the principles inconsistently, and nothing shows how often.
+- No order to follow (`prob-no-order-to-follow`): People who want to apply ESOI have the five record types and the principles but no order to follow.
+- Applied structure is rediscovered (`prob-applied-structure-is-rediscovered`): Where ESOI is already applied, how those projects relate and where to look in each is rediscovered in every session.
+- Behaviour verdicts uncalibrated (`prob-behaviour-verdicts-uncalibrated`): A model that grades whether a reply acts by the principles can disagree with the people whose intent the principles express, can favour its own phrasing when it wrote the reply, and can pass a reply...
+- Intent lost between person and code (`prob-intent-lost-between-person-and-code`): What someone meant when they asked for a capability lives in their head, a chat or a task, and the code that answers it carries none of that meaning.
+- Best alternative unknown (`prob-best-alternative-unknown`): Most parts of a system can be done several ways (a model tier, a router, a retrieval method), and the one in use was chosen by whoever wrote it, not by evidence.
+- Measurements untrusted (`prob-measurements-untrusted`): A number recorded on uncommitted code, on a different case set, typed by hand, or copied into prose that is never updated looks like evidence but proves nothing.
+- Switching means editing code (`prob-switching-means-editing-code`): Switching a provider, runner or backend means finding and editing the call sites, often an `if` chain, and an embedding system cannot switch without forking.
+- Purposeless, oversized code (`prob-purposeless-oversized-code`): Files no one can attribute to a purpose stay because deleting feels risky, and modules grow until no one reads them whole (one adapter file reached thousands of lines).
+- Structure rules decay (`prob-structure-rules-decay`): Rules written in prose (where files go, which way imports point, what must be documented) are followed by whoever read them and broken by the next agent, and generated documents drift from what they...
 - and 19 more: all 29 are in [problems](#problems) of the full record below
 
 **Ideals**
@@ -185,35 +185,35 @@ flowchart LR
 
 ### Problems
 
-- `prob-ai-behaviour-drifts-from-principles`: An AI agent asked to do work applies the principles inconsistently, and nothing shows how often. It builds a framework for a one-off fix, treats a task as a problem, merges use cases whose best differs into one function, drops the qualifier from a rule it restates, or pastes a fifth copy, and the instructions meant to prevent this (a skill, a system prompt) are edited with no measure showing whether the behaviour got better or worse.
-- `prob-no-order-to-follow`: People who want to apply ESOI have the five record types and the principles but no order to follow. They do not know what to do first, write implementations before deciding what best means, trust a metric nobody checked, skip the perspectives that would find gaps, and stop after the first build instead of looping back.
-- `prob-applied-structure-is-rediscovered`: Where ESOI is already applied, how those projects relate and where to look in each is rediscovered in every session.
-- `prob-behaviour-verdicts-uncalibrated`: A model that grades whether a reply acts by the principles can disagree with the people whose intent the principles express, can favour its own phrasing when it wrote the reply, and can pass a reply that uses the right words while doing the opposite. Nothing shows by how much, so a score built on its verdicts looks like evidence but may measure the judge.
-- `prob-intent-lost-between-person-and-code`: What someone meant when they asked for a capability lives in their head, a chat or a task, and the code that answers it carries none of that meaning. Months later nobody, human or AI, can tell what a module was for, which use cases it must serve, or what "better" would mean for it.
-- `prob-best-alternative-unknown`: Most parts of a system can be done several ways (a model tier, a router, a retrieval method), and the one in use was chosen by whoever wrote it, not by evidence. When a better alternative appears, nothing shows that it is better or makes it the default.
-- `prob-measurements-untrusted`: A number recorded on uncommitted code, on a different case set, typed by hand, or copied into prose that is never updated looks like evidence but proves nothing. Two numbers from different conditions get compared as if they were alike.
-- `prob-switching-means-editing-code`: Switching a provider, runner or backend means finding and editing the call sites, often an `if` chain, and an embedding system cannot switch without forking.
-- `prob-purposeless-oversized-code`: Files no one can attribute to a purpose stay because deleting feels risky, and modules grow until no one reads them whole (one adapter file reached thousands of lines).
-- `prob-structure-rules-decay`: Rules written in prose (where files go, which way imports point, what must be documented) are followed by whoever read them and broken by the next agent, and generated documents drift from what they describe.
-- `prob-review-needs-implementations`: A person who wants to steer quality has to read implementations, because ideals, metrics and current results are not gathered anywhere they can read and correct.
-- `prob-evaluation-detached-from-shipped-code`: Evaluations built beside production code test copies, stubs or scripts of their own, so their results describe something that does not run.
-- `prob-embedding-soundness-unknown`: A system builds on a library's solutions with its own stores and prompts, but cannot see which library solution each of its parts serves, whether its parts meet the library's own cases, or how far its pinned version lags.
-- `prob-template-copies-drift`: The intent template is being refined in the skill, and every registry and checker that copied its fields falls out of date.
-- `prob-others-cannot-adopt`: There is no worked, checked example of evolvable structure in code, so each team that wants it designs its own from prose.
-- `prob-structure-costs-more-than-it-returns`: Every rule, record and check adds work to each change, and past a point contributors spend more time satisfying the structure than improving the code.
-- `prob-metrics-run-at-the-wrong-time`: Results are stale when a choice depends on them, or paid runs happen with no decision behind them, so people either decide on numbers that no longer describe the code or stop running the metrics at all.
-- `prob-skill-cannot-be-reached-safely`: A person who wants to use the author's skill cannot get it in a form that is both complete and safe to publish. The skill lives in a private folder next to material that is not public, so it cannot simply be shared; a copy made by hand starts to drift on the first edit; and a leaked name, path or internal process cannot be taken back once published.
-- `prob-records-copy-the-code`: The records repeat what the code already says: which alternatives of a solution exist, the file each lives in, and an interface's signature. Each repeated fact is kept in step by hand, or by a check that only reports the drift, so adding an alternative means editing the code and several records, and the two drift apart.
-- `prob-winner-not-adopted`: A rival that clearly beats the selected implementation on the solution's own metric stays unadopted until someone notices and edits the selection, the metric's command and the record of why, by hand.
-- `prob-records-unreadable-at-a-glance`: An intent's folder of CSV files states it completely, but what the intent is for cannot be seen without opening several files and following ids between them.
-- `prob-simulated-arm-false-loss`: An arm that meters a deterministic stand-in for a model counts the calls a real model would make but spends nothing. It is recorded with an unknown model and cost, so the harness skips it as paid and the ranking rates a free baseline cheaper than a cost that is merely unknown, reporting a loss that is not real.
-- `prob-rules-unjustified`: A rule is kept in code with no record of the mistake that justified it or of what it has caught since, so nobody can tell whether it still earns its place or why its limit has its value.
-- `prob-intent-specs-not-found-for-new-input`: A new use case or input arrives, and nobody (human or AI) can tell which of a project's problems, ideals, solutions, implementations and metrics apply without reading all of them. The specifications exist, but finding the relevant few is left to whoever happens to remember them.
-- `prob-metric-measures-a-stand-in`: A metric scores a scripted judge, a mocked model or a canned answer instead of the real thing, so its number measures the plumbing around the thing and not the thing. A perfect scripted judge passes everything, and a decision built on the number is backed by nothing.
-- `prob-spec-search`: A system that finds a repository's records for a request, or finds them together with its own notes or documents, rebuilds the same stages inside its own code: lexical scoring, a semantic search, rank fusion, a confidence gate, one judging call and the way a ranked record brings its links. The copy in one product cannot be reused or improved by the next.
-- `prob-intent-folder-not-glanceable`: A person clicking into an intent folder cannot tell at a glance what it is, how its parts fit or where to go next: the page lists the records but shows no picture of how the solutions connect, no call that tries a solution, and no link down to the sub-intents, up to the parent intent or out to the repository.
-- `prob-spec-far-from-code`: A person reading the code of a solution cannot find its specification without leaving the code tree: the records sit in a separate folder, a code folder carries no page that says what it is for, and a change to the code and to its spec happen in two places.
-- `prob-results-stale-when-nothing-measured-changed`: A recorded result is called stale when any file of the repository's measured code changed, so every component's metrics are re-run after every commit although what most of them measure did not change. The reruns cost time and money, and people learn to ignore the staleness test or to stop running metrics.
+- AI behaviour drifts from the principles (`prob-ai-behaviour-drifts-from-principles`): An AI agent asked to do work applies the principles inconsistently, and nothing shows how often.
+- No order to follow (`prob-no-order-to-follow`): People who want to apply ESOI have the five record types and the principles but no order to follow.
+- Applied structure is rediscovered (`prob-applied-structure-is-rediscovered`): Where ESOI is already applied, how those projects relate and where to look in each is rediscovered in every session.
+- Behaviour verdicts uncalibrated (`prob-behaviour-verdicts-uncalibrated`): A model that grades whether a reply acts by the principles can disagree with the people whose intent the principles express, can favour its own phrasing when it wrote the reply, and can pass a reply that uses the right words while doing the opposite.
+- Intent lost between person and code (`prob-intent-lost-between-person-and-code`): What someone meant when they asked for a capability lives in their head, a chat or a task, and the code that answers it carries none of that meaning.
+- Best alternative unknown (`prob-best-alternative-unknown`): Most parts of a system can be done several ways (a model tier, a router, a retrieval method), and the one in use was chosen by whoever wrote it, not by evidence.
+- Measurements untrusted (`prob-measurements-untrusted`): A number recorded on uncommitted code, on a different case set, typed by hand, or copied into prose that is never updated looks like evidence but proves nothing.
+- Switching means editing code (`prob-switching-means-editing-code`): Switching a provider, runner or backend means finding and editing the call sites, often an `if` chain, and an embedding system cannot switch without forking.
+- Purposeless, oversized code (`prob-purposeless-oversized-code`): Files no one can attribute to a purpose stay because deleting feels risky, and modules grow until no one reads them whole (one adapter file reached thousands of lines).
+- Structure rules decay (`prob-structure-rules-decay`): Rules written in prose (where files go, which way imports point, what must be documented) are followed by whoever read them and broken by the next agent, and generated documents drift from what they describe.
+- Review needs implementations (`prob-review-needs-implementations`): A person who wants to steer quality has to read implementations, because ideals, metrics and current results are not gathered anywhere they can read and correct.
+- Evaluation detached from shipped code (`prob-evaluation-detached-from-shipped-code`): Evaluations built beside production code test copies, stubs or scripts of their own, so their results describe something that does not run.
+- Embedding soundness unknown (`prob-embedding-soundness-unknown`): A system builds on a library's solutions with its own stores and prompts, but cannot see which library solution each of its parts serves, whether its parts meet the library's own cases, or how far its pinned version lags.
+- Template copies drift (`prob-template-copies-drift`): The intent template is being refined in the skill, and every registry and checker that copied its fields falls out of date.
+- Others cannot adopt (`prob-others-cannot-adopt`): There is no worked, checked example of evolvable structure in code, so each team that wants it designs its own from prose.
+- Structure costs more than it returns (`prob-structure-costs-more-than-it-returns`): Every rule, record and check adds work to each change, and past a point contributors spend more time satisfying the structure than improving the code.
+- Metrics run at the wrong time (`prob-metrics-run-at-the-wrong-time`): Results are stale when a choice depends on them, or paid runs happen with no decision behind them, so people either decide on numbers that no longer describe the code or stop running the metrics at all.
+- Skill cannot be reached safely (`prob-skill-cannot-be-reached-safely`): A person who wants to use the author's skill cannot get it in a form that is both complete and safe to publish.
+- Records copy the code (`prob-records-copy-the-code`): The records repeat what the code already says: which alternatives of a solution exist, the file each lives in, and an interface's signature.
+- Winner not adopted (`prob-winner-not-adopted`): A rival that clearly beats the selected implementation on the solution's own metric stays unadopted until someone notices and edits the selection, the metric's command and the record of why, by hand.
+- Records unreadable at a glance (`prob-records-unreadable-at-a-glance`): An intent's folder of CSV files states it completely, but what the intent is for cannot be seen without opening several files and following ids between them.
+- Simulated arm shows a false loss (`prob-simulated-arm-false-loss`): An arm that meters a deterministic stand-in for a model counts the calls a real model would make but spends nothing.
+- Rules unjustified (`prob-rules-unjustified`): A rule is kept in code with no record of the mistake that justified it or of what it has caught since, so nobody can tell whether it still earns its place or why its limit has its value.
+- Specifications not found for new input (`prob-intent-specs-not-found-for-new-input`): A new use case or input arrives, and nobody (human or AI) can tell which of a project's problems, ideals, solutions, implementations and metrics apply without reading all of them.
+- Metric measures a stand-in (`prob-metric-measures-a-stand-in`): A metric scores a scripted judge, a mocked model or a canned answer instead of the real thing, so its number measures the plumbing around the thing and not the thing.
+- Specifications hard to search (`prob-spec-search`): A system that finds a repository's records for a request, or finds them together with its own notes or documents, rebuilds the same stages inside its own code: lexical scoring, a semantic search, rank fusion, a confidence gate, one judging call and the way a ranked record brings its links.
+- Intent folder not glanceable (`prob-intent-folder-not-glanceable`): A person clicking into an intent folder cannot tell at a glance what it is, how its parts fit or where to go next: the page lists the records but shows no picture of how the solutions connect, no call that tries a solution, and no link down to the sub-intents, up to the parent intent or out to the repository.
+- Specification far from the code (`prob-spec-far-from-code`): A person reading the code of a solution cannot find its specification without leaving the code tree: the records sit in a separate folder, a code folder carries no page that says what it is for, and a change to the code and to its spec happen in two places.
+- Results stale when nothing measured changed (`prob-results-stale-when-nothing-measured-changed`): A recorded result is called stale when any file of the repository's measured code changed, so every component's metrics are re-run after every commit although what most of them measure did not change.
 
 ### Ideals
 
@@ -248,38 +248,38 @@ flowchart LR
 
 | Solution | Handle | Selected | Metric |
 |---|---|---|---|
-| Follow the steps | `follow-the-steps` | steps | Steps trial |
-| Local ESOI index | `local-application-index` | live_index | Local index lookup cases |
-| Behave by ESOI | `behave-by-esoi` | standing-instructions | ESOI behaviour cases |
-| Judge ESOI behaviour | `judge-esoi-behaviour` | model-judge | ESOI judge agreement cases |
-| Apply ESOI to a project | `apply-esoi` | documents-templates-and-tools | Adoption effort, Intents whose solutions one paragraph and one diagram explain as the code builds them |
-| Intent registry | `intent-registry` | beside_code | Navigable records, Record completeness |
-| Template sync | `template-sync` | template-parser | Template agreement |
-| Ownership map | `ownership-map` | component-rows | Trace completeness |
-| Implementation selection | `implementation-selection` | declarations | Resolution correctness |
-| Measurement harness | `measurement-harness` | component-harness | Provenance completeness |
-| Implementation leaderboard | `leaderboard` | margin-leaderboard | Ranking correctness |
-| Discriminating cases | `discriminating-cases` | broken-baselines | Case discrimination |
-| Rule engine | `structure-check` | rule-script | Check dependability |
-| Structure rules | `structure-rules` | rule-modules | Violation detection |
-| Review tracker | `review-tracker` | tracker-and-sheet | Review coverage |
-| Consumer check | `consumer-check` | consumer-command | Consumer soundness |
-| The standard | `the-standard` | standard-document | Adoption effort |
-| Structure budget | `structure-budget` | written-weighing-rule | Structure cost against catches |
-| When metrics are run | `when-metrics-are-run` | on-every-change | Decisions backed by current results |
-| Skill distribution | `skill-distribution` | generated-public-copy | Skill copy agreement and leaks |
-| ESOI applied to AI behaviour | `esoi-for-ai` | skill-as-standing-instructions | Behaviour adherence |
-| The ESOI steps | `the-steps` | esoi-steps | Steps followed |
-| Documentation and templates | `docs-and-templates` | documentation-folder | Newcomer effort |
-| ESOI behaviour judge | `esoi-behaviour-judge` | model-judge-on-the-rubric | Judge agreement |
-| Specify from the code | `specify-from-code` | declarations-and-sync | Declaration sync |
-| Readable records | `readable-records` | at_a_glance | README glanceability, README fidelity |
-| Promote the winner | `promote-the-winner` | margin-promotion | Promotion correctness |
-| Specification index | `spec-index` | weighted-tfidf | Specification recall at k |
-| Keep a metric record | `keep-metric-record` | library-modules | Metric record kept |
-| Spec search | `spec-search` | lexical-vector-gated | Spec search correctness |
-| Grade evidence | `public-evidence` | graded | Public evidence graded |
-| Know what a result measures | `know-what-a-result-measures` | import_closure | Staleness precision |
+| Follow the steps | `follow-the-steps` | The ESOI steps (`steps`) | Steps trial |
+| Local ESOI index | `local-application-index` | Index folder in the user's home (`live_index`) | Local index lookup cases |
+| Behave by ESOI | `behave-by-esoi` | Skill as standing instructions (`standing-instructions`) | ESOI behaviour cases |
+| Judge ESOI behaviour | `judge-esoi-behaviour` | Model judge (`model-judge`) | ESOI judge agreement cases |
+| Apply ESOI to a project | `apply-esoi` | Documents, templates and tools together (`documents-templates-and-tools`) | Adoption effort, Intents whose solutions one paragraph and one diagram explain as the code builds them |
+| Intent registry | `intent-registry` | Records beside the code (`beside_code`) | Navigable records, Record completeness |
+| Template sync | `template-sync` | Template parser (`template-parser`) | Template agreement |
+| Ownership map | `ownership-map` | Component rows (`component-rows`) | Trace completeness |
+| Implementation selection | `implementation-selection` | Declarations in code (`declarations`) | Resolution correctness |
+| Measurement harness | `measurement-harness` | Component harness (`component-harness`) | Provenance completeness |
+| Implementation leaderboard | `leaderboard` | Margin leaderboard (`margin-leaderboard`) | Ranking correctness |
+| Discriminating cases | `discriminating-cases` | Broken baselines (`broken-baselines`) | Case discrimination |
+| Rule engine | `structure-check` | Rule script (`rule-script`) | Check dependability |
+| Structure rules | `structure-rules` | Numbered rule modules (`rule-modules`) | Violation detection |
+| Review tracker | `review-tracker` | Tracker and sheet (`tracker-and-sheet`) | Review coverage |
+| Consumer check | `consumer-check` | Consumer command (`consumer-command`) | Consumer soundness |
+| The standard | `the-standard` | Standard document (`standard-document`) | Adoption effort |
+| Structure budget | `structure-budget` | Written weighing rule (`written-weighing-rule`) | Structure cost against catches |
+| When metrics are run | `when-metrics-are-run` | On every change (`on-every-change`) | Decisions backed by current results |
+| Skill distribution | `skill-distribution` | Generated public copy (`generated-public-copy`) | Skill copy agreement and leaks |
+| ESOI applied to AI behaviour | `esoi-for-ai` | Skill as standing instructions (`skill-as-standing-instructions`) | Behaviour adherence |
+| The ESOI steps | `the-steps` | The ESOI steps (`esoi-steps`) | Steps followed |
+| Documentation and templates | `docs-and-templates` | Documentation folder (`documentation-folder`) | Newcomer effort |
+| ESOI behaviour judge | `esoi-behaviour-judge` | Model judge on the rubric (`model-judge-on-the-rubric`) | Judge agreement |
+| Specify from the code | `specify-from-code` | Declarations read from the code, rows synced (`declarations-and-sync`) | Declaration sync |
+| Readable records | `readable-records` | At a glance, full record below (`at_a_glance`) | README glanceability, README fidelity |
+| Promote the winner | `promote-the-winner` | Promotion on the leaderboard's verdict (`margin-promotion`) | Promotion correctness |
+| Specification index | `spec-index` | Field-weighted TF-IDF over the index (`weighted-tfidf`) | Specification recall at k |
+| Keep a metric record | `keep-metric-record` | Library modules (`library-modules`) | Metric record kept |
+| Spec search | `spec-search` | Lexical vector gated (`lexical-vector-gated`) | Spec search correctness |
+| Grade evidence | `public-evidence` | Letter grades by weighted evidence (`graded`) | Public evidence graded |
+| Know what a result measures | `know-what-a-result-measures` | Import closure (`import_closure`) | Staleness precision |
 
 ### Implementations
 

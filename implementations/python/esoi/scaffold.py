@@ -265,11 +265,11 @@ def files_for(package: str, template) -> Dict[str, str]:
         ["intent_id"] + fields(template, "intent", True) + ["implements"],
         [record("intent", template, SAMPLE["intent"], intent_id=package.replace("_", "-"))])
     out[f"{structure}/problems.csv"] = render_csv(
-        ["problem_id"] + fields(template, "problem", True) + ["solution_ids", "ideal_ids", "parent_problem_ids", "parent_ideal_ids"],
-        [record("problem", template, SAMPLE["problem"], problem_id="greeting-by-hand", solution_ids=SOLUTION,
-                ideal_ids="consistent-greeting"),
-         record("problem", template, STRUCTURE["problem"], problem_id="purpose-unrecorded", solution_ids="project-structure",
-                ideal_ids="explicit-purpose")])
+        ["problem_id", "name"] + fields(template, "problem", True) + ["solution_ids", "ideal_ids", "parent_problem_ids", "parent_ideal_ids"],
+        [record("problem", template, SAMPLE["problem"], problem_id="greeting-by-hand", name="Greetings written by hand",
+                solution_ids=SOLUTION, ideal_ids="consistent-greeting"),
+         record("problem", template, STRUCTURE["problem"], problem_id="purpose-unrecorded", name="Purpose never written down",
+                solution_ids="project-structure", ideal_ids="explicit-purpose")])
     out[f"{structure}/ideals.csv"] = render_csv(
         ["ideal_id"] + fields(template, "ideal", True) + ["problem_ids", "parent_ideal_ids"],
         [record("ideal", template, SAMPLE["ideal"], ideal_id="consistent-greeting", problem_ids="greeting-by-hand"),
@@ -292,8 +292,9 @@ def files_for(package: str, template) -> Dict[str, str]:
         ("structure-registry", "docs", f"{structure}/**", "The intent records and the placement map.", SOLUTION),
         ("project-files", "docs", "*", "Files at the repository root.", SOLUTION)]
     out[f"{structure}/components.csv"] = render_csv(
-        ["component_id", "layer", "path", "role", "solutions"],
-        [dict(zip(["component_id", "layer", "path", "role", "solutions"], c)) for c in components])
+        ["component_id", "name", "layer", "path", "role", "solutions"],
+        [dict(zip(["component_id", "name", "layer", "path", "role", "solutions"], (c[0], c[0].replace("-", " ").capitalize()) + tuple(c[1:])))
+         for c in components])
     out[f"{structure}/waivers.csv"] = render_csv(["rule", "path", "reason"], [])
     out[f"{structure}/esoi_template.csv"] = TEMPLATE_DATA.read_text(encoding="utf-8")
     out["esoi.toml"] = CONFIG.format(package=package, version=max(versioning.template_version(versioning.bundled_stamp()), 1))

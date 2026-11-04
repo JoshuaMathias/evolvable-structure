@@ -124,3 +124,34 @@ def test_the_declarations_of_esois_own_modules_are_read_through_their_relative_i
     seen = declarations.Declared()
     declarations.scan_file("pkg/seat.py", 'from .runtime import solution\n\n\n@solution("one", kind="event", entry="go", example="x")\nclass One:\n    """One."""\n', seen)
     assert seen.solutions["one"].entry == "go" and seen.solutions["one"].example == "x"
+
+
+# ---- the name leads: selected implementation, problems and ideals, components -------------------------------------------------
+
+def test_the_selected_implementation_leads_with_its_name_and_the_handle_follows_in_code_font():
+    from esoi import readme
+    registry = readme.Registry(implementations=[{"implementation_id": "s:tier_selector", "solution_id": "s", "name": "Tier selector",
+                                                 "filepath": "pkg/tier.py"}])
+    assert readme.impl_label(registry, "s", "tier_selector") == "Tier selector (`tier_selector`)"
+    assert readme.impl_label(registry, "s", "s:tier_selector") == "Tier selector (`s:tier_selector`)"
+    assert readme.impl_label(registry, "s", "pkg/tier.py") == "Tier selector (`pkg/tier.py`)"
+    assert readme.impl_label(registry, "s", "unknown") == "`unknown`" and readme.impl_label(registry, "s", "") == "none selected"
+
+
+def test_a_problem_leads_with_its_name_or_failing_that_its_sentence_never_the_id():
+    from esoi import readme
+    named = {"problem_id": "hprob-1", "name": "Slow lookups", "problem": "Finding a record takes far too long for a person."}
+    bare = {"problem_id": "hprob-2", "problem": "Nobody can tell which record is current."}
+    assert readme.list_item(named, "problem_id", "problem") == "- Slow lookups (`hprob-1`): Finding a record takes far too long for a person."
+    assert readme.list_item(bare, "problem_id", "problem") == "- Nobody can tell which record is current. (`hprob-2`)"
+    assert not readme.list_item(bare, "problem_id", "problem").startswith("- `")
+    handle = {"problem_id": "hprob-3", "name": "hprob-3", "problem": "A sentence."}
+    assert readme.list_item(handle, "problem_id", "problem").startswith("- A sentence.")
+
+
+def test_the_components_page_leads_with_the_name_and_shows_the_id_as_a_handle():
+    from esoi.rules import generated
+    text = generated.render_components_doc([{"component_id": "hub-recall", "name": "Recall", "layer": "core", "role": "Recalls.", "solutions": "recall"},
+                                            {"component_id": "bare", "layer": "core", "role": "No name.", "solutions": "recall"}], "esoi")
+    assert "| Component | Handle | Layer | Role | Serves |" in text
+    assert "| Recall | `hub-recall` | core |" in text and "| bare | `bare` | core |" in text

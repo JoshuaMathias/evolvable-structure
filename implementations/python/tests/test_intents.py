@@ -291,7 +291,7 @@ def test_a_name_that_is_a_handle_is_informed_as_s46(repo):
     tables.write_csv(path, header, rows)
     try:
         problems, advisory = check.check_all(config.load(repo))
-        found = [line for line in advisory if line.startswith("S46")]
+        found = [line for line in advisory if line.startswith("S46") and "the solution's name" in line]
         assert not [p for p in problems if p.startswith("S46")]
         assert len(found) == 3 and all("a handle, not a name" in line and "next:" in line for line in found)
         assert any("is missing" in line for line in found) and any("kebab-case or snake_case" in line for line in found) \
@@ -306,3 +306,23 @@ def test_a_human_name_is_not_informed(repo):
     from esoi import check, config
     problems, advisory = check.check_all(config.load(repo))
     assert not [line for line in advisory if line.startswith("S46 greet-a-person")]
+
+
+def test_s46_covers_problems_and_components_and_the_scaffold_names_them(repo):
+    from esoi import check, config, tables
+    cfg = config.load(repo)
+    problems = tables.read_csv(cfg.structure / "problems.csv")
+    assert all(r["name"] for r in problems)                                   # esoi init scaffolds a name
+    components = tables.read_csv(cfg.structure / "components.csv")
+    assert all(r["name"] for r in components) and "name" in tables.read_header(cfg.structure / "components.csv")
+    path = cfg.structure / "components.csv"
+    header = tables.read_header(path)
+    keep = [dict(r) for r in components]
+    components[0]["name"] = ""
+    tables.write_csv(path, header, components)
+    try:
+        problems_out, advisory = check.check_all(config.load(repo))
+        assert any(line.startswith("S46 ") and "the component's name" in line and "is missing" in line for line in advisory)
+        assert not [p for p in problems_out if p.startswith("R7")]
+    finally:
+        tables.write_csv(path, header, keep)

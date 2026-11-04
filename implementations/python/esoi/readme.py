@@ -55,6 +55,33 @@ RECORD_FILES = (("problems.csv", "problems"), ("ideals.csv", "ideals"), ("soluti
                 ("implementations.csv", "implementations"), ("metrics.csv", "metrics"))
 
 
+def impl_label(registry: Registry, solution_id: str, selected: str) -> str:
+    """A selected implementation as a person reads it: its human name first and its handle in code font, ``Name (`handle`)``. ``selected``
+    may be the arm's name, its full id or its file; with no record or no name the handle is shown alone."""
+    picked = one_line(selected)
+    if not picked:
+        return "none selected"
+    for row in registry.implementations:
+        ident = row.get("implementation_id", "")
+        if row.get("solution_id") == solution_id and (ident == picked or ident == f"{solution_id}:{picked}"
+                                                      or (row.get("filepath", "").partition("::")[0].strip() == picked)):
+            name = one_line(row.get("name", ""))
+            if name and name.lower() != picked.lower():
+                return f"{name} (`{picked}`)"
+    return f"`{picked}`"
+
+
+def list_item(row: Dict[str, str], key: str, text_key: str, limit: int = 0) -> str:
+    """One bullet of a list of problems or ideals: ``- Name (`id`): sentence``; a record with no name leads with its sentence and puts the id
+    after it (``- sentence (`id`)``), never the id first."""
+    ident = row.get(key, "")
+    name = one_line(row.get("name", ""))
+    sentence = first_sentence(row.get(text_key, "")) if limit == 0 else first_sentence(row.get(text_key, ""), limit)
+    if name and name.lower() != ident.lower():
+        return f"- {name} (`{ident}`)" + (f": {sentence}" if sentence else "")
+    return f"- {sentence} (`{ident}`)" if sentence else f"- `{ident}`"
+
+
 def named(row: Dict[str, str], key: str) -> str:
     """A record as a person reads it: its ``name`` leading and its id after it as a code-font handle, ``Name (`id`)``. A record with no
     name is shown by its id alone. The id is the stable handle that commands and links use; the name is what every page leads with."""
@@ -62,6 +89,9 @@ def named(row: Dict[str, str], key: str) -> str:
     name = one_line(row.get("name", ""))
     if name.lower().startswith(ident.lower() + ":"):
         name = name[len(ident) + 1:].strip()
+    if not name or name.lower() == ident.lower():
+        sentence = first_sentence(row.get("problem", "") or row.get("principle", ""))   # until a record has a name its sentence leads, never the id
+        name = sentence if sentence and key in ("problem_id", "ideal_id") else ""
     return f"{name} (`{ident}`)" if name and name.lower() != ident.lower() else f"`{ident}`"
 
 
@@ -222,7 +252,7 @@ def solutions_table(view: View, registry: Registry, intent: Intent) -> List[str]
     lines = ["| Solution | Handle | Entry call | Selected implementation | Metric |", "|---|---|---|---|---|"]
     for r in rows:
         lines.append(f"| {one_line(r.get('name', '')) or r.get('solution_id', '')} | `{r.get('solution_id', '')}` | {entry_call(view, package, r.get('solution_id', ''), r)} | "
-                     f"{('`' + one_line(r['selected']) + '`') if one_line(r.get('selected', '')) else 'none selected'} | "
+                     f"{impl_label(registry, r.get('solution_id', ''), r.get('selected', ''))} | "
                      f"{metric_names(r.get('metric', ''))} |")
     return lines
 
@@ -238,15 +268,13 @@ def short_lists(registry: Registry, intent: Intent) -> List[str]:
     if problems:
         out += ["**Problems**", ""]
         for r in problems[:LIST_LIMIT]:
-            text = first_sentence(r.get("problem", ""))
-            out.append(f"- {named(r, 'problem_id')}" + (f": {text}" if text else ""))
+            out.append(list_item(r, "problem_id", "problem"))
         out += more(len(problems), "problems") + [""]
     ideals = mine(registry.ideals, intent.intent_id)
     if ideals:
         out += ["**Ideals**", ""]
         for r in ideals[:LIST_LIMIT]:
-            text = first_sentence(r.get("principle", ""))
-            out.append(f"- {named(r, 'ideal_id')}" + (f": {text}" if text else ""))
+            out.append(list_item(r, "ideal_id", "principle"))
         out += more(len(ideals), "ideals") + [""]
     return out
 
@@ -276,15 +304,15 @@ def record_tables(registry: Registry, intent: Intent, level: str = "##", view: O
     lines: List[str] = []
     problems = mine(registry.problems, iid)
     if problems:
-        lines += [f"{level} Problems", ""] + [f"- {named(r, 'problem_id')}: {one_line(r.get('problem', ''))}" for r in problems] + [""]
+        lines += [f"{level} Problems", ""] + [list_item(r, "problem_id", "problem", 400) for r in problems] + [""]
     ideals = mine(registry.ideals, iid)
     if ideals:
-        lines += [f"{level} Ideals", ""] + [f"- {named(r, 'ideal_id')}: {one_line(r.get('principle', ''))}"
+        lines += [f"{level} Ideals", ""] + [list_item(r, "ideal_id", "principle", 400)
                                            for r in ideals] + [""]
     solutions = mine(registry.every_solution(), iid)
     if solutions:
         lines += [f"{level} Solutions", "", "| Solution | Handle | Selected | Metric |", "|---|---|---|---|"]
-        lines += [f"| {one_line(r.get('name', '')) or r.get('solution_id', '')} | `{r.get('solution_id', '')}` | {one_line(r.get('selected', ''))} | "
+        lines += [f"| {one_line(r.get('name', '')) or r.get('solution_id', '')} | `{r.get('solution_id', '')}` | {impl_label(registry, r.get('solution_id', ''), r.get('selected', ''))} | "
                   f"{metric_names(r.get('metric', ''))} |" for r in solutions] + [""]
     implementations = mine(registry.implementations, iid)
     if implementations:
@@ -430,7 +458,7 @@ def render_folder(registry: Registry, view: View, owner: str, folder: Path) -> s
             lines += [purpose, ""]
         picked = one_line(r.get("selected", ""))
         lines += [f"- Entry call: {entry_call(view, config.package, sid, r)}",
-                  f"- Selected implementation: {('`' + picked + '`') if picked else 'none selected'}",
+                  f"- Selected implementation: {impl_label(registry, sid, picked)}",
                   f"- Metric: {metric_names(r.get('metric', ''))}"]
         lines += implemented_line(registry, view, folder, sid) + [""]
     picture = folder_diagram(registry, view, owner, folder)
@@ -459,8 +487,7 @@ def render_folder(registry: Registry, view: View, owner: str, folder: Path) -> s
     for title, rows, key, column in (("Problems", [r for r in registry.problems if r.get("problem_id", "") in problem_ids], "problem_id", "problem"),
                                      ("Ideals", [r for r in registry.ideals if r.get("ideal_id", "") in ideal_ids], "ideal_id", "principle")):
         if rows:
-            lines += [f"## {title}", ""] + [f"- {named(r, key)}" + (f": {first_sentence(r.get(column, ''))}" if first_sentence(r.get(column, '')) else "")
-                                             for r in rows] + [""]
+            lines += [f"## {title}", ""] + [list_item(r, key, column) for r in rows] + [""]
     lines += ["## Where to go next", ""] + folder_links(view, owner, folder) + [""]
     return "\n".join(lines).rstrip() + "\n"
 

@@ -83,7 +83,7 @@ def test_record_headers_start_with_the_key_and_end_with_the_parent_links():
     headers = templates.record_headers(rows)
     assert headers["solutions.csv"].startswith("solution_id,name,milestones,parameters")
     assert headers["solutions.csv"].strip().endswith("parent_metric_ids")
-    assert headers["components.csv"].startswith("component_id,layer")
+    assert headers["components.csv"].startswith("component_id,name,layer")
 
 
 def test_the_solutions_header_carries_every_column_the_rules_read():
@@ -92,7 +92,7 @@ def test_the_solutions_header_carries_every_column_the_rules_read():
     rows, _ = templates.parse(SAMPLE)
     header = templates.record_headers(rows)["solutions.csv"].strip().split(",")
     assert set(RULE_COLUMNS["solutions.csv"] + OPTIONAL_COLUMNS["solutions.csv"]) <= set(header)
-    assert set(RULE_COLUMNS["components.csv"]) == set(templates.record_headers(rows)["components.csv"].strip().split(","))
+    assert set(RULE_COLUMNS["components.csv"]) | {"name"} == set(templates.record_headers(rows)["components.csv"].strip().split(","))
     assert set(RULE_COLUMNS["waivers.csv"]) == set(templates.record_headers(rows)["waivers.csv"].strip().split(","))
 
 

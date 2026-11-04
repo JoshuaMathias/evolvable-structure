@@ -46,13 +46,13 @@ def render_components_doc(components: List[Dict[str, str]], structure_dir: str) 
         f"Generated from `{structure_dir}/components.csv` by `esoi check --write-docs`.",
         "Edit the CSV, never this file. The rules are listed by `esoi rules`.",
         "",
-        "| Component | Layer | Role | Serves |",
-        "|---|---|---|---|",
+        "| Component | Handle | Layer | Role | Serves |",
+        "|---|---|---|---|---|",
     ]
     for r in components:
         def cell(key: str) -> str:
-            return r[key].replace("|", "/").replace(";", ", ")
-        lines.append(f"| `{r['component_id']}` | {r['layer']} | {cell('role')} | {cell('solutions')} |")
+            return r.get(key, "").replace("|", "/").replace(";", ", ")
+        lines.append(f"| {cell('name').strip() or r['component_id']} | `{r['component_id']}` | {r['layer']} | {cell('role')} | {cell('solutions')} |")
     return "\n".join(lines) + "\n"
 
 

@@ -89,7 +89,7 @@ def test_a_solution_folder_gets_a_readme_with_its_solution_implementations_and_l
     folder, after = beside(cfg)
     (cfg.root / "README.md").write_text("# project\n")
     text = dict(readme.pages(after, registry.load(after)))[folder / "README.md"]
-    assert text.startswith("# ") and "`speak-a-greeting`" in text and "- Selected implementation: `by-voice`" in text
+    assert text.startswith("# ") and "`speak-a-greeting`" in text and "- Selected implementation: " in text and "`by-voice`" in text
     assert "| `speak-a-greeting:by-voice` |" in text and "## Where to go next" in text
     assert "- Intent: [" in text and "../../README.md" in text
     top = dict(readme.pages(after, registry.load(after)))[after.structure / "README.md"]

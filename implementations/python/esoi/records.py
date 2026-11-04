@@ -102,6 +102,7 @@ TECHNICAL_COLUMNS = {
     "implementations.csv": {"filepath", "sub_intent", "selected"},   # selected: the legacy overall network flags its chosen way
     "metrics.csv": {"command"},
     "intent.csv": {"implements"},
+    "problems.csv": {"name"},   # the short human label every generated page leads with (the sentence is long); S46 informs when it is missing
 }
 
 

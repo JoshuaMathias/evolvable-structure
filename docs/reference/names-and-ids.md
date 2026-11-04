@@ -21,6 +21,13 @@ Every record of ESOI has an `id` and most have a `name`. They do different jobs.
   command needs copy-paste (`esoi run <component> --impl <arm>`, a waiver key, a finding's record id) the exact id is printed, because
   the id is the argument.
 
+## Which records have a name
+
+Intents, solutions, implementations, metrics and ideals have a `name` in the template. **Problems** and **components** have one in the
+standard too, as a short human label, because a problem's sentence and a component's role are long: `problems.csv` and `components.csv`
+carry a `name` column that `esoi init` fills and every generated page leads with. A problem or ideal with no name yet is shown by its
+sentence with the id after it, never the id first. A selected implementation is shown as its name with the handle in code font.
+
 ## Rule S46
 
 Advisory, never a failure: a record's `name` that is missing, equals its own id (or the arm part of an implementation id), is the id
