@@ -235,3 +235,18 @@ def test_s33_does_not_fail_because_the_cases_changed_after_the_run(cfg):
     path = leaderboard.cases_files("greet_a_person", cfg.evaluation)[0]
     path.write_text(path.read_text() + "\n")   # every recorded row is now on other cases: the standing still holds, as advice
     assert not any(line.startswith("S33") for line in check.check(cfg))
+
+
+def test_s33_disagreement_that_exists_only_on_results_from_other_cases_is_advice(cfg):
+    from esoi import leaderboard
+    set_cascade(cfg, "whole [sample=full | real=no]")
+    results = tables.read_csv(cfg.results_path)
+    for r in results:
+        r["passed"], r["dev"] = ("2", "2/2") if r["impl"] == "shout" else ("0", "0/2")
+    tables.write_csv(cfg.results_path, tables.read_header(cfg.results_path), results)
+    assert any(line.startswith("S33") for line in check.check(cfg))   # a real disagreement on current cases is still a problem
+    path = leaderboard.cases_files("greet_a_person", cfg.evaluation)[0]
+    path.write_text(path.read_text() + "\n")   # now every result is on other cases: the same finding only informs
+    problems, advice = check.check_all(cfg)
+    assert not any(line.startswith("S33") for line in problems)
+    assert any(line.startswith("S33") and "other cases" in line for line in advice)

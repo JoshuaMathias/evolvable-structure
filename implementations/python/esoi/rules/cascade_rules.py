@@ -30,18 +30,26 @@ def run(ctx: Context) -> list:
         component, selected = next(iter(ctx.harness_arms(metric.get("command", ""))), ("", ""))   # the command names the selected arm
         if errors or not stages or component not in ctx.history:
             continue
-        standing = cascade.standings(stages, ctx.history[component], datetime.date.today(),
-                                     lambda row, c=component: defect_reason(ctx.config, c, row),   # a changed case file or code only informs
-                                     ctx.config.evaluation)
-        decision = cascade.decide(stages, standing, ctx.config.evaluation)
+        current = cascade.decide(stages, cascade.standings(stages, ctx.history[component], datetime.date.today(),
+                                 lambda row, c=component: stale_reason(ctx.config, c, row, False),
+                                 ctx.config.evaluation), ctx.config.evaluation)   # rows on the current cases only
+        recorded = cascade.decide(stages, cascade.standings(stages, ctx.history[component], datetime.date.today(),
+                                  lambda row, c=component: defect_reason(ctx.config, c, row),
+                                  ctx.config.evaluation), ctx.config.evaluation)   # every well-formed row, whatever changed since
         for sid in ids(metric.get("solution_ids", "")):
             owner = next((s for s in ctx.registry.solutions if s["solution_id"] == sid), None)
             if owner is not None:
                 selected = leaderboard.selected_arm(ctx.config, owner, component, ctx.registry)[1] or selected   # the records' `selected`
-            if decision.winner and selected and selected != decision.winner and not ctx.waived("S33", sid):
-                bad.append(f"S33 {sid}: selected is {selected} but the cascade of {mid} chooses {decision.winner} "
-                           f"({'; '.join(decision.notes) or 'the highest result at ' + stages[decision.stage].name}); "
-                           "switch `selected` (esoi select --promote) or waive naming the pending decision")
+            if not (current.winner and selected and selected != current.winner) and not (recorded.winner and selected and selected != recorded.winner):
+                continue
+            decision = current if current.winner and selected != current.winner else recorded
+            line = (f"S33 {sid}: selected is {selected} but the cascade of {mid} chooses {decision.winner} "
+                    f"({'; '.join(decision.notes) or 'the highest result at ' + stages[decision.stage].name})")
+            if current.winner == recorded.winner and current.winner != selected:   # current and recorded results agree: a real disagreement
+                if not ctx.waived("S33", sid):
+                    bad.append(line + "; switch `selected` (esoi select --promote) or waive naming the pending decision")
+            elif not ctx.waived("S33", sid):   # the choice differs only because some results were recorded on other cases, so it informs
+                ctx.advisory.append(line + f"; some results were recorded on other cases or changed code, so re-run `esoi run {component} --impl {selected} --record` when the decision depends on it")
     return bad
 
 
