@@ -25,3 +25,5 @@ the other rules that accept exceptions.
 A package without a parent assembles as before, and a repository without a `[parent]` table is never checked by S35. The rule is not
 in the way of a first adoption: it only asks for reasons where a parent exists to differ from. How to use it is in
 [Build on another package's defaults and say why you differ](../how-to/hierarchical-defaults.md).
+
+An override is a claim about the child's situation, and the situation can change; the parent's default can improve too. `esoi follow` re-checks both on the child's own metric ([why](follow-the-parent-check-with-your-own-metric.md)).

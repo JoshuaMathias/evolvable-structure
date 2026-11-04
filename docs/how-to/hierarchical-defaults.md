@@ -103,3 +103,6 @@ records = "../hub"                  # the parent's records folder (its own esoi.
 Each solution whose `selected` differs from the parent's default needs, in `overrides.csv`, the id of a problem, ideal or metric of its
 own records, or a waiver (`rule` S35, `path` the solution id) whose reason names the pending decision. A reason id that no record has
 is reported too. A repository with no `[parent]` table is never checked; `disable = ["S35"]` turns it off.
+
+To see whether an override still earns its place, or what the parent's newer selection would mean for you, run `esoi follow`
+([Follow a parent repository's selections](follow-a-parent-repositorys-selections.md)).

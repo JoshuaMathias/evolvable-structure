@@ -29,6 +29,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `run-guards` | tools | Refusing an esoi run that cannot inform a decision: a perfect arm already caps it, a public result already exists, or the cases that failed last have not been rerun to a pass. | measurement-harness |
 | `run-log` | tools | Saving every run case by case, even a stopped one, and reading it back to rerun only the failing cases and to reuse cases an earlier stage already ran. | measurement-harness, leaderboard |
 | `cassette` | tools | Recording model calls in a plain JSONL cassette and replaying a call it already holds without calling the model, with replayed usage kept apart from real spend. | measurement-harness |
+| `follow` | tools | Comparing a parent repository's current selections with this repository's lock and overrides and judging each change on this repository's own metric, as advice. | measurement-harness, assemble-by-name |
 | `tracker` | tools | Building the review tracker tabs and syncing them with a sheet. | review-tracker |
 | `consumer` | tools | Checking a consuming repository's integration registry. | consumer-check |
 | `hygiene` | tools | Scanning a public repository for secrets and private data. | structure-check |

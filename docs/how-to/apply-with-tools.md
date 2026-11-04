@@ -125,6 +125,7 @@ tells you whether they are stale; a new field appears as a missing column in you
 | `esoi hygiene [--history]` | Scans for secrets and private data before a public push (a folder that is not a git checkout is walked; `[hygiene.patterns]` adds your own secret shapes) |
 | `esoi select <solution>` | Shows which implementation runs and which layer of the cascade chose it |
 | `esoi select --promote [solution] [--dry-run]` | Switches `selected` to the rival with the highest result on the solution's metric (the verdict says if the lead is significant), or prints the proposal |
+| `esoi follow [--parent P] [--solution ID] [--plan] [--run-free] [--json]` | Judges a parent repository's current selections on your own metric: adopt, keep an override, drop it, or not measured ([how-to](follow-a-parent-repositorys-selections.md)) |
 | `esoi lock [--update\|--diff\|--status]` | Pins the selected implementation per solution in `esoi.lock.json` and moves it on your schedule ([how-to](pin-selections-for-production.md), [reference](../reference/lock.md)) |
 | `esoi select --snapshot FILE` | Writes the defaults and modules for a package shipped without the records |
 | `esoi records sync [--intent ID] [--dry-run]` | Writes the rows the code declares and the records lack |
