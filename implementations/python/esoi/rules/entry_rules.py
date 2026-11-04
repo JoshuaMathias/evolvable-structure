@@ -16,6 +16,10 @@ S37  entry: every solution with an implementation in the package's code names in
 S38  coherence: every intent passes metric-solution-coherence's first stage (``esoi.coherence``): paragraph, roots, diagram, code
      precision, coverage and lift at the floors of ``[rules.S38]`` (per intent in ``[rules.S38.floors.<intent-id>]``), fan-out and depth.
 S39  ratchet: the trend of the waiver sets, the enabled rules and the floors and ceilings against a base commit (``esoi.ratchet``).
+S47  flow first: the intent's paragraph says how its solutions fit, and the code should call them in that order from the entry points
+     of each solution. It informs when a solution the records say is used has an implementation but no caller shows it (nothing in
+     the code of any solution that uses it imports, types or names it: evidence E1 to E5 of ``esoi.coherence``), and when some other
+     stated edge has no call in the code yet. Write the flow first, then what it calls (``docs/how-to/implement-flow-first.md``).
 """
 from __future__ import annotations
 
@@ -43,6 +47,9 @@ SUMMARIES = {
            "example that calls <package>.run( runs (waive as the solution or intent id, or README.md).",
     "S38": "Opt-in coherence: every intent passes python3 -m esoi.coherence: paragraph both ways, roots, diagram, code precision, "
            "coverage and lift at the [rules.S38] floors (per intent), fan-out and depth (waive as the intent id).",
+    "S47": "Opt-in flow first (advisory): every solution the records say is used has a caller in the code (an import, a typed need or a name "
+           "in the code of a solution that uses it), and every stated edge is called; informs where the flow is not coded yet (waive as the "
+           "solution id, or intent id:solution id for an edge).",
     "S39": "Opt-in ratchet: the trend of the waiver sets, the enabled rules and the S38 floors and ceilings against a base commit "
            "(shown, never a failure).",
 }
@@ -301,6 +308,41 @@ NEXT_COHERENCE = {"paragraph": "edit the intent's solution_coherence so each use
                   "balance": "group solutions so no implementation uses more than max_fan_out"}
 
 
+def flow_lines(report, waived=lambda key: False) -> List[str]:
+    """S47 lines from a coherence report: solutions with an implementation but no caller in the flow, and stated edges nothing calls."""
+    from ..coherence import STRONG
+    out: List[str] = []
+    for r in report["intents"]:
+        callers: Dict[str, List[str]] = {}
+        unseen: List[str] = []
+        for edge, evidence in sorted(r.get("verdicts", {}).items()):
+            user, _, used = edge.partition("->")
+            if evidence == "n/a" or not used:
+                continue
+            callers.setdefault(used, [])
+            if evidence in STRONG:
+                callers[used].append(user)
+            else:
+                unseen.append(edge)
+        for used, who in sorted(callers.items()):
+            if not who and not waived(used) and not waived(f"{r['intent']}:{used}"):
+                users = ", ".join(sorted(e.partition("->")[0] for e in unseen if e.endswith("->" + used)))
+                out.append(f"S47 {used}: it has an implementation, but no caller shows in the flow of {r['intent']} (the code of {users} neither imports, "
+                           "types nor names it); next: code the flow first, calling it through its entry point from the solution that uses it "
+                           "(docs/how-to/implement-flow-first.md)")
+        rest = [e for e in unseen if callers.get(e.partition("->")[2]) and not waived(f"{r['intent']}:{e}")]
+        if rest:
+            out.append(f"S47 {r['intent']}: {len(rest)} stated edge(s) are not called in the code yet: {', '.join(rest[:8])}"
+                       f"{' and more' if len(rest) > 8 else ''}; next: write the flow first (function definitions and calls of solution functions), "
+                       "then the implementations it calls")
+    return out
+
+
+def flow(ctx: Context) -> List[str]:
+    from .. import coherence as coherence_module
+    return flow_lines(coherence_module.check(ctx.root, pairs=False), lambda key: ctx.waived("S47", key))
+
+
 def ratchet(ctx: Context) -> List[str]:
     """The trend against the base commit. Every moved item is listed with its direction; none of it fails a check."""
     from .. import ratchet as ratchet_module
@@ -316,7 +358,7 @@ def run(ctx: Context) -> List[str]:
     """The findings of the enabled opt-in rules go to ``ctx.advisory`` (to do, with the next action); none is a problem."""
     if not ctx.config.intent_mode:
         return []
-    for rule, parts in (("S36", (overall_network,)), ("S37", (interfaces, entries, readme)), ("S38", (coherence,)), ("S39", (ratchet,))):
+    for rule, parts in (("S36", (overall_network,)), ("S37", (interfaces, entries, readme)), ("S38", (coherence,)), ("S39", (ratchet,)), ("S47", (flow,))):
         if ctx.config.enabled(rule):
             for part in parts:
                 ctx.advisory.extend(part(ctx))

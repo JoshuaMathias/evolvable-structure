@@ -285,6 +285,8 @@ def files_for(package: str, template) -> Dict[str, str]:
         ["metric_id"] + fields(template, "metric", True) + ["solution_ids", "command", "parent_metric_ids"],
         [record("metric", template, SAMPLE["metric"], metric_id="greeting-pass-rate", solution_ids=SOLUTION, command=command),
          record("metric", template, STRUCTURE["metric"], metric_id="structure-coverage", solution_ids="project-structure")])
+    COMPONENT_NAMES = {"package": "Package code", "evaluation": "Evaluation arms", "tests": "Test suite",
+                       "structure-registry": "Intent records", "project-files": "Root files"}
     components = [
         ("package", "core", f"{package}/**", "The package's code.", SOLUTION),
         ("evaluation", "evaluation", "evaluation/**", "Cases, scorers and implementations the harness runs.", SOLUTION),
@@ -293,7 +295,7 @@ def files_for(package: str, template) -> Dict[str, str]:
         ("project-files", "docs", "*", "Files at the repository root.", SOLUTION)]
     out[f"{structure}/components.csv"] = render_csv(
         ["component_id", "name", "layer", "path", "role", "solutions"],
-        [dict(zip(["component_id", "name", "layer", "path", "role", "solutions"], (c[0], c[0].replace("-", " ").capitalize()) + tuple(c[1:])))
+        [dict(zip(["component_id", "name", "layer", "path", "role", "solutions"], (c[0], COMPONENT_NAMES[c[0]]) + tuple(c[1:])))
          for c in components])
     out[f"{structure}/waivers.csv"] = render_csv(["rule", "path", "reason"], [])
     out[f"{structure}/esoi_template.csv"] = TEMPLATE_DATA.read_text(encoding="utf-8")

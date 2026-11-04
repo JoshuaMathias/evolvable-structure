@@ -50,7 +50,7 @@ def handle_names(ctx: Context) -> List[str]:
             low = name.lower()
             if not name:
                 why = "is missing"
-            elif low in (ident.lower(), tail) or low.startswith(ident.lower() + ":") or low.startswith(ident.lower() + " ") \
+            elif low in (ident.lower(), tail) or low.startswith(ident.lower() + ":") or low.startswith(ident.lower() + " (") \
                     or low.startswith(tail + ":"):
                 why = "is the id again, or the id with a suffix"
             elif HANDLE_STYLE.match(name):
