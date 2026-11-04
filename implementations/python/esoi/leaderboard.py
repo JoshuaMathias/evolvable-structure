@@ -803,6 +803,21 @@ def format_rows(rows: Rows, sel: Optional[str], eval_dir: Optional[Path] = None)
     return lines
 
 
+def unmeasured_candidates(registry: Registry, history: Dict[str, Dict[str, List[Row]]]) -> List[str]:
+    """What the leaderboard would otherwise leave out: implementations recorded with no code (an empty ``filepath``, no sub-intent
+    that holds their specification) and no result of any component. Each is a rival nobody could run yet, named with its solution."""
+    measured = {impl for impls in history.values() for impl in impls}
+    found = []
+    for row in registry.implementations:
+        impl_id = row.get("implementation_id", "")
+        short = impl_id.split(":", 1)[-1]
+        if (row.get("filepath") or "").strip() or (row.get("sub_intent") or "").strip() or short in measured or impl_id in measured:
+            continue
+        found.append(f"  NOT MEASURED  {row.get('solution_id', '')}: {row.get('name') or short} ({impl_id}) has no arm yet, so no result")
+    return (["\nCandidates with no arm yet (recorded, so they are not forgotten; `esoi admit` registers one, declaring its code and "
+             "`esoi records sync` make it an arm)"] + found) if found else []
+
+
 def board(config: Config, registry: Registry, strict: bool = False, say: Callable[[str], None] = print,
           stale: Optional[Callable[[Config, str, Row, bool], str]] = None) -> int:
     """Print the leaderboard. Returns 1 when ``strict`` and a challenger beats a selected implementation, or a verdict
@@ -844,6 +859,8 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
     for sid, v in sorted(solution_verdicts(config, registry.solutions, results, history, registry, per_case).items()):
         reason = f"  kept because: {v['selected_by']}" if v["verdict"] == "TIE" else ""
         say(f"  {v['verdict']:<10} {sid}: {v['detail']}{reason}")
+    for line in unmeasured_candidates(registry, history):
+        say(line)
     if apart:
         say("\nComplementary arms (not alternatives; listed with their recorded run, never ranked)")
         for component, rows in sorted(apart.items()):

@@ -7,6 +7,8 @@
     esoi skill sync|check|install          the public copy of the author's skill: generate, verify, install
     esoi records [check|sync]              check only the intent records, or write the rows the code declares and they lack
     esoi records place|gather [--apply]    move records beside the code they describe (or into the structure folder); a dry run without --apply
+    esoi admit SOLUTION NAME --why TEXT    register a newly found technology as an implementation of a solution (a rival with no arm until its code is declared);
+                                           with --changed WHAT instead of NAME: record a justified change to the specification
     esoi new solution ID [--intent ID]     a solution in one command: records, code with declarations, evaluation folder
     esoi run COMPONENT --impl NAME [--record]   run and record one implementation over a component's cases
     esoi stale --explain COMPONENT | --count   which changed files a recorded result measures, and how many rows each staleness rule calls stale
@@ -75,6 +77,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--apply", action="store_true", help="place, gather: move the records (a dry run without it)")
     p.add_argument("--intent", default=None, help="sync: the intent whose folder receives new rows (default: the top intent)")
     p.add_argument("--dry-run", action="store_true", help="sync: list the rows without writing them")
+    p = sub.add_parser("admit", help="take a newly found technology into the structure, or record a justified change to it")
+    p.add_argument("solution")
+    p.add_argument("name", nargs="?", default="", help="the technology (an implementation of the solution)")
+    p.add_argument("--why", required=True, help="why it is worth measuring, or why the specification changes")
+    p.add_argument("--uses", action="append", default=[], metavar="SOLUTION", help="a solution a composite arm is built over (repeatable)")
+    p.add_argument("--filepath", default="", help="the file that holds the arm, when it exists")
+    p.add_argument("--changed", default="", help="record a change to the specification (interface, merge, split, hierarchy) in the solution's knowledge")
     p = sub.add_parser("new", help="create something new from one command")
     p.add_argument("what", choices=["solution"])
     p.add_argument("id")
@@ -644,6 +653,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(line)
         print("esoi records sync: " + (f"{len(done)} change(s)" + (" (dry run)" if args.dry_run else ", now fill the text only a person can write; `esoi check` names it") if done else "records already match the declarations"))
         return 0
+    if args.cmd == "admit":
+        from . import admit, registry
+        return admit.run_cli(config, registry.load(config), args.solution, args.name, args.why, args.uses, args.filepath, args.changed,
+                             say=lambda text: print(text, file=sys.stderr if text.startswith("esoi:") else sys.stdout))
     if args.cmd == "new":
         from . import newsolution
         try:

@@ -57,6 +57,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `eval-behave-by-esoi` | evaluation | Cases, recorded replies and the arms for whether an agent acts by the principles. | behave-by-esoi |
 | `eval-judge-esoi-behaviour` | evaluation | Labelled replies and the arms for how far a judge agrees with them. | judge-esoi-behaviour |
 | `declarations` | tools | Reading the declarations in the code, the drift rule S30 and the sync of the records. | specify-from-code |
+| `admit` | tools | Taking a newly found technology into the structure as an implementation with no arm yet, and recording a justified change to the specification. | specify-from-code, leaderboard |
 | `new-solution` | tools | Creating a whole solution with one command. | specify-from-code |
 | `readme-renderer` | tools | The README of each intent folder, generated from its records. | readable-records |
 | `promotion` | tools | Switching the selected implementation to the winner of the solution's own metric, or proposing it. | promote-the-winner |
