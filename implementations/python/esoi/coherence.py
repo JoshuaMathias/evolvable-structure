@@ -22,7 +22,9 @@ uses are an alternative, not the structure). Per intent folder:
   code (M2, S39)       for each uses edge whose two ends both have Python modules (coverage = checkable / all edges), the
                        strongest evidence the code shows in the user's direction:
                          E1  a module of the user imports a module of the used directly           (strong)
-                         E2  a module of the user names the used's id or its interface class      (strong)
+                         E2  executable code of a module of the user names the used's id or its interface class: an
+                             identifier, attribute, import, annotation, decorator or call argument, or a string literal used as a
+                             value. A docstring, a comment and any bare string statement are prose and never count   (strong)
                          E3  the user's implementation class takes a parameter typed with the used's interface: a need the
                              esoi Assembler injects                                               (strong)
                          W1  a module of the user imports one that imports the used               (weak, reported)
@@ -59,6 +61,36 @@ MIN_CLAUSE_WORDS = 3          # words between the user and the used, names aside
 STRONG = ("E1", "E2", "E3")
 WEAK = ("W1", "W2", "W3")
 WORD = re.compile(r"[A-Za-z][A-Za-z'-]*")
+
+
+def executable_tokens(text: str, tree) -> List[str]:
+    """The names and string values the executable code of a Python module holds: identifiers, attributes, imported names,
+    parameter and keyword names, and string literals used as values. Docstrings and any other bare string statement are
+    documentation and left out, and so is every comment (a comment is not in the syntax tree). A module that does not parse
+    falls back to its text with comment lines removed."""
+    if tree is None:
+        return [line for line in text.splitlines() if not line.lstrip().startswith("#")]
+    prose = {id(n.value) for n in ast.walk(tree) if isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant)
+             and isinstance(n.value.value, str)}
+    out: List[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name):
+            out.append(node.id)
+        elif isinstance(node, ast.Attribute):
+            out.append(node.attr)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            out.append(node.name)
+        elif isinstance(node, ast.arg):
+            out.append(node.arg)
+        elif isinstance(node, ast.keyword) and node.arg:
+            out.append(node.arg)
+        elif isinstance(node, ast.alias):
+            out.append(node.name)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            out.append(node.module)
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in prose:
+            out.append(node.value)
+    return out
 
 
 def ids(text: str) -> List[str]:
@@ -122,6 +154,7 @@ class Code:
                 self.trees[m] = ast.parse(text)
             except SyntaxError:
                 self.trees[m] = None
+        self.tokens = {m: executable_tokens(text, self.trees[m]) for m, text in self.source.items()}
         self.imports: Dict[str, Set[str]] = {m: self.imports_of(m) for m in self.files}
         self.modules: Dict[str, Set[str]] = defaultdict(set)
         for row in implementations:
@@ -191,8 +224,8 @@ class Code:
             return "E1"
         iface = self.interface.get(used)
         for m in mu:
-            text = self.source[m]
-            if position(used, {}, text) >= 0 or (iface and re.search(r"\b" + re.escape(iface) + r"\b", text)):
+            if any(position(used, {}, token) >= 0 or (iface and re.search(r"\b" + re.escape(iface) + r"\b", token))
+                   for token in self.tokens[m]):
                 return "E2"
         if self.typed_need(user, used):
             return "E3"

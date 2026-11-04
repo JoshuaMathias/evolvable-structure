@@ -103,3 +103,15 @@ enabled = true
 `esoi check` stays exactly as before; it adds a line, `to do: N finding(s)`. `esoi check --findings` lists each finding with
 its next action and a count per rule, and exits with the same code as without it. S39 shows, against the base commit, whether the
 waiver sets grew or shrank and whether a floor rose or fell; set `ESOI_RATCHET_BASE` or `[rules.S39] base` to choose the base.
+
+## What counts as code evidence that one solution uses another
+
+`python3 -m esoi.coherence` checks each `uses_solution_ids` edge against the code of the user. The strong evidence is an import
+of the used's module (E1), executable code that names the used's id or interface class (E2), or a constructor parameter typed with
+the used's interface (E3). E2 reads the syntax tree: an identifier, an attribute, an imported name, an annotation, a decorator or
+call argument, and a string literal used as a value (a `resolve("id")` or `needs` call, a declared `uses` id) count. A module,
+class or function docstring, a comment and any bare string statement are prose and never count, so a sentence that names a
+solution does not show that the code uses it. If a relation is true and no evidence appears, show it in the code (a typed need
+on the composition, a real call through `resolve()`, a declared uses), or remove the relation from the records. A module that
+does not parse falls back to its text with comment lines removed. The check reads Python modules only: a solution whose code is
+in another language has no module, so its edges are reported as not checkable (lower coverage) rather than matched by text.
