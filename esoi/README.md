@@ -83,7 +83,7 @@ flowchart LR
     s26 -->|"Edits to selected, selected_by and the metric's command, or..."| s4
     s27 -->|"An index (JSON-serializable: entries with id, kind, title..."| s28
     s27 -->|"An index (JSON-serializable: entries with id, kind, title..."| s29
-    s28 --> s4
+    s28 -->|"From begin, the NEXT PRIORITY block for the brief; from..."| s4
     s29 -->|"A Selection: ranked items best first with their linked..."| s4
     s30 -->|"Dict(Tuple(str, str), Estimate)"| s9
 ```
@@ -340,7 +340,7 @@ flowchart LR
 | `promote-the-winner:margin-promotion` | Promotion on the leaderboard's verdict | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | `spec-index:weighted-tfidf` | Field-weighted TF-IDF over the index | [implementations/python/esoi/spec_index.py](../implementations/python/esoi/spec_index.py) |  |
 | `spec-index:term-overlap` | Plain term overlap | [implementations/python/esoi/spec_index.py](../implementations/python/esoi/spec_index.py) |  |
-| `keep-metric-record:library-modules` |  | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
+| `keep-metric-record:library-modules` | Library modules | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | `spec-search:lexical-only` | Lexical only | [implementations/python/esoi/spec_search.py](../implementations/python/esoi/spec_search.py) |  |
 | `spec-search:lexical-vector-gated` | Lexical vector gated | [implementations/python/esoi/spec_search.py](../implementations/python/esoi/spec_search.py) |  |
 | `public-evidence:graded` | Graded | [implementations/python/esoi/evidence.py](../implementations/python/esoi/evidence.py) |  |

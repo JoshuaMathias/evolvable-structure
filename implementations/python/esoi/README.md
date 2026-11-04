@@ -220,6 +220,8 @@ Narrow a repository's intent records to the few that a new use case or input may
 
 ## keep-metric-record (`keep-metric-record`)
 
+Keep the relevant metric's value before and after each piece of work, so the change can be judged later.
+
 - Entry call: `esoi.run("keep-metric-record", '.')`
 - Selected implementation: `library-modules`
 - Metric: Metric record kept
@@ -310,7 +312,7 @@ flowchart LR
     s22 -->|"Edits to selected, selected_by and the metric's command, or..."| s0
     s23 -->|"An index (JSON-serializable: entries with id, kind, title..."| s24
     s23 -->|"An index (JSON-serializable: entries with id, kind, title..."| s25
-    s24 --> s0
+    s24 -->|"From begin, the NEXT PRIORITY block for the brief; from..."| s0
     s25 -->|"A Selection: ranked items best first with their linked..."| s0
     s26 -->|"Dict(Tuple(str, str), Estimate)"| s5
 ```
@@ -351,7 +353,7 @@ flowchart LR
 | `promote-the-winner:margin-promotion` | Promotion on the leaderboard's verdict | [`implementations/python/esoi/interfaces.py`](interfaces.py) | selected |
 | `spec-index:weighted-tfidf` | Field-weighted TF-IDF over the index | [`implementations/python/esoi/spec_index.py`](spec_index.py) | selected |
 | `spec-index:term-overlap` | Plain term overlap | [`implementations/python/esoi/spec_index.py`](spec_index.py) |  |
-| `keep-metric-record:library-modules` |  | [`implementations/python/esoi/interfaces.py`](interfaces.py) | selected |
+| `keep-metric-record:library-modules` | Library modules | [`implementations/python/esoi/interfaces.py`](interfaces.py) | selected |
 | `spec-search:lexical-only` | Lexical only | [`implementations/python/esoi/spec_search.py`](spec_search.py) |  |
 | `spec-search:lexical-vector-gated` | Lexical vector gated | [`implementations/python/esoi/spec_search.py`](spec_search.py) | selected |
 | `public-evidence:graded` | Graded | [`implementations/python/esoi/evidence.py`](evidence.py) | selected |

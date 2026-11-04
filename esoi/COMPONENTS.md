@@ -69,16 +69,16 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `eval-spec_index` | evaluation | Cases and scorer for spec-index. | spec-index |
 | `cascade` | tools | Reading a metric's cascading conditionals, checking their order against the skill's expectations, settling when results expire (stage, metric, project default), choosing the implementation by the latest stage run, expiry of results and the next stage to run. | leaderboard, promote-the-winner |
 | `rules-cascade` | tools | The rules about cascading conditionals: the list can be read (S32) and the selection follows the cascade (S33). | structure-rules, leaderboard |
-| `rules-hierarchy` | tools | unconfirmed: for Joshua to confirm. | structure-rules, assemble-by-name |
+| `rules-hierarchy` | tools | Rule S35: a child that overrides its parent's default cites a record of its own as the reason. | structure-rules, assemble-by-name |
 | `versioning` | tools | The stamp of the skill and template the library follows, the template version, and recording it in a repository. | template-sync |
 | `rules-versioning` | tools | The rule S34: the template version a repository records is the one the library carries. | template-sync, structure-rules |
-| `metric-record` | tools | unconfirmed: for Joshua to confirm. | keep-metric-record |
-| `eval-keep-metric-record` | evaluation | unconfirmed: for Joshua to confirm. | keep-metric-record |
-| `circumstances` | core | unconfirmed: for Joshua to confirm. | leaderboard, runtime-selection |
+| `metric-record` | tools | Finding the slice of the specification a piece of work serves, reading its metric before and after with bounded meters, and keeping the rows in a ledger. | keep-metric-record |
+| `eval-keep-metric-record` | evaluation | Cases for the slice, milestone, meter reading, result, reconcile and iteration of a piece of work's metric record. | keep-metric-record |
+| `circumstances` | core | Reading the circumstances that slice a run's results by a condition on cases or runs, and the variant names (base@key=value) that arms carry. | leaderboard, runtime-selection |
 | `spec_search` | core | The spec search solution's interface and implementations. | spec-search |
 | `eval-spec_search` | evaluation | Cases and scorer for spec-search. | spec-search |
-| `evidence` | tools | unconfirmed: for Joshua to confirm. | public-evidence |
-| `eval-public_evidence` | evaluation | unconfirmed: for Joshua to confirm. | public-evidence |
+| `evidence` | tools | Grading public evidence from a CSV of reported numbers: a letter per candidate and dimension, flags, a ranking and whether an own run is needed, with no model call. | public-evidence |
+| `eval-public_evidence` | evaluation | Cases for grading evidence and for ranking candidates on one shared basis. | public-evidence |
 | `stats` | core | Wilson interval, exact paired McNemar test and Holm correction for choosing by metric. | leaderboard |
 | `evidence-table` | tools | Markdown table of every evaluated solution's arms with intervals, verdicts and public evidence, written between markers. | leaderboard |
 | `one-line-entry` | tools | One line for any solution or intent: run(id, input) through the declared interface, and its offline check. | implementation-selection, structure-check, apply-esoi |
@@ -87,8 +87,8 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | `selection` | core | Resolving an implementation of a solution from a selection table. | runtime-selection |
 | `eval-select-an-implementation` | evaluation | Cases for resolving a selection. | runtime-selection |
 | `runtime` | core | Declarations in code and the cascade that picks the implementation a call runs. | runtime-selection |
-| `assemble` | core | unconfirmed: for Joshua to confirm. | assemble-by-name |
+| `assemble` | core | Building the parts of a program by validated name in dependency order, with the cascade that picks each implementation and a frozen result. | assemble-by-name |
 | `requirements` | core | Declaring what an implementation needs from its environment and checking it. | assemble-by-name |
-| `hierarchy` | core | unconfirmed: for Joshua to confirm. | assemble-by-name |
-| `eval-assemble-by-name` | evaluation | unconfirmed: for Joshua to confirm. | assemble-by-name |
-| `lock` | core | unconfirmed: for Joshua to confirm. | assemble-by-name |
+| `hierarchy` | core | Hierarchical defaults as plain data: the layers of one solution's cascade, conditional entries and the recorded reasons a child differs from its parent. | assemble-by-name |
+| `eval-assemble-by-name` | evaluation | Cases for assembling by name: hostile names and snapshots, shadowing, cycles, unmet needs, concurrent assembles and the examples in the docs. | assemble-by-name |
+| `lock` | core | Pinning the selected implementations in a lock file, showing what a newer release would change and moving the lock on the consumer's schedule. | assemble-by-name |

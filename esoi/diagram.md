@@ -77,7 +77,7 @@ flowchart LR
     s26 -->|"Edits to selected, selected_by and the metric's command, or..."| s4
     s27 -->|"An index (JSON-serializable: entries with id, kind, title..."| s28
     s27 -->|"An index (JSON-serializable: entries with id, kind, title..."| s29
-    s28 --> s4
+    s28 -->|"From begin, the NEXT PRIORITY block for the brief; from..."| s4
     s29 -->|"A Selection: ranked items best first with their linked..."| s4
     s30 -->|"Dict(Tuple(str, str), Estimate)"| s9
 ```
