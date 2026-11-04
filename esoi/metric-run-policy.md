@@ -18,6 +18,13 @@ through `governs_metric_ids`, and each of them names it in `run_policy_ids`.
 | On a decision | yes, for the arms that call a model | The ESOI behaviour arms and the model judge cost money, so they run only when a choice depends on them |
 | On drift | no | Nothing here drifts with the world |
 
+## One number at every stage
+
+A cascade here is one criterion at rising fidelity: every stage of a metric reports the same number (the balanced score where the
+component sets `[balance.<component>]`), kinds of cases are case sources of that number, and an arm that only shows a floor is marked
+`BASELINE` and never selected. See [a cascade runs one criterion](../docs/explanation/a-cascade-runs-one-criterion.md); `esoi check
+--findings` lists rules S41 to S44.
+
 ## The metric runs
 
 | Metric | Arm | Trigger | Stages | Call budget | Cost | Approver | Stale when |

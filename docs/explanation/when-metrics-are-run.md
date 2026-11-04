@@ -216,6 +216,13 @@ The same question has several answers, and a repository can keep two alive to co
 A typical policy combines them: offline metrics when what they measure changed and a decision may depend on them, paid metrics on a decision, and a scheduled re-measurement of
 the selected alternatives.
 
+## Stages are one number, not several criteria
+
+The stages of a cascade are the same single number (a balanced score across accuracy, cost, time and size, weights fixed before any
+alternative is scored) estimated at rising cost and fidelity. Kinds of cases are case sources mixed in proportion to real inputs, not
+stages with their own pass tests, and a "must not regress" guard from one stage to the next is a second criterion in disguise. See
+[a cascade runs one criterion](a-cascade-runs-one-criterion.md); rules S41 to S44 advise where a repository departs from it.
+
 ## The metric of the policy
 
 How would you know the policy works? Three records of it are worth keeping: the share of decisions that were backed by a

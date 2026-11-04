@@ -4,6 +4,9 @@ The point of keeping alternatives is that the authoritative metric, chosen by th
 that runs, so nobody has to settle it by reading and debating each alternative. Judgment and other perspectives still
 matter: they define the problems, ideals and metric, and they propose and improve the alternatives the metric compares.
 
+The metric is one number that says which alternative is best across all factors, and a cascade estimates that same number at rising
+cost: [a cascade runs one criterion](a-cascade-runs-one-criterion.md) ([how to write one](../how-to/write-a-cascade-that-stays-one-number.md)).
+
 ## Run alternatives on the same cases
 
 A metric is a set of cases and a way to score an implementation on them. Each implementation is run on the same cases and

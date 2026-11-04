@@ -49,6 +49,9 @@ The main feature is explanation and templates that need no code; Python is one e
   `esoi check`; after committing measured code or cases, `esoi run --stale --plan` shows which recorded results no longer describe the code, and a stale row only informs (a changed case file, changed code, a dirty tree or changed circumstances are advice from `esoi check`, never a problem; only a malformed row, such as one with no `git_sha`, fails): run a metric when what it teaches is worth its cost (`esoi run --stale --for-decision` when a decision depends on it), never from a commit hook or a CI step. The
   paid arms (those that call a model, declared `PAID = True`) need a cost estimate, a staged sample (3, 10, 30), a call budget and
   Joshua's approval first; never run one without it.
+- **A cascade runs one criterion.** Every stage's metric is one number (a balanced score across accuracy, cost, time and size, weights
+  fixed before any alternative is scored) at rising fidelity; kinds of cases are case sources, not stages with their own pass tests or
+  separate leaderboards; floors are marked `BASELINE` and never selected (`docs/explanation/a-cascade-runs-one-criterion.md`, rules S41 to S44).
 - **Standards by risk tag.** Before writing code run `python -m esoi.standards_nav for-task "<what you will build>"` and,
   for each file you will edit, `for-file <path>`; they print only the rules that apply (`esoi/standards/`). A pre-commit
   hook runs `check-staged` (install: `install-hook`); fix a finding or waive it at its line with a reason. How:

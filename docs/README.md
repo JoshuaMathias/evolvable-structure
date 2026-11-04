@@ -35,6 +35,7 @@ Steps for a task you already know you want to do.
 - [Iterate on an LLM arm without repeating model calls](how-to/iterate-on-an-llm-arm-without-repeating-model-calls.md): record model calls in a cassette, replay unchanged prompts for free, prove a variant costs nothing with `--cassette-only`.
 - [Keep a consumer current with an AI agent](how-to/keep-a-consumer-current-with-an-ai-agent.md): run `esoi lock --status` on a schedule, resolve blockers, apply, verify.
 - [Keep a metric's value before and after a piece of work](how-to/measure-before-and-after.md): find the slice of the specification, read the metric twice, keep the rows.
+- [Write a cascade that stays one number](how-to/write-a-cascade-that-stays-one-number.md): one balanced score at every stage, kinds of cases as case sources, floors marked, then `esoi check --findings`.
 - [Measure an implementation per circumstance](how-to/measure-per-circumstance.md): circumstances, variants, slice rows, and how to read a slice verdict as a proposal.
 - [Keep records beside the code](how-to/keep-records-beside-the-code.md): put each solution's records in the folder that holds its code, with a generated README in each.
 - [Generate the README of every intent folder](how-to/generate-intent-readmes.md): write a page per intent folder that shows what it is, how its parts fit and where to go next.
@@ -60,6 +61,7 @@ Why it is built this way. Start with the idea, then the pieces.
 - [Judge public evidence like a scientist](explanation/judge-public-evidence-like-a-scientist.md): other people's evals are complementary; one is never enough, a vendor number is a claim.
 - [Choosing by metric](explanation/choosing-by-metric.md)
 - [A metric must be meaningfully real](explanation/metrics-must-be-real.md): no scripted stand-ins; creative and limited measures are fine, fake ones are not (rule S31).
+- [A cascade runs one criterion](explanation/a-cascade-runs-one-criterion.md): every stage's metric is one number, kinds of cases are case sources, floors are marked (rules S41 to S44).
 - [The first stage needs no model](explanation/first-stage-needs-no-model.md): start a metric's cascade with a free stage that proves the scorer.
 - [Declare, call, measure, promote](explanation/graceful-selection.md): the graceful way to declare alternatives in code and let the metric pick.
 - [When metrics are run](explanation/when-metrics-are-run.md): when to run each metric and who approves the spend.

@@ -1,5 +1,8 @@
 # The first stage needs no model
 
+Every stage of the cascade is the same single number at higher fidelity, so the free first stage estimates the number the last stage
+measures, not another criterion: [a cascade runs one criterion](a-cascade-runs-one-criterion.md).
+
 This is guidance, not a rule: no check enforces it. When a metric lists `cascading_conditionals`, make its first stage
 one that needs no model. It costs nothing, so it can run on every change, and it proves the scorer and the cases work
 before anything is spent. The paid stages come after it, and only when it passes.
