@@ -124,12 +124,12 @@ Copy [implementation.md](implementation.md) once per way of deciding when to run
 
 | Alternative | Runs the metric |
 |---|---|
-| On every change | whenever the measured code or its cases change |
+| On every change | whenever what a metric measures changes (cheap and offline only; never from a commit hook or a CI step) |
 | On a schedule | at a fixed interval, whatever changed |
 | On a decision | when a choice depends on the result: a new alternative, a selection change, a suspected regression |
 | On drift | when a signal says the world moved: a new model version, a price change, a failing live check |
 
-Most repositories combine them: cheap offline runs on every change, paid live runs on a decision, a scheduled re-measurement when the world is known to move.
+Most repositories combine them: cheap offline runs of the part you changed while you work, paid live runs on a decision, a scheduled re-measurement when the world is known to move. Run a metric only when what is learned is worth what it costs (the metric's cascading conditionals say when); improve the implementation first, rerun only the failing cases, and wait to run the whole set until they pass. A changed file informs, it does not order a run: no commit hook and no CI step runs metrics, and expiration is never unless a metric or the project declares one.
 
 ## 4. The metric runs this policy governs
 
@@ -143,7 +143,7 @@ One row per Metric record the policy governs, in the repository's own records (t
 - **stages:** the sample sizes run in order, each only after the last looked right (for example 3, then 10, then 30).
 - **call_budget:** the most calls a run may make; the run stops there.
 - **cost_estimate:** worked out before the run, so approval is for a known amount.
-- **stale_when:** the result no longer counts: the cases changed, the measured code changed since its commit, it was run on uncommitted code, or the model or price behind it changed.
+- **stale_when:** the result no longer describes what it measured: the cases changed, code that the arm measures changed since its commit (name how you tell which files it measures: the whole repository, the files its component owns, or the files its module imports), it was run on uncommitted code, or the model or price behind it changed. Say also when a stale row is worth re-running: a decision depends on it, its cascade condition says so, or a declared expiration has passed.
 
 ## 5. Link it up
 

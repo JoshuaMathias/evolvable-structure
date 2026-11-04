@@ -46,7 +46,7 @@ The main feature is explanation and templates that need no code; Python is one e
   the tests: `python -m pytest implementations/python/tests` (offline). A new part of the Python package belongs to a
   component in `esoi/components.csv` and serves a solution in the records (`implementations/python/esoi/solutions.csv`).
 - **Metric runs follow `esoi/metric-run-policy.md`.** Every recorded metric here is offline: run the part you changed, then
-  `esoi check`; after committing measured code or cases, `esoi run --stale` (it skips paid arms) and commit the results log. The
+  `esoi check`; after committing measured code or cases, `esoi run --stale --plan` shows which recorded results no longer describe the code, and a stale row only informs: run a metric when what it teaches is worth its cost (`esoi run --stale --for-decision` when a decision depends on it), never from a commit hook or a CI step. The
   paid arms (those that call a model, declared `PAID = True`) need a cost estimate, a staged sample (3, 10, 30), a call budget and
   Joshua's approval first; never run one without it.
 - **Standards by risk tag.** Before writing code run `python -m esoi.standards_nav for-task "<what you will build>"` and,

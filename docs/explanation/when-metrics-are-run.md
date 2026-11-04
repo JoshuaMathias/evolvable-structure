@@ -33,22 +33,34 @@ A written policy per repository (the template is [metric-run-policy.md](../refer
 every Metric it governs, when it is run, in what stages, with what limit, who approves, and when its result stops counting.
 The practice that has worked is below; each repository records its own version.
 
-### Offline arms run on every change
+### Run a metric when what it teaches is worth what it costs
 
-A metric whose implementations call no paid service and touch no live system can run whenever the measured code or its
-cases change: before committing, and again in continuous integration. It is cheap, deterministic, and it is what keeps the
-structure honest. Run the part that covers what you changed, not everything, while you work; run all of it before you rely
-on the result.
+Metrics are not run for their own sake. A run is worth making when what it will teach (whether a change helped, which
+alternative is better, whether a decision still stands) is worth the time and money it takes; the metric's cascading
+conditionals are where that is written down. Code can change many times a day when an AI is working, and a metric re-run after
+every change measures an implementation that is about to change again. So the default is to improve first and measure when a
+choice turns on the number, and a changed file only informs: it says which recorded results no longer describe the code, it
+does not order a run.
+
+A metric whose implementations call no paid service and touch no live system is cheap, so while you work run the part that
+covers what you changed, not everything, and run the rest when you are about to rely on the result. No commit hook and no step of
+continuous integration runs metrics: a hook or a pipeline would turn every commit into a measurement nobody asked for. Continuous
+integration runs the tests, the structure check and the hygiene scan.
 
 An offline arm that counts the calls of a deterministic stand-in for a model declares itself (`SIMULATED = True`) so that it is
 run with the offline arms. Its cost is then known to be zero; a missing price alone never makes an arm free, and never makes it
 paid.
 
+**Offline means no model.** The harness refuses to start a model command (`claude`, `codex`, `gemini`) in a run of an arm that is not
+declared live (`PAID = True`, a `paid_arms` entry, or a run given `--max-calls`): the attempt raises an error in the case, is counted in
+the row's details beside the metered calls, and `ESOI_OFFLINE=1` is set for a provider that wants to refuse by itself. A provider
+that falls back to a binary found on the machine cannot make an offline run spend money.
+
 ### Results are recorded on committed code
 
-A recorded result carries the commit it was run on and a hash of the case files. Re-record after any change to the measured
-code or the cases, from committed code, so that the number can be reproduced by anyone. A result recorded on uncommitted code
-is shown but not trusted.
+A recorded result carries the commit it was run on and a hash of the case files. Record a result you will decide from on
+committed code, so that the number can be reproduced by anyone. A result recorded on uncommitted code is shown but not trusted.
+Whether to re-record after a change depends on the change: see [When a result is stale](#staleness-and-expiration).
 
 ### Live, paid arms run only when a decision depends on them
 
@@ -129,19 +141,40 @@ down who, so nobody has to guess.
 
 ### Staleness and expiration
 
-A recorded result is **stale** when any of these holds:
+A recorded result is **stale** when it no longer describes what it measured:
 
 - it has no commit, or was recorded on uncommitted code;
 - the case files are not the ones it was run on (their hash differs);
-- the measured code, or the implementations that drive it, changed since the commit it was recorded on;
+- code the arm measures changed since the commit it was recorded on;
 - the model, the price or the service behind it changed.
 
 The first three can be checked by a tool and should be. The last needs a person or a scheduled run.
 
+**What an arm measures is a choice between alternatives, measured like any other.** The staleness rule is the solution
+`know-what-a-result-measures`, with three arms scored by `esoi run staleness_precision` over a fixture of commits: any file of
+the repository's code paths or the evaluation folder (`repo_wide`, the baseline: safe, and every commit makes every component's
+rows stale), the files the ownership map gives the arm's solution and implementation (`component_paths`), and the files the arm's
+module imports, found by reading the source without running it (`import_closure`). A rule must never keep a row whose measured
+code changed (a false-fresh is a hard fail that disqualifies the arm); among the rest, the one that calls a result stale for
+nothing least often is selected. The measurement selected `import_closure`, and disqualified `component_paths`, because a shared
+utility the arm imports may be owned by another component, which the ownership map does not say. Every arm falls back, per
+component, to a safer rule: a non-Python arm or a computed import falls back to `component_paths`, and a component with no
+ownership entry keeps `repo_wide`, so a result is never silently fresh. A file in the code paths that no component owns counts for
+every arm. [Choose when a result is stale](../how-to/choose-when-a-result-is-stale.md) says how to set the rule and read why a row
+is stale.
+
+**A stale row is information, not an order to re-run.** `esoi run --stale` reports each stale row with the changed file and the
+component that owns it, and re-runs only what is worth running: a selected arm that was never measured, a selected arm whose
+metric (or the project) declares an expiration that has passed, a selected arm a pending decision or release depends on
+(`--for-decision`), or an arm a person names (`--include`). Rival arms and rows nothing depends on are listed as not re-run.
+`--all` is the older behaviour, re-running every stale arm. `esoi check` reports a changed file or a missing row as advice: it never
+fails the check and never blocks a commit.
+
 **Expiration is a separate thing.** A result that is still current can be asked for again after a time: a metric's optional
 `expiration` field (`never`, or a number of days), a project default in `[expiration]`, or a stage's `max-age-days`, the most
-specific winning. With none of them a result never expires by age. See [Choosing by metric](choosing-by-metric.md#expiration),
-which also says why expiring costly stages is not recommended for high-stakes production systems.
+specific winning. Expiration is never unless a metric or the project declares one. See
+[Choosing by metric](choosing-by-metric.md#expiration), which also says why expiring costly stages is not recommended for
+high-stakes production systems.
 
 ### Re-measure when the world moves
 
@@ -162,12 +195,12 @@ The same question has several answers, and a repository can keep two alive to co
 
 | Alternative | Runs the metric | Good when | Costs |
 |---|---|---|---|
-| On every change | whenever measured code or cases change | the metric is offline and fast | nothing, until the metric gets slow |
+| On every change | whenever what a metric measures changes (by hand, never from a commit hook or a CI step) | the metric is offline, fast and what changed is what it measures | runs that teach nothing when the code is about to change again |
 | On a schedule | at a fixed interval | the world moves on its own clock (models, prices) | runs that change nothing |
 | On a decision | when a choice depends on the result | the metric is paid or slow | a decision made late if nobody asks |
 | On drift | when a signal says something moved | a cheap probe can detect the change | a probe to build and maintain |
 
-A typical policy combines them: offline metrics on every change, paid metrics on a decision, and a scheduled re-measurement of
+A typical policy combines them: offline metrics when what they measure changed and a decision may depend on them, paid metrics on a decision, and a scheduled re-measurement of
 the selected alternatives.
 
 ## The metric of the policy
@@ -178,6 +211,6 @@ change). The first two are counted by hand or from the results log; the third is
 
 ## Tools
 
-The Python implementation reports a stale result (`esoi check --strict`), re-runs and re-records what is stale
-(`esoi run --stale`), runs a staged sample with a budget (`esoi run <component> --impl <name> --sample 3 --max-calls N`), and
+The Python implementation reports a stale result and the file behind it (`esoi check --strict` as advice, `esoi run --stale --plan`,
+`esoi stale --explain <component>`), re-runs and re-records what is worth running (`esoi run --stale`), runs a staged sample with a budget (`esoi run <component> --impl <name> --sample 3 --max-calls N`), and
 records the time the check itself takes. See [apply-with-tools.md](../how-to/apply-with-tools.md).

@@ -68,19 +68,21 @@ Rename the example's parts, replace its text with your own intent, and keep runn
 
 ## When to run what
 
-Metrics that call no paid service run on every change; paid ones run only when a decision depends on them, staged and under a
-call budget. Write your repository's version down with the [metric run policy template](../reference/templates/metric-run-policy.md) and
+Run a metric when what it teaches is worth its cost: run the part you changed while you work, and measure for a decision when a
+choice turns on the number; paid ones run only when a decision depends on them, staged and under a call budget. No commit hook and no
+CI step runs metrics, and a changed file only informs. Write your repository's version down with the [metric run policy template](../reference/templates/metric-run-policy.md) and
 read [when metrics are run](../explanation/when-metrics-are-run.md). In day-to-day use:
 
 ```bash
 esoi run <component> --impl <name>        # the part you changed
 esoi check                                # before committing
 git commit ...                            # measured code and cases committed
-esoi run --stale                          # re-run and record whatever is stale, then commit the results log
-esoi check --strict                       # every recorded result is current
+esoi run --stale --plan                   # which recorded results no longer describe the code, which file and owner, and why each is or is not re-run
+esoi run --stale --for-decision           # when a decision or release depends on the selected arms: re-run and record those that are stale
+esoi check --strict                       # advice: the recorded results that are stale (never a failure)
 ```
 
-`esoi run --stale --plan` lists what would run and why, and runs nothing; a real `--stale` pass can be killed and run again, because the recorded rows are the progress and it starts at the arm that was in flight. `esoi run --stale` re-runs the selected arm of each solution and the rivals recorded beside it (a verdict that rests on a rival
+`esoi run --stale` reports a row whose measured code changed and re-runs only what is worth running (a selected arm never measured, an expiration that has passed, `--for-decision`, `--include`; `--all` re-runs every stale arm); which files count as measured code is the staleness rule ([Choose when a result is stale](choose-when-a-result-is-stale.md)). `esoi run --stale --plan` lists what would run and why, and runs nothing; a real `--stale` pass can be killed and run again, because the recorded rows are the progress and it starts at the arm that was in flight. `esoi run --stale` re-runs the selected arm of each solution and the rivals recorded beside it (a verdict that rests on a rival
 recorded before the measured code changed is flagged by `esoi check --strict`, waive one as `S20 <solution>:<implementation>`),
 on the sample the selected arm's latest row used (`--full` runs the whole set), so a re-record stays comparable; a rival
 recorded on another sample is not stale, it is not comparable, and is re-run too. It never runs an arm that may spend money: one that declares `PAID = True`, is listed in `paid_arms`, or whose last run called a
@@ -110,7 +112,8 @@ tells you whether they are stale; a new field appears as a missing column in you
 | `esoi check [--strict] [--write-docs]` | Runs every rule; `--strict` also rejects results recorded on uncommitted code |
 | `esoi rules` | Lists the rules |
 | `esoi run <component> --impl <name> [--record]` | Runs and records one implementation (`--sample N`, `--only IDS`, `--max-calls N` for staged, budgeted runs). Every run, recorded or not, is saved case by case in `runs.csv` beside the results log; an unrecorded run stops at its first failing case (`--keep-going` runs on), `--failed` reruns just the cases that failed last, and a run of every case waits until they pass ([why](../explanation/when-metrics-are-run.md#iterate-on-the-failing-cases-before-the-whole-set)). A later stage reuses cases already run for the same implementation version (`--fresh` runs them again). Refuses a run that cannot inform a decision unless `--differs \"harness: ...\"` or `--force \"reason\"` ([why](../explanation/when-metrics-are-run.md), [how to declare the public benchmark](use-public-evidence.md#4-skip-runs-whose-answer-is-already-public)) |
-| `esoi run --stale [--full] [--include-paid \| --include C/I]` | Re-runs and records every selected implementation, and the rivals beside it, whose result is stale; paid arms are skipped unless included |
+| `esoi run --stale [--plan] [--full] [--for-decision \| --all] [--include-paid \| --include C/I]` | Reports every selected implementation and rival whose result is stale and why; re-runs and records only what is worth running (never measured, expired, a pending decision with `--for-decision`, named with `--include`, or everything with `--all`); paid arms are skipped unless included |
+| `esoi stale --explain COMPONENT \| --count` | The changed files that count for each arm of a component and who owns them; how many rows each staleness rule calls stale now |
 | `esoi leaderboard [--strict]` | Ranks implementations and prints a verdict per solution |
 | `esoi tracker build\|check` | Builds the review sheet tabs |
 | `esoi diagram [--check]` | Draws each intent's solution diagram (Mermaid, `diagram.md` beside its records) from the solutions' outputs and the implementations' `uses_solution_ids`; `--check` lists the ones out of date. `esoi check --write-docs` writes them too |

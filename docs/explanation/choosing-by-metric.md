@@ -163,7 +163,8 @@ default = "180 days"
 Precedence, most specific first: the stage's `max-age-days`, the metric's `expiration`, the project's `[expiration] default`, and
 with none of them a result never expires by age (`cascade.load_stages` applies it). A metric can say `never` against a project
 default. Expiration is not staleness: a result whose implementation, cases or measured code changed is stale and counts as not run
-whatever the expiration says, which is the re-record after an implementation change. Expiration only decides when a result that
+whatever the expiration says (which files count as measured code is the staleness rule, see
+[When metrics are run](when-metrics-are-run.md#staleness-and-expiration)); a stale row informs and is re-run when a decision depends on it. Expiration only decides when a result that
 is still current is asked for again, and it applies through the cascade (a metric with no `cascading_conditionals` has no stages to
 expire). Expiring the costly later stages lets an improved implementation be selected quickly from the earlier, cheaper ones; that
 is not recommended for a high-stakes production system, which should instead require a significant gain

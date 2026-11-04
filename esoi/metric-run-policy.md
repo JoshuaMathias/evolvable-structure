@@ -13,7 +13,7 @@ through `governs_metric_ids`, and each of them names it in `run_policy_ids`.
 
 | Alternative | Used here | Why |
 |---|---|---|
-| On every change | yes, for every offline arm | Offline arms take seconds |
+| On every change | by hand, for the offline arms you changed | Offline arms take seconds, but a run is made when what it teaches is worth it, never by a hook or a pipeline |
 | On a schedule | no | No recorded metric drifts with a model or a price while only offline arms are recorded |
 | On a decision | yes, for the arms that call a model | The ESOI behaviour arms and the model judge cost money, so they run only when a choice depends on them |
 | On drift | no | Nothing here drifts with the world |
@@ -22,12 +22,12 @@ through `governs_metric_ids`, and each of them names it in `run_policy_ids`.
 
 | Metric | Arm | Trigger | Stages | Call budget | Cost | Approver | Stale when |
 |---|---|---|---|---|---|---|---|
-| every other metric in `metrics.csv` | offline | every change to the measured code or its cases | the whole set | none, no model is called | none | none needed | the cases changed, the measured code changed since the recorded commit, or it was run on uncommitted code |
-| `metric-readme-glanceability` (every intent folder reads at a glance) | offline | every change to `esoi/readme.py`, `esoi/diagram.py` or its cases | the whole set | none, no model is called | none | none needed | as above; the adopting repositories it reads are named by `ESOI_GLANCE_ADOPTERS`, and a machine without them runs this repository's cases only |
-| `metric-navigable-records` (a solution's spec and code can be found from each other) | offline | every change to `esoi/besidecode.py`, `esoi/readme.py`, `esoi/rules/beside_rules.py` or its cases | the whole set | none, no model is called | none | none needed | as above; the adopting repositories it reads are named by `ESOI_GLANCE_ADOPTERS`, and a machine without them runs this repository's cases only |
-| `metric-skill-copy-agreement` (sync drift and leak detection) | offline | every change to `esoi/skill.py` or its cases; the live freshness check also runs after every edit of the author's skill, where its source and private term list are reachable | the whole set | none, no model is called | none | none needed | the cases changed, `skill.py` changed since the recorded commit, or it was run on uncommitted code |
-| `metric-behave-by-esoi`, arms `reference_good` and `reference_bad` (validity) | offline | every change to the cases, `esoi/behaviour.py` or the arms | the whole set | none, no model is called | none | none needed | the cases changed, the measured code changed since the recorded commit, or it was run on uncommitted code |
-| `metric-judge-esoi-behaviour`, arm `regex_only` (validity) | offline | every change to its cases, which follow the behaviour cases | the whole set | none, no model is called | none | none needed | as above |
+| every other metric in `metrics.csv` | offline | when code it measures or its cases changed and the result is wanted (by hand; a changed file informs and never orders a run) | the whole set | none, no model is called | none | none needed | the cases changed, code the arm measures (the files its module imports, by the `import_closure` rule; `esoi stale --explain <component>` names them) changed since the recorded commit, or it was run on uncommitted code |
+| `metric-readme-glanceability` (every intent folder reads at a glance) | offline | when `esoi/readme.py`, `esoi/diagram.py` or its cases changed and the result is wanted | the whole set | none, no model is called | none | none needed | as above; the adopting repositories it reads are named by `ESOI_GLANCE_ADOPTERS`, and a machine without them runs this repository's cases only |
+| `metric-navigable-records` (a solution's spec and code can be found from each other) | offline | when `esoi/besidecode.py`, `esoi/readme.py`, `esoi/rules/beside_rules.py` or its cases changed and the result is wanted | the whole set | none, no model is called | none | none needed | as above; the adopting repositories it reads are named by `ESOI_GLANCE_ADOPTERS`, and a machine without them runs this repository's cases only |
+| `metric-skill-copy-agreement` (sync drift and leak detection) | offline | when `esoi/skill.py` or its cases changed and the result is wanted; the live freshness check also runs after an edit of the author's skill, where its source and private term list are reachable | the whole set | none, no model is called | none | none needed | the cases changed, `skill.py` changed since the recorded commit, or it was run on uncommitted code |
+| `metric-behave-by-esoi`, arms `reference_good` and `reference_bad` (validity) | offline | when the cases, `esoi/behaviour.py` or the arms changed and the result is wanted | the whole set | none, no model is called | none | none needed | the cases changed, code the arm measures (the files its module imports, by the `import_closure` rule; `esoi stale --explain <component>` names them) changed since the recorded commit, or it was run on uncommitted code |
+| `metric-judge-esoi-behaviour`, arm `regex_only` (validity) | offline | when its cases, which follow the behaviour cases, changed and the result is wanted | the whole set | none, no model is called | none | none needed | as above |
 | `metric-behave-by-esoi`, arms `standing_instructions`, `skill_on_request` and `no_skill` | paid | on a decision: choosing between ways of giving an agent the principles, a change to the skill that should be checked, a new model | a stratified sample of 3, then 10, then 30; the whole set only if the 30 is not clear; stop and report after each stage | 3 calls per case for each arm (9, 30 and 90 per arm by stage) | about 1 to 3 USD for all three arms and the judge across the three stages, from the assumptions below; none on a subscription command | Joshua | the cases changed, the skill or `esoi/behaviour.py` changed since the recorded commit, the model changed, or it was run on uncommitted code |
 | `metric-judge-esoi-behaviour`, arm `model_judge` | paid | on a decision: before a behaviour score judged by a model is trusted, and when the judge's model changes | a stratified sample of 3, then 10, then 30 labelled replies, then the whole set once a person has filled `human_verdict` for a sample | 1 call per reply (3, 10 and 30 by stage) | included in the estimate above | Joshua | as above, or the labels changed |
 
@@ -45,10 +45,12 @@ Across the three stages that is about 43 case runs per arm, about 580,000 input 
 - Known improvements that are not blocked are finished before a metric is run. A paid arm or a run on the large set also waits for
   its other condition (a weekly cadence or a person's approval, written as the stage's `when=`).
 - Before committing: `esoi check`.
-- After committing a change to measured code or cases: `esoi run --stale`, then commit the results log. The strict check
-  (`esoi check --strict`) is how anyone confirms that every recorded result is current.
-- In continuous integration: the tests, the check and the hygiene scan on every pull request and push, and the strict check on
-  the default branch (`.github/workflows/check.yml`).
+- After committing a change to measured code or cases: `esoi run --stale --plan` says which recorded results no longer describe the code (the
+  changed file and the component that owns it) and why each is or is not re-run. A changed file only informs. Re-record when a decision or
+  release depends on the result (`esoi run --stale --for-decision`) or when you name the arm (`--include`), then commit the results log.
+  `esoi check --strict` lists the stale results as advice; it never fails.
+- In continuous integration: the tests, the check and the hygiene scan on every pull request and push (`.github/workflows/check.yml`). No
+  commit hook and no CI step runs metrics, and expiration is never unless a metric or the project declares one.
 - A paid arm: estimate its cost first, run a stratified sample of 3, then 10, then 30 cases with a call budget
   (`esoi run <component> --impl <name> --sample 3 --max-calls 9 --record`), and have Joshua approve the spend before the run.
   It needs `ESOI_MODEL_COMMAND` (a command that reads a prompt on standard input and prints a reply), and `ESOI_MODEL` and

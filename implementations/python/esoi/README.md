@@ -171,7 +171,7 @@ Explain ESOI and give fill-in templates that need no code so anyone can apply it
 - Entry call: `esoi.run("docs-and-templates", '.')`
 - Selected implementation: `documentation-folder`
 - Metric: Newcomer effort
-- Implemented by: [`.gitignore`](../../../.gitignore), [`CHANGELOG.md`](../../../CHANGELOG.md), [`CLAUDE.md`](../../../CLAUDE.md), [`CONTRIBUTING.md`](../../../CONTRIBUTING.md), [`LICENSE`](../../../LICENSE), [`NOTICE`](../../../NOTICE), [`SECURITY.md`](../../../SECURITY.md), [`docs/explanation/beyond-code.md`](../../../docs/explanation/beyond-code.md) and 70 more
+- Implemented by: [`.gitignore`](../../../.gitignore), [`CHANGELOG.md`](../../../CHANGELOG.md), [`CLAUDE.md`](../../../CLAUDE.md), [`CONTRIBUTING.md`](../../../CONTRIBUTING.md), [`LICENSE`](../../../LICENSE), [`NOTICE`](../../../NOTICE), [`SECURITY.md`](../../../SECURITY.md), [`docs/explanation/beyond-code.md`](../../../docs/explanation/beyond-code.md) and 71 more
 
 ## ESOI behaviour judge (`esoi-behaviour-judge`)
 
