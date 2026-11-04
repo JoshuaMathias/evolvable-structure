@@ -129,7 +129,7 @@ def test_stale_run_skips_a_capped_arm_and_says_so(tmp_path, monkeypatch):
     cfg.paid_arms = ["c9/cheap", "c9/big"]
     only_stale(monkeypatch, "c9/big")
     lines = []
-    harness.rerun_stale(cfg, lines.append, include_paid=True)
+    harness.rerun_stale(cfg, lines.append, include_paid=True, run_all=True)
     assert any("c9/big" in line and "SKIPPED, not worth running" in line and "cheap already passed" in line for line in lines)
     assert not any("c9/big: run" in line for line in lines)
 

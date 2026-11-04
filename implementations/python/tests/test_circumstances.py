@@ -187,10 +187,10 @@ def test_editing_circumstances_makes_the_derived_rows_stale_until_the_arm_is_run
     (repo / "esoi" / "circumstances.csv").write_text(HEADER + BIG_SMALL.replace("size>5", "size>6"))
     assert "circumstances.csv" in harness.stale_reason(cfg, "greet_a_person", latest["live"], strict=False)
     lines = []
-    harness.rerun_stale(cfg, lines.append)
+    harness.rerun_stale(cfg, lines.append, run_all=True)
     assert any("live: stale, its slice rows and per-case log were not derived from the current circumstances.csv" in x for x in lines)
     lines.clear()
-    harness.rerun_stale(cfg, lines.append)
+    harness.rerun_stale(cfg, lines.append, run_all=True)
     assert lines == ["greet_a_person/live: current", "greet_a_person/shout: current"]
     (repo / "esoi" / "circumstances.csv").write_text(HEADER + "big,size>,,x,y\n")   # unreadable: stale, and the run fails loudly
     assert "cannot be read" in harness.stale_reason(cfg, "greet_a_person", leaderboard.latest_results(cfg.results_path)["greet_a_person"]["live"])
@@ -211,11 +211,11 @@ def test_run_stale_judges_the_newest_whole_run_not_a_recorded_only_row(repo):
     assert harness.rerun_stale(cfg, QUIET) == 0
     assert cfg.results_path.read_text() == size   # nothing was re-recorded, least of all the only: row
     lines = []
-    harness.rerun_stale(cfg, lines.append)
+    harness.rerun_stale(cfg, lines.append, run_all=True)
     assert lines == ["greet_a_person/live: current", "greet_a_person/shout: current"]
     (cfg.evaluation / "greet_a_person" / "cases.json").write_text((cfg.evaluation / "greet_a_person" / "cases.json").read_text() + " ")
     git(repo, "commit", "-q", "-am", "cases changed")
-    harness.rerun_stale(cfg, QUIET)
+    harness.rerun_stale(cfg, QUIET, run_all=True)
     rows = [r for r in csv.DictReader(cfg.results_path.open()) if r["impl"] == "live"]
     assert rows[-1]["sample"] == "" and rows[-1]["cases"] == "8"   # re-recorded on the whole set, not on c1,c2
     assert harness.stale_arms(cfg)[0] == ("greet_a_person", "live")
@@ -303,11 +303,11 @@ def test_run_stale_plan_lists_the_decisions_and_runs_nothing(repo):
     git(repo, "commit", "-q", "-am", "cases changed")
     before = cfg.results_path.read_text()
     lines = []
-    assert harness.rerun_stale(cfg, lines.append, plan=True) == 0
+    assert harness.rerun_stale(cfg, lines.append, plan=True, run_all=True) == 0
     assert cfg.results_path.read_text() == before                      # nothing ran, nothing recorded
     assert any(x.startswith("greet_a_person/live: would run") for x in lines)
     assert any(x.startswith("greet_a_person/shout: would run") for x in lines)
-    harness.rerun_stale(cfg, QUIET)                                       # a real pass records both ...
+    harness.rerun_stale(cfg, QUIET, run_all=True)                                       # a real pass records both ...
     lines.clear()
-    harness.rerun_stale(cfg, lines.append, plan=True)
+    harness.rerun_stale(cfg, lines.append, plan=True, run_all=True)
     assert lines == ["greet_a_person/live: current", "greet_a_person/shout: current"]   # ... and a plan then has nothing to do

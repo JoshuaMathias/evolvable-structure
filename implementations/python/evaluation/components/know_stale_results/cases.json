@@ -91,8 +91,10 @@
   },
   "expect": {
    "rule": "S10",
-   "contains": "has no row"
-  }
+   "contains": "has no row",
+   "advice": true
+  },
+  "note": "A changed file or a missing row informs: it is advice and never fails the check."
  },
  {
   "id": "STL-003",
@@ -177,8 +179,10 @@
   },
   "expect": {
    "rule": "S20",
-   "contains": "uncommitted"
-  }
+   "contains": "uncommitted",
+   "advice": true
+  },
+  "note": "A changed file or a missing row informs: it is advice and never fails the check."
  },
  {
   "id": "STL-007",
@@ -222,8 +226,10 @@
   },
   "expect": {
    "rule": "S20",
-   "contains": "changed since"
-  }
+   "contains": "changed since",
+   "advice": true
+  },
+  "note": "A changed file or a missing row informs: it is advice and never fails the check."
  },
  {
   "id": "STL-009",
@@ -284,8 +290,10 @@
   },
   "expect": {
    "rule": "S20",
-   "contains": "changed since"
-  }
+   "contains": "changed since",
+   "advice": true
+  },
+  "note": "A changed file or a missing row informs: it is advice and never fails the check."
  },
  {
   "id": "STL-012",
@@ -318,8 +326,10 @@
   },
   "expect": {
    "rule": "S20",
-   "contains": "rival shout"
-  }
+   "contains": "rival shout",
+   "advice": true
+  },
+  "note": "A changed file or a missing row informs: it is advice and never fails the check."
  },
  {
   "id": "STL-013",
@@ -429,7 +439,9 @@
   },
   "expect": {
    "rule": "S20",
-   "contains": "not comparable"
-  }
+   "contains": "not comparable",
+   "advice": true
+  },
+  "note": "A changed file or a missing row informs: it is advice and never fails the check."
  }
 ]

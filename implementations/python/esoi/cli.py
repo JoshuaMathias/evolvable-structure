@@ -9,6 +9,7 @@
     esoi records place|gather [--apply]    move records beside the code they describe (or into the structure folder); a dry run without --apply
     esoi new solution ID [--intent ID]     a solution in one command: records, code with declarations, evaluation folder
     esoi run COMPONENT --impl NAME [--record]   run and record one implementation over a component's cases
+    esoi stale --explain COMPONENT | --count   which changed files a recorded result measures, and how many rows each staleness rule calls stale
     esoi leaderboard [--strict]            rank the implementations of every evaluated solution
     esoi select SOLUTION [--name NAME]     show which implementation runs now, and which layer of the cascade chose it
     esoi cascade [SOLUTION] [--strict]     a metric's cascading conditionals: each stage's results, the chosen implementation, what to run next
@@ -80,6 +81,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--intent", default=None, help="the intent whose folder receives the records (default: the top intent)")
     p = sub.add_parser("run", help="run one implementation over a component's cases", add_help=False)
     p.add_argument("rest", nargs=argparse.REMAINDER)
+    p = sub.add_parser("stale", help="which changed files a recorded result measures (what makes a row stale, and who owns each changed file)")
+    p.add_argument("--explain", metavar="COMPONENT", default="", help="the changed files that count for each arm of the component, and the ones that are ignored")
+    p.add_argument("--rule", default="", help="judge by this staleness rule instead of the configured one (repo_wide, component_paths, import_closure)")
+    p.add_argument("--count", action="store_true", help="count the rows each rule calls stale now (measured code changed)")
     p = sub.add_parser("leaderboard", help="rank implementations")
     p.add_argument("--strict", action="store_true", help="exit 1 when a rival beats a selected implementation")
     p = sub.add_parser("select", help="show which implementation runs, or promote a winner")
@@ -675,6 +680,20 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.cmd == "run":
         from . import harness
         return harness.run_cli(args.rest, config)
+    if args.cmd == "stale":
+        from . import staleness
+        if args.rule and args.rule not in staleness.RULES:
+            print(f"esoi stale: --rule must be one of {', '.join(staleness.RULES)}")
+            return 2
+        if args.count:
+            counts = {rule: staleness.count_stale(config, rule) for rule in staleness.RULES}
+            for rule, found in counts.items():
+                print(f"{rule}: {len(found)} row(s) stale because measured code changed")
+            return 0
+        if args.explain:
+            return staleness.explain_cli(config, args.explain, print, args.rule)
+        print("usage: esoi stale --explain COMPONENT [--rule RULE] | esoi stale --count")
+        return 2
     if args.cmd == "leaderboard":
         from . import harness, leaderboard, registry
         return leaderboard.board(config, registry.load(config), args.strict, stale=harness.stale_reason)

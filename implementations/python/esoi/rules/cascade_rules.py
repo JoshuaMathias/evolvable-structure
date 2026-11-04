@@ -31,7 +31,7 @@ def run(ctx: Context) -> list:
         if errors or not stages or component not in ctx.history:
             continue
         standing = cascade.standings(stages, ctx.history[component], datetime.date.today(),
-                                     lambda row, c=component: stale_reason(ctx.config, c, row, ctx.strict),
+                                     lambda row, c=component: stale_reason(ctx.config, c, row, False),
                                      ctx.config.evaluation)
         decision = cascade.decide(stages, standing, ctx.config.evaluation)
         for sid in ids(metric.get("solution_ids", "")):

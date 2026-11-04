@@ -224,9 +224,10 @@ def fresh_repo(edits: List[dict], kind: str = "repo") -> Path:
 
 
 def report(root: Path, strict: bool = False) -> Dict[str, object]:
-    """Run the live checker over a fixture and return its verdict: exit code and the problem lines."""
+    """Run the live checker over a fixture and return its verdict: exit code, the problem lines and the advisory lines (which never change the exit code)."""
+    advisory: List[str] = []
     try:
-        problems = check.check(config.load(root), strict)
+        problems, advisory = check.check_all(config.load(root), strict)
     except Exception as exc:
         problems = [f"CRASH {type(exc).__name__}: {exc}"]
-    return {"exit": 1 if problems else 0, "problems": problems}
+    return {"exit": 1 if problems else 0, "problems": problems, "advisory": advisory}

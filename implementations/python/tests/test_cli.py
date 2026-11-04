@@ -83,7 +83,7 @@ def test_run_stale_lists_paid_arms_and_accepts_the_opt_in_flags(repo, capsys):
     (repo / "esoi.toml").write_text((repo / "esoi.toml").read_text() + '\npaid_arms = ["greet_a_person/shout"]\n')
     results = repo / "evaluation" / "components" / "greet_a_person" / "cases.json"
     results.write_text(results.read_text() + " ")
-    assert run(repo, "run", "--stale", "--no-record") == 0
+    assert run(repo, "run", "--stale", "--no-record", "--all") == 0
     out = capsys.readouterr().out
     assert "greet_a_person/shout: stale" in out and "SKIPPED" in out and "--include greet_a_person/shout" in out
     assert run(repo, "run", "--stale", "--no-record", "--include", "greet_a_person/shout") == 0

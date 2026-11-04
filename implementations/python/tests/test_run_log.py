@@ -101,7 +101,7 @@ def test_a_later_stage_reuses_cases_run_for_the_same_code_and_reruns_them_after_
     monkeypatch.setenv("ESOI_TEST_B", "1")
     cfg, score = make(tmp_path, "rl_reuse")
     version = ["abc1234"]
-    monkeypatch.setattr(harness, "current_sha", lambda config: version[0])
+    monkeypatch.setattr(harness, "current_sha", lambda config, *rest: version[0])
     first, _, _ = run(cfg, score, "rl_reuse", "--sample", "1", "--record")
     assert first["model_calls"] == 1
     second, rows, lines = run(cfg, score, "rl_reuse", "--record")

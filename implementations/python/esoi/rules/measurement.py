@@ -33,9 +33,9 @@ SUMMARIES = {
            "selected or measured implementation must be live, or waived.",
     "S16": "The latest results row of every implementation carries a cases_sha, or a waiver says why not.",
     "S20": "Every solution has a problem, an ideal, a metric, implementations, a selected implementation and a "
-           "recorded run on the current cases with a git_sha (a solution whose metrics record no run is a specification and is not checked here). With --strict the run must "
-           "also be on committed code that has not changed since, and so must every rival it was compared with "
-           "(waive one rival as `<solution>:<implementation>`).",
+           "recorded run on the current cases with a git_sha (a solution whose metrics record no run is a specification and is not checked here). With --strict a run on code that "
+           "changed since is advice only (it informs, never fails the check or blocks a commit), and so is a rival it was compared "
+           "with (waive one rival as `<solution>:<implementation>`).",
     "S21": "Every evaluation folder is named by some solution's metric command, or is listed as shared.",
     "S22": "No score, percentage, dollar amount or case count in a waiver reason or a record field (a solution's milestones may state target values); "
            "numbers live in the results log.",
@@ -135,8 +135,8 @@ def run(ctx: Context) -> List[str]:
         comp, sel = leaderboard.selected_arm(config, r, "", ctx.registry)   # the records' `selected`, not the command's order
         rows = results.get(comp, {})
         if sel not in rows:
-            if not ctx.waived("S10", f"{r['solution_id']}:unmeasured"):
-                bad.append(f"S10 {r['solution_id']}: selected {sel} has no row in the results log (run with --record)")
+            if not ctx.waived("S10", f"{r['solution_id']}:unmeasured"):   # advice: a measurement is made when it is worth its cost
+                ctx.advisory.append(f"S10 {r['solution_id']}: selected {sel} has no row in the results log (run with --record when a decision needs it)")
             continue
         pick_history, pick_policy = leaderboard.selection_view(ctx.history.get(comp, {}), per_case, chosen.get(comp) or leaderboard.Policy())
         if sel not in pick_history:
@@ -225,22 +225,25 @@ def run(ctx: Context) -> List[str]:
         for impl, rival_why in leaderboard.stale_rivals(config, comp, results.get(comp, {}), sel, stale_reason,
                                                           ctx.history.get(comp)):
             waived = ctx.waived("S20", f"{sid}:{impl}")   # in use now, though only --strict reports the finding
-            if ctx.strict and not waived:
-                bad.append(f"S20 {sid}: the verdict compares {sel} with rival {impl}, but {rival_why}; re-run "
-                           f"`esoi run {comp} --impl {impl} --record` on committed code")
+            if ctx.strict and not waived:   # information: a changed file never fails the check or blocks a commit
+                ctx.advisory.append(f"S20 {sid}: the verdict compares {sel} with rival {impl}, but {rival_why}; "
+                                    f"re-run `esoi run {comp} --impl {impl} --record` when a decision depends on the comparison")
         for impl, rival_why in leaderboard.incomparable_rivals(results.get(comp, {}), sel, config.evaluation,
                                                                 ctx.history.get(comp)):
             waived = ctx.waived("S20", f"{sid}:{impl}")
             if ctx.strict and not waived:
-                bad.append(f"S20 {sid}: rival {impl} is not comparable with {sel} ({rival_why}); re-run "
-                           f"`esoi run --stale` so both are recorded on the same sample")
-        why = stale_reason(config, comp, row, ctx.strict)
-        if not why:
-            if not ctx.strict and stale_reason(config, comp, row, True):
-                ctx.waived("S20", sid)   # strict-only: a waiver for it is in use now, not unused
+                ctx.advisory.append(f"S20 {sid}: rival {impl} is not comparable with {sel} ({rival_why}); "
+                                    f"record both on the same sample when a decision depends on the comparison")
+        why = stale_reason(config, comp, row, False)   # other cases, no commit: the row does not describe what is measured now
+        if why:
+            if not ctx.waived("S20", sid):
+                bad.append(f"S20 {sid}: {why}; re-run `esoi run {comp} --impl {sel} --record` on committed code")
             continue
-        if not ctx.waived("S20", sid):
-            bad.append(f"S20 {sid}: {why}; re-run `esoi run {comp} --impl {sel} --record` on committed code")
+        changed = stale_reason(config, comp, row, True)   # a changed file only informs (advice, never a problem)
+        if changed and ctx.strict and not ctx.waived("S20", sid):
+            ctx.advisory.append(f"S20 {sid}: {changed}; re-run `esoi run {comp} --impl {sel} --record` when a decision or release depends on it")
+        elif changed:
+            ctx.waived("S20", sid)   # a waiver for it is in use now, not unused
     return bad
 
 

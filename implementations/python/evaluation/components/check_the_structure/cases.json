@@ -729,8 +729,10 @@
   },
   "expect": {
    "rule": "S10",
-   "contains": "has no row"
-  }
+   "contains": "has no row",
+   "advice": true
+  },
+  "note": "A changed file or a missing row informs: it is advice and never fails the check."
  },
  {
   "id": "CTS-032",
@@ -1426,8 +1428,10 @@
   },
   "expect": {
    "rule": "S20",
-   "contains": "uncommitted"
-  }
+   "contains": "uncommitted",
+   "advice": true
+  },
+  "note": "A changed file or a missing row informs: it is advice and never fails the check."
  },
  {
   "id": "CTS-063",
@@ -1471,8 +1475,10 @@
   },
   "expect": {
    "rule": "S20",
-   "contains": "changed since"
-  }
+   "contains": "changed since",
+   "advice": true
+  },
+  "note": "A changed file or a missing row informs: it is advice and never fails the check."
  },
  {
   "id": "CTS-065",
@@ -1533,8 +1539,10 @@
   },
   "expect": {
    "rule": "S20",
-   "contains": "changed since"
-  }
+   "contains": "changed since",
+   "advice": true
+  },
+  "note": "A changed file or a missing row informs: it is advice and never fails the check."
  },
  {
   "id": "CTS-068",

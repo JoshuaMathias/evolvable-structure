@@ -134,14 +134,14 @@ def test_rerun_stale_runs_only_what_is_stale(repo):
     cases.write_text(cases.read_text() + " ")
     git(repo, "commit", "-q", "-am", "cases changed")
     lines = []
-    harness.rerun_stale(cfg, lines.append)
+    harness.rerun_stale(cfg, lines.append, run_all=True)
     assert any("greet_a_person/live: stale, its latest row was recorded on other cases" in line for line in lines)
     assert any("greet_a_person/live: run and recorded" in line for line in lines)
     assert any("greet_a_person/shout: run and recorded" in line for line in lines)   # the rival the verdict rests on
     latest = [r for r in csv.DictReader(cfg.results_path.open()) if r["impl"] == "live"][-1]
     assert latest["git_sha"] and latest["cases_sha"]
     lines.clear()
-    harness.rerun_stale(cfg, lines.append)
+    harness.rerun_stale(cfg, lines.append, run_all=True)
     assert lines == ["greet_a_person/live: current", "greet_a_person/shout: current"]
 
 
@@ -229,7 +229,7 @@ def test_rerun_stale_skips_a_paid_arm_unless_asked(repo):
     shout.write_text("PAID = True\n" + shout.read_text())
     git(repo, "commit", "-q", "-am", "shout now calls a paid model")
     lines = []
-    harness.rerun_stale(cfg, lines.append)
+    harness.rerun_stale(cfg, lines.append, run_all=True)
     assert any("greet_a_person/shout: stale" in line and "SKIPPED" in line and "PAID = True" in line for line in lines)
     assert any("--include greet_a_person/shout" in line for line in lines)
     assert not any("shout: run" in line for line in lines) and any("live: run and recorded" in line for line in lines)
@@ -247,10 +247,10 @@ def test_an_arm_listed_in_paid_arms_or_recorded_with_model_calls_is_paid(repo):
     assert "called a model" in harness.paid_reason(cfg, "greet_a_person", "live", {"model_calls": "4"})
     lines = []
     cfg.paid_arms = ["greet_a_person/live", "greet_a_person/shout"]
-    harness.rerun_stale(cfg, lines.append)
+    harness.rerun_stale(cfg, lines.append, run_all=True)
     assert sum("SKIPPED" in line for line in lines) == 2 and not any(": run" in line for line in lines)
     lines.clear()
-    harness.rerun_stale(cfg, lines.append, include_paid=True)
+    harness.rerun_stale(cfg, lines.append, include_paid=True, run_all=True)
     assert sum(": run and recorded" in line for line in lines) == 1   # the other is capped by the arm that passed every case
     assert sum("SKIPPED, not worth running" in line for line in lines) == 1
 
@@ -285,16 +285,16 @@ def test_rerun_stale_keeps_the_sample_and_runs_a_rival_on_the_selected_arms_samp
     harness.run_component("greet_a_person", score, ["--impl", "live", "--sample", "1", "--record"], cfg, quiet)
     harness.run_component("greet_a_person", score, ["--impl", "shout", "--record"], cfg, quiet)   # the whole set
     lines = []
-    harness.rerun_stale(cfg, lines.append)
+    harness.rerun_stale(cfg, lines.append, run_all=True)
     assert "greet_a_person/live: current" in lines
     assert any("shout: stale, it was scored on a different sample" in line and "not comparable" in line for line in lines)
     latest = {r["impl"]: r for r in csv.DictReader(cfg.results_path.open())}
     assert latest["live"]["sample"] == "sample:1" and latest["shout"]["sample"] == "sample:1"
     lines.clear()
-    harness.rerun_stale(cfg, lines.append)
+    harness.rerun_stale(cfg, lines.append, run_all=True)
     assert lines == ["greet_a_person/live: current", "greet_a_person/shout: current"]
     lines.clear()
-    harness.rerun_stale(cfg, lines.append, full=True)   # --full asks for the whole set
+    harness.rerun_stale(cfg, lines.append, full=True, run_all=True)   # --full asks for the whole set
     latest = {r["impl"]: r for r in csv.DictReader(cfg.results_path.open())}
     assert latest["live"]["sample"] == "" and latest["shout"]["sample"] == "" and latest["live"]["cases"] == "2"
 
@@ -320,13 +320,13 @@ def test_rerun_stale_runs_an_arm_that_declares_itself_simulated_and_skips_one_th
     cases.write_text(cases.read_text() + " ")
     git(repo, "commit", "-q", "-am", "cases changed again")
     lines = []
-    harness.rerun_stale(cfg, lines.append)
+    harness.rerun_stale(cfg, lines.append, run_all=True)
     assert any("greet_a_person/live: stale" in line and "SKIPPED" in line and "called a model" in line for line in lines)
     live.write_text('"""CURRENT: a stand-in."""\nSIMULATED = True\n' + live.read_text().split('"""\n', 1)[1])
     git(repo, "commit", "-q", "-am", "the stand-in declares itself simulated")
     forget_modules("greet_a_person")
     lines.clear()
-    harness.rerun_stale(cfg, lines.append)
+    harness.rerun_stale(cfg, lines.append, run_all=True)
     assert any("greet_a_person/live: run and recorded" in line for line in lines) and not any("live: stale" in line and "SKIPPED" in line for line in lines)
     row = [r for r in csv.DictReader(cfg.results_path.open()) if r["impl"] == "live"][-1]
     assert (row["model"], row["cost_usd"]) == ("simulated", "0.0")
@@ -379,3 +379,63 @@ def test_an_older_per_case_header_is_upgraded_before_new_rows_are_added(tmp_path
     before = path.read_text(encoding="utf-8")
     upgrade_per_case_header(path)
     assert path.read_text(encoding="utf-8") == before
+
+
+def committed_repo(repo):
+    from esoi import config as config_module
+    cfg = config_module.load(repo)
+    git(repo, "init", "-q")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "init")
+    return cfg
+
+
+def test_stale_by_default_informs_and_reruns_nothing_a_decision_does_not_depend_on(repo):
+    cfg = committed_repo(repo)
+    cases = cfg.evaluation / "greet_a_person" / "cases.json"
+    cases.write_text(cases.read_text() + " ")
+    git(repo, "commit", "-q", "-am", "cases changed")
+    before = cfg.results_path.read_text()
+    lines = []
+    assert harness.rerun_stale(cfg, lines.append) == 0
+    assert cfg.results_path.read_text() == before   # nothing ran
+    assert any("greet_a_person/live" in x and "not re-run: no pending decision or release depends on it" in x for x in lines)
+    assert any("greet_a_person/shout" in x and "not re-run: nothing depends on it" in x for x in lines)
+    lines.clear()
+    harness.rerun_stale(cfg, lines.append, plan=True, for_decision=True)   # a decision depends on the selected arm only
+    assert any(x.startswith("greet_a_person/live: would run") for x in lines)
+    assert any("greet_a_person/shout" in x and "not re-run: nothing depends on it" in x for x in lines)
+    lines.clear()
+    harness.rerun_stale(cfg, lines.append, plan=True, include=["greet_a_person/shout"])   # a person named the rival
+    assert any(x.startswith("greet_a_person/shout: would run") for x in lines)
+
+
+def test_a_declared_expiration_that_has_passed_makes_the_selected_arm_worth_running_and_none_declared_never_does(repo):
+    cfg = committed_repo(repo)
+    lines = []
+    harness.rerun_stale(cfg, lines.append, plan=True)
+    assert "greet_a_person/live: current" in lines   # never expires unless a metric or the project declares it
+    cfg.expiration = {"default": "1 days"}
+    rows = list(csv.DictReader(cfg.results_path.open()))
+    for row in rows:
+        row["date"] = "2020-01-01"
+    with cfg.results_path.open("w", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    lines.clear()
+    harness.rerun_stale(cfg, lines.append, plan=True)
+    assert any(x.startswith("greet_a_person/live: stale, its metric") and "expiration" in x for x in lines)
+    assert any(x.startswith("greet_a_person/live: would run") for x in lines)
+
+
+def test_an_offline_run_counts_a_refused_model_command_in_the_row(tmp_path):
+    cfg = make(tmp_path, "comp_offline")
+    impls = cfg.evaluation / "comp_offline" / "impls"
+    (impls / "live.py").write_text('import subprocess\n\n\ndef build(meter):\n    def run(kind, args):\n        subprocess.run(["claude", "-p", "x"])\n        return {"n": args["n"]}\n    return run\n')
+    harness.prepare_path(cfg)
+    score = importlib.import_module("comp_offline.score")
+    summary, rows = harness.run_component("comp_offline", score.score_case, ["--impl", "live", "--keep-going"], cfg, lambda text: None)
+    assert summary["passed"] == 0 and "offline run refused to start claude" in rows[0]["note"]
+    assert "refused 2 attempted model call(s)" in summary["details"] or "refused 1 attempted model call(s)" in summary["details"]
+    assert summary["model_calls"] == 0   # metered calls stay what the meter counted

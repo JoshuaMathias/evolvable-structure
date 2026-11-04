@@ -171,7 +171,9 @@ def test_strict_mode_rejects_a_result_recorded_on_dirty_code(cfg):
         r["git_sha"] = "abc1234-dirty"
     tables.write_csv(results, cols, rows)
     assert check.check(cfg) == []
-    assert any(line.startswith("S20") and "uncommitted" in line for line in check.check(cfg, strict=True))
+    problems, advice = check.check_all(cfg, strict=True)   # code that changed or was recorded dirty informs: advice, never a problem
+    assert not any(line.startswith("S20") for line in problems)
+    assert any(line.startswith("S20") and "uncommitted" in line for line in advice)
 
 
 def test_s21_names_an_orphan_evaluation_folder_and_s25_a_missing_baseline(cfg):
@@ -298,8 +300,9 @@ def stale_rival_repo(cfg):
 def test_strict_flags_a_verdict_resting_on_a_stale_rival(cfg):
     stale_rival_repo(cfg)
     assert check.check(cfg) == []
-    found = check.check(cfg, strict=True)
-    assert any(line.startswith("S20 greet-a-person") and "rival shout" in line and "changed since" in line for line in found)
+    problems, advice = check.check_all(cfg, strict=True)
+    assert not any(line.startswith("S20") for line in problems)
+    assert any(line.startswith("S20 greet-a-person") and "rival shout" in line and "changed since" in line for line in advice)
     tables.write_csv(cfg.structure / "waivers.csv", ["rule", "path", "reason"],
                      [dict(rule="S20", path="greet-a-person:shout", reason="The rival is a fixed baseline.")])
     assert check.check(cfg, strict=True) == []

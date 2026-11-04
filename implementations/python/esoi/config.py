@@ -35,6 +35,10 @@ SPECIFICATION_FILES = ("intent.csv", "solutions.csv", "problems.csv")
 NOTED: Set[Path] = set()   # roots whose fallback note was printed, so a run says it once
 
 
+STALENESS_RULES = ("repo_wide", "component_paths", "import_closure")
+DEFAULT_STALENESS_RULE = "repo_wide"
+
+
 class ConfigError(ValueError):
     """The configuration is missing or malformed."""
 
@@ -65,6 +69,7 @@ class Config:
     live_imports: List[str] = field(default_factory=list)
     live_calls: List[str] = field(default_factory=list)
     paid_arms: List[str] = field(default_factory=list)
+    staleness_rule: str = ""   # "repo_wide", "component_paths" or "import_closure": what a recorded result measures (esoi.staleness); blank: the records' selected arm, else the library default
     prices: Dict[str, Dict[str, float]] = field(default_factory=dict)
     balance: Dict[str, Dict[str, Any]] = field(default_factory=dict)   # per component: weights and budgets of the balanced score (esoi.balance)
     structure_note: str = field(default="", init=False, repr=False)   # set when the folder fell back to a previous default
@@ -101,6 +106,8 @@ class Config:
         self.results = self.results or f"{self.evaluation_dir}/results.csv"
         self.code_paths = self.code_paths or ([self.package_dir] if self.package_dir else [])
         self.live_imports = self.live_imports or ([self.package] if self.package else [])
+        if self.staleness_rule and self.staleness_rule not in STALENESS_RULES:
+            raise ConfigError(f"staleness_rule must be one of {', '.join(STALENESS_RULES)}, not {self.staleness_rule!r}")
         names = self.layer_names
         if len(set(names)) != len(names):
             raise ConfigError("layers lists a layer twice")

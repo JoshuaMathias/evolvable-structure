@@ -136,7 +136,7 @@ def run_cli(config: Config, strict: bool, write: bool, say: Callable[[str], None
         else:
             say("  list them with `esoi check --findings`")
     elif findings:
-        say("to do: no findings of the opt-in rules")
+        say("to do: no findings of the advisory rules")
     for line in notes(config):
         say(line)
     say(f"structure check: {'FAIL, ' + str(len(bad)) + ' problem(s)' if bad else 'ok'}")

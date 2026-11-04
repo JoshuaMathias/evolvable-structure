@@ -43,7 +43,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from . import balance, circumstances, leaderboard, run_guards, run_log, variants
+from . import balance, circumstances, leaderboard, run_guards, run_log, staleness, variants
 from .config import Config
 from .assemble import check_name
 from .leaderboard import cases_digest, is_partial
@@ -60,6 +60,58 @@ class RunError(ValueError):
     """The run cannot start as asked (no such implementation, no case selected); the message says what to change."""
 
 
+class OfflineViolation(RuntimeError):
+    """An offline run tried to start a model command."""
+
+
+MODEL_COMMANDS = ("claude", "codex", "gemini")   # the commands an offline run may not start
+OFFLINE_ENV = "ESOI_OFFLINE"                     # set to 1 during an offline run, for a provider that wants to refuse by itself
+
+
+class OfflineGuard:
+    """Refuses to start a model command while an offline run is in progress. An arm that is not declared live (``PAID = True``, a
+    ``paid_arms`` entry, or run with ``--max-calls``) must not call a model, whatever a provider's fallback finds on the machine:
+    while the guard is on, ``subprocess.Popen`` raises ``OfflineViolation`` for a command named in ``MODEL_COMMANDS`` and the
+    attempt is counted in ``meter.attempted`` (the row's details show it beside the metered calls), and ``ESOI_OFFLINE=1`` is set."""
+
+    def __init__(self, meter: "CallMeter"):
+        self.meter = meter
+        self.real: Any = None
+        self.before: Optional[str] = None
+
+    def start(self) -> None:
+        meter, real = self.meter, subprocess.Popen
+
+        class Guarded(real):   # type: ignore[valid-type, misc]
+            def __init__(self, args, *rest, **options):
+                first = args if isinstance(args, (str, bytes)) else (list(args) or [""])[0]
+                word = (os.fsdecode(first).split() or [""])[0]
+                if os.path.basename(word) in MODEL_COMMANDS:
+                    meter.attempted += 1
+                    raise OfflineViolation(f"offline run refused to start {os.path.basename(word)}: the arm is not declared live "
+                                           "(PAID = True, paid_arms, or --max-calls)")
+                super().__init__(args, *rest, **options)
+
+        self.real, self.before = real, os.environ.get(OFFLINE_ENV)
+        subprocess.Popen = Guarded   # type: ignore[misc]
+        os.environ[OFFLINE_ENV] = "1"
+
+    def stop(self) -> None:
+        if self.real is not None:
+            subprocess.Popen = self.real   # type: ignore[misc]
+            self.real = None
+            if self.before is None:
+                os.environ.pop(OFFLINE_ENV, None)
+            else:
+                os.environ[OFFLINE_ENV] = self.before
+
+
+def declared_live(config: Config, component: str, impl: str, max_calls: Optional[int]) -> bool:
+    """Whether a run may call a model: the arm declares ``PAID = True``, is listed in ``paid_arms``, or the run was given a call budget."""
+    base = variants.base_of(impl)
+    return max_calls is not None or f"{component}/{base}" in config.paid_arms or declares_paid(impl_path(config, component, base))
+
+
 class CallMeter:
     """Counts model calls. ``wrap(provider)`` instruments the named methods in place."""
 
@@ -68,6 +120,7 @@ class CallMeter:
         self.max_calls = max_calls
         self.tokens_in = self.tokens_out = 0
         self.cost_usd = 0.0   # what a provider reports per call (informational on a subscription login)
+        self.attempted = 0    # model commands an offline run tried to start and the guard refused (see OfflineGuard)
         self.model: Optional[str] = None   # set by an implementation that pins a model, for the record
 
     def record(self, n: int = 1) -> None:
@@ -321,12 +374,17 @@ def parse_code_shas(cell: str) -> Dict[str, str]:
     return {entry: sha for entry, _, sha in (part.rpartition("@") for part in (cell or "").split(";") if "@" in part)}
 
 
-def current_sha(config: Config) -> str:
-    """The short commit, suffixed ``-dirty`` when the measured code has uncommitted changes (the results log
-    itself is not the code under test)."""
+def current_sha(config: Config, component: str = "", impl: str = "") -> str:
+    """The short commit, suffixed ``-dirty`` when the measured code has uncommitted changes (the results log itself is not the
+    code under test). With a component and arm, only uncommitted changes to what that arm measures under the repository's
+    staleness rule count (``esoi.staleness``)."""
     sha = git(config, "rev-parse", "--short", "HEAD")
-    if sha and git(config, "status", "--porcelain", "--untracked-files=no", "--", *own_code_paths(config),
-                   config.evaluation_dir, f":(exclude){config.results}", f":(exclude){config.per_case}", f":(exclude){config.runs_log}"):
+    if not sha:
+        return sha
+    if component and impl and staleness.rule_for(config) != "repo_wide":
+        return sha + ("-dirty" if staleness.dirty_counts(config, component, impl) else "")
+    if git(config, "status", "--porcelain", "--untracked-files=no", "--", *own_code_paths(config),
+           config.evaluation_dir, f":(exclude){config.results}", f":(exclude){config.per_case}", f":(exclude){config.runs_log}"):
         sha += "-dirty"
     return sha
 
@@ -338,6 +396,23 @@ def changed_since(config: Config, sha: str) -> Optional[List[str]]:
     done = subprocess.run(["git", "diff", "--name-only", base, "--", *own_code_paths(config), config.evaluation_dir,
                            f":(exclude){config.results}", f":(exclude){config.per_case}", f":(exclude){config.runs_log}"], cwd=config.root, capture_output=True, text=True)
     return done.stdout.split() if done.returncode == 0 else None
+
+
+def code_changed_reason(config: Config, component: str, row: Dict[str, str]) -> str:
+    """Why the code a row measured changed since its commit, naming the changed file and who owns it, or an empty string. The
+    files that count are the ones the staleness rule says the arm measures (``esoi.staleness``); under ``repo_wide`` any file
+    of the measured folders."""
+    sha = row["git_sha"]
+    if staleness.rule_for(config) == "repo_wide":
+        changed = changed_since(config, sha)
+        return f"the measured code changed since its commit {sha} ({changed[0]}{' and others' if len(changed) > 1 else ''})" if changed else ""
+    found = staleness.explain(config, component, row.get("impl", ""), sha)
+    if not found or not found["counts"]:
+        return ""
+    counts, rule, note = found["counts"], found["rule"][0], found["rule"][1]
+    more = f" and {len(counts) - 1} more" if len(counts) > 1 else ""
+    fallback = f"; {rule} rule, {note}" if note else f"; {rule} rule"
+    return f"the measured code changed since its commit {sha} ({counts[0]}{more}{fallback})"
 
 
 def external_reason(config: Config, row: Dict[str, str]) -> str:
@@ -371,8 +446,8 @@ def stale_reason(config: Config, component: str, row: Optional[Dict[str, str]], 
         return why
     if strict and row["git_sha"].endswith("-dirty"):
         return "its latest row was recorded on uncommitted code"
-    if strict and (changed := changed_since(config, row["git_sha"])):
-        return f"the measured code changed since its commit {row['git_sha']} ({changed[0]}{' and others' if len(changed) > 1 else ''})"
+    if strict and (why := code_changed_reason(config, component, row)):
+        return why
     return external_reason(config, row) if strict else ""
 
 
@@ -413,7 +488,7 @@ def record_result(summary: Dict[str, Any], config: Config, date: Optional[str] =
                                      ("unknown" if summary.get("model_calls") else "none"))
     row = dict(summary, date=date or datetime.date.today().isoformat(),
                cost_usd=run_cost(config, summary, model),
-               git_sha=current_sha(config), model=model, cases_sha=cases_digest(comp, config.evaluation))
+               git_sha=current_sha(config, summary.get("component", ""), summary.get("impl", "")), model=model, cases_sha=cases_digest(comp, config.evaluation))
     target = Path(path) if path else config.results_path
     wanted = bool(external_code_paths(config))
     if wanted:
@@ -537,8 +612,9 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
         f"{', '.join(str(c['id']) for c in cases[:12])}{' ...' if len(cases) > 12 else ''}")
     notes = check_guards(config, component, impl, sample, args, say) if guards else []
     meter = CallMeter(args.max_calls)
+    guard = None if declared_live(config, component, impl, args.max_calls) else OfflineGuard(meter)
     fn = load_impl(impl, component, config)(meter)
-    git_sha = current_sha(config)
+    git_sha = current_sha(config, component, impl)
     reuse = {} if (args.fresh or args.only) else run_log.reusable(runs_path, component, impl, cases_sha, git_sha)
     stop_at_fail = not (args.keep_going or args.record)   # a recorded run is a whole measurement; a development run is for fixing
     log = run_log.RunLog(runs_path, dict(component=component, impl=impl, cases_sha=cases_sha, git_sha=git_sha, sample=sample,
@@ -548,6 +624,8 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     reused = dict(calls=0, tokens_in=0, tokens_out=0, cost=0.0, seconds=0.0, cases=0)
     stopped = ""
     started = time.time()
+    if guard:
+        guard.start()
     try:
         for case in cases:
             before, t0, in0, out0, cost0 = meter.calls, time.time(), meter.tokens_in, meter.tokens_out, meter.cost_usd
@@ -579,6 +657,9 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     except BaseException as exc:   # Ctrl-C, a spent call budget or a crash: what was scored stays in the log
         log.end(f"stopped: {type(exc).__name__}")
         raise
+    finally:
+        if guard:
+            guard.stop()
     log.end("done" if not stopped else stopped.replace("stopped at", "stopped: at"))
     cases = cases[:len(rows)]
     passed = sum(bool(r["ok"]) for r in rows)
@@ -605,6 +686,12 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
         headline = score.aggregate(rows)
         say(f"{component}: {headline}")
         summary["details"] = details_text(headline)
+    if hasattr(score, "disqualify") and (barred := score.disqualify(rows)):   # a hard fail: the run records a zero balanced score, so it cannot rank
+        summary["balanced"] = 0.0
+        summary["details"] = f"DISQUALIFIED {barred}; {summary.get('details', '')}".strip("; ")
+        say(f"{component}: DISQUALIFIED, {barred}")
+    if meter.attempted:
+        notes.append(f"offline guard refused {meter.attempted} attempted model call(s) (metered {meter.calls}); declare the arm live (PAID = True) to call a model")
     if reused["cases"]:
         notes.append(f"reused {reused['cases']} case(s) already run for this implementation version")
     if notes:
@@ -833,20 +920,68 @@ def stale_arms(config: Config) -> List[Tuple[str, str]]:
     return arms
 
 
+def expired_reason(config: Config, component: str, row: Optional[Dict[str, str]], today: Optional[datetime.date] = None) -> str:
+    """Why a row's age makes it worth re-running: a metric of the solutions this component measures declares an expiration (or the
+    project's ``[expiration] default`` does) and the row is older. Empty when none is declared (never by default) or it has not passed."""
+    from . import cascade
+    from .registry import harness_arms, load
+    if not row or not row.get("date"):
+        return ""
+    try:
+        recorded = datetime.date.fromisoformat(row["date"][:10])
+    except ValueError:
+        return ""
+    today = today or datetime.date.today()
+    for metric in load(config).metrics:
+        if not any(comp == component for comp, _ in harness_arms(config, metric.get("command", ""))):
+            continue
+        days, _ = cascade.parse_expiration(metric.get("expiration", ""))
+        if days is None and not metric.get("expiration", "").strip():
+            days, _ = cascade.default_days(config)
+        if days is not None and (today - recorded).days > days:
+            return f"its metric {metric.get('metric_id', '')} declares an expiration of {days} days and the row is {(today - recorded).days} days old"
+    return ""
+
+
+def not_rerun_reason(config: Config, component: str, impl: str, row: Optional[Dict[str, str]], selected: bool, for_decision: bool,
+                     named: bool, run_all: bool) -> str:
+    """Empty when running a stale arm is worth its cost now, else why ``--stale`` leaves it alone. A changed file, or changed cases,
+    only informs: a row is re-run automatically when it has never been measured (a selected arm), when its metric's expiration has
+    passed, when a pending decision or release depends on it (``for_decision``, the selected arm only), when a person names it
+    (``--include``), or with ``--all`` (the old run-everything behaviour). A rival, and any row nothing depends on, is never re-run."""
+    if run_all or named:
+        return ""
+    if row is None and selected:
+        return ""
+    if selected and expired_reason(config, component, row):
+        return ""
+    if not selected:
+        return "nothing depends on it (a rival is measured when a decision needs the comparison: name it with --include)"
+    if for_decision:
+        return ""
+    return "no pending decision or release depends on it (run `esoi run --stale --for-decision` when one does, or name the arm with --include)"
+
+
 def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool = True, include_paid: bool = False,
-                include: Optional[List[str]] = None, full: bool = False, plan: bool = False) -> int:
-    """Run every selected implementation, and every rival recorded beside it, whose recorded result is stale, and record
-    it; the loop to run after changing measured code or cases, on committed code.
+                include: Optional[List[str]] = None, full: bool = False, plan: bool = False, run_all: bool = False,
+                for_decision: bool = False) -> int:
+    """Report every selected implementation, and every rival recorded beside it, whose recorded result no longer counts, and run
+    and record only those worth running (``not_rerun_reason``): a changed file or changed cases is information, not an order.
+
+    By default a stale row is re-run when it has never been measured (a selected arm), when its metric's expiration has passed
+    (never unless a metric or the project declares one), or when a pending decision or release depends on it (``for_decision``, the
+    selected arm only) or a person names it (``include``). A rival, and any row nothing depends on, is listed as not re-run.
+    ``run_all`` is the old behaviour: re-run every stale arm. Each plan line says which file changed and which component owns it,
+    and why the row is or is not re-run.
 
     Each run uses the sample of the selected arm's newest whole-run row (an ``only:`` or ``slice:`` row is never the row
-    staleness is judged on), so a re-record stays comparable with its rivals; ``full`` runs the whole set instead. A rival that is current but was scored on another sample than the
-    selected arm is not stale, it is not comparable: it is re-run on the selected arm's sample too.
+    staleness is judged on), so a re-record stays comparable with its rivals; ``full`` runs the whole set instead.
 
     An arm that may spend money (``paid_reason``) is never run by default: it is listed as skipped with the command that
     runs it. ``include_paid`` runs them all, ``include`` (``component/impl`` names) only those.
     The recorded rows are the only progress: every run appends its row when it finishes, so a killed re-record loses just the
     arm in flight and the next ``--stale`` starts at it, skipping what is already current. ``plan`` lists each arm with its
-    decision (current, would run, skipped as paid or capped) and runs nothing."""
+    decision (current, would run, not re-run, skipped as paid or capped) and runs nothing."""
     from . import leaderboard
     from .registry import load
     prepare_path(config)
@@ -855,6 +990,7 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
     selected_arms = {leaderboard.selected_arm(config, r, "", registry) for r in registry.solutions}
     skipped: List[str] = []
     skipped_ceiling: List[str] = []
+    left: List[str] = []
     failed = 0
     target: Dict[str, List[str]] = {}   # component -> run flags of its selected arm's sample
     for comp, impl in stale_arms(config):
@@ -869,15 +1005,23 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
                 why = f"it was scored on a different sample ({' '.join(wanted) or 'full set'}) than the selected arm ({' '.join(flags) or 'full set'}), so it is not comparable"
         if not why and full and row and sample_args(config, comp, row):
             why = "it was scored on a sample and --full asks for the whole set"
+        if not why and (comp, impl) in selected_arms:
+            why = expired_reason(config, comp, row)   # an expiration the metric or project declares and that has passed
         if not why:
             say(f"{comp}/{impl}: current")
             continue
+        named = f"{comp}/{impl}" in (include or [])   # a person named this arm: that is the decision the guard asks for
+        waiting = not_rerun_reason(config, comp, impl, row, (comp, impl) in selected_arms, for_decision, named, run_all)
+        if waiting:
+            label = "measured code changed since " + why.split(" changed since ", 1)[-1] if why.startswith("the measured code changed since") else f"stale, {why}"
+            say(f"{comp}/{impl}: {label}; not re-run: {waiting}")
+            left.append(f"{comp}/{impl}")
+            continue
         paid = paid_reason(config, comp, impl, row)
-        if paid and not (include_paid or f"{comp}/{impl}" in (include or [])):
+        if paid and not (include_paid or named):
             say(f"{comp}/{impl}: stale, {why}; SKIPPED because it may spend money ({paid})")
             skipped.append(f"{comp}/{impl}")
             continue
-        named = f"{comp}/{impl}" in (include or [])   # a person named this arm: that is the decision the guard asks for
         capped = "" if named else run_guards.ceiling_reason(config, comp, impl, run_guards.sample_of(flags), paid, stale_reason)
         if capped:
             say(f"{comp}/{impl}: stale, {why}; SKIPPED, not worth running: {capped}")
@@ -896,6 +1040,9 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
             say(f"{comp}/{impl}: ERROR, {exc}")
             continue
         say(f"{comp}/{impl}: run" + (f" ({' '.join(flags)})" if flags else "") + (" and recorded" if record else ""))
+    if left:
+        say(f"{len(left)} row(s) not re-run: a changed file only informs; improve the implementation first, and measure when a decision "
+            "depends on the result (`esoi run --stale --for-decision`, `--include COMPONENT/IMPL`, or `--all` for every stale arm)")
     if skipped:
         say(f"skipped {len(skipped)} paid arm(s); stage and budget them first (see the metric run policy), then run each with "
             "`esoi run <component> --impl <name> --max-calls N --record`, or "
@@ -909,10 +1056,11 @@ def run_cli(argv: List[str], config: Config, say: Callable[[str], None] = print)
     if argv and argv[0] == "--stale":
         include = [argv[i + 1] for i, word in enumerate(argv[:-1]) if word == "--include"]
         return rerun_stale(config, say, record="--no-record" not in argv, include_paid="--include-paid" in argv,
-                           include=include, full="--full" in argv, plan="--plan" in argv)
+                           include=include, full="--full" in argv, plan="--plan" in argv, run_all="--all" in argv,
+                           for_decision="--for-decision" in argv)
     components = discover_components(config)
     if not argv or argv[0] not in components:
-        say("usage: esoi run <component> --impl <name> [--only IDS | --failed] [--sample N] [--max-calls N] [--keep-going] [--fresh] [--record] [--differs WHAT] [--force REASON]  |  esoi run --stale [--plan] [--full] [--include-paid | --include COMPONENT/IMPL]")
+        say("usage: esoi run <component> --impl <name> [--only IDS | --failed] [--sample N] [--max-calls N] [--keep-going] [--fresh] [--record] [--differs WHAT] [--force REASON]  |  esoi run --stale [--plan] [--full] [--for-decision | --all] [--include-paid | --include COMPONENT/IMPL]")
         say("components: " + (", ".join(components) or "none found under " + config.evaluation_dir))
         return 2
     score = importlib.import_module(f"{argv[0]}.score")
