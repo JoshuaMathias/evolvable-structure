@@ -72,12 +72,19 @@ class OfflineGuard:
     """Refuses to start a model command while an offline run is in progress. An arm that is not declared live (``PAID = True``, a
     ``paid_arms`` entry, or run with ``--max-calls``) must not call a model, whatever a provider's fallback finds on the machine:
     while the guard is on, ``subprocess.Popen`` raises ``OfflineViolation`` for a command named in ``MODEL_COMMANDS`` and the
-    attempt is counted in ``meter.attempted`` (the row's details show it beside the metered calls), and ``ESOI_OFFLINE=1`` is set."""
+    attempt is counted in ``meter.attempted`` (the row's details show it beside the metered calls), and ``ESOI_OFFLINE=1`` is set.
+
+    When the caller already set ``ESOI_OFFLINE=1`` the guard also refuses outbound network: ``socket.socket.connect``,
+    ``connect_ex`` and ``socket.create_connection`` raise ``OfflineViolation`` for any address that is not loopback or a unix
+    socket, so ``urllib``, ``requests``, ``httpx`` and ``asyncio`` clients (all of which connect through a Python socket) cannot
+    reach out, while a local service on 127.0.0.1 or ``::1`` still answers. A client written in C that opens its own sockets is
+    not seen."""
 
     def __init__(self, meter: "CallMeter"):
         self.meter = meter
         self.real: Any = None
         self.before: Optional[str] = None
+        self.sockets: Optional[Tuple[Any, Any, Any]] = None
 
     def start(self) -> None:
         meter, real = self.meter, subprocess.Popen
@@ -94,12 +101,48 @@ class OfflineGuard:
 
         self.real, self.before = real, os.environ.get(OFFLINE_ENV)
         subprocess.Popen = Guarded   # type: ignore[misc]
+        if self.before == "1":
+            self.block_network()
         os.environ[OFFLINE_ENV] = "1"
+
+    def block_network(self) -> None:
+        """Refuse a socket connection to anything but loopback or a unix socket for as long as the guard is on."""
+        import socket
+        meter = self.meter
+        real_connect, real_connect_ex, real_create = socket.socket.connect, socket.socket.connect_ex, socket.create_connection
+        self.sockets = (real_connect, real_connect_ex, real_create)
+
+        def refuse(address: Any) -> None:
+            host = address[0] if isinstance(address, (tuple, list)) and address else None
+            if host is None:        # a unix socket path
+                return
+            host = host.decode() if isinstance(host, bytes) else str(host)
+            if host == "localhost" or host.startswith("127.") or host in ("::1", "0.0.0.0", ""):
+                return
+            meter.attempted += 1
+            raise OfflineViolation(f"offline run refused a network connection to {host}: ESOI_OFFLINE=1 is set")
+
+        def connect(self_socket: Any, address: Any) -> Any:
+            refuse(address)
+            return real_connect(self_socket, address)
+
+        def connect_ex(self_socket: Any, address: Any) -> Any:
+            refuse(address)
+            return real_connect_ex(self_socket, address)
+
+        def create_connection(address: Any, *rest: Any, **options: Any) -> Any:
+            refuse(address)
+            return real_create(address, *rest, **options)
+        socket.socket.connect, socket.socket.connect_ex, socket.create_connection = connect, connect_ex, create_connection   # type: ignore[assignment]
 
     def stop(self) -> None:
         if self.real is not None:
             subprocess.Popen = self.real   # type: ignore[misc]
             self.real = None
+            if self.sockets is not None:
+                import socket
+                socket.socket.connect, socket.socket.connect_ex, socket.create_connection = self.sockets   # type: ignore[assignment]
+                self.sockets = None
             if self.before is None:
                 os.environ.pop(OFFLINE_ENV, None)
             else:
@@ -279,10 +322,9 @@ def discover_components(config: Config) -> List[str]:
 SIMULATED_MODEL = "simulated"   # the model recorded for an arm that declares SIMULATED = True
 
 
-def declared_build(config: Config, component: str, name: str) -> Optional[Callable]:
-    """``build(meter)`` for an implementation the code declares (``esoi.runtime``) for the solution this component
-    measures, or None when there is none of that name. Nothing is imported unless a solution measured by the component
-    lists the name."""
+def declared_target(config: Config, component: str, name: str) -> Any:
+    """The implementation of that name the code declares (``esoi.runtime``) for the solution this component measures, or None.
+    Nothing is imported unless a solution measured by the component lists the name."""
     from . import runtime
     from .registry import harness_arms, load
     found = {}
@@ -292,7 +334,13 @@ def declared_build(config: Config, component: str, name: str) -> Optional[Callab
                 found.update(runtime.load_declared(config, row["solution_id"]))
             except runtime.SelectionError:
                 continue
-    target = found.get(name.strip().lower())
+    return found.get(name.strip().lower())
+
+
+def declared_build(config: Config, component: str, name: str) -> Optional[Callable]:
+    """``build(meter)`` for an implementation the code declares (``esoi.runtime``) for the solution this component
+    measures, or None when there is none of that name."""
+    target = declared_target(config, component, name)
     if target is None:
         return None
     score = importlib.import_module(f"{component}.score")
@@ -303,6 +351,45 @@ def declared_build(config: Config, component: str, name: str) -> Optional[Callab
             return score.adapt(bound, meter)
         return lambda kind, args: bound(**args)
     return build
+
+
+class PendingNetwork(RunError):
+    """The arm declares a network requirement and ``ESOI_OFFLINE=1`` is set: it is pending, not failed, and nothing was started."""
+
+
+def arm_targets(config: Config, component: str, impl: str) -> List[Any]:
+    """The objects whose ``REQUIRES`` describe an arm: its module and ``build``, the ``module:function`` it names, or the
+    implementation the code declares. An arm that cannot be found is left to ``load_impl`` to report."""
+    spec = variants.split(impl)[0]
+    try:
+        if ":" in spec:
+            module, _, attr = spec.partition(":")
+            loaded = importlib.import_module(module)
+            return [getattr(loaded, attr), loaded]
+        loaded = importlib.import_module(f"{component}.impls.{spec}")
+        return [loaded, getattr(loaded, "build", None)]
+    except (ImportError, AttributeError):
+        target = declared_target(config, component, spec)
+        return [target] if target is not None else []
+
+
+def refuse_offline_network(config: Config, component: str, impl: str, environ: Optional[Dict[str, str]] = None) -> None:
+    """Raise ``PendingNetwork`` when ``ESOI_OFFLINE=1`` and the arm declares a required ``network`` requirement: the same answer
+    ``esoi.entry`` gives (pending-network), before any case runs, any provider is built or any row is recorded."""
+    from . import requirements as req
+    environ = os.environ if environ is None else environ
+    if environ.get(OFFLINE_ENV) != "1":
+        return
+    hosts: List[str] = []
+    for target in arm_targets(config, component, impl):
+        if target is None:
+            continue
+        for one in req.check(req.declared(target), environ):
+            if isinstance(one.requirement, req.Network) and one.blocking and one.requirement.label not in hosts:
+                hosts.append(one.requirement.label)
+    if hosts:
+        raise PendingNetwork(f"pending-network: {component}/{impl} needs {', '.join(hosts)} and {OFFLINE_ENV}=1 is set; "
+                             "nothing was started or recorded (run it without ESOI_OFFLINE to measure it)")
 
 
 def check_parameters(fn: Callable, params: Dict[str, Any], name: str) -> Callable:
@@ -697,6 +784,7 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     except ValueError as exc:
         raise RunError(str(exc)) from exc
     impl = args.impl if ":" in args.impl else variants.canonical(args.impl)   # one spelling of a variant in every record
+    refuse_offline_network(config, component, impl)
     runs_path, cases_sha = config.root / config.runs_log, cases_digest(component, config.evaluation)
     if args.failed:
         if args.only or args.sample is not None:
@@ -1166,6 +1254,9 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
         try:
             run_component(comp, score.score_case, ["--impl", impl] + flags + (["--record"] if record else ["--keep-going"]), config,
                           lambda text: None, guards=False)
+        except PendingNetwork as exc:   # offline: informs, records nothing, is not a failure
+            say(f"{comp}/{impl}: {exc}")
+            continue
         except RunError as exc:   # an arm that cannot start (an unknown variant key, a bad circumstance) fails once, loudly
             failed += 1
             say(f"{comp}/{impl}: ERROR, {exc}")
@@ -1197,6 +1288,9 @@ def run_cli(argv: List[str], config: Config, say: Callable[[str], None] = print)
     score = importlib.import_module(f"{argv[0]}.score")
     try:
         run_component(argv[0], score.score_case, argv[1:], config, say)
+    except PendingNetwork as exc:   # informs; it is not a failure
+        say(f"esoi run: {exc}")
+        return 0
     except RunError as exc:
         say(f"esoi run: {exc}")
         return 2

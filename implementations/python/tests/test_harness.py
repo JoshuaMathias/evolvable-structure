@@ -439,3 +439,77 @@ def test_an_offline_run_counts_a_refused_model_command_in_the_row(tmp_path):
     assert summary["passed"] == 0 and "offline run refused to start claude" in rows[0]["note"]
     assert "refused 2 attempted model call(s)" in summary["details"] or "refused 1 attempted model call(s)" in summary["details"]
     assert summary["model_calls"] == 0   # metered calls stay what the meter counted
+
+
+# ---- ESOI_OFFLINE=1: an arm that declares a network requirement is pending, and the guard refuses outbound sockets ---------------
+
+NETWORK_ARM = ('from esoi.requirements import network\n\nREQUIRES = (network("openalex.org"),)\nTOUCHED = []\n\n\n'
+               'def build(meter):\n    TOUCHED.append(1)\n    return lambda kind, args: {"n": args["n"]}\n')
+
+
+def test_offline_run_of_a_network_arm_is_pending_and_records_nothing(tmp_path, monkeypatch):
+    cfg = make(tmp_path, "comp_net")
+    (cfg.evaluation / "comp_net" / "impls" / "live.py").write_text(NETWORK_ARM)
+    harness.prepare_path(cfg)
+    score = importlib.import_module("comp_net.score")
+    monkeypatch.setenv("ESOI_OFFLINE", "1")
+    with pytest.raises(harness.PendingNetwork) as raised:
+        harness.run_component("comp_net", score.score_case, ["--impl", "live", "--record"], cfg, lambda text: None)
+    assert "pending-network" in str(raised.value) and "openalex.org" in str(raised.value)
+    assert not cfg.results_path.exists() and importlib.import_module("comp_net.impls.live").TOUCHED == []   # nothing built, nothing recorded
+    lines = []
+    assert harness.run_cli(["comp_net", "--impl", "live", "--record"], cfg, lines.append) == 0     # informs, does not fail
+    assert any("pending-network" in line for line in lines)
+
+
+def test_the_same_network_arm_runs_when_not_offline(tmp_path, monkeypatch):
+    cfg = make(tmp_path, "comp_net_on")
+    (cfg.evaluation / "comp_net_on" / "impls" / "live.py").write_text(NETWORK_ARM)
+    harness.prepare_path(cfg)
+    score = importlib.import_module("comp_net_on.score")
+    monkeypatch.delenv("ESOI_OFFLINE", raising=False)
+    summary, _ = harness.run_component("comp_net_on", score.score_case, ["--impl", "live"], cfg, lambda text: None)
+    assert summary["passed"] == 2
+
+
+def test_an_arm_without_a_network_requirement_still_runs_offline(tmp_path, monkeypatch):
+    cfg = make(tmp_path, "comp_net_off")
+    harness.prepare_path(cfg)
+    score = importlib.import_module("comp_net_off.score")
+    monkeypatch.setenv("ESOI_OFFLINE", "1")
+    summary, _ = harness.run_component("comp_net_off", score.score_case, ["--impl", "live"], cfg, lambda text: None)
+    assert summary["passed"] == 2
+
+
+def test_the_offline_guard_refuses_outbound_sockets_but_not_loopback(monkeypatch):
+    import socket
+    monkeypatch.setenv("ESOI_OFFLINE", "1")
+    meter = harness.CallMeter(None)
+    guard = harness.OfflineGuard(meter)
+    guard.start()
+    try:
+        with pytest.raises(harness.OfflineViolation):
+            socket.create_connection(("example.org", 80), timeout=1)
+        with pytest.raises(harness.OfflineViolation):
+            socket.socket().connect(("93.184.216.34", 80))
+        server = socket.socket()
+        server.bind(("127.0.0.1", 0))
+        server.listen(1)
+        socket.create_connection(server.getsockname(), timeout=1).close()      # local loopback still answers
+        server.close()
+    finally:
+        guard.stop()
+    assert meter.attempted == 2
+    assert socket.create_connection.__module__ == "socket"                      # restored
+
+
+def test_the_offline_guard_leaves_sockets_alone_when_the_caller_did_not_set_offline(monkeypatch):
+    import socket
+    monkeypatch.delenv("ESOI_OFFLINE", raising=False)
+    guard = harness.OfflineGuard(harness.CallMeter(None))
+    original = socket.socket.connect
+    guard.start()
+    try:
+        assert socket.socket.connect is original
+    finally:
+        guard.stop()

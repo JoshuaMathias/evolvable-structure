@@ -56,6 +56,15 @@ declared live (`PAID = True`, a `paid_arms` entry, or a run given `--max-calls`)
 the row's details beside the metered calls, and `ESOI_OFFLINE=1` is set for a provider that wants to refuse by itself. A provider
 that falls back to a binary found on the machine cannot make an offline run spend money.
 
+**Offline means no network either, when you say so.** With `ESOI_OFFLINE=1` already set, `esoi run <component> --impl X` (and
+`esoi run --stale`) first reads the arm's declared requirements, as `esoi.entry` does. An arm that declares `network(...)` is
+pending: the run prints `pending-network`, starts nothing, builds no provider, records no row and exits 0 (it informs, it does not
+fail). For an arm that declares nothing, the harness's guard also refuses outbound connections for the length of the run:
+`socket.socket.connect`, `connect_ex` and `socket.create_connection` raise an error for any address that is not loopback or a
+unix socket, so `urllib`, `requests`, `httpx` and `asyncio` clients cannot reach out while a service on `127.0.0.1` still answers.
+Each refusal is counted in the row's details beside the refused model commands. A client written in C that opens its own sockets
+is not seen, and an arm that must reach the network should declare `network(...)` so the run is pending instead of failing case by case.
+
 **A cassette run can be a free stage.** With `--cassette DIR --cassette-only` the harness answers every wrapped model call from a
 file of earlier responses and errors on a call it does not hold, so the run cannot spend anything. A change to scoring or parsing of
 a paid arm is therefore checked first against the recorded responses (a free stage), and the paid stage runs only when that passes.
