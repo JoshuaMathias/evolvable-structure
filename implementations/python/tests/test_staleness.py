@@ -2,6 +2,7 @@
 plan that says why a row is or is not re-run, and the offline guard."""
 import csv
 import importlib
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -138,3 +139,18 @@ def test_a_scan_that_meets_a_computed_import_still_counts_the_files_it_found(tmp
     assert scope.rule == "component_paths" and not scope.complete
     assert staleness.judge(cfg, scope, "pkg/util.py") == (True, "imported by the arm")   # found by the partial scan, though component_paths alone would miss it
     assert staleness.judge(cfg, scope, "pkg/alpha.py")[0] is False                       # owned by another component and not seen importing
+
+
+def test_the_offline_guard_sets_the_variable_a_provider_reads_and_restores_it(monkeypatch):
+    monkeypatch.delenv("ESOI_OFFLINE", raising=False)
+    guard = harness.OfflineGuard(harness.CallMeter())
+    guard.start()
+    try:
+        assert os.environ["ESOI_OFFLINE"] == "1"
+    finally:
+        guard.stop()
+    assert "ESOI_OFFLINE" not in os.environ
+    monkeypatch.setenv("ESOI_OFFLINE", "0")
+    guard.start()
+    guard.stop()
+    assert os.environ["ESOI_OFFLINE"] == "0"

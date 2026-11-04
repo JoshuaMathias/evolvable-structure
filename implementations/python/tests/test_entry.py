@@ -1,4 +1,5 @@
 """esoi.entry: one line for any solution, by its declared kind; nothing here calls a model or the network."""
+import os
 import typing
 from pathlib import Path
 
@@ -240,3 +241,11 @@ def test_a_composite_that_waits_on_a_child_key_is_pending_key_by_its_leaves():
     assert found["problems"] == [] and found["pending"]
     bare = ">>> from esoi.entry import Pending, Reason\n>>> raise Pending('whole', ['w'], [Reason('whole', 'a', 'needs', 'w', ('part',))])\n"
     assert run_block(bare, guard=False)["problems"]
+
+
+def test_the_entry_check_sets_the_offline_variable_for_providers():
+    import subprocess
+    import sys
+    code = "import os; from esoi import entry; entry.offline_guard(); print(os.environ.get('ESOI_OFFLINE'))"
+    done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env={k: v for k, v in os.environ.items() if k != "ESOI_OFFLINE"})
+    assert done.stdout.strip() == "1", done.stderr

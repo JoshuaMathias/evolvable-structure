@@ -446,8 +446,10 @@ class Offline(RuntimeError):
 
 def offline_guard() -> None:
     """Block sockets and child processes for the rest of this process (the check runs in its own process, which exits after
-    reporting)."""
+    reporting), and set ``ESOI_OFFLINE=1`` so a provider that reads it refuses to start a model process by itself (the contract
+    is in docs/explanation/when-metrics-are-run.md)."""
     import socket
+    os.environ["ESOI_OFFLINE"] = "1"
     import subprocess
 
     def refuse(*args: Any, **kwargs: Any) -> Any:
