@@ -299,7 +299,7 @@
   "id": "STL-012",
   "area": "staleness",
   "kind": "repo",
-  "description": "strict mode rejects a verdict resting on a rival recorded before the measured code changed",
+  "description": "strict mode reports a verdict resting on a rival recorded before code both arms import changed",
   "args": {
    "edits": [
     {
@@ -307,8 +307,8 @@
     },
     {
      "op": "append",
-     "path": "demo/greet.py",
-     "content": "\n# changed after the rival was recorded\n"
+     "path": "evaluation/components/greet_a_person/score.py",
+     "content": "\n# changed after the rival was recorded (the scorer both arms import)\n"
     },
     {
      "op": "git_commit"
