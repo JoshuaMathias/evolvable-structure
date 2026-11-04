@@ -12,7 +12,7 @@ An arm (a class or function that implements a solution) attaches its needs with 
             python("requests", "requests"),
         )
 
-The vocabulary is ``env``, ``api``, ``python``, ``binary``, ``service``, ``download`` and ``resource``. The older
+The vocabulary is ``env``, ``api``, ``python``, ``binary``, ``service``, ``network``, ``download`` and ``resource``. The older
 ``ENVIRON = {option: variable}`` and ``ENVIRON_REQUIRED`` attributes keep working and are read as env requirements.
 ``check`` says per requirement whether it is met, unmet or unknown, with one remedy line, and touches no network unless asked
 to ``probe``. ``Assembler.requirements`` reports the needs of exactly the arms an assembly uses; ``env_template``,
@@ -40,8 +40,10 @@ from types import ModuleType
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 MET, UNMET, UNKNOWN = "met", "unmet", "unknown"
+NETWORK_REMEDY = "needs network access; not attempted offline"
 REQUIRES_ATTRIBUTE = "REQUIRES"
-BLOCKING_KINDS = ("env", "api", "python", "binary")   # an unmet required one of these keeps an arm pending
+BLOCKING_KINDS = ("env", "api", "python", "binary", "network")   # an unmet required one of these keeps an arm pending
+OFFLINE_ENV = "ESOI_OFFLINE"   # "1": no network and no model process; a network requirement is unmet while it is set
 PROBE_SECONDS = 3.0
 SCHEMA = "esoi.requirements/1"   # the "schema" field of the JSON output; a field is only ever added within a version
 EXIT_MET, EXIT_UNMET, EXIT_ERROR = 0, 1, 2   # the exit codes of esoi requirements --check and esoi install
@@ -149,6 +151,18 @@ class Service(Requirement):
     @property
     def label(self) -> str:
         return "service " + self.name
+
+
+@dataclass(frozen=True)
+class Network(Requirement):
+    """The arm reaches the network (``host`` names where, for the reader). It is met unless ``ESOI_OFFLINE=1``, in which case it is
+    unmet and the arm is pending (the seat is never built, so nothing is attempted)."""
+    kind: str = "network"
+    host: str = ""
+
+    @property
+    def label(self) -> str:
+        return "network " + self.host if self.host else "network"
 
 
 @dataclass(frozen=True)
@@ -288,6 +302,12 @@ def binary(name: str, install_hint: str = "", version_args: Optional[Sequence[st
 def service(name: str, url_env: str, default_url: Optional[str] = None, health_path: Optional[str] = None, required: bool = True) -> Service:
     """A running service (a vector database, a search engine) addressed by ``url_env``."""
     return Service(required=required, name=name, url_env=url_env, default_url=default_url, health_path=health_path)
+
+
+def network(host: str = "", required: bool = True, note: str = "") -> Network:
+    """The arm needs network access (``network("openalex.org")``). Under ``ESOI_OFFLINE=1`` it is pending: "needs network access;
+    not attempted offline"."""
+    return Network(required=required, note=note, host=host)
 
 
 def download(name: str, size_mb: float = 0, cache_hint: str = "") -> Download:
@@ -500,6 +520,8 @@ def identity(item: Requirement) -> Tuple[str, ...]:
         return ("binary", item.name)
     if isinstance(item, Service):
         return ("service", item.name)
+    if isinstance(item, Network):
+        return ("network", item.host)
     if isinstance(item, Download):
         return ("download", item.name)
     if isinstance(item, ScriptFile):
@@ -657,6 +679,9 @@ def check_one(item: Requirement, environ: Mapping[str, str], probe: bool) -> Che
             if done.returncode != 0:
                 return Check(item, UNMET, f"{item.name} is on PATH but {' '.join(item.version_args)} failed; reinstall or repair it")
         return Check(item, MET)
+    if isinstance(item, Network):
+        offline = str(environ.get(OFFLINE_ENV, "") or os.environ.get(OFFLINE_ENV, "")).strip() == "1"
+        return Check(item, UNMET, NETWORK_REMEDY + (f" ({item.host})" if item.host else "")) if offline else Check(item, MET)
     if isinstance(item, Service):
         address = str(environ.get(item.url_env) or "").strip() or (item.default_url or "")
         if not address:
@@ -729,6 +754,8 @@ def describe(item: Requirement) -> str:
         return f"binary {item.name} on PATH"
     if isinstance(item, Service):
         return f"service {item.name} at {item.url_env}" + (f" (default {item.default_url})" if item.default_url else "")
+    if isinstance(item, Network):
+        return "network access" + (f" to {item.host}" if item.host else "")
     if isinstance(item, Download):
         return f"download {item.name}" + (f", about {item.size_mb:g} MB" if item.size_mb else "")
     if isinstance(item, ScriptFile):

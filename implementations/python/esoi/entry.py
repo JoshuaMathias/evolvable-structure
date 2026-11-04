@@ -37,8 +37,8 @@ from . import runtime
 
 __all__ = ["EntryError", "Pending", "Reason", "Runner", "Target", "run", "runner", "targets", "describe"]
 
-ANSWERING = ("ok", "pending-key", "pending-install")   # the outcomes that count as the one line answering
-OUTCOMES = ("ok", "pending-key", "pending-install", "needs-option", "load-error", "live-attempt", "no-entry", "fail")
+ANSWERING = ("ok", "pending-key", "pending-install", "pending-network")   # the outcomes that count as the one line answering
+OUTCOMES = ("ok", "pending-key", "pending-install", "pending-network", "needs-option", "load-error", "live-attempt", "no-entry", "fail")
 INTENT_KEY = "@intents"   # where esoi_selection.json keeps the intent map (see ``intent_map``)
 
 
@@ -53,7 +53,7 @@ class EntryError(LookupError):
 
 @dataclass(frozen=True)
 class Reason:
-    """One blocked seat and what it needs: ``kind`` is ``key`` (a variable or account), ``install`` (a package or a program),
+    """One blocked seat and what it needs: ``kind`` is ``key`` (a variable or account), ``install`` (a package or a program), ``network`` (network access, unmet under ``ESOI_OFFLINE=1``),
     ``option`` (a constructor argument to pass), ``provided`` (no arm: pass your own object), ``load`` (the arm cannot be
     imported) or ``needs`` (it waits on another seat, which has its own reason)."""
     seat: str
@@ -244,7 +244,8 @@ def unmet_checks(target: Any, environ: Mapping[str, str], options: Mapping[str, 
 
 def reason_of(seat: str, arm: str, one: Any) -> Reason:
     from . import requirements as req
-    kind = "key" if isinstance(one.requirement, (req.Env, req.Api)) else "install"
+    kind = ("key" if isinstance(one.requirement, (req.Env, req.Api)) else "network" if isinstance(one.requirement, req.Network)
+            else "install")
     return Reason(seat, arm, kind, one.remedy)
 
 
@@ -499,7 +500,7 @@ def chain_of_errors(error: BaseException) -> List[BaseException]:
 def pending_outcome(reasons: Sequence[Reason]) -> str:
     """The outcome of a ``Pending`` read from its reasons by their leaves: a ``needs`` reason is settled by the reasons of the seats it
     waits on, so the result is the worst leaf (load-error, then needs-option for an option or an object to pass, then
-    pending-install, then pending-key). The leaves are found through any chain of ``needs`` reasons. A ``needs`` with no leaf
+    pending-install, then pending-key, then pending-network). The leaves are found through any chain of ``needs`` reasons. A ``needs`` with no leaf
     under it is needs-option."""
     settled = {one.seat for one in reasons if one.kind != "needs"}      # seats that end in a leaf
     grown = True
@@ -523,6 +524,8 @@ def pending_outcome(reasons: Sequence[Reason]) -> str:
         return "pending-install"
     if "key" in kinds:
         return "pending-key"
+    if "network" in kinds:
+        return "pending-network"
     return "needs-option"   # pending for a reason nothing declares: the default does not fill the seat
 
 
@@ -545,7 +548,7 @@ def classify(error: BaseException) -> Tuple[str, str, List[Reason]]:
 
 def check_entries(root: Path) -> List[Dict[str, Any]]:
     """Call every id of the project's one line with its example under ``environ={}`` and no network: one row per id with
-    ``outcome``: ok (a value of the declared kind came back), pending-key or pending-install (it named the key or install that
+    ``outcome``: ok (a value of the declared kind came back), pending-key, pending-install or pending-network (it named the key, install or network need that
     would let it run), needs-option (it asks the caller for an option or an object: no default fills the seat), load-error (an
     arm cannot be loaded), live-attempt (it reached for the network or a program nothing declared), no-entry (no interface,
     kind, entry or example) or fail (it raised anything else). Only the first three answer."""
@@ -621,7 +624,7 @@ def run_block(block: str, label: str = "README.md", guard: bool = True) -> Dict[
                 problems.append(f"{label}: `{example.source.strip()}` prints {buffer.getvalue().strip()!r}, not {example.want.strip()!r}")
                 break
             continue
-        if isinstance(raised, Pending) and raised.reasons and pending_outcome(raised.reasons) in ("pending-key", "pending-install"):
+        if isinstance(raised, Pending) and raised.reasons and pending_outcome(raised.reasons) in ("pending-key", "pending-install", "pending-network"):
             pending.append(f"{label}: `{example.source.strip()}` is pending ({'; '.join(raised.lines)[:200]})")
             pending += [f"{label}: `{rest.source.strip()}` pending after it" for rest in examples[index + 1:]]
             break
@@ -701,7 +704,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--installed", action="store_true", help="with --readme: build the wheel, install it in a temporary venv, run it there")
     ap.add_argument("--readme-block", default="", help="run the doctest block in this file (used by the installed stage)")
     ap.add_argument("--json", action="store_true")
-    ap.add_argument("--gate", action="store_true", help="exit 1 unless every id answers (ok, pending-key or pending-install)")
+    ap.add_argument("--gate", action="store_true", help="exit 1 unless every id answers (ok, pending-key, pending-install or pending-network)")
     args = ap.parse_args(argv)
     if args.readme_block:
         found = run_block(Path(args.readme_block).read_text(encoding="utf-8"))

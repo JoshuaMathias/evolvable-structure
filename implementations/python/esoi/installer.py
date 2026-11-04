@@ -397,7 +397,7 @@ def make_plan(entries: Sequence[req.Entry], environ: Mapping[str, str], resolver
             scripts.append((item.role, item.path))
         elif isinstance(item, req.Binary) and one.status != req.MET:
             binaries.append(f"{item.name}: {one.remedy}")
-        elif one.blocking and not isinstance(item, req.Python):
+        elif one.blocking and not isinstance(item, (req.Python, req.Network)):
             missing.append(f"{item.label}: {one.remedy}")
         elif isinstance(item, req.Download) and one.failing:
             missing.append(f"{item.label}: {one.remedy}")

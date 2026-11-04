@@ -70,6 +70,7 @@ solution, so `mylib.run("mylib", ...)` works there too.
 | `ok` | a value of the declared kind came back | yes |
 | `pending-key` | it named the key it needs (`Pending.reasons` has kind `key`) | yes |
 | `pending-install` | it named the package or program to install (kind `install`) | yes |
+| `pending-network` | it declared `network(...)`, and the check runs under `ESOI_OFFLINE=1`: "needs network access; not attempted offline" (kind `network`) | yes |
 | `needs-option` | it asks you to pass an option or an object, so no default fills the seat | no |
 | `load-error` | an arm cannot be imported | no |
 | `live-attempt` | it reached for the network or a program that no declared requirement predicted | no |
@@ -79,7 +80,9 @@ solution, so `mylib.run("mylib", ...)` works there too.
 A requirement may name a program, for example `binary("claude")`. With no PATH in `environ`, the program is not found, the line is
 `pending-install`, and the program is never started.
 
-`--gate` exits 1 unless every id answers. `--json` keeps one row per id with its reasons.
+An arm that reaches the network declares it beside its other needs, `REQUIRES = (network("openalex.org"),)` with `from esoi.requirements import network`. The need is met in an ordinary run and unmet while `ESOI_OFFLINE=1` is set, which the entry check does, so the seat is never built and the arm cannot swallow the refused connection into an error value that looks like an answer. An arm that reaches the network without declaring it is a `live-attempt`, which does not answer.
+
+`--gate` exits 1 unless every id answers (`ok`, `pending-key`, `pending-install` or `pending-network`). `--json` keeps one row per id with its reasons.
 
 ## Turn the checks on
 

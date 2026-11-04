@@ -197,7 +197,7 @@ def test_a_program_is_looked_up_on_the_path_of_environ_so_none_is_pending_instal
 def test_a_seat_that_needs_an_option_is_needs_option_and_does_not_answer(strict):
     outcome, detail, reasons = outcome_of(lambda: strict("needs-a-path"))
     assert outcome == "needs-option" and reasons[0].kind == "option"
-    assert outcome not in ANSWERING and {"ok", "pending-key", "pending-install"} == set(ANSWERING)
+    assert outcome not in ANSWERING and {"ok", "pending-key", "pending-install", "pending-network"} == set(ANSWERING)
 
 
 def test_an_unpredicted_network_or_program_call_is_a_live_attempt_and_a_broken_arm_a_fail():
@@ -249,3 +249,66 @@ def test_the_entry_check_sets_the_offline_variable_for_providers():
     code = "import os; from esoi import entry; entry.offline_guard(); print(os.environ.get('ESOI_OFFLINE'))"
     done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env={k: v for k, v in os.environ.items() if k != "ESOI_OFFLINE"})
     assert done.stdout.strip() == "1", done.stderr
+
+
+# A network need: pending-network under ESOI_OFFLINE, ok without it, and an arm with no need is unchanged.
+
+@solution("scholarly", scope="nettest", kind="event", entry="go", example="x")
+class Scholarly(typing.Protocol):
+    def go(self, text: str) -> str: ...
+
+
+@solution("local-only", scope="nettest", kind="event", entry="go", example="x")
+class LocalOnly(typing.Protocol):
+    def go(self, text: str) -> str: ...
+
+
+class ReachesOut:
+    REQUIRES = (req.network("openalex.org"),)
+    BUILT = []
+
+    def __init__(self):
+        ReachesOut.BUILT.append("built")
+
+    def go(self, text):
+        return "answer from the network"
+
+
+class StaysHome:
+    def go(self, text):
+        return text
+
+
+@pytest.fixture()
+def networked(tmp_path: Path):
+    parts = Assembler("nettest", tmp_path)
+    parts.register("scholarly", "openalex", ReachesOut)
+    parts.register("local-only", "plain", StaysHome)
+    one = runner(parts)
+    return lambda target, **kw: one(target, "x", arms={"scholarly": "openalex", "local-only": "plain"}, environ={}, **kw)
+
+
+def test_a_network_need_is_pending_network_offline_and_never_built(networked, monkeypatch):
+    monkeypatch.setenv("ESOI_OFFLINE", "1")
+    ReachesOut.BUILT.clear()
+    outcome, detail, reasons = outcome_of(lambda: networked("scholarly"))
+    assert outcome == "pending-network" and outcome != "ok" and outcome in ANSWERING
+    assert reasons[0].kind == "network" and "needs network access; not attempted offline" in reasons[0].need
+    assert "openalex.org" in reasons[0].need
+    assert ReachesOut.BUILT == []
+
+
+def test_a_network_need_does_not_block_an_ordinary_run(networked, monkeypatch):
+    monkeypatch.delenv("ESOI_OFFLINE", raising=False)
+    assert networked("scholarly") == "answer from the network"
+
+
+def test_an_arm_with_no_network_need_is_unchanged_offline(networked, monkeypatch):
+    monkeypatch.setenv("ESOI_OFFLINE", "1")
+    assert networked("local-only") == "x"
+
+
+def test_a_network_check_reads_the_variable_from_environ_too():
+    item = req.network()
+    assert req.check([item], {"ESOI_OFFLINE": "1"})[0].status == req.UNMET
+    assert req.check([item], {})[0].status in (req.MET, req.UNMET)   # follows the process variable when environ is silent

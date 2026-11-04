@@ -13,6 +13,7 @@ env requirements. Every constructor takes keyword arguments after the first.
 | `python(module, distribution, extra=None, required=True, alternatives=())` | `distribution` may carry a range and a marker; `alternatives` are other requirement strings providing the module | An importable module and the pip requirement for it. |
 | `binary(name, install_hint="", version_args=None, required=True)` | `version_args` is run only with a probe | An executable on PATH; reports "found but not executable". |
 | `service(name, url_env, default_url=None, health_path=None, required=True)` | | A running service found by a URL variable. Unknown while only the default is assumed. |
+| `network(host="", required=True)` | `host` names where, for the reader | The arm reaches the network. Met normally; unmet while `ESOI_OFFLINE=1`, with the remedy "needs network access; not attempted offline", so the arm is pending (outcome `pending-network`) and is never built. |
 | `download(name, size_mb=0, cache_hint="")` | | Fetched on first use. Checks free disk space against `size_mb`; informational unless it will not fit. |
 | `resource(note)` | | A CPU, GPU, memory or time note. Informational. |
 | `isolatable(boundary)` | `subprocess`, `cli` or `mcp` | The arm can run out of process, so its python requirements may be installed in an environment of its own. |
@@ -29,7 +30,7 @@ named for its folder. They run in the order install.sh, requirements.txt, instal
 - `Assembler.closure(config, provided, solutions=(), every_arm=False)`: the members with the reason each is in.
 - `Assembler.requirements(config, provided, every_arm=False, solutions=())`: the deduplicated requirements of the closure.
 - `Assembly.requirements`: the same for the arms an assembly built.
-- `pending_needs` and `assemble_defaults` treat an unmet required env, api, python or binary as pending with its remedy line.
+- `pending_needs` and `assemble_defaults` treat an unmet required env, api, python, binary or network as pending with its remedy line.
 - `env_template`, `install_script`, `write_env_file`, `report`, `as_json`: the generated outputs.
 - `esoi.installer.make_plan`, `assembly_plan`, `execute`: the install plan, the resolution ladder and the guarded runner.
 
