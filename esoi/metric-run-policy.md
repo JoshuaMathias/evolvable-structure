@@ -51,6 +51,9 @@ Across the three stages that is about 43 case runs per arm, about 580,000 input 
   `esoi check --strict` lists the stale results as advice; it never fails.
 - In continuous integration: the tests, the check and the hygiene scan on every pull request and push (`.github/workflows/check.yml`). No
   commit hook and no CI step runs metrics, and expiration is never unless a metric or the project declares one.
+- Iterating on a paid arm: with a cassette (`--cassette DIR`) an unchanged prompt is replayed from the file instead of calling the
+  model, and `--cassette-only` makes no call at all, so a cassette-only run counts as a free stage: run it before the paid stage
+  (`docs/how-to/iterate-on-an-llm-arm-without-repeating-model-calls.md`). Replayed calls are reported apart and are not spend.
 - A paid arm: estimate its cost first, run a stratified sample of 3, then 10, then 30 cases with a call budget
   (`esoi run <component> --impl <name> --sample 3 --max-calls 9 --record`), and have Joshua approve the spend before the run.
   It needs `ESOI_MODEL_COMMAND` (a command that reads a prompt on standard input and prints a reply), and `ESOI_MODEL` and

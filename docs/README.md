@@ -31,6 +31,7 @@ Steps for a task you already know you want to do.
 - [Install only what your solutions need](how-to/install-only-what-you-need.md): the closure, the plan, the resolution ladder, coherence in CI.
 - [Build on another package's defaults and say why you differ](how-to/hierarchical-defaults.md): a parent's defaults, one `explain`, reasons for each override, rule S35.
 - [Pin selections for production and update on your schedule](how-to/pin-selections-for-production.md): when pip pinning is enough, when a lock helps, `esoi lock` and its diff.
+- [Iterate on an LLM arm without repeating model calls](how-to/iterate-on-an-llm-arm-without-repeating-model-calls.md): record model calls in a cassette, replay unchanged prompts for free, prove a variant costs nothing with `--cassette-only`.
 - [Keep a consumer current with an AI agent](how-to/keep-a-consumer-current-with-an-ai-agent.md): run `esoi lock --status` on a schedule, resolve blockers, apply, verify.
 - [Keep a metric's value before and after a piece of work](how-to/measure-before-and-after.md): find the slice of the specification, read the metric twice, keep the rows.
 - [Measure an implementation per circumstance](how-to/measure-per-circumstance.md): circumstances, variants, slice rows, and how to read a slice verdict as a proposal.

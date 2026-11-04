@@ -90,6 +90,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--intent", default=None, help="the intent whose folder receives the records (default: the top intent)")
     p = sub.add_parser("run", help="run one implementation over a component's cases", add_help=False)
     p.add_argument("rest", nargs=argparse.REMAINDER)
+    p = sub.add_parser("cassette", help="the cassette of recorded model calls: stats")
+    p.add_argument("rest", nargs=argparse.REMAINDER)
     p = sub.add_parser("stale", help="which changed files a recorded result measures (what makes a row stale, and who owns each changed file)")
     p.add_argument("--explain", metavar="COMPONENT", default="", help="the changed files that count for each arm of the component, and the ones that are ignored")
     p.add_argument("--rule", default="", help="judge by this staleness rule instead of the configured one (repo_wide, component_paths, import_closure)")
@@ -693,6 +695,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.cmd == "run":
         from . import harness
         return harness.run_cli(args.rest, config)
+    if args.cmd == "cassette":
+        from . import cassette
+        return cassette.run_cli(args.rest, str(config.harness.get("cassette", "")), config.root)
     if args.cmd == "stale":
         from . import staleness
         if args.rule and args.rule not in staleness.RULES:

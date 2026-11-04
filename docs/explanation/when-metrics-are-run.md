@@ -56,6 +56,12 @@ declared live (`PAID = True`, a `paid_arms` entry, or a run given `--max-calls`)
 the row's details beside the metered calls, and `ESOI_OFFLINE=1` is set for a provider that wants to refuse by itself. A provider
 that falls back to a binary found on the machine cannot make an offline run spend money.
 
+**A cassette run can be a free stage.** With `--cassette DIR --cassette-only` the harness answers every wrapped model call from a
+file of earlier responses and errors on a call it does not hold, so the run cannot spend anything. A change to scoring or parsing of
+a paid arm is therefore checked first against the recorded responses (a free stage), and the paid stage runs only when that passes.
+A cassette hit in an offline run is allowed (no process starts); a miss there is refused. How:
+[Iterate on an LLM arm without repeating model calls](../how-to/iterate-on-an-llm-arm-without-repeating-model-calls.md).
+
 The contract for a provider of models, in any package: **`ESOI_OFFLINE=1` in the environment means no model process may start.** A
 provider that launches a model program (a command-line client, a local server, a subprocess of any kind) checks the variable before it
 launches and refuses with an error that says so; it neither falls back to another binary nor reads a missing variable as permission to
