@@ -5,6 +5,29 @@ that counts only correct answers picks the arm that is right and slow, costly or
 metric, then shows the list at work on nine different subjects. It is a checklist for the person or AI who designs the metric,
 not a form to fill in: leave out an item only because it does not apply, and say so.
 
+## The metric is the judgment, so it must hold the whole judgment
+
+The authoritative metric of an intent, and every condition in its cascade, is applied automatically: the arm it ranks first is
+selected and runs, with no person looking at the choice. So the metric is not a scoreboard beside the decision; it is the decision.
+It has to say, in a form a tool can check, everything a careful, critical person would weigh when choosing what is best: the
+outcome, but also cost, time, risk, reversibility, how the result is experienced by the people it serves, maintenance burden, trust
+in the evidence, and whatever else would change their mind.
+
+The test for every metric and every stage condition: **if a thoughtful person, shown the same results, would pick differently,
+the metric is wrong.** Find the reason they would give and capture it:
+
+- a reason that grades the outcome (a reply that is correct but rude, a plan that works but cannot be undone) becomes part of the
+  outcome's grading;
+- a reason that is a cost (an hour of a person's attention, load on a server) becomes a priced cost;
+- a reason that is a line not to cross (privacy, safety, an irreversible act) becomes a gate;
+- a reason about doubt (too few cases, results from someone with a stake, a benchmark unlike the real work) becomes an evidence
+  condition on the stage, so a weakly supported winner is not selected.
+
+When a person overrides an automatic selection, or disagrees with a result, treat it as a defect report against the metric: write
+down their reason, add the component, gate or condition that encodes it, and re-score every arm, the old winner included. Do not
+patch the selection by hand and leave the metric as it was, or the next automatic run repeats the mistake. A reason that cannot be
+measured yet is still written in the metric's limits line, so the gap is visible instead of silently ignored.
+
 ## Three ways a metric can lean on other metrics
 
 Before writing a metric from nothing, check whether someone else's work already answers part of it.
