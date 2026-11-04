@@ -84,6 +84,7 @@ Facts to look up.
 
 - [Requirements: every kind, its fields, and the commands](reference/requirements.md): includes `esoi install`.
 - [The lock: file, API, command line and exit codes](reference/lock.md): `esoi lock`, `esoi.lock`, the status plan.
+- [A solution holds alternatives of one job](explanation/a-solution-holds-alternatives-of-one-job.md): read the implementation list for purpose and specificity; split by purpose.
 - [Implement the flow first](how-to/implement-flow-first.md): code the flow the coherence paragraph describes from its entry points, then what it calls; rule S47.
 - [Names and ids](reference/names-and-ids.md): the name leads every generated output, the id is the handle; rule S46.
 - [`esoi attest`](reference/attest.md): a recorded, reasoned attestation that an arm's changed code did not move its result.
