@@ -181,10 +181,12 @@ def test_editing_the_arms_own_code_stales_it_and_nothing_else_does():
     assert judged(step, "pkg/unowned_helper.py")[0] is False                                 # a plain helper the arm does not import
 
 
-def test_a_helper_that_belongs_to_no_implementation_counts_when_the_arm_imports_it():
+def test_a_helper_that_belongs_to_no_implementation_counts_when_the_arm_imports_it(tmp_path):
+    import shutil
     built = staleness_fixture.build("touch-the-measured-file")
-    cfg = config_module.load(built.root / "esoi.toml")
-    live = built.root / "evaluation/components/alpha_eval/impls/live.py"
+    shutil.copytree(built.root, tmp_path / "repo")
+    cfg = config_module.load(tmp_path / "repo" / "esoi.toml")
+    live = tmp_path / "repo" / "evaluation/components/alpha_eval/impls/live.py"
     live.write_text(live.read_text() + "\nfrom pkg import unowned_helper\n")
     cfg.staleness_rule = "import_closure"
     scope = staleness.scope_for(cfg, "alpha_eval", "live", "import_closure")
@@ -197,3 +199,31 @@ def test_test_files_are_recognised_by_name_and_folder():
         assert staleness.is_test_file(path), path
     for path in ("pkg/contest.py", "pkg/testing_utils.py", "pkg/latest.py"):
         assert not staleness.is_test_file(path), path
+
+
+def helpers_repo(tmp_path):
+    """The fixture repository with two plain helpers: `shared_helper` imported by the wrappers of alpha and beta, `only_alpha` by alpha's alone."""
+    import shutil
+    built = staleness_fixture.build("touch-a-doc")
+    root = tmp_path / "repo"
+    shutil.copytree(built.root, root)
+    (root / "pkg" / "shared_helper.py").write_text("VALUE = 1\n")
+    (root / "pkg" / "only_alpha.py").write_text("VALUE = 2\n")
+    alpha = root / "evaluation/components/alpha_eval/impls/live.py"
+    alpha.write_text(alpha.read_text() + "from pkg import shared_helper, only_alpha\n")
+    beta = root / "evaluation/components/beta_eval/impls/live.py"
+    beta.write_text(beta.read_text() + "from pkg import shared_helper\n")
+    cfg = config_module.load(root / "esoi.toml")
+    cfg.staleness_rule = "import_closure"
+    return cfg
+
+
+def test_a_helper_shared_by_two_arms_stales_nobody_and_an_exclusive_helper_stales_its_arm(tmp_path):
+    cfg = helpers_repo(tmp_path)
+    alpha = staleness.scope_for(cfg, "alpha_eval", "live", "import_closure")
+    beta = staleness.scope_for(cfg, "beta_eval", "live", "import_closure")
+    assert staleness.judge(cfg, alpha, "pkg/only_alpha.py") == (True, "imported by the arm")
+    assert staleness.judge(cfg, beta, "pkg/only_alpha.py")[0] is False
+    assert staleness.judge(cfg, alpha, "pkg/shared_helper.py") == (False, "a helper shared with other implementations: nobody's own code")
+    assert staleness.judge(cfg, beta, "pkg/shared_helper.py")[0] is False
+    assert staleness.judge(cfg, alpha, "pkg/alpha.py")[0] is True            # the arm's own record file still counts

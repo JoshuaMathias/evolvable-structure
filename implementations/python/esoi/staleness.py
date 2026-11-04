@@ -11,7 +11,8 @@ alternatives, measured like any other (the ``staleness_precision`` component):
   counts for every arm (never silently fresh). A component with no ownership entry falls back to ``repo_wide``.
 * ``import_closure``: a result goes stale only when the arm's OWN code changes. For a Python arm that is its implementation
   module (the wrapper in ``impls/`` or the file its record names) and the helper code it imports, transitively, found by reading
-  the source (no execution), that belongs to no implementation of any solution. Not in it, whatever the arm imports: test files
+  the source (no execution), that belongs to no implementation of any solution and that no other implementation's closure imports
+  (code shared by two or more arms is nobody's own code). Not in it, whatever the arm imports: test files
   and shared fixtures (``tests/``, ``test_*.py``, ``conftest.py``, everything else in the evaluation folder), the scorer and its
   datasets, a package ``__init__``, and any file another implementation owns (another arm of the component, or another
   solution's code: that solution's own recorded selection answers for it). A changed file that is not Python is judged by
@@ -68,6 +69,7 @@ class Scope:
     complete: bool = False               # whether the scan saw every import (else the files it found only add to the component's)
     own_files: Set[str] = field(default_factory=set)   # the arm's own implementation files (import_closure)
     foreign: Set[str] = field(default_factory=set)     # files other implementations own (import_closure): never this arm's code
+    shared: Set[str] = field(default_factory=set)      # helper files another implementation's closure imports too: nobody's own code
 
 
 def glob_pattern(text: str) -> re.Pattern:
@@ -294,6 +296,21 @@ def not_own_code(config: Config, rel: str, foreign: Set[str], own: Set[str]) -> 
             or rel in foreign)
 
 
+def shared_helpers(config: Config, foreign: Set[str]) -> Set[str]:
+    """The helper files that at least one other implementation's closure imports: code shared with another arm is nobody's own
+    code, so a change to it stales no result. Each other implementation is scanned from its own file, stopping at files owned by
+    implementations (its own and everyone else's), tests, fixtures and ``__init__`` files."""
+    root = config.root.resolve()
+    shared: Set[str] = set()
+    for rel in sorted(foreign):
+        start = root / rel
+        if not start.is_file() or start.suffix != ".py":
+            continue
+        found, _ = closure_of(config, [start], lambda other, mine=rel: not_own_code(config, other, foreign, {mine}))
+        shared |= found - {rel}
+    return shared
+
+
 def closure_of(config: Config, starts: List[Path], skip=None) -> Tuple[Set[str], bool]:
     """``(files, complete)``: the repository files the start files import, transitively, from their source, and whether the scan was
     complete. It is not when a file cannot be read, is not Python, or imports a module by a computed name; the files found so far
@@ -396,6 +413,8 @@ def build_scope(config: Config, component: str, impl: str, rule: str) -> Scope:
             scope.own_files = {p.resolve().relative_to(root).as_posix() for p in starts if p.resolve().is_relative_to(root)}
             foreign = scope.foreign = foreign_files(config, index, scope.own_files)
             scope.closure, scope.complete = closure_of(config, starts, lambda rel: not_own_code(config, rel, foreign, scope.own_files))
+            scope.shared = shared_helpers(config, foreign)
+            scope.closure = scope.own_files & scope.closure | (scope.closure - scope.shared)
         if scope.closure is None or not scope.complete:
             scope.note = ("its imports cannot be read completely (not Python, or a computed import), so the files it does import "
                           "and its component's files count")
@@ -420,6 +439,8 @@ def judge(config: Config, scope: Scope, path: str) -> Tuple[bool, str]:
             return False, "a test or shared test fixture, not the arm's code"
         if path in scope.foreign:
             return False, "another implementation's code: its own recorded selection answers for it, not this result"
+        if path in scope.shared:
+            return False, "a helper shared with other implementations: nobody's own code"
         if path.startswith(inside):
             return False, "the evaluation folder holds the scorer, datasets and fixtures, not the arm's code"
     elif path.startswith(inside):

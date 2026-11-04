@@ -176,8 +176,8 @@ The first three can be checked by a tool and should be. The last needs a person 
 `know-what-a-result-measures`, with three arms scored by `esoi run staleness_precision` over a fixture of commits: any file of
 the repository's code paths or the evaluation folder (`repo_wide`, the baseline: safe, and every commit makes every component's
 rows stale), the files the ownership map gives the arm's solution and implementation (`component_paths`), and the files the arm's
-own code: its implementation module and the helper code it imports that belongs to no implementation, found by reading the source
-without running it (`import_closure`). A rule must never keep a row whose measured
+own code: its implementation module and the helper code it imports that belongs to no implementation and that no other
+implementation imports, found by reading the source without running it (`import_closure`). A rule must never keep a row whose measured
 code changed (a false-fresh is a hard fail that disqualifies the arm); among the rest, the one that calls a result stale for
 nothing least often is selected. The measurement selected `import_closure`, and disqualified `component_paths`, because a shared
 utility the arm imports may be owned by another component, which the ownership map does not say. Every arm falls back, per
@@ -189,7 +189,8 @@ is stale.
 **A result goes stale only when the arm's own code changes.** Not a test file or shared test fixture (`tests/`, `test_*.py`,
 `conftest.py`, `evaluation/components/test_components.py`), not the scorer, its datasets or anything else in the evaluation folder
 that is not the arm's file, not a package `__init__`, and not code that belongs to any other implementation (another arm of the
-component, or another solution's implementation), even when the arm imports it. A dependency on another solution's code is
+component, or another solution's implementation), even when the arm imports it, and not a helper two or more arms import (code
+shared with other implementations is nobody's own code; only a helper exclusive to the arm counts). A dependency on another solution's code is
 answered by that solution's own recorded selection, never by staling this result. `repo_wide` and `component_paths` stay as the
 safer, coarser rules.
 
