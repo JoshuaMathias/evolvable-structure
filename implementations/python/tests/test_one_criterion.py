@@ -1,4 +1,4 @@
-"""Rules S41 to S44 (a cascade runs one criterion) and the floor rule of select/promote. All advisory, none calls a model."""
+"""Rules S41, S42, S44 and S45 (a cascade runs one criterion; no arm is excluded by a mark). All advisory, none calls a model."""
 import subprocess
 from pathlib import Path
 
@@ -66,35 +66,52 @@ def test_metrics_over_different_arms_are_not_advice(repo):
     assert one_criterion.separate_leaderboards(ctx) == []
 
 
-def floor_repo(repo, kind):
-    """The scaffold's component gets a floor-marked arm named `floor`; returns (config, component)."""
-    cfg = config.load(repo)
-    component = next(iter(sorted(p.name for p in cfg.evaluation.iterdir() if (p / "impls").is_dir())))
-    (cfg.evaluation / component / "impls" / "floor.py").write_text(f'"""{kind}: one card per file."""\n')
-    return cfg, component
-
-
-def test_a_selected_baseline_is_advice_and_a_problem_only_when_the_repository_opts_in(repo):
-    cfg, component = floor_repo(repo, "BASELINE")
+def diagnostic_ctx(repo, table, history_rows):
     ctx = context(repo)
-    ctx.registry.solutions = [{"solution_id": "s", "metric_command": f"esoi run {component} --impl floor; esoi run {component} --impl live",
-                               "selected": "floor"}]
-    ctx.registry.solution_order = ["s"]
-    ctx.history = {component: {"floor": [row("floor", component=component)]}}
-    found = one_criterion.floor_arms(ctx)
-    assert found and found[0].startswith("S43 s") and "never" in found[0] and "next:" in found[0]
-    assert one_criterion.run(ctx) == [] and ctx.advisory                      # advice by default
-    ctx.config.rules["S43"] = {"problem": True}
-    assert one_criterion.run(ctx) and one_criterion.run(ctx)[0].startswith("S43 s")   # a problem where the repository opts in
-    ctx.registry.solutions[0]["selected"] = "live"
-    ctx.history[component]["live"] = [row("live", component=component)]
-    assert one_criterion.floor_arms(ctx) == []
+    ctx.config.balance = {"files": table}
+    ctx.history = {"files": {impl: [row(impl, component="files", **extra)] for impl, extra in history_rows.items()}}
+    return ctx
 
 
-def test_promotion_never_offers_a_baseline_as_the_winner(repo):
-    cfg, component = floor_repo(repo, "BASELINE")
-    assert promote.floor_only(cfg, component, "floor") is True
-    assert promote.floor_only(cfg, component, "no-such-arm") is False
+def test_a_best_scoring_arm_outside_the_declared_diagnostics_is_advice_and_is_not_excluded(repo):
+    table = {"diagnostics": {"cards": {"min": 50}}}
+    ctx = diagnostic_ctx(repo, table, {"one_per_file": {"passed": "10", "details": "cards=2000"}, "topics": {"passed": "8", "details": "cards=300"}})
+    assert one_criterion.degenerate_leader(ctx) == []                       # within bounds: 2000 cards is not below 50
+    ctx = diagnostic_ctx(repo, {"diagnostics": {"cards": {"max": 1000}}},
+                         {"one_per_file": {"passed": "10", "details": "cards=2000"}, "topics": {"passed": "8", "details": "cards=300"}})
+    found = one_criterion.degenerate_leader(ctx)
+    assert len(found) == 1 and found[0].startswith("S45 files: one_per_file scores best") and "not excluded" in found[0] and "Next:" in found[0]
+    assert one_criterion.run(ctx) == [] and any(line.startswith("S45 files") for line in ctx.advisory)   # advice, never a problem
+
+
+def test_the_diagnostic_reads_a_result_column_and_stays_silent_when_the_leader_is_fine_or_undeclared(repo):
+    ctx = diagnostic_ctx(repo, {"diagnostics": {"cost_usd": {"max": 0.5}}}, {"a": {"passed": "10", "cost_usd": "0.9"}, "b": {"passed": "4"}})
+    assert one_criterion.degenerate_leader(ctx)[0].startswith("S45 files: a scores best but its cost_usd is 0.9")
+    ctx = diagnostic_ctx(repo, {"diagnostics": {"cost_usd": {"max": 0.5}}}, {"a": {"passed": "4", "cost_usd": "0.9"}, "b": {"passed": "10", "cost_usd": "0.1"}})
+    assert one_criterion.degenerate_leader(ctx) == []                       # the leader is within bounds; a degenerate loser is not the question
+    assert one_criterion.degenerate_leader(diagnostic_ctx(repo, {}, {"a": {"passed": "10"}})) == []
+    ctx = diagnostic_ctx(repo, {"diagnostics": {"cost_usd": {"max": 0.5}}}, {"a": {"passed": "10", "cost_usd": "0.9"}})
+    ctx.registry.waivers = [{"rule": "S45", "path": "files", "reason": "decided"}]
+    assert one_criterion.degenerate_leader(ctx) == []
+
+
+def test_a_marked_arm_is_an_ordinary_competitor_and_promotion_can_pick_it(cfg):
+    """BASELINE and FLOOR no longer mark an arm: a docstring opening with either is just prose, and the arm competes."""
+    from esoi import registry
+    from test_cascade import clear_selected, set_cascade
+    path = cfg.evaluation / "greet_a_person" / "impls" / "shout.py"
+    path.write_text(path.read_text().replace("ALTERNATIVE", "BASELINE", 1))
+    assert leaderboard.arm_kind({"component": "greet_a_person", "impl": "shout"}, cfg.evaluation) == ""
+    assert not hasattr(leaderboard, "FLOOR_KINDS") and not hasattr(promote, "floor_only")
+    set_cascade(cfg, "whole [sample=full | real=no]")
+    results, header = tables.read_csv(cfg.results_path), tables.read_header(cfg.results_path)
+    for r in results:
+        r.update(cases="40", passed="40", dev="40/40") if r["impl"] == "shout" else r.update(cases="40", passed="20", dev="20/40")
+    tables.write_csv(cfg.results_path, header, results)
+    fresh = lambda c, comp, row, strict: ""
+    clear_selected(cfg)
+    [first] = promote.propose(cfg, registry.load(cfg), stale=fresh)
+    assert first.winner == "shout"                                          # the highest score wins, whatever the docstring says
 
 
 def commit(root, text, day):
@@ -142,24 +159,6 @@ def test_a_weight_table_changed_before_any_row_is_not_advice(tmp_path):
 
 def test_the_rules_are_listed_and_advisory_on_the_scaffold(repo):
     problems, advisory = check.check_all(config.load(repo))
-    assert not [p for p in problems if p[:3] in ("S41", "S42", "S43", "S44")]
+    assert not [p for p in problems if p[:3] in ("S41", "S42", "S44", "S45")]
     from esoi import rules
-    assert {"S41", "S42", "S43", "S44"} <= set(rules.summaries(config.load(repo)))
-
-
-def test_a_baseline_that_scores_best_is_blocked_by_promotion_and_a_first_choice_skips_it(cfg):
-    from esoi import registry
-    from test_cascade import clear_selected, set_cascade
-    path = cfg.evaluation / "greet_a_person" / "impls" / "shout.py"
-    path.write_text(path.read_text().replace("ALTERNATIVE", "BASELINE", 1))
-    set_cascade(cfg, "whole [sample=full | real=no]")
-    results, header = tables.read_csv(cfg.results_path), tables.read_header(cfg.results_path)
-    for r in results:
-        r.update(cases="40", passed="40", dev="40/40") if r["impl"] == "shout" else r.update(cases="40", passed="20", dev="20/40")
-    tables.write_csv(cfg.results_path, header, results)
-    fresh = lambda c, comp, row, strict: ""
-    [proposal] = promote.propose(cfg, registry.load(cfg), stale=fresh)
-    assert proposal.status == "blocked" and "never selected" in proposal.reason and proposal.selected == ""
-    clear_selected(cfg)
-    [first] = promote.propose(cfg, registry.load(cfg), stale=fresh)
-    assert first.winner != "shout"
+    assert {"S41", "S42", "S44", "S45"} <= set(rules.summaries(config.load(repo)))

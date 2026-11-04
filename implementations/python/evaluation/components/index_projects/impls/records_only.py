@@ -1,6 +1,7 @@
-"""FLOOR: nothing beyond each project's own records. From a path it climbs to the nearest ``esoi.toml`` and reports that
+"""Nothing beyond each project's own records. From a path it climbs to the nearest ``esoi.toml`` and reports that
 folder as the project, with the specifications entry the configuration implies; it knows no other project, no file to
 start with and no relation. Zero model calls."""
+ALTERNATIVE = True   # it does not drive the live package code, so S12 asks for the declaration
 from pathlib import Path
 
 import index_world as world

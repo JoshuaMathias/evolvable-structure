@@ -29,7 +29,7 @@ TABS = ["problems", "solutions", "implementations", "ideals", "metrics"]
 # What a solution's verdict means for its status (the leaderboard decides; see leaderboard.verdict).
 STATUS_BY_VERDICT = {"WIN": "decided-by-metric", "TIE": "tie-kept", "LOSS": "beaten-by-rival",
                      "UNMEASURED": "no-rival-measured"}
-ALTERNATIVE_MARKERS = ("ALTERNATIVE", "BASELINE", "ABLATION", "FLOOR", "VALIDITY")
+ALTERNATIVE_MARKERS = ("ALTERNATIVE", "ABLATION", "VALIDITY")
 Row = Dict[str, str]
 
 
@@ -75,7 +75,7 @@ def stem(path: str) -> str:
 
 
 def kind_of(config: Config, path: str) -> str:
-    """ablation / baseline / alternative / live for an implementation path (documentation, not a gate)."""
+    """ablation / validity / alternative / live for an implementation path (documentation, not a gate)."""
     found = re.match(re.escape(config.evaluation_dir) + r"/(\w+)/impls/(\w+)\.py$", path)
     if found:
         tagged = leaderboard.arm_kind({"component": found.group(1), "impl": found.group(2)}, config.evaluation)

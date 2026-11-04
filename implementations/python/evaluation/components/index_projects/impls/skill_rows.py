@@ -1,5 +1,6 @@
-"""BASELINE: routing rows written into the skill's own index, the way an index that names the author's projects would
+"""Routing rows written into the skill's own index, the way an index that names the author's projects would
 route. The rows are frozen when written, so a project added or moved later is not in them. Zero model calls."""
+ALTERNATIVE = True   # it does not drive the live package code, so S12 asks for the declaration
 import index_world as world
 
 ROWS = {

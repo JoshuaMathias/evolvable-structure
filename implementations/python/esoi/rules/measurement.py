@@ -18,7 +18,7 @@ from ..records import FILES
 from ..tables import ids
 from .base import Context, RuleGroup, parse_file
 
-ALTERNATIVE_MARKERS = ("ALTERNATIVE", "BASELINE", "ABLATION", "FLOOR", "VALIDITY")
+ALTERNATIVE_MARKERS = ("ALTERNATIVE", "ABLATION", "VALIDITY")
 # Counts of cases are numbers too: "56 offline cases" drifts the day a case is added.
 NUMBER_IN_PROSE = re.compile(
     r"(?<![\w-])\d+\s*/\s*\d+(?![\w-])|\$\s?\d|\d+(?:\.\d+)?\s*%|\b\d+\s+of\s+\d+\b"
@@ -29,7 +29,7 @@ SUMMARIES = {
     "S10": "A measured solution's selected implementation has a recorded row and no rival beats it on the metric, or a "
            "waiver names the pending decision.",
     "S12": "Every evaluation implementation drives live package code or declares itself an alternative "
-           "(ALTERNATIVE = True, or a docstring opening ALTERNATIVE, BASELINE, ABLATION, FLOOR or VALIDITY); a "
+           "(ALTERNATIVE = True, or a docstring opening ALTERNATIVE, ABLATION or VALIDITY); a "
            "selected or measured implementation must be live, or waived.",
     "S16": "The latest results row of every implementation carries a cases_sha, or a waiver says why not.",
     "S20": "Every solution has a problem, an ideal, a metric, implementations, a selected implementation and a "
@@ -41,7 +41,7 @@ SUMMARIES = {
            "numbers live in the results log.",
     "S24": "Every arm a metric command names has a results row.",
     "S25": "A solution whose evaluation folder has a single implementation, so nothing to compare it with, has a broken/ "
-           "baseline module besides __init__.py: the naive implementation a first draft would write, which the cases must fail.",
+           "naive module besides __init__.py: the naive implementation a first draft would write, which the cases must fail.",
     "S31": "A metric is meaningfully real: no implementation in a metric's evaluation folder declares SIMULATED = True, and "
            "no metric record describes its judge or model as scripted, simulated, mocked or a stand-in (or a waiver "
            "names why that metric cannot be real).",
@@ -52,7 +52,7 @@ UNREAL_METRIC = re.compile(r"\b(?:scripted|simulated|mocked|stubbed|fake|canned)
 
 
 def impl_kind(ctx: Context, path: Path) -> str:
-    """Classify an evaluation implementation file: ``alternative`` (declares itself a baseline or alternative),
+    """Classify an evaluation implementation file: ``alternative`` (declares itself an alternative),
     ``live`` (imports or drives package code) or ``unclear`` (neither)."""
     tree = parse_file(path)
     if tree is None:
@@ -106,8 +106,8 @@ def run(ctx: Context) -> List[str]:
         kinds[rel] = impl_kind(ctx, impl_path)
         if kinds[rel] == "unclear" and not ctx.waived("S12", rel):
             bad.append(f"S12 {rel}: neither wraps live {config.package or 'package'} code nor declares itself an "
-                       "alternative (set ALTERNATIVE = True, or open the docstring with ALTERNATIVE/BASELINE/"
-                       "ABLATION/FLOOR/VALIDITY): the number would not measure the live code")
+                       "alternative (set ALTERNATIVE = True, or open the docstring with ALTERNATIVE/ABLATION/"
+                       "VALIDITY): the number would not measure the live code")
     for r in ctx.solutions:
         sel = r["selected"].split("::")[0]
         if sel in kinds and kinds[sel] == "alternative" and not ctx.waived("S12", f"{r['solution_id']}:{Path(sel).stem}"):
@@ -164,7 +164,7 @@ def run(ctx: Context) -> List[str]:
         broken = evaluation / arms[0][0] / "broken"
         baselines = [f for f in broken.glob("*.py") if f.name != "__init__.py"] if broken.is_dir() else []
         if not baselines and not ctx.waived("S25", sid):
-            bad.append(f"S25 {sid}: {config.evaluation_dir}/{arms[0][0]}/broken/ has no baseline module (add the naive "
+            bad.append(f"S25 {sid}: {config.evaluation_dir}/{arms[0][0]}/broken/ has no naive module (add the naive "
                        "implementation a first draft would write; a test proves the cases fail it)")
 
     for r in ctx.solutions:

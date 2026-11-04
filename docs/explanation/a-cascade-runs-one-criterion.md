@@ -26,8 +26,8 @@ Each stage was run, and each produced its own leaderboard, so the report had thr
   what the solution is for.
 - **A guard carried the second criterion in.** "Must not regress on file finding" between stages looks careful. It is a second
   criterion in disguise, since an alternative that is better overall but regresses on lookup is excluded.
-- **Floors looked like contenders.** The one-card-per-file and one-card-for-everything arms are there to show a floor. Listed on the same
-  board without a mark, they could be selected.
+- **A trivial arm could win.** The one-card-per-file and one-card-for-everything arms are cheap to build and easy to score. When one wins,
+  the metric is wrong (it does not count what a card per file costs), and the fix is in the number, not a mark that hides the arm.
 
 ## The correct shape
 
@@ -42,8 +42,11 @@ Each stage was run, and each produced its own leaderboard, so the report had thr
   are inputs to it.
 - **Aim the metric at what the solution is for.** Ask whether the cases look like the real inputs, whether the unit scored is the thing the
   solution produces (a topic card, not a file entry), and whether a mistake that matters in production would move the number.
-- **Mark floors.** A baseline that exists only to show what the live arms must beat opens its docstring with `BASELINE` (or `FLOOR`).
-  It is ranked and shown, and `esoi select --promote` never selects it.
+- **No arm is excluded; the metric decides.** Every implementation competes on the one balanced metric and the selection rule (highest wins,
+  labelled significant or best guess) applies to all of them. There is no baseline mark. If a trivial arm scores best, the metric lacks a
+  factor (cost, size, efficiency, accessibility): put it into the balanced score. `[balance.<component>.diagnostics.<column>]` lets the
+  metric declare what degenerate looks like (a `min` and `max` for a column of the result row, or a `name=number` in its details), and rule
+  S45 informs when the arm that scores best crosses a bound. It informs; it never excludes.
 
 ## What esoi checks
 
@@ -53,8 +56,11 @@ All advisory: they inform with the next action and never fail `esoi check`.
 |---|---|
 | S41 | a metric's cascade has two or more stages and its command scores more than one component (the cascade decides on one component's rows, so the others are a second criterion beside it) |
 | S42 | a solution has two or more metrics, each with recorded results for the same arms, ranked in separate leaderboards |
-| S43 | a solution's `selected` names an arm marked `BASELINE` or `FLOOR` (a problem where `[rules.S43] problem = true`); promotion also refuses to propose one |
 | S44 | a `[balance.<component>]` table changed in a commit dated after the first row scored with it |
+| S45 | the arm that scores best has a value outside the bounds the metric declares degenerate in `[balance.<component>.diagnostics.<column>]` (it informs; no arm is excluded) |
+
+S43 (a selected arm marked `BASELINE` or `FLOOR`) is retired: Joshua, 2026-11-04, "a metric should determine whether something is used,
+not marking as baseline".
 
 A solution with several metrics and no `authoritative_metric_id` is already rule R6. Whether the metric is aimed at what the solution is
 for, and whether a stage's pass test hides a second criterion, cannot be read from the records: they need a person to look at the cases.
@@ -69,4 +75,4 @@ How to write one: [write a cascade that stays one number](../how-to/write-a-casc
 4. Is each kind of case a source in the one case set, mixed in proportion to real inputs, rather than a stage with a pass test?
 5. Is there a gate that is really a second criterion ("must not regress on X")? If X matters, it belongs in the number.
 6. Do the cases look like the real inputs, and is the unit scored the thing the solution produces?
-7. Is every floor marked `BASELINE` or `FLOOR`, so it can never be selected?
+7. If a trivial arm (one card per file) won, what factor is missing from the number, and is it declared in `diagnostics`?

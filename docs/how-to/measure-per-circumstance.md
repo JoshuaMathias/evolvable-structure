@@ -44,7 +44,7 @@ root = Path(tempfile.mkdtemp()) / "demo"
 scaffold.init(root, "demo_pkg", say=lambda text: None)
 component = root / "evaluation" / "components" / "greet_a_person"
 build = 'def build(meter, **params):\n    def run(kind, args):\n        n = args["n"]\n        return {"n": n if n %s params.get("cut", 5) else -1}\n    return run\n'
-(component / "impls" / "live.py").write_text('"""BASELINE: nothing added, the harness as it is."""\n' + build % "<=")   # right for small n
+(component / "impls" / "live.py").write_text('"""Nothing added, the harness as it is."""\n' + build % "<=")   # right for small n
 (component / "impls" / "alt.py").write_text(build % ">")     # right for large n
 (component / "cases.json").write_text(json.dumps([
     {"id": f"c{n}", "kind": "k", "size": n, "heldout": n in (3, 7), "args": {"n": n}, "expect": {"eq": {"n": n}}} for n in range(1, 9)]))

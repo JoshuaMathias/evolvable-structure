@@ -127,9 +127,10 @@ and model `simulated`, and it is compared on model calls. A missing price alone 
 
 ## Reference arms
 
-Some implementations are not rivals. A **baseline** is a floor someone might plausibly ship and is compared. An
-**ablation** is part of a candidate measured alone, and a **validity** arm checks the metric itself, so neither is offered
-as the thing to adopt. Mark each by the first word of its description.
+Some implementations are not rivals. An **ablation** is part of a candidate measured alone, and a **validity** arm checks the
+metric itself, so neither is offered as the thing to adopt. Mark each by the first word of its description. There is no baseline
+mark: a simple arm someone might plausibly ship is an ordinary implementation that competes on the one balanced metric, and wins
+when the metric says so (if it should not win, the metric lacks a factor).
 
 ## Cascading conditionals
 

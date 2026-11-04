@@ -609,12 +609,12 @@ class DiscriminatingCases(Protocol):
 
 @implementation("discriminating-cases", "broken-baselines")
 class BrokenBaselines:
-    """Implementations whose docstring starts with BASELINE."""
+    """The naive implementations kept in each component's ``broken/`` folder."""
 
     def describe(self, project: str) -> Dict[str, int]:
         cfg, found = loaded(project)
-        files = sorted(cfg.evaluation.glob("*/impls/*.py")) if cfg.evaluation.is_dir() else []
-        return {"baselines": sum(1 for file in files if "BASELINE" in "\n".join(read_lines(file)[:3]))}
+        files = sorted(cfg.evaluation.glob("*/broken/*.py")) if cfg.evaluation.is_dir() else []
+        return {"baselines": sum(1 for file in files if file.name != "__init__.py")}
 
 
 @solution("when-metrics-are-run", kind="event", entry="describe", example=".")

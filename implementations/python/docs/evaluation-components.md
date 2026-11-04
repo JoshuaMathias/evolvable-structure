@@ -37,7 +37,7 @@ baseline is not called cheaper than a cost that is merely unknown.
 
 ## Reference arms
 
-Open an implementation's docstring with `BASELINE`, `FLOOR`, `ABLATION`, `ALTERNATIVE` or `VALIDITY` (or set
+Open an implementation's docstring with `ABLATION`, `ALTERNATIVE` or `VALIDITY` (or set
 `ALTERNATIVE = True`) to say it is not the live code. The check requires that every other implementation imports the
 package under test (rule S12), so a number measures what ships.
 

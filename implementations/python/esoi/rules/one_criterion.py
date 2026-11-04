@@ -1,23 +1,26 @@
-"""Rules S41 to S44, advisory: a cascade runs ONE criterion at rising cost, and every stage's metric is one number.
+"""Rules S41, S42, S44 and S45, advisory: a cascade runs ONE criterion at rising cost, and every stage's metric is one number.
 
 Joshua, 2026-11-04: "that's not how cascade is used ... every stage metric must be a single number which represents what
 alternative is best across all factors". The lesson is in ``docs/explanation/a-cascade-runs-one-criterion.md``. Each finding goes to
-``esoi check --findings`` with its next action and never fails a check, except S43 where ``[rules.S43] problem = true`` (the
-repository opts in). Detectable from the records:
+``esoi check --findings`` with its next action and never fails a check. Detectable from the records:
 
 * S41: a metric with a cascade of two or more stages whose command scores more than one component. The cascade decides on the rows of the
   first component only, so the others are a second criterion beside it, not a stage of it.
 * S42: a solution with two or more metrics that each have recorded results and rank the same arms in separate leaderboards.
-* S43: a solution whose ``selected`` names an arm marked ``BASELINE`` or ``FLOOR`` (a floor that exists to show a floor).
+* S45: the arm that scores best has a value outside the bounds the metric declares as degenerate
+  (``[balance.<component>.diagnostics.<column>] min = .., max = ..``, read from the result row's numeric columns or its details'
+  ``name=number`` pairs). No arm is ever excluded from selection: every implementation competes on the one balanced metric, and a trivial
+  arm that wins means the metric lacks a factor. (S43, which refused to select an arm marked BASELINE or FLOOR, is retired.)
 * S44: a ``[balance.<component>]`` table (weights and budgets) that changed in a later commit of ``esoi.toml`` than the date of the
   first row scored with it.
 
 Not detectable from the records, so not checked: a solution with several metrics and no ``authoritative_metric_id`` is already rule R6
 (inside S26); whether the metric is aimed at what the solution is for, and whether a stage's pass test hides a second criterion, need a
-person's reading. A waiver excuses one key: the metric id (S41), the solution id (S42, S43) or the component (S44).
+person's reading. A waiver excuses one key: the metric id (S41), the solution id (S42) or the component (S44, S45).
 """
 from __future__ import annotations
 
+import re
 import subprocess
 import tomllib
 from typing import Dict, List, Tuple
@@ -31,10 +34,10 @@ SUMMARIES = {
            "a cascade whose command scores several has a second criterion beside it (waive as the metric id).",
     "S42": "Advisory: a solution whose several metrics each have recorded results for the same arms ranks them in separate leaderboards; "
            "make one metric authoritative and the others case sources of it (waive as the solution id).",
-    "S43": "Advisory (a problem with `[rules.S43] problem = true`): no solution selects an arm marked BASELINE or FLOOR, which only shows a "
-           "floor (waive as the solution id).",
     "S44": "Advisory: a `[balance.<component>]` table (weights and budgets) was fixed before any alternative was scored, so it did not change "
            "in a commit dated after the first row scored with it (waive as the component).",
+    "S45": "Advisory: the arm that scores best on the balanced metric is not degenerate by the diagnostics the metric declares "
+           "(`[balance.<component>.diagnostics.<column>]` min and max); it informs and never excludes an arm (waive as the component).",
 }
 
 
@@ -86,20 +89,46 @@ def separate_leaderboards(ctx: Context) -> List[str]:
     return out
 
 
-def floor_arms(ctx: Context) -> List[str]:
-    out: List[str] = []
-    problem = bool(ctx.config.option("S43", "problem", False))
-    for solution in ctx.registry.every_solution():
-        sid = solution.get("solution_id", "")
-        component, arm = leaderboard.selected_arm(ctx.config, solution, "", ctx.registry)
-        rows = ctx.history.get(component, {}).get(arm) if component else None
-        if not rows or ctx.waived("S43", sid):
+VALUE = re.compile(r"([A-Za-z_][\w.]*)\s*=\s*(-?\d+(?:\.\d+)?)")
+
+
+def diagnostic_values(row: Dict[str, str]) -> Dict[str, float]:
+    """The numbers a result row carries for a diagnostic to read: its numeric columns, and ``name=number`` pairs of its details."""
+    found: Dict[str, float] = {}
+    for key, value in row.items():
+        try:
+            found[key] = float(value)
+        except (TypeError, ValueError):
             continue
-        kind = leaderboard.arm_kind(rows[-1], ctx.config.evaluation)
-        if kind in leaderboard.FLOOR_KINDS:
-            line = (f"S43 {sid}: selected {arm} is marked {kind.upper()}, a floor that shows what the live arms must beat and is never "
-                    "selected; next: select the best live arm (`esoi select --promote`), or remove the marker if this arm is the product")
-            out.append(line)
+    for key, value in VALUE.findall(row.get("details", "") or ""):
+        found.setdefault(key, float(value))
+    return found
+
+
+def degenerate_leader(ctx: Context) -> List[str]:
+    """S45: the arm that scores best is degenerate by the diagnostics the metric itself declares. Every arm competes on the one balanced
+    metric and none is excluded; when a trivial arm (one card per file, say) wins, the metric is missing a factor, so this only informs."""
+    out: List[str] = []
+    for component, table in sorted(ctx.config.balance.items()):
+        declared = (table or {}).get("diagnostics") or {}
+        rows = {impl: found[-1] for impl, found in ctx.history.get(component, {}).items() if found}
+        if not declared or not rows or ctx.waived("S45", component):
+            continue
+        leader, _ = leaderboard.best_guess(rows, ctx.config.evaluation)
+        if leader is None:
+            continue
+        values = diagnostic_values(rows[leader])
+        for name, bound in sorted(declared.items()):
+            value = values.get(name)
+            if value is None:
+                continue
+            low, high = bound.get("min"), bound.get("max")
+            if (low is not None and value < float(low)) or (high is not None and value > float(high)):
+                limit = f"below {low}" if low is not None and value < float(low) else f"above {high}"
+                out.append(f"S45 {component}: {leader} scores best but its {name} is {value:g}, {limit}, which the metric's own diagnostics "
+                           f"([balance.{component}.diagnostics.{name}]) call degenerate. The arm is not excluded: the metric is missing the "
+                           f"factor. Next: put {name} into the balanced score (weights and budgets in [balance.{component}]) and re-record, "
+                           "or, if this arm is the right answer, change the diagnostic and say why")
     return out
 
 
@@ -154,19 +183,15 @@ def weights_fixed_first(ctx: Context) -> List[str]:
 
 
 def run(ctx: Context) -> List[str]:
-    """Every finding goes to ``ctx.advisory``; S43 is a problem only where ``[rules.S43] problem = true``."""
+    """Every finding goes to ``ctx.advisory``; none is a problem."""
     config = ctx.config
     if not config.intent_mode:
         return []
     bad: List[str] = []
-    for rule, finder in (("S41", single_number), ("S42", separate_leaderboards), ("S43", floor_arms), ("S44", weights_fixed_first)):
+    for rule, finder in (("S41", single_number), ("S42", separate_leaderboards), ("S44", weights_fixed_first), ("S45", degenerate_leader)):
         if config.is_disabled(rule):
             continue
-        found = finder(ctx)
-        if rule == "S43" and config.option("S43", "problem", False):
-            bad.extend(found)
-        else:
-            ctx.advisory.extend(found)
+        ctx.advisory.extend(finder(ctx))
     return bad
 
 

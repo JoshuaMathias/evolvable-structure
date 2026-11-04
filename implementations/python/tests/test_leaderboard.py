@@ -47,7 +47,7 @@ def test_ablation_and_validity_arms_are_no_rivals(tmp_path):
     (impls / "check.py").write_text('"""VALIDITY: checks the metric."""\n')
     (impls / "floor.py").write_text('"""FLOOR: the cheap way."""\n')
     data = rows(row("a", 5), row("part", 9), row("check", 9), row("floor", 5))
-    assert lb.arm_kind(data["part"], tmp_path) == "ablation" and lb.arm_kind(data["floor"], tmp_path) == "baseline"
+    assert lb.arm_kind(data["part"], tmp_path) == "ablation" and lb.arm_kind(data["floor"], tmp_path) == ""   # no baseline mark: it competes
     assert lb.challengers(data, "a", tmp_path) == []
     assert lb.verdict(data, "a", tmp_path)[0] in ("TIE", "WIN")
 
@@ -203,8 +203,8 @@ def test_a_rival_recorded_only_on_named_cases_is_reported_not_comparable_never_s
 def test_a_variant_row_finds_the_arm_kind_of_its_base(tmp_path):
     impls = tmp_path / "c" / "impls"
     impls.mkdir(parents=True)
-    (impls / "guard.py").write_text('"""BASELINE: nothing added."""\n')
-    assert lb.arm_kind(row("guard@harness=native", 1), tmp_path) == "baseline"
+    (impls / "guard.py").write_text('"""ABLATION: nothing added."""\n')
+    assert lb.arm_kind(row("guard@harness=native", 1), tmp_path) == "ablation"
 
 
 # ---- the rule: a significant two-sided paired test, else the selected arm stays; a best guess where no test is possible

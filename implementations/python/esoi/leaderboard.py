@@ -255,14 +255,13 @@ def describe_cases(row: Row) -> str:
     return f"{count} cases" + (f" ({sample})" if sample else "") + (f" on cases_sha {sha}" if sha else "")
 
 
-ARM_MARKER = re.compile(r'\s*"""\s*(ABLATION|BASELINE|FLOOR|ALTERNATIVE|VALIDITY)')
-FLOOR_KINDS = ("baseline",)   # a floor that only shows what the live arms must beat: ranked and shown, never selected or promoted
+ARM_MARKER = re.compile(r'\s*"""\s*(ABLATION|ALTERNATIVE|VALIDITY)')
 NOT_RIVALS = ("ablation", "validity")   # shown and tagged, never offered as the thing to adopt
 
 
 def arm_kind(row: Row, eval_dir: Optional[Path] = None) -> str:
     """What an implementation is for, from the first word of its module docstring: ``ablation`` (a part of a
-    candidate measured alone), ``baseline`` (a floor someone would plausibly ship; ``FLOOR`` counts), ``validity``
+    candidate measured alone), ``validity``
     (the metric's own offline check that it can tell good from bad, which no implementation can lose to),
     ``alternative``, or ``""`` for live code. Shown beside every row so a reader can tell a rival from a reference."""
     if eval_dir is None:
@@ -273,7 +272,7 @@ def arm_kind(row: Row, eval_dir: Optional[Path] = None) -> str:
     found = ARM_MARKER.match(path.read_text(encoding="utf-8"))
     if not found:
         return ""
-    return {"FLOOR": "baseline"}.get(found.group(1), found.group(1).lower())
+    return found.group(1).lower()
 
 
 def is_ablation(row: Row, eval_dir: Optional[Path] = None) -> bool:
