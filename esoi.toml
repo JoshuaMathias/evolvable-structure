@@ -65,7 +65,7 @@ enabled = true
 enabled = true
 
 [rules.S38.floors.esoi]
-precision = 0.923
+precision = 1.0
 coverage = 1.0
 
 [rules.S38.floors.esoi-runtime]

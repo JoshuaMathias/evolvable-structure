@@ -44,10 +44,19 @@ class RuleScript:
 
 @implementation("apply-esoi", "documents-templates-and-tools")
 class DocumentsTemplatesAndTools:
-    """The tools beside the documents: the structure check, and the coherence of each intent's solutions."""
+    """The tools beside the documents: the structure check, the coherence of each intent's solutions, and the search that finds the
+    records a request concerns (``spec-search``)."""
 
     def __init__(self, structure: StructureChecking):
         self.structure = structure
+
+    def find(self, project: str, request: str) -> List[str]:
+        """The keys of the project's records that ``request`` concerns, best first: ``spec-search`` over the views of its index, lexical
+        only, so no model is called."""
+        from . import config as config_module
+        from . import spec_index, spec_search
+        index = spec_index.build(config_module.load(Path(project)))
+        return spec_search.lexical_only(request, spec_search.views_from_index(index)).ids
 
     def review(self, project: str) -> Dict[str, Any]:
         from collections import Counter
@@ -158,12 +167,25 @@ class MeasurementHarnessing(Protocol):
 
 @implementation("measurement-harness", "component-harness")
 class ComponentHarness:
-    """The harness that runs each implementation over a component's cases."""
+    """The harness that runs each implementation over a component's cases, tells which recorded rows a change has made stale
+    (``know-what-a-result-measures``) and reads the public evidence others measured (``public-evidence``)."""
 
     def components(self, project: str) -> List[str]:
         from . import harness
         cfg, found = loaded(project)
         return harness.discover_components(cfg)
+
+    def stale(self, project: str) -> Dict[str, Dict[str, str]]:
+        """Per staleness rule, which implementations' recorded rows a change has made stale (what ``esoi stale --count`` prints)."""
+        from . import staleness
+        cfg, found = loaded(project)
+        return {rule: staleness.count_stale(cfg, rule) for rule in staleness.RULES}
+
+    def public_evidence(self, project: str) -> int:
+        """How many rows of public evidence the project holds beside its own measurements."""
+        from . import evidence
+        cfg, found = loaded(project)
+        return len(evidence.load_for(cfg))
 
 
 @solution("leaderboard", kind="evaluate", entry="standings", example=".")
@@ -340,11 +362,18 @@ class MetricRecordKeeping(Protocol):
 
 @implementation("keep-metric-record", "library-modules")
 class LibraryModules:
-    """The iteration, meter and ledger modules of the library."""
+    """The iteration, meter and ledger modules of the library, over the slice of the specification that ``spec-index`` gives for the work."""
 
     def readings(self, project: str) -> Dict[str, str]:
         from . import iteration
         return {name: texts[0] for name, texts in iteration.READING_STATUS.items()}
+
+    def slice_of(self, project: str, request: str, k: int = 5) -> List[str]:
+        """The ids of the best ``k`` records of the project's index for the words of ``request``: the slice the work is measured against."""
+        from . import config as config_module
+        from . import spec_index
+        index = spec_index.build(config_module.load(Path(project)))
+        return [hit["id"] for hit in spec_index.find_specs(index, request, k)]
 
 
 @solution("runtime-selection", kind="event", entry="layers", example="structure-check")
