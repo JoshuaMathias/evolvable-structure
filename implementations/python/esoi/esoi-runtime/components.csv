@@ -2,8 +2,8 @@ component_id,layer,path,role,solutions
 selection,core,implementations/python/esoi/select.py,Resolving an implementation of a solution from a selection table.,runtime-selection
 eval-select-an-implementation,evaluation,implementations/python/evaluation/components/select_an_implementation/**,Cases for resolving a selection.,runtime-selection
 runtime,core,implementations/python/esoi/runtime.py,Declarations in code and the cascade that picks the implementation a call runs.,runtime-selection
-assemble,core,implementations/python/esoi/assemble.py,unconfirmed: for Joshua to confirm.,assemble-by-name
+assemble,core,implementations/python/esoi/assemble.py,"Building the parts of a program by validated name in dependency order, with the cascade that picks each implementation and a frozen result.",assemble-by-name
 requirements,core,implementations/python/esoi/requirements.py;implementations/python/esoi/installer.py,Declaring what an implementation needs from its environment and checking it.,assemble-by-name
-hierarchy,core,implementations/python/esoi/hierarchy.py,unconfirmed: for Joshua to confirm.,assemble-by-name
-eval-assemble-by-name,evaluation,implementations/python/evaluation/components/assemble_by_name/**,unconfirmed: for Joshua to confirm.,assemble-by-name
-lock,core,implementations/python/esoi/lock.py,unconfirmed: for Joshua to confirm.,assemble-by-name
+hierarchy,core,implementations/python/esoi/hierarchy.py,"Hierarchical defaults as plain data: the layers of one solution's cascade, conditional entries and the recorded reasons a child differs from its parent.",assemble-by-name
+eval-assemble-by-name,evaluation,implementations/python/evaluation/components/assemble_by_name/**,"Cases for assembling by name: hostile names and snapshots, shadowing, cycles, unmet needs, concurrent assembles and the examples in the docs.",assemble-by-name
+lock,core,implementations/python/esoi/lock.py,"Pinning the selected implementations in a lock file, showing what a newer release would change and moving the lock on the consumer's schedule.",assemble-by-name
