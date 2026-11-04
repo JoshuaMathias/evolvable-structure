@@ -125,7 +125,7 @@ flowchart LR
 | `keep-metric-record` | `esoi.run("keep-metric-record", '.')` | `library-modules` | Metric record kept |
 | `spec-search` | `esoi.run("spec-search", ...)` | `lexical-vector-gated` | Spec search correctness |
 | `public-evidence` | `esoi.run("public-evidence", {'evidence': []})` | `graded` | Public evidence graded |
-| `know-what-a-result-measures` | `esoi stale --explain COMPONENT` | `repo-wide` | Staleness precision |
+| `know-what-a-result-measures` | `esoi stale --explain COMPONENT` | `import_closure` | Staleness precision |
 
 ## Problems and ideals
 
@@ -279,7 +279,7 @@ flowchart LR
 | `keep-metric-record` | keep-metric-record | library-modules | Metric record kept |
 | `spec-search` | Spec search | lexical-vector-gated | Spec search correctness |
 | `public-evidence` | Grade evidence | graded | Public evidence graded |
-| `know-what-a-result-measures` | Know what a result measures | repo-wide | Staleness precision |
+| `know-what-a-result-measures` | Know what a result measures | import_closure | Staleness precision |
 
 ### Implementations
 
@@ -350,9 +350,9 @@ flowchart LR
 | `spec-search:lexical-only` | Lexical only | [implementations/python/esoi/spec_search.py](../implementations/python/esoi/spec_search.py) |  |
 | `spec-search:lexical-vector-gated` | Lexical vector gated | [implementations/python/esoi/spec_search.py](../implementations/python/esoi/spec_search.py) |  |
 | `public-evidence:graded` | Graded | [implementations/python/esoi/evidence.py](../implementations/python/esoi/evidence.py) |  |
-| `know-what-a-result-measures:repo-wide` | Repo wide | [implementations/python/esoi/staleness.py](../implementations/python/esoi/staleness.py) |  |
-| `know-what-a-result-measures:component-paths` | Component paths | [implementations/python/esoi/staleness.py](../implementations/python/esoi/staleness.py) |  |
-| `know-what-a-result-measures:import-closure` | Import closure | [implementations/python/esoi/staleness.py](../implementations/python/esoi/staleness.py) |  |
+| `know-what-a-result-measures:repo_wide` | Repo wide | [implementations/python/esoi/staleness.py](../implementations/python/esoi/staleness.py) |  |
+| `know-what-a-result-measures:component_paths` | Component paths | [implementations/python/esoi/staleness.py](../implementations/python/esoi/staleness.py) |  |
+| `know-what-a-result-measures:import_closure` | Import closure | [implementations/python/esoi/staleness.py](../implementations/python/esoi/staleness.py) |  |
 
 ### Metrics
 

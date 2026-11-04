@@ -250,7 +250,7 @@ Grade what others measured: one ``Estimate`` per candidate and dimension, with i
 Tell, for one recorded result, whether the code, cases or circumstances it measures changed since its commit, and say which changed file and which component's ownership explains the answer.
 
 - Entry call: `esoi stale --explain COMPONENT`
-- Selected implementation: `repo-wide`
+- Selected implementation: `import_closure`
 - Metric: Staleness precision
 - Implemented by: [`implementations/python/esoi/staleness.py`](staleness.py), [`implementations/python/evaluation/components/staleness_precision/__init__.py`](../evaluation/components/staleness_precision/__init__.py), [`implementations/python/evaluation/components/staleness_precision/broken/__init__.py`](../evaluation/components/staleness_precision/broken/__init__.py), [`implementations/python/evaluation/components/staleness_precision/broken/never_stale.py`](../evaluation/components/staleness_precision/broken/never_stale.py), [`implementations/python/evaluation/components/staleness_precision/cases.json`](../evaluation/components/staleness_precision/cases.json), [`implementations/python/evaluation/components/staleness_precision/datasets/fixture.json`](../evaluation/components/staleness_precision/datasets/fixture.json), [`implementations/python/evaluation/components/staleness_precision/impls/__init__.py`](../evaluation/components/staleness_precision/impls/__init__.py), [`implementations/python/evaluation/components/staleness_precision/impls/component_paths.py`](../evaluation/components/staleness_precision/impls/component_paths.py) and 4 more
 
@@ -368,9 +368,9 @@ flowchart LR
 | `spec-search:lexical-only` | Lexical only | [`implementations/python/esoi/spec_search.py`](spec_search.py) |  |
 | `spec-search:lexical-vector-gated` | Lexical vector gated | [`implementations/python/esoi/spec_search.py`](spec_search.py) | selected |
 | `public-evidence:graded` | Graded | [`implementations/python/esoi/evidence.py`](evidence.py) | selected |
-| `know-what-a-result-measures:repo-wide` | Repo wide | [`implementations/python/esoi/staleness.py`](staleness.py) | selected |
-| `know-what-a-result-measures:component-paths` | Component paths | [`implementations/python/esoi/staleness.py`](staleness.py) |  |
-| `know-what-a-result-measures:import-closure` | Import closure | [`implementations/python/esoi/staleness.py`](staleness.py) |  |
+| `know-what-a-result-measures:repo_wide` | Repo wide | [`implementations/python/esoi/staleness.py`](staleness.py) |  |
+| `know-what-a-result-measures:component_paths` | Component paths | [`implementations/python/esoi/staleness.py`](staleness.py) |  |
+| `know-what-a-result-measures:import_closure` | Import closure | [`implementations/python/esoi/staleness.py`](staleness.py) | selected |
 
 ## Metrics
 
@@ -403,7 +403,7 @@ flowchart LR
 - `metric-public-evidence`, Public evidence graded: leader `graded`, 11 of 11 cases
 - `metric-solution-coherence`, Intents whose solutions one paragraph and one diagram explain as the code builds them
 - `metric-navigable-records`, Navigable records: leader `beside_code`, 29 of 53 cases
-- `metric-staleness-precision`, Staleness precision: no result recorded
+- `metric-staleness-precision`, Staleness precision: leader `import_closure`, 46 of 55 cases
 
 ## Problems
 

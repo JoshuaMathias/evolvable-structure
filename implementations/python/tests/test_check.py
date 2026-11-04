@@ -286,6 +286,7 @@ def test_s3_allows_a_named_root_script_and_a_waiver_can_excuse_one(cfg):
 def stale_rival_repo(cfg):
     """A committed repository where the selected arm was recorded after the measured code changed and its rival before."""
     import subprocess
+    cfg.staleness_rule = "repo_wide"   # these tests pin the strict and waiver mechanics; the narrower rules have their own tests
     subprocess.run(["git", "init", "-q"], cwd=cfg.root, check=True)
     first = commit(cfg.root, "first")
     (cfg.root / "demo" / "greet.py").write_text((cfg.root / "demo" / "greet.py").read_text() + "\n# changed\n")

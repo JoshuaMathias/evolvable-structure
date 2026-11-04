@@ -36,7 +36,7 @@ NOTED: Set[Path] = set()   # roots whose fallback note was printed, so a run say
 
 
 STALENESS_RULES = ("repo_wide", "component_paths", "import_closure")
-DEFAULT_STALENESS_RULE = "repo_wide"
+DEFAULT_STALENESS_RULE = "import_closure"   # the arm the staleness precision metric selects (esoi select --promote); falls back per arm to component_paths and repo_wide
 
 
 class ConfigError(ValueError):

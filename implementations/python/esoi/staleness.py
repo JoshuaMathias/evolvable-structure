@@ -15,7 +15,7 @@ alternatives, measured like any other (the ``staleness_precision`` component):
   back to ``component_paths``.
 
 ``rule_for`` picks the rule: ``staleness_rule`` in ``esoi.toml``, else the arm the repository's records select for the
-solution ``know-what-a-result-measures``, else ``DEFAULT_RULE``. Standard library only; nothing is run or imported from the
+solution ``know-what-a-result-measures``, else ``DEFAULT_RULE`` (the arm the staleness precision metric selected). Standard library only; nothing is run or imported from the
 measured code.
 """
 from __future__ import annotations

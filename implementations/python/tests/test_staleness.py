@@ -112,3 +112,17 @@ def test_the_offline_guard_refuses_a_model_command_and_counts_the_attempt():
         guard.stop()
     assert meter.attempted == 2
     assert subprocess.run(["echo", "after"], capture_output=True).returncode == 0
+
+
+def test_a_rival_that_does_not_import_the_changed_file_stays_current_under_the_default_rule(repo):
+    cfg = config_module.load(repo)
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
+    subprocess.run(["git", "-c", "user.email=a@b.c", "-c", "user.name=a", "commit", "-q", "-m", "init"], cwd=repo, check=True)
+    sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=repo, capture_output=True, text=True).stdout.strip()
+    (repo / "demo" / "greet.py").write_text((repo / "demo" / "greet.py").read_text() + "\n# changed\n")
+    rows = {impl: dict(impl=impl, git_sha=sha, cases_sha=harness.cases_digest("greet_a_person", cfg.evaluation)) for impl in ("live", "shout")}
+    assert "demo/greet.py" in harness.stale_reason(cfg, "greet_a_person", rows["live"])
+    assert harness.stale_reason(cfg, "greet_a_person", rows["shout"]) == ""   # shout never imports demo/greet.py
+    cfg.staleness_rule = "repo_wide"
+    assert "demo/greet.py" in harness.stale_reason(cfg, "greet_a_person", rows["shout"])
