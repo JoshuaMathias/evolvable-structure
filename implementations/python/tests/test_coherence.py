@@ -335,16 +335,21 @@ def test_a_chain_the_ownership_map_does_not_give_the_user_is_not_evidence(tmp_pa
 # ---- document evidence (E5): a link between documents two solutions own, never prose or code samples ----------------------
 
 def documents_code(tmp_path: Path, user_doc: str, used_owners: str = "used", user_owners: str = "user", used_doc: str = "# Used\n"):
-    """A project whose `user` and `used` solutions are documents (no module): docs/user.md and docs/used.md, owned through
-    components.csv."""
+    """A project whose `user` and `used` solutions are documents (no module): docs/user.md and docs/used.md. One component owns
+    docs/** and its `documents` cell says whose each file is (``used_owners`` / ``user_owners`` are ``;``-lists of owners)."""
     (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
     (tmp_path / "docs" / "user.md").write_text(user_doc, encoding="utf-8")
     (tmp_path / "docs" / "used.md").write_text(used_doc, encoding="utf-8")
     cfg = SimpleNamespace(root=tmp_path, package="", package_dir="")
     solutions = {"user": {"solution_id": "user"}, "used": {"solution_id": "used"}}
-    components = [{"component_id": "u", "path": "docs/user.md", "solutions": user_owners},
-                  {"component_id": "d", "path": "docs/used.md", "solutions": used_owners}]
+    cell = ";".join([f"docs/user.md={o}" for o in user_owners.split(";") if o] + [f"docs/used.md={o}" for o in used_owners.split(";") if o])
+    components = [{"component_id": "d", "path": "docs/**", "solutions": "user;used", "documents": cell}]
     return coherence.Code(cfg, solutions, [], {}, components)
+
+
+def test_a_folder_a_component_owns_as_a_whole_makes_no_document_anyones(tmp_path):
+    code = documents_code(tmp_path, "[u](used.md)\n", used_owners="", user_owners="")
+    assert code.evidence("user", "used") == "n/a"
 
 
 def test_a_markdown_link_between_documents_two_solutions_own_is_strong_evidence_e5(tmp_path):

@@ -31,8 +31,8 @@ uses are an alternative, not the structure). Per intent folder:
                              it gives only to the used: the user's code reaches the used through its own module   (strong)
                          E5  a document only the user owns links to or includes a document only the used owns (a markdown link,
                              image, reference definition or include directive; fenced code, inline code, HTML comments, URLs and
-                             bare mentions of a path never count). A document is a solution's when components.csv gives it the
-                             solution or the solution's selected implementation names it as its filepath; a document several
+                             bare mentions of a path never count). A document is a solution's when a components.csv row names it in
+                             its `documents` cell (path=solution-id) or the solution's selected implementation names it as its filepath; a document several
                              solutions own does not say which is meant and counts on neither side    (strong)
                          W1  a module of the user imports one that imports the used               (weak, reported)
                          W2  a module of the user builds an esoi Assembler over a scope that declares the used (weak)
@@ -70,7 +70,7 @@ from typing import Dict, List, Set, Tuple
 
 from esoi import config as esoi_config
 from esoi import intents as esoi_intents
-from esoi.tables import glob_re
+from esoi.tables import document_entries, glob_re
 
 DEFAULTS = {"max_fan_out": 9, "max_depth": 4, "code_floor": 1.0, "coverage_floor": 0.0, "min_lift": 1.0}
 MIN_CLAUSE_WORDS = 3          # words between the user and the used, names aside ("a uses b" has one: not enough)
@@ -266,17 +266,15 @@ class Code:
         return out
 
     def document_ownership(self, cfg, components, selected) -> Dict[str, Set[str]]:
-        """{document: solutions that own it}. A document is a solution's when ``components.csv`` gives it the solution (the same path
-        globs as modules) or when the solution's selected implementation names it as its ``filepath``: the document is the
-        implementation. Only documents that exist are counted."""
+        """{document: solutions that own it}. A document is a solution's when a ``components.csv`` row names it in its ``documents``
+        cell (``path=solution-id``: the row's path owns the file, this says whose document it is) or when the solution's selected
+        implementation names it as its ``filepath``: the document is the implementation. A folder a component owns as a whole
+        (``docs/**``) makes no document anyone's. Only documents that exist are counted."""
         out: Dict[str, Set[str]] = defaultdict(set)
         for row in components or ():
-            patterns = [glob_re(p) for p in ids(row.get("path", ""))]
-            owners = set(ids(row.get("solutions", "")))
-            if owners:
-                for rel in self.documents:
-                    if any(rx.match(rel) for rx in patterns):
-                        out[rel] |= owners
+            for path, solution in document_entries(row.get("documents", "")):
+                if solution and path in self.documents:
+                    out[path].add(solution)
         for sid, row in selected.items():
             rel = ((row or {}).get("filepath") or "").strip().split("::")[0]
             if rel in self.documents:

@@ -6,12 +6,12 @@ from __future__ import annotations
 
 from typing import List, Tuple
 
-from ..tables import glob_re, ids
+from ..tables import document_entries, glob_re, ids
 from .base import Context, RuleGroup
 from .modulefacts import Facts
 
 SUMMARIES = {
-    "S1": "Every file belongs to exactly one component and every component path glob matches a file.",
+    "S1": "Every file belongs to exactly one component and every component path glob matches a file; a document named in `documents` is a file of that component and has one owning solution.",
     "S2": "Every component row has a role and a layer from the configured set.",
     "S3": "No Python file at the repository root (unless root_python_files is set, the file is listed in "
           "root_python_allow, or a waiver names it).",
@@ -65,6 +65,23 @@ def run(ctx: Context) -> List[str]:
             rx = glob_re(p)
             if not any(rx.match(f) for f in ctx.files):
                 bad.append(f"S1 {cid}: path pattern {p!r} matches no file")
+    sol_ids = {r["solution_id"] for r in ctx.every_solution()}
+    document_owner: dict = {}
+    for r in ctx.components:
+        patterns = [glob_re(p) for p in ids(r["path"])]
+        for path, solution in document_entries(r.get("documents", "")):
+            where = f"S1 {r['component_id']}: documents entry {path!r}"
+            if not solution:
+                bad.append(f"{where} has no owner (write path=solution-id)")
+            elif solution not in sol_ids:
+                bad.append(f"{where}: solution {solution!r} is not in solutions.csv")
+            if path not in ctx.files:
+                bad.append(f"{where} is not a file of the repository")
+            elif not any(rx.match(path) for rx in patterns):
+                bad.append(f"{where} is not matched by this component's path (the component owns the file, `documents` names whose it is)")
+            if path in document_owner and document_owner[path] != solution:
+                bad.append(f"{where} is owned by two solutions ({document_owner[path]}, {solution}); a document has one owner")
+            document_owner.setdefault(path, solution)
     for f, owning in ctx.owners.items():
         if not owning:
             bad.append(f"S1 {f}: belongs to no component (add it to {config.structure_dir}/components.csv)")

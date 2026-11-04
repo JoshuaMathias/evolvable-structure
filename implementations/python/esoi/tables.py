@@ -61,6 +61,16 @@ def ids(cell: str) -> List[str]:
     return [part.strip() for part in (cell or "").split(SEP) if part.strip()]
 
 
+def document_entries(cell: str) -> List["tuple[str, str]"]:
+    """The ``(document path, solution id)`` pairs of a components.csv ``documents`` cell: ``path=solution-id`` entries separated by
+    ``;``. An entry with no ``=`` comes back with an empty solution id so a rule can name it."""
+    out = []
+    for entry in ids(cell):
+        path, _, solution = entry.partition("=")
+        out.append((path.strip(), solution.strip()))
+    return out
+
+
 def glob_re(pattern: str) -> "re.Pattern[str]":
     """``*`` stays inside a path segment, ``**`` crosses segments, ``?`` is one character."""
     out, i = "", 0

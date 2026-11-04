@@ -127,7 +127,7 @@ edges)`, the report carries `code_lift_note`, and `min_lift` is not applied. An 
 `python3 -m esoi.coherence` checks each `uses_solution_ids` edge against the code of the user. The strong evidence is an import
 of the used's module (E1), executable code that names the used's id or interface class (E2), or a constructor parameter typed with
 the used's interface (E3), or a module that `components.csv` gives only to the user importing a module it gives only to the used (E4; the
-ownership map names whose a module is, a module several solutions own never counts), or, for solutions that are documents, a markdown link or include in a document only the user owns to a document only the used owns (E5; [why prose is not evidence](../explanation/why-prose-is-not-code-evidence.md)). E2 reads the syntax tree: an identifier, an attribute, an imported name, an annotation, a decorator or
+ownership map names whose a module is, a module several solutions own never counts), or, for solutions that are documents, a markdown link or include in a document only the user owns (named in the `documents` column of `components.csv`) to a document only the used owns (E5; [why prose is not evidence](../explanation/why-prose-is-not-code-evidence.md)). E2 reads the syntax tree: an identifier, an attribute, an imported name, an annotation, a decorator or
 call argument, and a string literal used as a value (a `resolve("id")` or `needs` call, a declared `uses` id) count. A module,
 class or function docstring, a comment and any bare string statement are prose and never count, so a sentence that names a
 solution does not show that the code uses it. If a relation is true and no evidence appears, show it in the code (a typed need

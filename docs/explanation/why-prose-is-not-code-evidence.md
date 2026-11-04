@@ -37,7 +37,8 @@ The rules that decide what counts as strong evidence of "A uses B", in the order
 5. **E5** (documents) a markdown link or include in a document only A owns to a document only B owns. A solution that is a
    document has no import to follow, so the evidence is the link a reader follows: an inline link, an image, a reference
    definition or an include directive, resolved from the linking document's folder. A document is a solution's when
-   `components.csv` gives it the solution or the solution's selected implementation names it as its `filepath`. The same
+   a `components.csv` row names it in its `documents` column (`path=solution-id`, see
+   [Component documents](../reference/component-documents.md)) or the solution's selected implementation names it as its `filepath`. The same
    discipline as the code rules holds: a link shown inside a fenced block, inline code or an HTML comment is not a link, a path
    mentioned in prose is not a link, URLs and bare anchors point nowhere in the project, and a document several solutions own
    (a whole `docs/**` folder) counts on neither side. An edge whose ends have no module is checkable when both own a document.
@@ -71,10 +72,12 @@ evidence rule that keeps docstrings out could see them:
   genuinely depends on another solution it should say so in code with a typed need, as `esoi-behaviour-judge` now does
   (it reads its cases through `judge-esoi-behaviour`); until then the floor records what is seen.
 
-Document edges are now readable when the records say which documents a solution owns. esoi's `components.csv` gives its guides
-to the folder as a whole (`docs/**` is owned by `docs-and-templates` and `follow-the-steps` together), so no guide is one
-solution's alone and E5 sees none of the fourteen yet; splitting a folder into per-solution documents means listing every file,
-because a file belongs to one component. E5 shows up where a repository does record that ownership.
+Document edges are readable when the records say which documents a solution owns. esoi's `components.csv` names, in `documents`,
+the guides and skill files that belong to ten of its solutions (`apply-esoi`, `the-standard`, `esoi-for-ai`, `the-steps`,
+`follow-the-steps`, `docs-and-templates`, `local-application-index`, `keep-metric-record`, `implementation-selection`,
+`consumer-check`, `skill-distribution`). Two of the fourteen document edges now show a real link in those documents
+(`apply-esoi` to `implementation-selection` and to `local-application-index`); the rest are not linked, and no link is added
+only to make evidence appear.
 
-A floor is a measurement. `esoi.toml` holds esoi's at 0.55 and the runtime sub-intent's at 0.0 (with `min_lift = 0.0`, written
+A floor is a measurement. `esoi.toml` holds esoi's at 0.6 and the runtime sub-intent's at 0.0 (with `min_lift = 0.0`, written
 there with its reason), and each rises when a composition is typed in code.
