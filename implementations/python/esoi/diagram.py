@@ -47,6 +47,17 @@ def edges(registry: Registry, intent_id: str) -> Dict[Tuple[str, str], str]:
     return found
 
 
+def label_of(sid: str, name: str) -> str:
+    """A node's label: the display name as the headline and the id as a small italic second line. A name that is only its id (or starts
+    with the id and a colon) is shown once, never as ``id: name`` twice."""
+    shown = " ".join((name or "").split())
+    if shown.lower().startswith(sid.lower() + ":"):
+        shown = shown[len(sid) + 1:].strip()
+    if not shown or shown.lower() == sid.lower():
+        return clip(sid, 40)
+    return f"{clip(shown, 40)}<br/><i>{sid}</i>"
+
+
 def block(registry: Registry, intent: Intent) -> List[str]:
     """The fenced Mermaid source of one intent's diagram, as lines ([] when no solution of it builds on another). The diagram page
     and the intent's README both embed these lines, so the two cannot differ."""
@@ -58,7 +69,7 @@ def block(registry: Registry, intent: Intent) -> List[str]:
     used = sorted({s for pair in found for s in pair}, key=order.index)
     node = {sid: f"s{i}" for i, sid in enumerate(used)}
     lines = ["```mermaid", "flowchart LR"]
-    lines += [f'    {node[sid]}["{clip(names.get(sid, "") or sid, 40)}<br/>{sid}"]' for sid in used]
+    lines += [f'    {node[sid]}["{label_of(sid, names.get(sid, ""))}"]' for sid in used]
     for (provider, user), label in sorted(found.items(), key=lambda kv: (used.index(kv[0][0]), used.index(kv[0][1]))):
         lines.append(f'    {node[provider]} -->|"{label}"| {node[user]}' if label else f"    {node[provider]} --> {node[user]}")
     return lines + ["```"]

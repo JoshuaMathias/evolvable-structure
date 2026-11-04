@@ -60,7 +60,7 @@ An intent operates through a coherent, evolving set of solutions, and says so in
 
 - **`solution_coherence`** (required): one paragraph on how all the intent's solutions fit together to accomplish its vision
   statement. Write it in your own words; `esoi check` prints a note (not an error) for each solution of the intent that the
-  paragraph names neither by id nor by name, and a blank paragraph is reported like any other required field (S28).
+  paragraph names neither by name nor by id (write the paragraph in display names; ids are optional handles), and a blank paragraph is reported like any other required field (S28).
 - **`solution_diagram`** (optional): how the solutions connect in the intent's implementation, what is transferred on each edge and
   in which direction. The records already say most of it: an implementation builds on other solutions through their interfaces, so
   `esoi diagram` draws the intent's solutions as nodes and, from the solution that provides to the one that builds on it, an edge

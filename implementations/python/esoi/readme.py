@@ -55,6 +55,16 @@ RECORD_FILES = (("problems.csv", "problems"), ("ideals.csv", "ideals"), ("soluti
                 ("implementations.csv", "implementations"), ("metrics.csv", "metrics"))
 
 
+def named(row: Dict[str, str], key: str) -> str:
+    """A record as a person reads it: its ``name`` leading and its id after it as a code-font handle, ``Name (`id`)``. A record with no
+    name is shown by its id alone. The id is the stable handle that commands and links use; the name is what every page leads with."""
+    ident = row.get(key, "")
+    name = one_line(row.get("name", ""))
+    if name.lower().startswith(ident.lower() + ":"):
+        name = name[len(ident) + 1:].strip()
+    return f"{name} (`{ident}`)" if name and name.lower() != ident.lower() else f"`{ident}`"
+
+
 def one_line(text: str) -> str:
     """One line of a cell for a table or a list: whitespace folded, pipes made safe, an ``unconfirmed:`` marker dropped."""
     return " ".join(written(text).split()).replace("|", "/")
@@ -209,9 +219,9 @@ def solutions_table(view: View, registry: Registry, intent: Intent) -> List[str]
     if not rows:
         return []
     package = view.config.package if view.config else ""
-    lines = ["| Solution | Entry call | Selected implementation | Metric |", "|---|---|---|---|"]
+    lines = ["| Solution | Handle | Entry call | Selected implementation | Metric |", "|---|---|---|---|---|"]
     for r in rows:
-        lines.append(f"| `{r.get('solution_id', '')}` | {entry_call(view, package, r.get('solution_id', ''), r)} | "
+        lines.append(f"| {one_line(r.get('name', '')) or r.get('solution_id', '')} | `{r.get('solution_id', '')}` | {entry_call(view, package, r.get('solution_id', ''), r)} | "
                      f"{('`' + one_line(r['selected']) + '`') if one_line(r.get('selected', '')) else 'none selected'} | "
                      f"{metric_names(r.get('metric', ''))} |")
     return lines
@@ -229,15 +239,14 @@ def short_lists(registry: Registry, intent: Intent) -> List[str]:
         out += ["**Problems**", ""]
         for r in problems[:LIST_LIMIT]:
             text = first_sentence(r.get("problem", ""))
-            out.append(f"- `{r.get('problem_id', '')}`" + (f": {text}" if text else ""))
+            out.append(f"- {named(r, 'problem_id')}" + (f": {text}" if text else ""))
         out += more(len(problems), "problems") + [""]
     ideals = mine(registry.ideals, intent.intent_id)
     if ideals:
         out += ["**Ideals**", ""]
         for r in ideals[:LIST_LIMIT]:
             text = first_sentence(r.get("principle", ""))
-            name = one_line(r.get("name", ""))
-            out.append(f"- `{r.get('ideal_id', '')}`" + (f", {name}" if name else "") + (f": {text}" if text else ""))
+            out.append(f"- {named(r, 'ideal_id')}" + (f": {text}" if text else ""))
         out += more(len(ideals), "ideals") + [""]
     return out
 
@@ -246,7 +255,7 @@ def metric_lines(view: View, registry: Registry, intent: Intent) -> List[str]:
     out = []
     rows = mine(registry.metrics, intent.intent_id)
     for r in rows[:LIST_LIMIT]:
-        head = f"- `{r.get('metric_id', '')}`, {one_line(r.get('name', ''))}"
+        head = f"- {named(r, 'metric_id')}"
         tail = leader(view, r)
         out.append(head + (f": {tail}" if tail else ""))
     return out + more(len(rows), "metrics")
@@ -267,25 +276,25 @@ def record_tables(registry: Registry, intent: Intent, level: str = "##", view: O
     lines: List[str] = []
     problems = mine(registry.problems, iid)
     if problems:
-        lines += [f"{level} Problems", ""] + [f"- `{r.get('problem_id', '')}`: {one_line(r.get('problem', ''))}" for r in problems] + [""]
+        lines += [f"{level} Problems", ""] + [f"- {named(r, 'problem_id')}: {one_line(r.get('problem', ''))}" for r in problems] + [""]
     ideals = mine(registry.ideals, iid)
     if ideals:
-        lines += [f"{level} Ideals", ""] + [f"- `{r.get('ideal_id', '')}`, {one_line(r.get('name', ''))}: {one_line(r.get('principle', ''))}"
+        lines += [f"{level} Ideals", ""] + [f"- {named(r, 'ideal_id')}: {one_line(r.get('principle', ''))}"
                                            for r in ideals] + [""]
     solutions = mine(registry.every_solution(), iid)
     if solutions:
-        lines += [f"{level} Solutions", "", "| Solution | Name | Selected | Metric |", "|---|---|---|---|"]
-        lines += [f"| `{r.get('solution_id', '')}` | {one_line(r.get('name', ''))} | {one_line(r.get('selected', ''))} | "
+        lines += [f"{level} Solutions", "", "| Solution | Handle | Selected | Metric |", "|---|---|---|---|"]
+        lines += [f"| {one_line(r.get('name', '')) or r.get('solution_id', '')} | `{r.get('solution_id', '')}` | {one_line(r.get('selected', ''))} | "
                   f"{metric_names(r.get('metric', ''))} |" for r in solutions] + [""]
     implementations = mine(registry.implementations, iid)
     if implementations:
-        lines += [f"{level} Implementations", "", "| Implementation | Name | Where | Sub-intent |", "|---|---|---|---|"]
-        lines += [f"| `{r.get('implementation_id', '')}` | {one_line(r.get('name', ''))} | {where_cell(view, intent.folder, r.get('filepath', ''))} | "
+        lines += [f"{level} Implementations", "", "| Implementation | Handle | Where | Sub-intent |", "|---|---|---|---|"]
+        lines += [f"| {one_line(r.get('name', '')) or r.get('implementation_id', '')} | `{r.get('implementation_id', '')}` | {where_cell(view, intent.folder, r.get('filepath', ''))} | "
                   f"{('[' + r['sub_intent'] + '](' + r['sub_intent'] + '/README.md)') if r.get('sub_intent') else ''} |"
                   for r in implementations] + [""]
     metrics = mine(registry.metrics, iid)
     if metrics:
-        lines += [f"{level} Metrics", ""] + [f"- `{r.get('metric_id', '')}`, {one_line(r.get('name', ''))}: "
+        lines += [f"{level} Metrics", ""] + [f"- {named(r, 'metric_id')}: "
                                             f"`{one_line(r.get('command', '')) or 'none'}`" for r in metrics] + [""]
     return lines
 
@@ -432,10 +441,10 @@ def render_folder(registry: Registry, view: View, owner: str, folder: Path) -> s
     impls = [r for r in registry.implementations if r.get("implementation_id", "") in mine_impl]
     if impls:
         chosen = {r.get("solution_id", ""): one_line(r.get("selected", "")) for r in registry.every_solution()}
-        lines += ["## Implementations", "", "| Implementation | Name | Code | Selected |", "|---|---|---|---|"]
+        lines += ["## Implementations", "", "| Implementation | Handle | Code | Selected |", "|---|---|---|---|"]
         for r in impls:
             name = r.get("implementation_id", "").split(":", 1)[-1]
-            lines.append(f"| `{r.get('implementation_id', '')}` | {one_line(r.get('name', ''))} | {code_cell(view, folder, r.get('filepath', ''))} | "
+            lines.append(f"| {one_line(r.get('name', '')) or r.get('implementation_id', '')} | `{r.get('implementation_id', '')}` | {code_cell(view, folder, r.get('filepath', ''))} | "
                          f"{'selected' if chosen.get(r.get('solution_id', '')) in (name, r.get('implementation_id', '')) else ''} |")
         lines.append("")
     metric_ids = set(ids_in(folder, "metrics.csv", "metric_id"))
@@ -444,13 +453,13 @@ def render_folder(registry: Registry, view: View, owner: str, folder: Path) -> s
         lines += ["## Metrics", ""]
         for r in metrics:
             tail = leader(view, r)
-            lines.append(f"- `{r.get('metric_id', '')}`, {one_line(r.get('name', ''))}" + (f": {tail}" if tail else ""))
+            lines.append(f"- {named(r, 'metric_id')}" + (f": {tail}" if tail else ""))
         lines.append("")
     problem_ids, ideal_ids = set(ids_in(folder, "problems.csv", "problem_id")), set(ids_in(folder, "ideals.csv", "ideal_id"))
     for title, rows, key, column in (("Problems", [r for r in registry.problems if r.get("problem_id", "") in problem_ids], "problem_id", "problem"),
                                      ("Ideals", [r for r in registry.ideals if r.get("ideal_id", "") in ideal_ids], "ideal_id", "principle")):
         if rows:
-            lines += [f"## {title}", ""] + [f"- `{r.get(key, '')}`" + (f": {first_sentence(r.get(column, ''))}" if first_sentence(r.get(column, '')) else "")
+            lines += [f"## {title}", ""] + [f"- {named(r, key)}" + (f": {first_sentence(r.get(column, ''))}" if first_sentence(r.get(column, '')) else "")
                                              for r in rows] + [""]
     lines += ["## Where to go next", ""] + folder_links(view, owner, folder) + [""]
     return "\n".join(lines).rstrip() + "\n"
@@ -473,10 +482,10 @@ def render_arms(registry: Registry, view: View, folder: Path, owners: List[Tuple
     lines = [f"# Arms in {folder.name}", "",
              f"*{ARM_MARK} `{where}`, generated from the records of the intents that own them by `esoi readmes`. Edit those records, not this page.*", ""]
     chosen = {r.get("solution_id", ""): one_line(r.get("selected", "")) for r in registry.every_solution()}
-    lines += ["| Implementation | Name | Code | Selected |", "|---|---|---|---|"]
+    lines += ["| Implementation | Handle | Code | Selected |", "|---|---|---|---|"]
     for r in sorted(mine, key=lambda r: r.get("implementation_id", "")):
         name = r.get("implementation_id", "").split(":", 1)[-1]
-        lines.append(f"| `{r.get('implementation_id', '')}` | {one_line(r.get('name', ''))} | {code_cell(view, folder, r.get('filepath', ''))} | "
+        lines.append(f"| {one_line(r.get('name', '')) or r.get('implementation_id', '')} | `{r.get('implementation_id', '')}` | {code_cell(view, folder, r.get('filepath', ''))} | "
                      f"{'selected' if chosen.get(r.get('solution_id', '')) in (name, r.get('implementation_id', '')) else ''} |")
     lines += ["", "## Where to go next", ""]
     for owner, owner_folder in owners:

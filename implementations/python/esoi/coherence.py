@@ -157,15 +157,29 @@ def read(path: Path) -> List[Dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+SOLUTION_NAMES: Dict[str, str] = {}   # {solution id: display name} of the repository being checked (set by ``check``), so a name inside a longer name is read as the longer one
+
+
+def phrase(name: str) -> "re.Pattern":
+    """A display name as a whole phrase: case-insensitive, any run of spaces, not inside a longer word."""
+    return re.compile(r"(?<![\w-])" + r"\s+".join(re.escape(word) for word in name.split()) + r"(?![\w-])", re.IGNORECASE)
+
+
 def position(sid: str, row: Dict[str, str], text: str) -> int:
-    """Where ``text`` first names the solution, by id or by name (ignoring case and spacing), or -1."""
+    """Where ``text`` first names the solution, by id or by display name (a whole phrase, ignoring case and spacing), or -1. A name that
+    only appears inside the longer name of another solution (``Mind`` inside ``Mind and body``) does not name this one."""
     found = re.search(r"(?<![\w@/-])" + re.escape(sid) + r"(?![\w-])", text)
     best = found.start() if found else -1
-    name = " ".join((row.get("name") or "").lower().split())
+    name = " ".join((row.get("name") or "").split())
     if name:
-        at = " ".join(text.lower().split()).find(name)
-        if at >= 0 and (best < 0 or at < best):
-            best = at
+        masked = text
+        for other, longer in SOLUTION_NAMES.items():
+            longer = " ".join(longer.split())
+            if other != sid and len(longer) > len(name) and name.lower() in longer.lower():
+                masked = phrase(longer).sub(lambda hit: " " * len(hit.group(0)), masked)
+        hit = phrase(name).search(masked)
+        if hit and (best < 0 or hit.start() < best):
+            best = hit.start()
     return best
 
 
@@ -489,6 +503,8 @@ def check(root: Path, pairs: bool = True) -> Dict[str, object]:
             every_solution[r["solution_id"]] = r
             home[r["solution_id"]] = intent_id
         every_impl += read(folder / "implementations.csv")
+    SOLUTION_NAMES.clear()
+    SOLUTION_NAMES.update({sid: r.get("name", "") for sid, r in every_solution.items()})
     impl_by_id = {r["implementation_id"]: r for r in every_impl}
     selected = {sid: selected_record(sid, r, every_impl) for sid, r in every_solution.items()}
     uses = {sid: [t for t in ids(rec.get("uses_solution_ids", "")) if t != sid] for sid, rec in selected.items()}
@@ -545,7 +561,7 @@ def check(root: Path, pairs: bool = True) -> Dict[str, object]:
                 problems["paragraph"].append(f"names {len(mine) - len(missing)} of {len(mine)} solutions; missing: {', '.join(missing)}")
             allowed = set(mine) | {b for a in mine for b in uses[a]} | host_uses | {host_sid} | {
                 s for s in every_solution if any(h in mine for h in uses[s])}
-            stray = [s for s in every_solution if s not in allowed and position(s, {}, para) >= 0]
+            stray = [s for s in every_solution if s not in allowed and position(s, every_solution[s], para) >= 0]
             if stray:
                 problems["paragraph"].append(f"names solutions of other intents no edge reaches: {', '.join(stray)}")
             crowded = []
@@ -577,12 +593,13 @@ def check(root: Path, pairs: bool = True) -> Dict[str, object]:
                         pa = 0
                     if 0 <= pa < pb or (pa == 0 and pb > 0):
                         names = [x for x in (a, b, every_solution[a].get("name", ""), every_solution[b].get("name", "")) if x]
-                        named_here = [sid for sid in every_solution if position(sid, {}, c) >= 0]
+                        named_here = [sid for sid in every_solution if position(sid, every_solution[sid], c) >= 0]
+                        named_here += [every_solution[sid].get("name", "") for sid in named_here if every_solution[sid].get("name", "")]
                         if other_words(c[max(pa, 0):pb], names + named_here) >= MIN_CLAUSE_WORDS:   # the words that join them
                             stated[f"{a}->{b}"] = c
                             break
             skeletons = Counter(tuple(w.lower() for w in WORD.findall(re.sub("|".join(re.escape(x) for x in sorted(
-                [sid for sid in every_solution if position(sid, {}, c) >= 0], key=len, reverse=True)) or "$^", " ", c)))
+                [x for sid in every_solution if position(sid, every_solution[sid], c) >= 0 for x in (sid, every_solution[sid].get("name", "")) if x], key=len, reverse=True)) or "$^", " ", c)))
                 for c in set(stated.values()))
             if len(set(stated.values())) >= 4 and skeletons and skeletons.most_common(1)[0][1] * 2 > len(set(stated.values())):
                 problems["paragraph"].append(f"templated: {skeletons.most_common(1)[0][1]} of {len(set(stated.values()))} clauses "
@@ -604,7 +621,7 @@ def check(root: Path, pairs: bool = True) -> Dict[str, object]:
                     if sid == first or at <= start:
                         continue
                     names = [x for x in (first, sid, every_solution[first].get("name", ""), every_solution[sid].get("name", "")) if x]
-                    named_here = [other for other in every_solution if position(other, {}, c) >= 0]
+                    named_here = [x for other in every_solution if position(other, every_solution[other], c) >= 0 for x in (other, every_solution[other].get("name", "")) if x]
                     if other_words(c[max(start, 0):at], names + named_here) >= MIN_CLAUSE_WORDS and not reaches(walk, first, sid):
                         claimed.append(f"{first}->{sid} in \"{c[:80]}\"")
             if claimed:

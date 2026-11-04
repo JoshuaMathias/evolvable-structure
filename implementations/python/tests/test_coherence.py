@@ -390,3 +390,36 @@ def test_document_targets_read_only_real_links():
     assert document_targets("[a](b.md#c) ![i](img/p.png) [r]: x/y.md\n") == ["b.md", "img/p.png"]
     assert document_targets("[r]\n\n[r]: x/y.md\n") == ["x/y.md"]
     assert document_targets("```\n[a](b.md)\n```\n[c](d.md)\n") == ["d.md"]
+
+
+# ---- display names: a paragraph written in names names its solutions as well as one written in ids --------------------------------
+
+def test_a_paragraph_in_display_names_names_every_solution(project):
+    path = project / "esoi" / "solutions.csv"
+    rows = list(csv.DictReader(open(path, newline="", encoding="utf-8")))
+    for row, name in zip(rows, ("Greeting function", "Project structure", "Project purpose")):
+        row["name"] = name
+    with open(path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]), lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+    found = paragraph_problems(project, "Project purpose greets each person through the Greeting function and keeps its intent "
+                                        "checked in one place through Project structure.")
+    assert found == []
+    shouted = paragraph_problems(project, "PROJECT PURPOSE greets each person through the greeting FUNCTION and keeps its intent "
+                                          "checked in one place through project structure.")
+    assert shouted == []                                                     # case-insensitive, whole phrase
+
+
+def test_a_name_inside_a_longer_name_is_read_as_the_longer_one():
+    solutions = {"mind": {"solution_id": "mind", "name": "Mind"}, "mind-and-body": {"solution_id": "mind-and-body", "name": "Mind and body"}}
+    coherence.SOLUTION_NAMES.clear()
+    coherence.SOLUTION_NAMES.update({sid: r["name"] for sid, r in solutions.items()})
+    try:
+        text = "The Mind and body work as one."
+        assert coherence.position("mind-and-body", solutions["mind-and-body"], text) == 4
+        assert coherence.position("mind", solutions["mind"], text) == -1        # only inside the longer name
+        assert coherence.position("mind", solutions["mind"], "The Mind asks. Mind and body answer.") == 4
+        assert coherence.position("mind", solutions["mind"], "The Minder works.") == -1   # a whole phrase, not a prefix of a word
+    finally:
+        coherence.SOLUTION_NAMES.clear()

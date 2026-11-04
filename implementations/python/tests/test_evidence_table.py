@@ -29,8 +29,8 @@ def project(tmp_path, per_case=True):
 def test_every_arm_gets_a_row_with_wilson_interval_cost_median_seconds_and_the_deciding_rule(tmp_path):
     cfg, registry = project(tmp_path)
     table = et.evidence_table(cfg, registry)
-    a_row = next(line for line in table.splitlines() if "| a (selected) |" in line)
-    b_row = next(line for line in table.splitlines() if "| b |" in line)
+    a_row = next(line for line in table.splitlines() if "| `a` (selected) |" in line)
+    b_row = next(line for line in table.splitlines() if "| `b` |" in line)
     assert "50.0% (35.2% to 64.8%), 20/40" in a_row and "$0.05" in a_row and "(median)" in a_row and "| selected |" in a_row
     assert "beats the selected arm: two-sided paired test, Holm-adjusted p = 0.000488, 12 of 40 cases disagree" in b_row and "none recorded" in b_row
 

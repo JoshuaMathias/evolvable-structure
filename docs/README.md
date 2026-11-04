@@ -82,6 +82,7 @@ Facts to look up.
 
 - [Requirements: every kind, its fields, and the commands](reference/requirements.md): includes `esoi install`.
 - [The lock: file, API, command line and exit codes](reference/lock.md): `esoi lock`, `esoi.lock`, the status plan.
+- [Names and ids](reference/names-and-ids.md): the name leads every generated output, the id is the handle; rule S46.
 - [`esoi attest`](reference/attest.md): a recorded, reasoned attestation that an arm's changed code did not move its result.
 - [Component documents](reference/component-documents.md): the `documents` column of components.csv, whose document a file is, rule S1 for it.
 - [Records beside the code](reference/records-beside-code.md): the layout, the folder kinds, where each record lives, what is generated and what is measured.

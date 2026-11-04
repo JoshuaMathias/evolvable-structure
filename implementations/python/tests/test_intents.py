@@ -277,3 +277,32 @@ def test_the_old_opportunity_column_gets_a_finding_not_a_crash(cfg):
                      [{("opportunity" if k == "opportunities" else k): v for k, v in r.items()} for r in rows])
     found = lines(cfg, "S28")
     assert any("old column `opportunity`, renamed `opportunities`" in line for line in found)
+
+
+def test_a_name_that_is_a_handle_is_informed_as_s46(repo):
+    from esoi import check, config, tables
+    cfg = config.load(repo)
+    path = cfg.structure / "solutions.csv"
+    rows, header = tables.read_csv(path), tables.read_header(path)
+    names = {"greet-a-person": "greet-a-person", "project-structure": "project_structure", "project-purpose": ""}
+    keep = {r["solution_id"]: r["name"] for r in rows}
+    for r in rows:
+        r["name"] = names[r["solution_id"]]
+    tables.write_csv(path, header, rows)
+    try:
+        problems, advisory = check.check_all(config.load(repo))
+        found = [line for line in advisory if line.startswith("S46")]
+        assert not [p for p in problems if p.startswith("S46")]
+        assert len(found) == 3 and all("a handle, not a name" in line and "next:" in line for line in found)
+        assert any("is missing" in line for line in found) and any("kebab-case or snake_case" in line for line in found) \
+            and any("the id again" in line for line in found)
+    finally:
+        for r in rows:
+            r["name"] = keep[r["solution_id"]]
+        tables.write_csv(path, header, rows)
+
+
+def test_a_human_name_is_not_informed(repo):
+    from esoi import check, config
+    problems, advisory = check.check_all(config.load(repo))
+    assert not [line for line in advisory if line.startswith("S46 greet-a-person")]

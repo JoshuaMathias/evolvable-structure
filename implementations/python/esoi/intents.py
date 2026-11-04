@@ -20,6 +20,7 @@ apart. Standard library only.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -179,12 +180,14 @@ def coherence_notes(config: Config, registry) -> List[str]:
         text = " ".join(intent.row.get("solution_coherence", "").lower().split())
         if not text or not intent.intent_id:
             continue
-        missing = [r.get("solution_id", "") for r in solutions if r.get("intent_id", intent.intent_id) == intent.intent_id
-                   and r.get("solution_id", "").lower() not in text
-                   and " ".join(r.get("name", "").lower().split()) not in text]
+        def named(r) -> bool:
+            name = " ".join(r.get("name", "").lower().split())
+            return r.get("solution_id", "").lower() in text or bool(name and re.search(r"(?<![\w-])" + re.escape(name) + r"(?![\w-])", text))
+
+        missing = [r.get("solution_id", "") for r in solutions if r.get("intent_id", intent.intent_id) == intent.intent_id and not named(r)]
         if missing:
             out.append(f"note: intent {intent.intent_id}: solution_coherence does not name {', '.join(missing)}; say how each fits "
-                       "(its id or its name)")
+                       "(write the paragraph in display names; ids are handles)")
     return out
 
 

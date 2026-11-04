@@ -859,11 +859,13 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
             flagged += 1 if strict else 0
             say(f"  ~ {impl} is a rival the verdict on {sel} rests on, but {why}; re-run it on the current code "
                 "before trusting the verdict")
-    say("\nBy solution (WIN = shown, or guessed, better than every rival; TIE = no rival is shown better, so it stays; "
+    say("\nBy solution, as Name (id); commands take the id (WIN = shown, or guessed, better than every rival; TIE = no rival is shown better, so it stays; "
         "UNMEASURED = no rival was compared; a rival that should replace the selected arm is flagged with `!` above)")
+    called = {r.get("solution_id", ""): " ".join((r.get("name") or "").split()) for r in registry.every_solution()}
     for sid, v in sorted(solution_verdicts(config, registry.solutions, results, history, registry, per_case).items()):
         reason = f"  kept because: {v['selected_by']}" if v["verdict"] == "TIE" else ""
-        say(f"  {v['verdict']:<10} {sid}: {v['detail']}{reason}")
+        title = f"{called[sid]} ({sid})" if called.get(sid) and called[sid].lower() != sid.lower() else sid
+        say(f"  {v['verdict']:<10} {title}: {v['detail']}{reason}")
     for line in unmeasured_candidates(registry, history):
         say(line)
     if apart:

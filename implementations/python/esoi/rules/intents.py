@@ -1,4 +1,4 @@
-"""Rules about intents as containers: S28 and S29. They apply only where the structure folder holds an ``intent.csv``.
+"""Rules about intents as containers: S28 and S29, and S46 (a solution's name is a name, not its handle). They apply only where the structure folder holds an ``intent.csv``.
 
 S28 the intent folders and the link from a sub-intent to the implementation it arises from, S29 ids across the tree
 and the solutions an implementation builds on. The record rules (R1 to R7, inside S26) check each record type.
@@ -25,7 +25,40 @@ SUMMARIES = {
     "S29": "A record id is used once across the whole tree (also across record types and intents), and every "
            "uses_solution_ids entry names a solution somewhere in the tree other than the implementation's own, or is written "
            "@project_id/solution_id for a solution of another project (listed in the local ESOI index, not read here).",
+    "S46": "Advisory: a record's `name` is the human-readable label that leads every generated page, not its handle: a name that is missing, equals its "
+           "own id (or the arm part of it), is the id with a suffix or after a colon, or is written kebab-case or snake_case is informed, for intents, "
+           "solutions, implementations, metrics, ideals and problems (waive as the record id).",
 }
+
+HANDLE_STYLE = re.compile(r"^[a-z0-9]+(?:[-_][a-z0-9]+)+$")
+
+
+def handle_names(ctx: Context) -> List[str]:
+    """S46: a record's name that is missing, only its id again, its id plus a suffix, or kebab-case or snake_case is a handle, not a name."""
+    out: List[str] = []
+    registry = ctx.registry
+    kinds = (("intent", [i.row for i in intents.discover(ctx.config)], "intent_id"), ("solution", registry.every_solution(), "solution_id"),
+             ("implementation", registry.implementations, "implementation_id"), ("metric", registry.metrics, "metric_id"),
+             ("ideal", registry.ideals, "ideal_id"), ("problem", registry.problems, "problem_id"))
+    for kind, rows, key in kinds:
+        for row in rows:
+            ident, name = row.get(key, "").strip(), " ".join(row.get("name", "").split())
+            if not ident or ctx.waived("S46", ident) or (kind == "problem" and "name" not in row):
+                continue
+            tail = ident.split(":", 1)[-1].lower()
+            low = name.lower()
+            if not name:
+                why = "is missing"
+            elif low in (ident.lower(), tail) or low.startswith(ident.lower() + ":") or low.startswith(ident.lower() + " ") \
+                    or low.startswith(tail + ":"):
+                why = "is the id again, or the id with a suffix"
+            elif HANDLE_STYLE.match(name):
+                why = "is written like an id (kebab-case or snake_case)"
+            else:
+                continue
+            out.append(f"S46 {ident}: the {kind}'s name {name!r} {why}, which is a handle, not a name; next: write the human name a reader says "
+                       "(`Mind`, `Card store`): it leads every generated page, diagram and table, and the id stays beside it as the handle")
+    return out
 
 
 def run(ctx: Context) -> List[str]:
@@ -118,6 +151,8 @@ def run(ctx: Context) -> List[str]:
                 bad.append(f"S29 {iid}: uses_solution_ids names {target!r}, which is not a solution in the tree")
             elif target == record.get("solution_id"):
                 bad.append(f"S29 {iid}: builds on its own solution {target}")
+    if not config.is_disabled("S46"):
+        ctx.advisory.extend(handle_names(ctx))
     return bad
 
 

@@ -58,3 +58,11 @@ def test_a_solution_needs_a_problem_of_its_own_intent_not_only_its_parents(cfg):
     rewrite(sub / "problems.csv", lambda rows, cols: [r.update(solution_ids="") for r in rows])
     found = lines(cfg, "S26")
     assert any("speak-it: addresses no problem of its own intent voices" in line for line in found)
+
+
+def test_a_node_leads_with_the_display_name_and_shows_the_id_once_as_a_small_second_line():
+    from esoi import diagram
+    assert diagram.label_of("mind", "The Mind") == "The Mind<br/><i>mind</i>"
+    assert diagram.label_of("mind", "mind") == "mind"                       # a name that is only the id is shown once
+    assert diagram.label_of("mind", "mind: the whole") == "the whole<br/><i>mind</i>"   # never "id: name"
+    assert diagram.label_of("mind", "") == "mind"

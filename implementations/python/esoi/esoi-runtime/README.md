@@ -16,17 +16,17 @@ An arrow runs from the solution that provides to the solution that builds on it;
 
 ```mermaid
 flowchart LR
-    s0["Select an implementation while the...<br/>runtime-selection"]
-    s1["assemble-by-name<br/>assemble-by-name"]
+    s0["Select an implementation while the...<br/><i>runtime-selection</i>"]
+    s1["assemble-by-name"]
     s0 -->|"The chosen implementation, and for a table its config class"| s1
 ```
 
 ## Solutions at a glance
 
-| Solution | Entry call | Selected implementation | Metric |
-|---|---|---|---|
-| `runtime-selection` | `esoi.run("runtime-selection", 'structure-check')` | `declarations-and-cascade` | Python selector cases |
-| `assemble-by-name` | `esoi.run("assemble-by-name", 'structure-check')` | `assembler` | metric-assemble-by-name |
+| Solution | Handle | Entry call | Selected implementation | Metric |
+|---|---|---|---|---|
+| Select an implementation while the program runs | `runtime-selection` | `esoi.run("runtime-selection", 'structure-check')` | `declarations-and-cascade` | Python selector cases |
+| assemble-by-name | `assemble-by-name` | `esoi.run("assemble-by-name", 'structure-check')` | `assembler` | metric-assemble-by-name |
 
 ## Problems and ideals
 
@@ -37,8 +37,8 @@ flowchart LR
 
 ## Metrics and their leaders
 
-- `metric-runtime-selection`, Python selector cases: leader `live_selector`, 32 of 32 cases
-- `metric-assemble-by-name`, metric-assemble-by-name: leader `live_assembler`, 41 of 41 cases
+- Python selector cases (`metric-runtime-selection`): leader `live_selector`, 32 of 32 cases
+- `metric-assemble-by-name`: leader `live_assembler`, 41 of 41 cases
 
 ## Where to go next
 
@@ -58,20 +58,20 @@ flowchart LR
 
 ### Solutions
 
-| Solution | Name | Selected | Metric |
+| Solution | Handle | Selected | Metric |
 |---|---|---|---|
-| `runtime-selection` | Select an implementation while the program runs | declarations-and-cascade | Python selector cases |
-| `assemble-by-name` | assemble-by-name | assembler | metric-assemble-by-name |
+| Select an implementation while the program runs | `runtime-selection` | declarations-and-cascade | Python selector cases |
+| assemble-by-name | `assemble-by-name` | assembler | metric-assemble-by-name |
 
 ### Implementations
 
-| Implementation | Name | Where | Sub-intent |
+| Implementation | Handle | Where | Sub-intent |
 |---|---|---|---|
-| `runtime-selection:select` | Selector class and table | [implementations/python/esoi/select.py](../select.py) |  |
-| `runtime-selection:declarations-and-cascade` | Declarations in code with one cascade | [implementations/python/esoi/interfaces.py](../interfaces.py) |  |
-| `assemble-by-name:assembler` | assemble-by-name:assembler | [implementations/python/esoi/interfaces.py](../interfaces.py) |  |
+| Selector class and table | `runtime-selection:select` | [implementations/python/esoi/select.py](../select.py) |  |
+| Declarations in code with one cascade | `runtime-selection:declarations-and-cascade` | [implementations/python/esoi/interfaces.py](../interfaces.py) |  |
+| assemble-by-name:assembler | `assemble-by-name:assembler` | [implementations/python/esoi/interfaces.py](../interfaces.py) |  |
 
 ### Metrics
 
-- `metric-runtime-selection`, Python selector cases: `esoi run select_an_implementation --impl live_selector`
-- `metric-assemble-by-name`, metric-assemble-by-name: `esoi run assemble_by_name --impl live_assembler`
+- Python selector cases (`metric-runtime-selection`): `esoi run select_an_implementation --impl live_selector`
+- `metric-assemble-by-name`: `esoi run assemble_by_name --impl live_assembler`

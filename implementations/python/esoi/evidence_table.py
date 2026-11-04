@@ -106,6 +106,7 @@ def table_rows(config: Config, registry: Registry, today: Optional[datetime.date
     except evidence.EvidenceError as exc:
         graded, note = {}, f" (public evidence file cannot be read: {exc})"
     out: List[List[str]] = []
+    impl_names = {r.get("implementation_id", ""): " ".join((r.get("name") or "").split()) for r in registry.implementations}
     for sol in registry.solutions:
         sid = sol["solution_id"]
         component, selected = leaderboard.selected_arm(config, sol, "", registry)
@@ -137,7 +138,9 @@ def table_rows(config: Config, registry: Registry, today: Optional[datetime.date
                 standing = "reference arm (ablation or validity), not a rival"
             else:
                 standing = "not compared: no run on the same cases and sample as the selected arm"
-            out.append([sid, impl + (" (selected)" if impl == selected else ""), str(row.get("cases", "")), rate_label(row),
+            arm = impl_names.get(f"{sid}:{impl}", "")
+            out.append([f"{sol.get('name') or sid} (`{sid}`)" if (sol.get("name") or "").strip().lower() != sid else f"`{sid}`",
+                        (f"{arm} (`{impl}`)" if arm and arm.lower() != impl.lower() else f"`{impl}`") + (" (selected)" if impl == selected else ""), str(row.get("cases", "")), rate_label(row),
                         cost_label(row), seconds_label(row, per_case), standing,
                         public_label(config, registry, graded, sid, impl) + note])
     return out
