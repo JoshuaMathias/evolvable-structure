@@ -22,7 +22,7 @@ import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Sequence, Set
+from typing import Callable, Dict, List, Optional, Sequence, Set, Tuple
 
 from esoi import standards_nav as nav
 
@@ -95,7 +95,9 @@ def git_reader(repo: Path) -> Reader:
 
 
 def ranked_by_task(root: Path, task: str) -> List[str]:
-    return [std.id for _, std, _ in nav.rank_task(root, task)]
+    """The arm that ships: ``standards_nav.select_for_task``. Its base rates come from ``rates.csv``, so a run over the
+    commits that wrote that file is in sample; ``compare`` is the held-out reading."""
+    return [std.id for std, _ in nav.select_for_task(root, task)]
 
 
 def everything(root: Path, task: str) -> List[str]:
@@ -141,3 +143,87 @@ def run(root: Path, repo: Path, cases_file: Path, baseline: bool = False, label:
     choose = everything if baseline else ranked_by_task
     diff = git_diff(repo) if label == "violated" else None
     return measure(root, json.loads(cases_file.read_text(encoding="utf-8")), git_reader(repo), choose, diff)
+
+
+def label_cases(root: Path, repo: Path, cases: Sequence[dict]) -> List[Set[str]]:
+    read, diff = git_reader(repo), git_diff(repo)
+    return [violated(root, case["commit"], list(case["files"]), read, diff) for case in cases]
+
+
+def train(root: Path, repo: Path, cases_file: Path, today: str) -> Path:
+    """Write ``rates.csv`` beside the standards: the share of the cases whose work broke each standard."""
+    cases = json.loads(cases_file.read_text(encoding="utf-8"))
+    labels = label_cases(root, repo, cases)
+    folder = nav.standards_dir(root)
+    out = folder / "rates.csv"
+    rows = ["standard,rate,cases,date"] + [f"{std.id},{sum(std.id in l for l in labels) / len(cases):.4f},{len(cases)},{today}"
+                                          for std in nav.load(root)]
+    out.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    return out
+
+
+@dataclass(frozen=True)
+class ArmReading:
+    arm: str
+    train_f1: float
+    test_f1: float
+    low_vs_baseline: float
+    high_vs_baseline: float
+
+
+def f1_of(counts: Sequence[Tuple[int, int, int]], idx: Sequence[int]) -> float:
+    hit = sum(counts[i][0] for i in idx)
+    shown = sum(counts[i][1] for i in idx)
+    reach = sum(counts[i][2] for i in idx)
+    recall = hit / reach if reach else 0.0
+    precision = hit / shown if shown else 0.0
+    return 2 * recall * precision / (recall + precision) if recall + precision else 0.0
+
+
+def compare(root: Path, repo: Path, cases_file: Path, boots: int = 2000, seed: int = 7, held_out: float = 0.3) -> List[ArmReading]:
+    """Score each way of choosing standards for a task on the newest ``held_out`` share of the cases, with the rates learned
+    only from the older cases. ``low`` and ``high`` bound a 95 percent interval on the arm's F1 minus the baseline's
+    (bootstrap over the held-out cases); an interval that excludes zero is a significant difference."""
+    import random
+    cases = json.loads(cases_file.read_text(encoding="utf-8"))   # newest first, as the builders write them
+    labels = label_cases(root, repo, cases)
+    cut = int(len(cases) * held_out)
+    test, older = list(range(cut)), list(range(cut, len(cases)))
+    ids = [std.id for std in nav.load(root)]
+    rates = {sid: sum(sid in labels[i] for i in older) / len(older) for sid in ids}
+    cache: Dict[str, Tuple[List[str], List[str]]] = {}
+
+    def ranked(task: str) -> Tuple[List[str], List[str]]:
+        if task not in cache:
+            found = nav.rank_task(root, task)
+            cache[task] = ([std.id for _, std, _ in found], [std.id for _, std, hits in found if hits])
+        return cache[task]
+
+    def base(task: str) -> List[str]:
+        return [sid for sid in sorted(ids, key=lambda i: -rates[i]) if rates[sid] >= nav.BASE_RATE_MIN]
+
+    def base_plus_keywords(task: str) -> List[str]:
+        return nav.combine(base(task), ranked(task)[1])
+
+    arms = {"show-the-first-four": lambda task: ids, "tag-keyword-match": lambda task: ranked(task)[0],
+            "base-rate": base, "base-rate-plus-keywords": base_plus_keywords}
+    counts = {name: [(len(set(choose(c["task"])[:nav.MAX_SHOWN]) & labels[i]), len(choose(c["task"])[:nav.MAX_SHOWN]),
+                      min(len(labels[i]), nav.MAX_SHOWN)) for i, c in enumerate(cases)] for name, choose in arms.items()}
+    read = git_reader(repo)
+    shown_by_file = [sorted(applicable(root, {path: read(c["commit"], path) for path in c["files"]}))[:nav.MAX_SHOWN] for c in cases]
+    counts["for-file (edit time, files known)"] = [(len(set(shown_by_file[i]) & labels[i]), len(shown_by_file[i]), min(len(labels[i]), nav.MAX_SHOWN))
+                                                   for i in range(len(cases))]
+    arms["for-file (edit time, files known)"] = None
+    rng = random.Random(seed)
+    samples = [[rng.choice(test) for _ in test] for _ in range(boots)]
+    readings = []
+    for name in arms:
+        gaps = sorted(f1_of(counts[name], s) - f1_of(counts["show-the-first-four"], s) for s in samples)
+        readings.append(ArmReading(name, f1_of(counts[name], older), f1_of(counts[name], test), gaps[int(boots * 0.025)], gaps[int(boots * 0.975) - 1]))
+    return readings
+
+
+def compare_report(readings: Sequence[ArmReading]) -> str:
+    lines = ["arm; F1 on older commits; F1 on held-out newest commits; 95% interval of held-out F1 minus show-the-first-four"]
+    lines += [f"{r.arm}; {r.train_f1:.3f}; {r.test_f1:.3f}; {r.low_vs_baseline:+.3f} to {r.high_vs_baseline:+.3f}" for r in readings]
+    return "\n".join(lines)

@@ -36,3 +36,20 @@ def test_baseline_is_not_quiet(tmp_path):
     cases = [{"id": "b", "task": "tidy the readme", "commit": "c2", "files": ["README.md"]}]
     result = sm.measure(root, cases, lambda commit, path: "", sm.everything, lambda commit: "")
     assert result.quiet == 0.0
+
+
+def test_frequent_rules_never_crowd_out_a_named_one():
+    from esoi import standards_nav as nav
+    frequent = ["a", "b", "c", "d", "e"]
+    shown = nav.combine(frequent, ["rare"])[: nav.MAX_SHOWN]
+    assert "rare" in shown and shown[0] == "a"
+    assert nav.combine(frequent, []) [: nav.MAX_SHOWN] == ["a", "b", "c", "d"]
+
+
+def test_train_writes_rates_and_for_task_uses_them(tmp_path):
+    from esoi import standards_nav as nav
+    root = world(tmp_path)
+    (root / "docs" / "standards" / "rates.csv").write_text("standard,rate,cases,date\nthin,0.5,1,2026-01-01\n")
+    assert nav.load_rates(root) == {"thin": 0.5}
+    shown = nav.select_for_task(root, "tidy the readme")
+    assert [std.id for std, _ in shown] == ["thin"] and "50%" in shown[0][1]

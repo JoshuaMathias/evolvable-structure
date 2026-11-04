@@ -194,16 +194,53 @@ def rank_task(root: Path, task: str) -> List[Tuple[float, Standard, List[str]]]:
     return scored
 
 
-def for_task(root: Path, task: str) -> str:
-    """Before any code exists: the standards a described task is likely to meet, found lexically (no model).
+BASE_RATE_MIN = 0.10   # a standard broken by at least this share of past commits is shown for every task
+KEYWORD_SLOTS = 2      # slots kept for standards the task names, so frequent rules never crowd out a rare one
 
-    A standard scores one point per task word that is a keyword of one of its tags, and a half point per task word found in
-    its own title, rule or read-when line. Nothing under a point is shown, so a vague task shows nothing rather than a guess."""
-    scored = rank_task(root, task)
-    if not scored:
+
+def combine(frequent: List[str], named: List[str]) -> List[str]:
+    """Frequent standards first, but never so many that fewer than ``KEYWORD_SLOTS`` named ones fit in ``MAX_SHOWN``."""
+    named = [sid for sid in named if sid not in frequent] + [sid for sid in named if sid in frequent]
+    fresh = [sid for sid in named if sid not in frequent]
+    room = MAX_SHOWN - min(len(fresh), KEYWORD_SLOTS)
+    head = frequent[:room]
+    return head + [sid for sid in fresh if sid not in head] + [sid for sid in frequent[room:] if sid not in head]
+
+
+def load_rates(root: Path) -> Dict[str, float]:
+    """Standard id -> share of past commits that broke it, from ``rates.csv`` beside the standards (written by ``train``)."""
+    folder = standards_dir(root)
+    path = folder / "rates.csv" if folder else None
+    if not path or not path.is_file():
+        return {}
+    import csv
+    with path.open(encoding="utf-8", newline="") as handle:
+        return {row["standard"]: float(row["rate"]) for row in csv.DictReader(handle)}
+
+
+def select_for_task(root: Path, task: str) -> List[Tuple[Standard, str]]:
+    """The standards shown for a task: first those past commits broke most often, then those whose tag keywords the task
+    names. Selected by the metric (see ``standards_measure.compare``): the base rate alone beats matching task words on
+    commits it had not seen, and the keywords keep a rare standard reachable."""
+    by_id = {std.id: std for std in load(root)}
+    rates = load_rates(root)
+    ranked = rank_task(root, task)
+    if not rates:
+        return [(std, "matched " + (", ".join(hits) or "its own wording")) for _, std, hits in ranked]
+    frequent = [sid for sid in sorted(rates, key=lambda i: -rates[i]) if rates[sid] >= BASE_RATE_MIN and sid in by_id]
+    hit_words = {std.id: hits for _, std, hits in ranked if hits}
+    named = [std.id for _, std, hits in ranked if hits]
+    return [(by_id[sid], f"broken by {rates[sid]:.0%} of past commits" if sid in frequent and sid not in hit_words
+             else "matched " + ", ".join(hit_words[sid])) for sid in combine(frequent, named)]
+
+
+def for_task(root: Path, task: str) -> str:
+    """Before any code exists: the standards a described task is likely to meet, found without a model."""
+    chosen = select_for_task(root, task)
+    if not chosen:
         return ""
     lines = ["Standards this task is likely to meet (open the file only for detail):"]
-    lines += [f"- [{', '.join(std.tags)}] {std.rule} ({std.file}; matched {', '.join(hit) or 'its own wording'})" for _, std, hit in scored[:MAX_SHOWN]]
+    lines += [f"- [{', '.join(std.tags)}] {std.rule} ({std.file}; {why})" for std, why in chosen[:MAX_SHOWN]]
     return "\n".join(lines)
 
 
@@ -380,6 +417,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     m.add_argument("--repo", default=".")
     m.add_argument("--baseline", action="store_true", help="score the arm that ignores the task and shows the first standards")
     m.add_argument("--label", choices=("applicable", "violated"), default="applicable")
+    cp = sub.add_parser("compare", help="held-out comparison of the ways of choosing standards for a task")
+    cp.add_argument("cases")
+    cp.add_argument("--repo", default=".")
+    tr = sub.add_parser("train", help="write rates.csv beside the standards from the cases (the share of past work that broke each)")
+    tr.add_argument("cases")
+    tr.add_argument("--repo", default=".")
+    tr.add_argument("--date", required=True)
     i = sub.add_parser("install-hook", help="write the pre-commit hook for a repository")
     i.add_argument("repo", nargs="?", default=".")
     args = ap.parse_args(argv)
@@ -390,6 +434,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     root = find_root(Path(args.repo).resolve())
     if args.cmd == "for-task" and root:
         print(for_task(root, " ".join(args.task)))
+        return 0
+    if args.cmd == "compare" and root:
+        from esoi import standards_measure
+        print(standards_measure.compare_report(standards_measure.compare(root, Path(args.repo).resolve(), Path(args.cases))))
+        return 0
+    if args.cmd == "train" and root:
+        from esoi import standards_measure
+        print(standards_measure.train(root, Path(args.repo).resolve(), Path(args.cases), args.date))
         return 0
     if args.cmd == "measure" and root:
         from esoi import standards_measure

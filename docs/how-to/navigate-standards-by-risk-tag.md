@@ -85,3 +85,21 @@ the code for review, which is the point: the author has to say why this case dif
 Add one when a mistake has happened twice, as [apply with tools](apply-with-tools.md) says. Write the standard, give it the
 tag of the risk, and write the `Check:` line that would have stopped it. A rule with no check still earns its place when
 the one-line rule shown at the edit is enough.
+
+## Choose how tasks are matched by measuring it
+
+Whether task words pick the right standards is a claim, so measure it on work already done. Build a case file (a JSON list of
+`{id, task, commit, files}`, newest first; one case per past commit, the task being its message or the real task that led to
+it) and run `python -m esoi.standards_nav compare cases.json`. A standard counts as needed for a case when its own `Check:`
+flags the lines that commit added, so no one labels anything and the label is recomputed as standards change. Each way of
+choosing is scored by F1 on the newest 30 percent of cases, with everything it learns taken from the older 70 percent only,
+next to a baseline that shows the first four standards whatever the task. The table gives a 95 percent bootstrap interval for
+each arm's gain over the baseline; an interval that excludes zero is a significant gain, any other result is a best guess.
+
+What the first measurement taught, and likely holds elsewhere: the words of a task say little about which rule the work will
+break, a matcher that learns words from history memorises it (high on old commits, lower on new), and matching by the files
+being edited does far better. So the task step shows what past work broke most often (`python -m esoi.standards_nav train
+cases.json --date YYYY-MM-DD` writes `rates.csv` beside the standards) and keeps two of its four slots for standards whose
+tag keywords the task names, so a rule broken rarely but at great cost stays reachable. Pin such a failure with a test that
+asserts the task shows that standard. The score cannot say whether showing a rule prevented the break; only an A/B of agents
+with and without the rules can, and that calls a model, so it needs a cost estimate and approval first.
