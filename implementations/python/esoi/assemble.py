@@ -815,7 +815,9 @@ class Assembler:
     def declared_needs(self, implementations: Sequence[Mapping[str, str]]) -> Tuple[Dict[str, Set[str]], List[str]]:
         """``({implementation_id: {solution ids it needs}}, findings)`` read from the constructor parameters of each recorded
         implementation. An arm that cannot be loaded (an optional dependency missing) is a finding, not an exception, and is
-        left out of the first."""
+        left out of the first. A recorded alternative that names no code (an empty ``filepath``) and has no declaration is a described
+        alternative ("no arm yet"): it has no needs, is left out of the first and is not a finding; its recorded
+        ``uses_solution_ids`` is kept as written."""
         found: Dict[str, Set[str]] = {}
         findings: List[str] = []
         for row in implementations:
@@ -824,6 +826,8 @@ class Assembler:
             try:
                 found[iid] = set(self.needs_of(self.load(sid, name)).values())
             except AssemblyError as error:
+                if not (row.get("filepath") or "").strip():
+                    continue    # a described alternative names no code and no declaration: it has no needs and nothing to load
                 findings.append(f"{iid}: cannot be loaded to read its needs ({error})")
         return found, findings
 

@@ -106,7 +106,8 @@ assert parts.uses_problems(Path("esoi")) == []   # needs match the column; no de
 `uses_problems` also reports a need on a solution that has no default arm unless it is tagged `consumer-provided` (the
 consumer supplies it), and the reverse: a `consumer-provided` solution that has a default arm. An arm that cannot be
 imported (an optional extra is not installed) is reported as a finding, and `sync_uses` leaves its row alone and returns the
-finding.
+finding. A recorded alternative that names no code (an empty `filepath`) and has no declaration is a described alternative, an
+"arm not built yet": it has no needs, is not a finding, and `sync_uses` keeps its `uses_solution_ids` as written.
 
 ## What the library does not do
 

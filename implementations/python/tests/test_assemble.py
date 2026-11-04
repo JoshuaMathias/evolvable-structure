@@ -886,3 +886,25 @@ def test_the_closure_leaves_a_lazy_need_out(toy):
     config = AssemblyConfig(selections={REPORT: "lazy-report", INDEX: "counting-index"})
     labels = [member.label for member in parts.closure(config, None, solutions=(REPORT,))]
     assert any(label.startswith(f"{REPORT}:") for label in labels) and not any(label.startswith(f"{INDEX}:") for label in labels)
+
+
+def test_a_described_alternative_with_no_filepath_and_no_declaration_has_no_needs_and_is_not_a_finding(toy, tmp_path):
+    parts, consumer = toy[:2]
+    parts.register(INDEX, "acme-index", consumer.StoreIndex)
+    folder = tmp_path / "records"
+    folder.mkdir()
+    (folder / "solutions.csv").write_text(f"solution_id,selected,tags\n{STORE},memory,\n{INDEX},,consumer-provided\n")
+    (folder / "implementations.csv").write_text(
+        "implementation_id,solution_id,filepath,uses_solution_ids\n"
+        f"{STORE}:memory,{STORE},,\n{INDEX}:acme-index,{INDEX},,\n{STORE}:hand-wired,{STORE},,{INDEX}\n")
+    rows = [{"implementation_id": f"{STORE}:hand-wired", "filepath": ""}]
+    assert parts.declared_needs(rows) == ({}, [])
+    assert not any("hand-wired" in line for line in parts.uses_problems(folder))
+    assert parts.sync_uses(folder) == []
+    assert (folder / "implementations.csv").read_text().splitlines()[-1] == f"{STORE}:hand-wired,{STORE},,{INDEX}"   # its cell is kept
+
+
+def test_an_arm_with_a_filepath_that_cannot_be_loaded_is_still_a_finding(toy):
+    parts = toy[0]
+    found, findings = parts.declared_needs([{"implementation_id": f"{STORE}:ghost", "filepath": "pkg/ghost.py"}])
+    assert found == {} and len(findings) == 1 and "cannot be loaded" in findings[0]
