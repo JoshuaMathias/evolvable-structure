@@ -69,6 +69,7 @@ class Scope:
     complete: bool = False               # whether the scan saw every import (else the files it found only add to the component's)
     own_files: Set[str] = field(default_factory=set)   # the arm's own implementation files (import_closure)
     foreign: Set[str] = field(default_factory=set)     # files other implementations own (import_closure): never this arm's code
+    shared_components: Set[str] = field(default_factory=set)   # components that serve other solutions too: their files are not this arm's alone
     shared: Set[str] = field(default_factory=set)      # helper files another implementation's closure imports too: nobody's own code
 
 
@@ -400,6 +401,7 @@ def build_scope(config: Config, component: str, impl: str, rule: str) -> Scope:
         scope.note = "the ownership map has no entry for it, so the whole repository's code counts"
         return scope
     own_ids = {cid for cid, _ in owners}
+    scope.shared_components = {cid for cid, _, sols in index.components if cid in own_ids and sols - set(solutions)}
     scope.own = [(pat, cid) for cid, pats in owners for pat in pats]
     for path in implementation_files(index, solutions):
         scope.own.append((glob_pattern(path), "the implementation record"))
@@ -458,6 +460,8 @@ def judge(config: Config, scope: Scope, path: str) -> Tuple[bool, str]:
         if scope.rule == "import_closure":
             return False, "not the arm's own code (not imported, or owned by another implementation)"
     owner = first_match(scope.own, path)
+    if owner and scope.requested == "import_closure" and owner in scope.shared_components:
+        return False, f"owned by component {owner}, which other solutions share: not this arm's own code"
     if owner:
         return True, f"owned by {owner}"
     other = first_match(scope.others, path)

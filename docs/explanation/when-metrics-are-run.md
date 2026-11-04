@@ -190,7 +190,8 @@ is stale.
 `conftest.py`, `evaluation/components/test_components.py`), not the scorer, its datasets or anything else in the evaluation folder
 that is not the arm's file, not a package `__init__`, and not code that belongs to any other implementation (another arm of the
 component, or another solution's implementation), even when the arm imports it, and not a helper two or more arms import (code
-shared with other implementations is nobody's own code; only a helper exclusive to the arm counts). A dependency on another solution's code is
+shared with other implementations is nobody's own code; only a helper exclusive to the arm counts). The same holds for a file that is not
+Python: one that belongs to a component serving other solutions too (a selection table every arm reads) stales nobody. A dependency on another solution's code is
 answered by that solution's own recorded selection, never by staling this result. `repo_wide` and `component_paths` stay as the
 safer, coarser rules.
 

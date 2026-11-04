@@ -227,3 +227,20 @@ def test_a_helper_shared_by_two_arms_stales_nobody_and_an_exclusive_helper_stale
     assert staleness.judge(cfg, alpha, "pkg/shared_helper.py") == (False, "a helper shared with other implementations: nobody's own code")
     assert staleness.judge(cfg, beta, "pkg/shared_helper.py")[0] is False
     assert staleness.judge(cfg, alpha, "pkg/alpha.py")[0] is True            # the arm's own record file still counts
+
+
+def test_a_non_python_file_a_component_shared_with_other_solutions_owns_stales_nobody(tmp_path):
+    import shutil
+    built = staleness_fixture.build("touch-a-doc")
+    root = tmp_path / "repo"
+    shutil.copytree(built.root, root)
+    components = root / "esoi" / "components.csv"
+    components.write_text(components.read_text() + "shared-data,core,pkg/selection.json,Shared selection table.,sol-alpha;sol-beta\n")
+    (root / "pkg" / "selection.json").write_text("{}")
+    cfg = config_module.load(root / "esoi.toml")
+    cfg.staleness_rule = "import_closure"
+    scope = staleness.scope_for(cfg, "alpha_eval", "live", "import_closure")
+    assert staleness.judge(cfg, scope, "pkg/selection.json")[0] is False                 # two solutions share its component
+    assert staleness.judge(cfg, scope, "pkg/alpha.py")[0] is True
+    assert staleness.judge(config_module.load(root / "esoi.toml"), staleness.scope_for(cfg, "alpha_eval", "live", "component_paths"),
+                           "pkg/selection.json")[0] is True                             # the coarser rule still counts it
