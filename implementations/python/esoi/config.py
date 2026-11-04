@@ -99,6 +99,7 @@ class Config:
     evidence: Dict[str, Any] = field(default_factory=dict)   # [evidence] file = "path.csv" and [evidence.aliases] candidate = "implementation" (esoi.evidence)
     readme: Dict[str, Any] = field(default_factory=dict)   # [readme] layout = "glance" | "full" | "links": the README layout (esoi.readme)
     harness: Dict[str, Any] = field(default_factory=dict)   # [harness] cassette = "dir": record and replay model calls (esoi.cassette); off by default
+    builds_on: Dict[str, Any] = field(default_factory=dict)   # [builds_on.<component>.<name>] repo, component, share, on_stale: metrics this one builds on (esoi.foundation)
     source: Optional[Path] = None
 
     def __post_init__(self) -> None:

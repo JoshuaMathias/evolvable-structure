@@ -43,7 +43,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from . import balance, cassette as cassettes, circumstances, leaderboard, run_guards, run_log, staleness, variants
+from . import access, balance, cassette as cassettes, circumstances, foundation, leaderboard, run_guards, run_log, staleness, variants
 from .config import Config
 from .assemble import check_name
 from .leaderboard import cases_digest, is_partial
@@ -203,6 +203,18 @@ class CallMeter:
         self.calls_replayed = 0   # calls answered from the cassette: not counted in ``calls``, never spent
         self.replayed_tokens_in = self.replayed_tokens_out = 0
         self.replayed_cost_usd = self.replayed_seconds = 0.0   # what the replayed calls originally cost, reported apart from the real spend
+        self.reads = access.Reads()   # what the run read from source systems (``read``); priced and bounded by ``[balance.<c>.source_access]``
+        self.access: Optional[Dict[str, Any]] = None   # the component's [balance.<c>] table, set by a run so a read is priced as it is made
+
+    def read(self, records: int = 0, bytes: int = 0, calls: int = 1, scope: str = "", full_scan: bool = False) -> None:
+        """Report a read of a source system (``esoi.access``): its price, at the constants of ``source_access``, joins the run's cost, and a
+        request that breaks a limit (a full scan, a read budget, a scope outside the allowed ones) fails."""
+        self.reads.records += records
+        self.reads.bytes += bytes
+        self.reads.calls += calls
+        self.reads.scopes.add(scope)
+        self.reads.full_scan = self.reads.full_scan or full_scan
+        self.cost_usd += access.price(access.Reads(records, bytes, calls), self.access)
 
     def record(self, n: int = 1) -> None:
         self.calls += n
@@ -647,6 +659,8 @@ def stale_reason(config: Config, component: str, row: Optional[Dict[str, str]], 
         return "its latest row was recorded on uncommitted code"
     if strict and (why := code_changed_reason(config, component, row)):
         return why
+    if why := foundation.stale_reason(config, component, row):   # a foundation this row builds on changed (esoi.foundation)
+        return why
     return external_reason(config, row) if strict else ""
 
 
@@ -692,11 +706,11 @@ def record_result(summary: Dict[str, Any], config: Config, date: Optional[str] =
     wanted = bool(external_code_paths(config))
     if wanted:
         row["code_shas"] = code_shas(config)
-    append_row(target, row, wanted)
+    append_row(target, row, wanted, ["builds_on"] if row.get("builds_on") else [])
     return row
 
 
-def append_row(target: Path, row: Dict[str, Any], with_code_shas: bool) -> None:
+def append_row(target: Path, row: Dict[str, Any], with_code_shas: bool, extra: List[str] = ()) -> None:
     """Append ``row`` to the results log. The log gains a trailing ``code_shas`` column the first time a repository with
     code in another repository records (older rows keep it blank)."""
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -706,7 +720,7 @@ def append_row(target: Path, row: Dict[str, Any], with_code_shas: bool) -> None:
         with open(target, newline="", encoding="utf-8") as fh:
             reader = csv.DictReader(fh)
             header, old_rows = list(reader.fieldnames or []), list(reader)
-    wanted = RESULT_COLUMNS + (["code_shas"] if with_code_shas else [])
+    wanted = RESULT_COLUMNS + (["code_shas"] if with_code_shas else []) + [c for c in extra if c not in RESULT_COLUMNS]
     columns = header + [c for c in wanted if c not in header] if header else wanted
     rewrite = not header or columns != header
     with open(target, "w" if rewrite else "a", newline="", encoding="utf-8") as fh:
@@ -826,7 +840,12 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
             meter.cassette = cassettes.Cassette(chosen, only=args.cassette_only)
         except ValueError as exc:
             raise RunError(str(exc)) from exc
+    meter.access = config.balance.get(component)
     fn = load_impl(impl, component, config)(meter)
+    score = importlib.import_module(f"{component}.score")
+    builds = foundation.declared(config, component) if not (args.only or args.sample is not None) else []   # composition is for whole sets
+    if foundation.declared(config, component) and not builds:
+        say("note: a sampled or --only run scores the consumer's own cases only; the foundation parts are not composed")
     git_sha = current_sha(config, component, impl)
     reuse = {} if (args.fresh or args.only) else run_log.reusable(runs_path, component, impl, cases_sha, git_sha)
     stop_at_fail = not (args.keep_going or args.record)   # a recorded run is a whole measurement; a development run is for fixing
@@ -835,14 +854,14 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     log.begin()
     rows: List[Dict[str, Any]] = []
     reused = dict(calls=0, tokens_in=0, tokens_out=0, cost=0.0, seconds=0.0, cases=0)
-    stopped = ""
+    stopped, parts, own_at = "", [], None
     started = time.time()
     if guard:
         guard.start()
     try:
         for case in cases:
             before, t0, in0, out0, cost0 = meter.calls, time.time(), meter.tokens_in, meter.tokens_out, meter.cost_usd
-            replayed0 = meter.calls_replayed
+            replayed0, reads0 = meter.calls_replayed, meter.reads.copy()
             if str(case["id"]) in reuse:
                 row = dict(reuse[str(case["id"])])
                 spent = float(row.pop("cost", 0) or 0)
@@ -862,6 +881,8 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
                 row = dict(ok=False, note=f"{type(exc).__name__}: {exc}")
             row.update(id=case["id"], area=case.get("area"), calls=meter.calls - before, seconds=round(time.time() - t0, 1),
                        tokens_in=meter.tokens_in - in0, tokens_out=meter.tokens_out - out0)
+            if meter.access and (bad := access.violation(meter.reads.minus(reads0), meter.access)):   # a read gate: the request fails
+                row.update(ok=False, note=f"{bad}; {row.get('note', '')}".strip("; "))
             if meter.calls_replayed > replayed0:
                 row["calls_replayed"] = meter.calls_replayed - replayed0
             rows.append(row)
@@ -870,6 +891,9 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
             if stop_at_fail and not row["ok"]:
                 stopped = f"stopped at the first failing case, {row['id']}"
                 break
+        own_at = (meter.calls, meter.tokens_in, meter.tokens_out, meter.cost_usd, time.time())   # the consumer's own spend, before the foundation part
+        if builds and not stopped:   # the foundation's part: reused when current, else run through the foundation's own scorer
+            parts = foundation.measure(config, component, impl, fn, getattr(score, "foundation_fn", None), meter, say)
     except BaseException as exc:   # Ctrl-C, a spent call budget or a crash: what was scored stays in the log
         log.end(f"stopped: {type(exc).__name__}")
         raise
@@ -883,21 +907,25 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     summary = dict(component=component, impl=impl, cases=len(rows), passed=passed,
                    dev=f"{sum(bool(r['ok']) for r in rows if r not in held)}/{len(rows) - len(held)}",
                    heldout=f"{sum(bool(r['ok']) for r in held)}/{len(held)}",
-                   model_calls=meter.calls + reused["calls"], tokens_in=meter.tokens_in + reused["tokens_in"],
-                   tokens_out=meter.tokens_out + reused["tokens_out"],
-                   cli_reported_cost_usd=round(meter.cost_usd + reused["cost"], 4),
-                   seconds=round(time.time() - started + reused["seconds"], 1),
+                   model_calls=own_at[0] + reused["calls"], tokens_in=own_at[1] + reused["tokens_in"],
+                   tokens_out=own_at[2] + reused["tokens_out"],
+                   cli_reported_cost_usd=round(own_at[3] + reused["cost"], 4),
+                   seconds=round(own_at[4] - started + reused["seconds"], 1),
                    model=SIMULATED_MODEL if declares_simulated(impl_path(config, component, variants.base_of(impl))) else meter.model,
                    sample=sample)
     cost = run_cost(config, summary, summary["model"])
-    summary.update(balance.balanced(passed, len(rows), cost, summary["seconds"], config.balance.get(component)))
-    say(f"\n{component} / {args.impl}: {passed}/{len(rows)} passed (dev {summary['dev']}, held-out "
+    if parts:
+        summary.update(foundation.blend(summary, cost, parts, builds, config.balance.get(component)))
+        passed, total, cost = summary["passed"], summary["cases"], run_cost(config, summary, summary["model"])
+    else:
+        total = len(rows)
+        summary.update(balance.balanced(passed, total, cost, summary["seconds"], config.balance.get(component)))
+    say(f"\n{component} / {args.impl}: {passed}/{total} passed (dev {summary['dev']}, held-out "
         f"{summary['heldout']}), {summary['model_calls']} model calls, {summary['tokens_in']} in / {summary['tokens_out']} out tokens, "
         f"cost {'$' + str(cost) if cost != '' else 'unknown (no price for the model in `prices`)'}, {summary['seconds']}s")
     if "balanced" in summary:
         say(f"balanced score {summary['balanced']} = accuracy {summary['accuracy']}, ${summary['cost_per_case']}/case, "
             f"{summary['seconds_per_case']}s/case (weights and budgets: [balance.{component}] in the configuration)")
-    score = importlib.import_module(f"{component}.score")
     if hasattr(score, "aggregate"):
         headline = score.aggregate(rows)
         say(f"{component}: {headline}")
@@ -914,6 +942,9 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
                      "not part of this row's spend)")
     if reused["cases"]:
         notes.append(f"reused {reused['cases']} case(s) already run for this implementation version")
+    notes.extend(foundation.note_for(p, next(f.share for f in builds if f.name == p.name)) for p in parts)
+    if meter.reads.calls or meter.reads.records:
+        notes.append(f"source reads: {meter.reads.records} records, {meter.reads.bytes} bytes, {meter.reads.calls} calls")
     if notes:
         summary["details"] = run_guards.note_details(summary.get("details", ""), notes)
     if args.out:
@@ -930,6 +961,13 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
         if not sample.startswith("only:"):
             for part in record_slices(config, component, circs, summary, cases, rows):
                 say(f"recorded {part['sample']}: {part['passed']}/{part['cases']} (derived from this run)")
+        if parts:   # the foundation's per-case outcomes join the consumer's log, so the paired test sees every case the number rests on
+            key = dict(component=component, impl=summary["impl"], cases_sha=cases_digest(component, config.evaluation),
+                       circumstances_sha=circumstances.digest(circs) if circs else "", sample=summary["sample"])
+            joined = [dict(key, case_id=f"{p.name}:{r['case_id']}", heldout="", ok=r["ok"], calls=r.get("calls", 0), tokens_in=0,
+                           tokens_out=0, seconds=r.get("seconds", 0), circumstances="", score="") for p in parts for r in p.per_case]
+            if joined:
+                write_per_case(config, joined)
     return summary, rows
 
 

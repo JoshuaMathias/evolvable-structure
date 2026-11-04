@@ -52,6 +52,7 @@ The main feature is explanation and templates that need no code; Python is one e
 - **A cascade runs one criterion.** Every stage's metric is one number (a balanced score across accuracy, cost, time and size, weights
   fixed before any alternative is scored) at rising fidelity; kinds of cases are case sources, not stages with their own pass tests or
   separate leaderboards; no arm is excluded by a mark, a trivial arm that wins means the metric lacks a factor (`docs/explanation/a-cascade-runs-one-criterion.md`, rules S41, S42, S44 and S45).
+- **A consumer's metric builds on its library's.** A metric that depends on a library's metric names it (`[builds_on]`), reuses the foundation's recorded per-case results when the digests match, runs only its own cases, and inherits the foundation's gates (it may tighten them, never loosen them); it keeps no copy of the foundation's cases or scorer (`docs/explanation/a-metric-builds-on-its-foundation.md`, rule S47).
 - **Standards by risk tag.** Before writing code run `python -m esoi.standards_nav for-task "<what you will build>"` and,
   for each file you will edit, `for-file <path>`; they print only the rules that apply (`esoi/standards/`). A pre-commit
   hook runs `check-staged` (install: `install-hook`); fix a finding or waive it at its line with a reason. How:

@@ -13,7 +13,11 @@ the condition for moving on, joined by `` | ``::
   cases (it is free, so it has done what each of them asks), so a free arm and a model arm on the same cases are at the same stage.
 * ``gate``: what a result must show before the next stage is worth running: ``all-pass`` (every case passed) or
   ``competitive`` (the selected implementation does not have a strictly better result at this stage). ``min-pass-rate`` (a fraction)
-  adds a floor. Every stage but the last needs a gate or a floor, since nothing else says when to move on.
+  adds a floor. Every stage but the last needs a gate or a floor, since nothing else says when to move on (a stage with ``inherits`` takes the
+  foundation's gate and needs none).
+* ``inherits``: the name of a stage of the foundation metric this one builds on (``[builds_on]``, ``esoi.foundation``). The stage is passed only
+  when the foundation's stage of that name passed for the foundation arm the consumer's arm names, by the foundation's own gate, so the consumer
+  inherits the gate instead of re-proving it. A gate or floor written beside ``inherits`` tightens the inherited one and never loosens it (S47).
 * A stage named ``public`` (with ``real=no``; ``when`` is free text) stands for public evidence others measured
   (``esoi.evidence``). It claims no results row, is never the stage a choice rests on, needs no gate, and is satisfied for an
   implementation when evidence rows exist for it and grade at least C. It never replaces our own first-stage result.
@@ -60,7 +64,7 @@ from .leaderboard import Row
 
 SEPARATOR, PAIR_SEPARATOR = " > ", " | "
 PUBLIC_STAGE = "public"
-KEYS = ("sample", "real", "gate", "min-pass-rate", "max-age-days", "when", "kind", "scale")
+KEYS = ("sample", "real", "gate", "min-pass-rate", "max-age-days", "when", "kind", "scale", "inherits")
 IDEA_KIND = "idea"
 KINDS = (IDEA_KIND,)
 EXPIRATION = re.compile(r"^\s*(?:(never)|(\d+)\s*days?)\s*\.?\s*$", re.I)
@@ -82,6 +86,14 @@ class Stage:
     when: str = ""
     kind: str = ""
     scale: str = ""
+    inherits: str = ""
+
+    @property
+    def inherited(self) -> bool:
+        """A stage that takes its gate from the foundation metric's stage of that name (``esoi.foundation``): it is passed only when the
+        foundation's stage passed. With no gate of its own and no sample or model of its own it is a pure inheritance and holds no results
+        row; with a gate of its own the gate TIGHTENS the inherited one (it can never loosen it: rule S47)."""
+        return bool(self.inherits)
 
     @property
     def idea(self) -> bool:
@@ -90,8 +102,8 @@ class Stage:
 
     @property
     def unrun(self) -> bool:
-        """A stage ``esoi run`` does not run and no results row belongs to: public evidence, or an idea stage."""
-        return self.public or self.idea
+        """A stage ``esoi run`` does not run and no results row belongs to: public evidence, an idea stage, or a pure inheritance."""
+        return self.public or self.idea or (self.inherited and not self.gated and not self.sample and self.real is None)
 
     @property
     def gated(self) -> bool:
@@ -131,7 +143,7 @@ def parse(text: str) -> Tuple[List[Stage], List[str]]:
     names = [s.name for s in stages]
     errors.extend(f"stage name {n!r} is used twice" for n in sorted({n for n in names if names.count(n) > 1}))
     errors.extend(f"stage {s.name} has no gate or min-pass-rate, so nothing says when to move on to {stages[i + 1].name}"
-                  for i, s in enumerate(stages[:-1]) if not s.gated and not s.unrun)
+                  for i, s in enumerate(stages[:-1]) if not s.gated and not s.unrun and not s.inherited)
     return stages, errors
 
 
@@ -168,7 +180,9 @@ def build(name: str, values: Dict[str, str]) -> Tuple[Stage, List[str]]:
         kind = ""
     if kind == IDEA_KIND and not values.get("scale"):
         problems.append("kind=idea needs scale=, where the meaning of every rating value is specified")
-    return Stage(name, sample, real, gate, floor, age, values.get("when", ""), kind, values.get("scale", "")), problems
+    if values.get("inherits") and not ITEM.match(values["inherits"]):
+        problems.append(f"inherits={values['inherits']} is not the name of a foundation stage")
+    return Stage(name, sample, real, gate, floor, age, values.get("when", ""), kind, values.get("scale", ""), values.get("inherits", "")), problems
 
 
 def parse_expiration(text: str) -> Tuple[Optional[int], str]:
@@ -314,6 +328,20 @@ def decide(stages: List[Stage], standing: Dict[str, Standing], eval_dir: Optiona
     return Decision(winner, latest, leader, sorted(held), notes)
 
 
+GATE_STRENGTH = {"": 0, "competitive": 1, "all-pass": 2}
+
+
+def loosens(own: Stage, theirs: Stage) -> str:
+    """Why an inheriting stage's own gate is looser than the foundation stage's it inherits, or an empty string. A consumer may tighten an
+    inherited gate (``all-pass`` where the foundation says ``competitive``, a higher ``min-pass-rate``) and never loosen it. A stage with no
+    gate of its own inherits the foundation's unchanged, which is not looser."""
+    if own.gate and GATE_STRENGTH[own.gate] < GATE_STRENGTH[theirs.gate]:
+        return f"gate={own.gate} is looser than the foundation's gate={theirs.gate}"
+    if own.min_pass_rate is not None and theirs.min_pass_rate is not None and own.min_pass_rate < theirs.min_pass_rate:
+        return f"min-pass-rate={own.min_pass_rate:g} is below the foundation's {theirs.min_pass_rate:g}"
+    return ""
+
+
 def gate_met(stage: Stage, row: Row, selected_row: Optional[Row], eval_dir: Optional[Path] = None) -> Tuple[bool, str]:
     """Whether a result at this stage earns the next stage, and if not, why."""
     if stage.gate == "all-pass" and leaderboard.pass_rate(row) < 1:
@@ -326,10 +354,15 @@ def gate_met(stage: Stage, row: Row, selected_row: Optional[Row], eval_dir: Opti
 
 
 def next_stage(stages: List[Stage], mine: Standing, selected: Optional[Standing] = None,
-               eval_dir: Optional[Path] = None) -> Tuple[Optional[int], str]:
+               eval_dir: Optional[Path] = None,
+               inherited: Optional[Callable[[Stage], Tuple[bool, str]]] = None) -> Tuple[Optional[int], str]:
     """``(stage index, why)`` for the first stage with no counting result, once every earlier stage's gate is met; else
     ``(None, why nothing is next)``. A stage never run is ``not run``, never an estimate."""
     for index, stage in enumerate(stages):
+        if stage.inherited and inherited is not None:
+            met, why = inherited(stage)   # the foundation's gate, checked first and never re-proved here
+            if not met:
+                return None, f"stopped before {stage.name}: the foundation's {stage.inherits} stage has not passed ({why})"
         if stage.unrun:
             continue
         row = mine.rows.get(index)
@@ -505,7 +538,9 @@ def run_cli(config, solution: str = "", strict: bool = False, say: Callable[[str
             behind += bool(chosen and chosen != decision.winner)
         selected = standing.get(chosen)
         for impl, s in sorted(standing.items()):
-            index, why = next_stage(stages, s, selected, config.evaluation)
+            from . import foundation
+            gate = foundation.inherited_gate(config, component, impl) if any(st.inherited for st in stages) else None
+            index, why = next_stage(stages, s, selected, config.evaluation, gate)
             if index is not None:
                 extra = f"; also check: {stages[index].when}" if stages[index].when else ""
                 say(f"  next for {impl}: {stages[index].name} ({why}): {run_command(component, impl, stages[index])}{extra}")
