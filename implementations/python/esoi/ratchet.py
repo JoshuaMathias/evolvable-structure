@@ -121,6 +121,16 @@ def effective(rules: Dict[str, Any], intent: str) -> Dict[str, float]:
     return out
 
 
+def effective_ceiling(rules: Dict[str, Any], intent: str, key: str) -> float:
+    table = rules.get("S38", {}) or {}
+    own = (table.get("floors", {}) or {}).get(intent, {})
+    fan = own.get("max_fan_out", table.get("max_fan_out", DEFAULT_CEILINGS["max_fan_out"]))
+    default = fan + 1 if key == "max_names_per_sentence" else fan
+    if key == "max_names_per_sentence":
+        return own.get(key, table.get(key, default))
+    return own.get(key, table.get(key, DEFAULT_CEILINGS[key]))
+
+
 def trend(config: Any) -> Tuple[List[Trend], str]:
     """The trend of the working tree against the base: ``(trends, note)``. ``note`` is non-empty when no trend could be computed."""
     root = Path(config.root)
@@ -163,6 +173,15 @@ def trend(config: Any) -> Tuple[List[Trend], str]:
                 if old[flat] != new[flat]:
                     out.append(Trend(f"floor {key} of {intent}", old[flat], new[flat], "rose" if new[flat] > old[flat] else "fell",
                                      adverse=new[flat] < old[flat]))
+        for intent in sorted(names):   # a ceiling written for one intent in its floors table
+            for key in ("max_fan_out", "max_names_per_sentence"):
+                written = [((r.get("S38", {}) or {}).get("floors", {}) or {}).get(intent, {}) for r in (base_rules, config.rules)]
+                if not any(key in w for w in written):
+                    continue
+                old = effective_ceiling(base_rules, intent, key)
+                new = effective_ceiling(config.rules, intent, key)
+                if old != new:
+                    out.append(Trend(f"ceiling {key} of {intent}", old, new, "rose" if new > old else "fell", adverse=new > old))
         for key in CEILINGS:
             old = (base_rules.get("S38", {}) or {}).get(key, DEFAULT_CEILINGS[key])
             new = config.option("S38", key, DEFAULT_CEILINGS[key])

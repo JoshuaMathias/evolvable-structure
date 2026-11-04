@@ -99,6 +99,9 @@ enabled = true
 [rules.S38.floors.mylib]
 precision = 0.5
 coverage = 0.66
+min_lift = 0.5               # optional: a limit written for this intent only
+max_fan_out = 12             # optional
+max_names_per_sentence = 13  # optional
 [rules.S39]    # the trend of waivers and floors since a base commit
 enabled = true
 ```
@@ -106,6 +109,18 @@ enabled = true
 `esoi check` stays exactly as before; it adds a line, `to do: N finding(s)`. `esoi check --findings` lists each finding with
 its next action and a count per rule, and exits with the same code as without it. S39 shows, against the base commit, whether the
 waiver sets grew or shrank and whether a floor rose or fell; set `ESOI_RATCHET_BASE` or `[rules.S39] base` to choose the base.
+
+## Write a limit for one intent
+
+`[rules.S38]` holds the repository-wide values (`min_lift`, `max_fan_out`, `max_depth`, `max_names_per_sentence`, and the flat
+`code_floor` and `coverage_floor`). An intent that has a justified reason for a different limit writes it in its own table,
+`[rules.S38.floors.<intent-id>]`, with any of `precision`, `coverage`, `min_lift`, `max_fan_out` and `max_names_per_sentence`;
+a key left out takes the repository-wide value (`max_names_per_sentence` defaults to the intent's `max_fan_out` plus one).
+Put the reason in a comment beside the key, since S39 reports a per-intent limit that loosens (a lower `min_lift`, a higher
+`max_fan_out` or `max_names_per_sentence`) against the base commit like any other floor that fell. Lift is undefined for an intent
+that records no uses edges (a grouping of independent solutions): `python3 -m esoi.coherence` prints `lift n/a (no recorded
+edges)`, the report carries `code_lift_note`, and `min_lift` is not applied. An intent that does record edges is always held to
+`min_lift`: a lift of 0.0 fails.
 
 ## What counts as code evidence that one solution uses another
 

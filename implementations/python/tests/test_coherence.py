@@ -227,3 +227,62 @@ def test_a_module_with_no_declared_classes_is_scored_whole(tmp_path):
     plain = "\n".join(line for line in SHARED.splitlines() if not line.startswith("@"))
     code = shared_code(tmp_path, plain)
     assert code.evidence("a", "b") == "E2"                 # a declares no class here, so the file counts for it as before
+
+
+# Per-intent limits: [rules.S38.floors.<intent>] min_lift, max_fan_out, max_names_per_sentence over the repository-wide values.
+
+def cfg_with(**s38):
+    return SimpleNamespace(option=lambda rule, key, default=None: s38.get(key, default) if rule == "S38" else default)
+
+
+def test_a_per_intent_limit_beats_the_repository_wide_value():
+    cfg = cfg_with(min_lift=1.0, max_fan_out=9, floors={"a": {"min_lift": 0.4, "max_fan_out": 14, "max_names_per_sentence": 20}})
+    lim = coherence.limits(cfg, "a")
+    assert (lim["min_lift"], lim["max_fan_out"], lim["max_names_per_sentence"]) == (0.4, 14, 20)
+
+
+def test_the_repository_wide_value_applies_when_the_intent_writes_none():
+    cfg = cfg_with(min_lift=1.5, max_fan_out=7, floors={"a": {"min_lift": 0.4}})
+    lim = coherence.limits(cfg, "b")
+    assert (lim["min_lift"], lim["max_fan_out"], lim["max_names_per_sentence"]) == (1.5, 7, 8)
+    other = coherence.limits(cfg, "a")   # only the key written differs; fan-out and names follow the repository
+    assert (other["min_lift"], other["max_fan_out"], other["max_names_per_sentence"]) == (0.4, 7, 8)
+    assert coherence.limits(cfg_with(), "x")["min_lift"] == coherence.DEFAULTS["min_lift"]
+
+
+def test_an_intent_with_no_recorded_edges_reports_lift_as_not_applicable_and_passes(project, monkeypatch):
+    path = project / "esoi" / "implementations.csv"
+    rows = list(csv.DictReader(open(path, newline="", encoding="utf-8")))
+    for row in rows:
+        row["uses_solution_ids"] = ""
+    with open(path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]), lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+    monkeypatch.setattr(coherence.Code, "evidence", lambda self, a, b: "E2")   # evidence on every pair: base rate above 0
+    intent = coherence.check(project, pairs=True)["intents"][0]
+    assert intent["uses_edges"] == 0
+    assert intent["code_lift"] is None and intent["code_lift_note"] == "n/a (no recorded edges)"
+    assert not any("lift" in line for line in intent["problems"].get("code", []))
+
+
+def lift_zero_project(project, monkeypatch):
+    """The scaffold records edges; evidence fires on pairs that are not edges and never on the recorded edges: precision 0, base rate above 0."""
+    recorded = {("project-purpose", "greet-a-person"), ("project-purpose", "project-structure")}
+    monkeypatch.setattr(coherence.Code, "evidence", lambda self, a, b: "" if (a, b) in recorded else "E2")
+    return coherence.check(project, pairs=True)["intents"][0]
+
+
+def test_an_intent_with_edges_and_lift_zero_still_fails(project, monkeypatch):
+    intent = lift_zero_project(project, monkeypatch)
+    assert intent["uses_edges"] > 0 and intent["code_lift"] == 0.0 and intent["code_lift_note"] == ""
+    assert any("lift 0.0 below 1.0" in line for line in intent["problems"]["code"])
+
+
+def test_a_per_intent_min_lift_lets_that_intent_pass_with_the_reason_written(project, monkeypatch):
+    toml = project / "esoi.toml"
+    toml.write_text(toml.read_text() + "\n[rules.S38]\nenabled = true\n[rules.S38.floors.demo]\nmin_lift = 0.0\nprecision = 0.0\n", encoding="utf-8")
+    name = coherence.check(project, pairs=False)["intents"][0]["intent"]
+    toml.write_text(toml.read_text().replace("floors.demo", f"floors.{name}"), encoding="utf-8")
+    intent = lift_zero_project(project, monkeypatch)
+    assert not any("lift" in line for line in intent["problems"].get("code", []))

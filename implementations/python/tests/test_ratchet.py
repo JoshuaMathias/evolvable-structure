@@ -95,6 +95,15 @@ def test_a_raised_ceiling_is_reported(history):
     assert any("ceiling max_fan_out: 9 -> 12 (rose)" in line for line in trend(root))
 
 
+def test_a_per_intent_limit_that_loosens_is_reported(history):
+    root, base = history
+    toml = root / "esoi.toml"
+    toml.write_text(toml.read_text().replace("precision = 0.5\n", "precision = 0.5\nmin_lift = 0.2\nmax_fan_out = 14\n"))
+    lines = trend(root)
+    assert any("floor min_lift of demo: 1.0 -> 0.2 (fell)" in line and "next:" in line for line in lines)
+    assert any("ceiling max_fan_out of demo: 9 -> 14 (rose)" in line and "next:" in line for line in lines)
+
+
 def test_a_rule_enabled_at_the_base_and_off_now_is_reported(history):
     root, base = history
     toml = root / "esoi.toml"

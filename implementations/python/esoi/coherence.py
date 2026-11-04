@@ -40,7 +40,9 @@ uses are an alternative, not the structure). Per intent folder:
                        ``max_depth`` edges below a root
 
 Limits come from the project's esoi.toml ``[rules.S38]``: ``max_fan_out = 9, max_depth = 4``, ``min_lift`` and
-``max_names_per_sentence``, and the floors per intent, ``[rules.S38.floors.<intent-id>] precision = .., coverage = ..``; the flat
+``max_names_per_sentence``, and the limits per intent, ``[rules.S38.floors.<intent-id>] precision = .., coverage = ..,
+min_lift = .., max_fan_out = .., max_names_per_sentence = ..`` (each defaults to the repository-wide value). An intent that records
+no uses edges has an undefined lift, reported as n/a and never failed; the flat
 ``code_floor`` and ``coverage_floor`` are the floors of an intent with no table of its own. The defaults below apply when absent. ``--gate`` exits 1 unless every intent
 passes paragraph, roots, diagram and balance and its precision, coverage and lift are at or above their floors.
 """
@@ -320,7 +322,8 @@ def selected_record(sid: str, row: Dict[str, str], every_impl: List[Dict[str, st
 
 
 def limits(cfg, intent_id: str = "") -> Dict[str, float]:
-    """The limits of one intent: its own ``[rules.S38.floors.<intent-id>]`` table, else the flat floors, else the defaults."""
+    """The limits of one intent: its own ``[rules.S38.floors.<intent-id>]`` table (``precision``, ``coverage``, ``min_lift``,
+    ``max_fan_out``, ``max_names_per_sentence``), else the repository-wide values, else the defaults."""
     out = dict(DEFAULTS)
     for key in ("max_fan_out", "max_depth", "min_lift", "code_floor", "coverage_floor"):
         out[key] = cfg.option("S38", key, out[key])
@@ -329,7 +332,11 @@ def limits(cfg, intent_id: str = "") -> Dict[str, float]:
         out["code_floor"] = own["precision"]
     if "coverage" in own:
         out["coverage_floor"] = own["coverage"]
-    out["max_names_per_sentence"] = cfg.option("S38", "max_names_per_sentence", out["max_fan_out"] + 1)
+    for key in ("min_lift", "max_fan_out"):   # a justified, written limit of one intent; the repository-wide value is the default
+        if key in own:
+            out[key] = own[key]
+    out["max_names_per_sentence"] = own.get("max_names_per_sentence",
+                                            cfg.option("S38", "max_names_per_sentence", out["max_fan_out"] + 1))
     return out
 
 
@@ -537,7 +544,8 @@ def check(root: Path, pairs: bool = True) -> Dict[str, object]:
             paragraph_words=len(para.split()), paragraph_ok=not problems["paragraph"] and not problems["roots"],
             diagram_ok=not problems["diagram"], code_edges=len(verdicts), code_edges_checkable=len(checkable),
             code_edges_strong=len(strong), evidence=dict(Counter(verdicts.values())), code_precision=precision,
-            code_coverage=coverage, code_lift=lift, code_import_edges=len(code_edges),
+            code_coverage=coverage, code_lift=lift,
+            code_lift_note="n/a (no recorded edges)" if not verdicts else "", code_import_edges=len(code_edges),
             code_recall=round(len(on_path) / len(code_edges), 3) if code_edges else None,
             verdicts=verdicts, wide={s: n for s, n in fan.items() if n > lim["max_fan_out"]},
             deep={s: d for s, d in depth.items() if d > lim["max_depth"]}, problems={k: v for k, v in problems.items() if v}))
@@ -568,7 +576,7 @@ def main(argv=None) -> int:
                   f"{r['max_fan_out']}, depth {r['max_depth']}, paragraph {'ok' if r['paragraph_ok'] else 'FAIL'} "
                   f"({r['paragraph_words']} words), diagram {'ok' if r['diagram_ok'] else 'FAIL'}, code: {r['code_edges_strong']} of "
                   f"{r['code_edges_checkable']} checkable edges strong (precision {r['code_precision']}, coverage {r['code_coverage']}, "
-                  f"lift {r['code_lift']}), evidence {r['evidence']}")
+                  f"lift {r['code_lift_note'] or r['code_lift']}), evidence {r['evidence']}")
             for k, v in r["problems"].items():
                 for line in v:
                     print(f"  {k}: {line}")
