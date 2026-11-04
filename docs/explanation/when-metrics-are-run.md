@@ -183,7 +183,7 @@ nothing least often is selected. The measurement selected `import_closure`, and 
 utility the arm imports may be owned by another component, which the ownership map does not say. Every arm falls back, per
 component, to a safer rule: a non-Python arm or a computed import falls back to `component_paths` plus the files the scan did find, and a component with no
 ownership entry keeps `repo_wide`, so a result is never silently fresh. A file in the code paths that no component owns counts for
-every arm. [Choose when a result is stale](../how-to/choose-when-a-result-is-stale.md) says how to set the rule and read why a row
+every arm under `repo_wide` and `component_paths`, and for no arm under `import_closure` unless the arm imports it (it is nobody's own code). [Choose when a result is stale](../how-to/choose-when-a-result-is-stale.md) says how to set the rule and read why a row
 is stale.
 
 **A result goes stale only when the arm's own code changes.** Not a test file or shared test fixture (`tests/`, `test_*.py`,

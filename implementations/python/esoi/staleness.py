@@ -467,6 +467,8 @@ def judge(config: Config, scope: Scope, path: str) -> Tuple[bool, str]:
     other = first_match(scope.others, path)
     if other:
         return False, f"owned by component {other}"
+    if scope.requested == "import_closure":
+        return False, "owned by no component and not found in the arm's own imports: not the arm's own code"
     return True, "owned by no component, so it counts for every arm"
 
 
