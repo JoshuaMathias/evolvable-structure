@@ -24,6 +24,10 @@ is only listed. A paid arm needs a cost estimate, a staged sample, a call budget
 [metric run policy](when-metrics-are-run.md). Only rows whose measured code changed are called stale (the child's staleness rule),
 so a quiet parent costs the child nothing to follow.
 
+## Related
+
+A child can also build on the parent's metric itself, reusing its cases and results and adding its own: see "building on a foundation metric" (TODO: link once that page is published). What a metric contains: [what a metric includes](what-a-metric-includes.md).
+
 ## What it builds on
 
 No new record field. The parent's selections come from the same places the assembler's parent layer and rule S35 read

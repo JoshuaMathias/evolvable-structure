@@ -8,6 +8,8 @@ canned answer or a hand-typed value measures the plumbing around the thing, and 
 evidence (the problem `prob-simulated-arm-false-loss` is one way this goes wrong; a perfect scripted judge scoring 100% is
 another).
 
+The full list of what a metric contains is in [what a metric includes](what-a-metric-includes.md).
+
 ## What real means
 
 - **The judged thing is the real thing.** If a metric says a model picks the right record, a model picks it. If it says a search

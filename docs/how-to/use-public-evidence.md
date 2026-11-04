@@ -101,6 +101,9 @@ implementation when evidence rows exist for it and the best grade is C or better
 
 ## 4. Skip runs whose answer is already public
 
+For a public implementation (a published model, library or embedder) we do not re-run what an independent source has run. If
+several benchmarks speak to the same intent, fit them into one metric: [fit public benchmarks into one generic metric](fit-public-benchmarks-into-one-generic-metric.md).
+
 If a component's cases reproduce a public benchmark, say which one in a technical file beside the cases,
 `evaluation/<component>/benchmark.txt` (the first line that is not blank or a `#` comment), or in the configuration:
 

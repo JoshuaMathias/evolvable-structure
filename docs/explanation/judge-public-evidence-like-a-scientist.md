@@ -37,4 +37,7 @@ agree, confidence rises; where they conflict, that is information about our case
 suppressed. The weights are in one visible table with a reason each (`esoi evidence table`), so a reviewer can disagree with a
 weight rather than with a hidden judgement.
 
+Graded public results also let a public arm skip our run: the `public` stage stands in for it. Several benchmarks can feed one
+generic metric through adapters: [fit public benchmarks into one generic metric](../how-to/fit-public-benchmarks-into-one-generic-metric.md).
+
 How: [Use public evidence beside your own results](../how-to/use-public-evidence.md).
