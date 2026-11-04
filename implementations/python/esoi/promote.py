@@ -78,6 +78,11 @@ def cascade_evidence(own: Row, rival: Row, current: str, winner: str, today: str
             f"{current} {own.get('passed', '')}/{own.get('cases', '')} run {own.get('date', '')} at {own.get('git_sha', '')}" + (f"; rule: {why}" if why else ""))
 
 
+def floor_only(config: Config, component: str, impl: str) -> bool:
+    """Whether the arm is marked BASELINE or FLOOR in its docstring: a baseline that exists to show a floor, which can never be selected."""
+    return leaderboard.arm_kind({"component": component, "impl": impl}, config.evaluation) in leaderboard.FLOOR_KINDS
+
+
 def first_choice(config: Config, registry: Registry, solution: Row, component: str, command_arm: str,
                  arms: Dict[str, List[Row]], stale: Callable, today: str) -> Proposal:
     """The proposal for a solution whose ``selected`` is empty: the arm with the highest result on the latest cascade stage
@@ -109,6 +114,10 @@ def first_choice(config: Config, registry: Registry, solution: Row, component: s
         if not rows:
             proposal.reason = "no counting result yet (run `esoi run` on committed code)"
             return proposal
+    rows = {impl: r for impl, r in rows.items() if not floor_only(config, component, impl)}   # a floor is shown, never selected
+    if not rows:
+        proposal.reason = "only arms marked BASELINE or FLOOR have a counting result, and a floor is never selected"
+        return proposal
     winner_name, why_guess = leaderboard.best_guess(rows, config.evaluation)
     reference = max(rows.values(), key=lambda r: (int(float(r.get("cases") or 0)), r.get("date") or "", r["impl"]))
     ranked = leaderboard.rank({impl: r for impl, r in rows.items() if leaderboard.comparable(r, reference)})
@@ -203,6 +212,10 @@ def propose(config: Config, registry: Registry, today: Optional[str] = None,
                          if rival["impl"] == winner), None)
         proposal = Proposal(sid, "blocked", current, winner)
         out.append(proposal)
+        if floor_only(config, component, winner):
+            proposal.reason = (f"{winner} is marked BASELINE or FLOOR: it shows a floor the live arms must beat and is never selected "
+                               "(remove the marker only if it is the product)")
+            continue
         if pair is None:
             proposal.reason = "no run of the two on the same cases and sample"
             continue

@@ -256,6 +256,7 @@ def describe_cases(row: Row) -> str:
 
 
 ARM_MARKER = re.compile(r'\s*"""\s*(ABLATION|BASELINE|FLOOR|ALTERNATIVE|VALIDITY)')
+FLOOR_KINDS = ("baseline",)   # a floor that only shows what the live arms must beat: ranked and shown, never selected or promoted
 NOT_RIVALS = ("ablation", "validity")   # shown and tagged, never offered as the thing to adopt
 
 

@@ -192,7 +192,7 @@ def build(meter):
         return {{"text": greet(args["name"])}}
     return run
 '''
-SHOUT = '''"""BASELINE: shouts the greeting in capitals, a floor the live function is measured against."""
+SHOUT = '''"""ALTERNATIVE: shouts the greeting in capitals, a rival the live function is measured against."""
 
 
 def build(meter):
