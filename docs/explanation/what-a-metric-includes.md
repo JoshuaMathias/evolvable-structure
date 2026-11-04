@@ -42,7 +42,7 @@ Before writing a metric from nothing, check whether someone else's work already 
    [fit public benchmarks into one generic metric](../how-to/fit-public-benchmarks-into-one-generic-metric.md).
 3. **A consumer builds on the metric of a solution it uses and customizes.** The consumer references the foundation metric, reuses
    results whose arm and case digests match, adds only its own cases and costs, and may tighten but never loosen the foundation's
-   gates. This is the "building on a foundation metric" mechanism (TODO: link its page here once it is published).
+   gates. This is the mechanism in [a metric builds on its foundation](a-metric-builds-on-its-foundation.md).
 
 The first way saves runs, the second saves writing one metric per benchmark, the third saves a consumer from starting over.
 They combine: a consumer's metric can build on a generic one whose adapters read public results.

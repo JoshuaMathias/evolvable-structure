@@ -26,7 +26,7 @@ so a quiet parent costs the child nothing to follow.
 
 ## Related
 
-A child can also build on the parent's metric itself, reusing its cases and results and adding its own: see "building on a foundation metric" (TODO: link once that page is published). What a metric contains: [what a metric includes](what-a-metric-includes.md).
+A child can also build on the parent's metric itself, reusing its cases and results and adding its own: see [a metric builds on its foundation](a-metric-builds-on-its-foundation.md). What a metric contains: [what a metric includes](what-a-metric-includes.md).
 
 ## What it builds on
 

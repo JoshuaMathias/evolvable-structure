@@ -56,5 +56,4 @@ cases or about the benchmark and is recorded, not smoothed over (see
 - Each public arm has a graded evidence row for each adapter that uses it, and none was re-run without a stated difference.
 - The same arms scored on the same case digest at each stage ([a cascade runs one criterion](../explanation/a-cascade-runs-one-criterion.md)).
 
-A consumer that customizes a solution built this way adds its own cases and costs on top and inherits the adapters: see "building
-on a foundation metric" (TODO: link once that page is published).
+A consumer that customizes a solution built this way adds its own cases and costs on top and inherits the adapters: see [a metric builds on its foundation](../explanation/a-metric-builds-on-its-foundation.md).
