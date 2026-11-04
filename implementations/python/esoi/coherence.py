@@ -30,6 +30,9 @@ uses are an alternative, not the structure). Per intent folder:
                          W1  a module of the user imports one that imports the used               (weak, reported)
                          W2  a module of the user builds an esoi Assembler over a scope that declares the used (weak)
                          W3  a third module imports both ends                                     (weak)
+                       Evidence is attributed per solution: in a module several solutions share (one interfaces file holding
+                       many arms), a solution's evidence is only what its own classes (declared with ``@implementation`` or
+                       ``@solution``) contain, and importing the shared file counts only when the import names the used's class.
                        precision = strong / checkable. The same evidence is scored on every ordered pair of solutions with
                        modules that is NOT a uses edge (the base rate); lift = precision / base rate. A sub-intent's host edges
                        are checked the same way (the host implementation's module against the sub-intent's roots).
@@ -63,17 +66,19 @@ WEAK = ("W1", "W2", "W3")
 WORD = re.compile(r"[A-Za-z][A-Za-z'-]*")
 
 
-def executable_tokens(text: str, tree) -> List[str]:
+def executable_tokens(text: str, tree, nodes=None) -> List[str]:
     """The names and string values the executable code of a Python module holds: identifiers, attributes, imported names,
     parameter and keyword names, and string literals used as values. Docstrings and any other bare string statement are
     documentation and left out, and so is every comment (a comment is not in the syntax tree). A module that does not parse
-    falls back to its text with comment lines removed."""
+    falls back to its text with comment lines removed. ``nodes`` limits the walk to those syntax nodes (one solution's classes in
+    a module several solutions share)."""
     if tree is None:
         return [line for line in text.splitlines() if not line.lstrip().startswith("#")]
-    prose = {id(n.value) for n in ast.walk(tree) if isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant)
+    walked = [n for top in (nodes if nodes is not None else [tree]) for n in ast.walk(top)]
+    prose = {id(n.value) for n in walked if isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant)
              and isinstance(n.value.value, str)}
     out: List[str] = []
-    for node in ast.walk(tree):
+    for node in walked:
         if isinstance(node, ast.Name):
             out.append(node.id)
         elif isinstance(node, ast.Attribute):
@@ -91,6 +96,16 @@ def executable_tokens(text: str, tree) -> List[str]:
         elif isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in prose:
             out.append(node.value)
     return out
+
+
+def declared_owner(node) -> str:
+    """The solution id a class declares through ``@implementation("id", ...)`` or ``@solution("id", ...)``, or ''."""
+    for deco in getattr(node, "decorator_list", []):
+        if isinstance(deco, ast.Call) and deco.args and isinstance(deco.args[0], ast.Constant) and isinstance(deco.args[0].value, str):
+            func = deco.func.attr if isinstance(deco.func, ast.Attribute) else getattr(deco.func, "id", "")
+            if func in ("implementation", "solution"):
+                return deco.args[0].value
+    return ""
 
 
 def ids(text: str) -> List[str]:
@@ -156,6 +171,12 @@ class Code:
                 self.trees[m] = None
         self.tokens = {m: executable_tokens(text, self.trees[m]) for m, text in self.source.items()}
         self.imports: Dict[str, Set[str]] = {m: self.imports_of(m) for m in self.files}
+        self.region_nodes: Dict[Tuple[str, str], list] = defaultdict(list)    # (module, solution id) -> the classes it declares there
+        for m, tree in self.trees.items():
+            for node in (tree.body if tree is not None else []):
+                owner = declared_owner(node)
+                if owner:
+                    self.region_nodes[(m, owner)].append(node)
         self.modules: Dict[str, Set[str]] = defaultdict(set)
         for row in implementations:
             module = self.module_of(row.get("filepath", ""))
@@ -165,6 +186,13 @@ class Code:
             for sid in re.findall(r"@implementation\(\s*[\"']([\w.-]+)[\"']", text):
                 if sid in solutions:
                     self.modules[sid].add(m)
+        self.shared = {m for m in self.files if sum(1 for sid in self.modules if m in self.modules[sid]) > 1}
+        self.region_tokens: Dict[Tuple[str, str], List[str]] = {}
+        self.region_imports: Dict[Tuple[str, str], Set[str]] = {}
+        for (m, sid), nodes in self.region_nodes.items():
+            if m in self.shared:
+                self.region_tokens[(m, sid)] = executable_tokens(self.source[m], self.trees[m], nodes)
+                self.region_imports[(m, sid)] = self.imports_of(m, nodes)
         self.selected_module = {sid: self.module_of(r.get("filepath", "")) for sid, r in selected.items() if r}
         self.interface = {sid: (r.get("interface_name") or "").strip() for sid, r in solutions.items()}
         self.declared = {sid for text in self.source.values() for sid in re.findall(r"@solution\(\s*[\"']([\w.-]+)[\"']", text)}
@@ -180,13 +208,21 @@ class Code:
                 return m
         return ""
 
-    def imports_of(self, module: str) -> Set[str]:
+    def own_tokens(self, solution: str, module: str) -> List[str]:
+        """The executable tokens of ``solution`` in ``module``: the whole module, or, in a module several solutions share, only
+        the classes that solution declares there (a module shared by solutions with no class of this one is scored whole)."""
+        return self.region_tokens.get((module, solution), self.tokens[module])
+
+    def own_imports(self, solution: str, module: str) -> Set[str]:
+        return self.region_imports.get((module, solution), self.imports[module])
+
+    def imports_of(self, module: str, nodes=None) -> Set[str]:
         tree = self.trees.get(module)
         if tree is None:
             return set()
         out: Set[str] = set()
         is_pkg = self.files[module].name == "__init__.py"
-        for node in ast.walk(tree):
+        for node in (n for top in (nodes if nodes is not None else [tree]) for n in ast.walk(top)):
             if isinstance(node, ast.Import):
                 out.update(a.name for a in node.names)
             elif isinstance(node, ast.ImportFrom):
@@ -207,12 +243,42 @@ class Code:
         tree = self.trees.get(module) if module else None
         if not name or tree is None:
             return False
-        for node in ast.walk(tree):
+        own = self.region_nodes.get((module, user)) if module in self.shared else None
+        for node in (n for top in (own or [tree]) for n in ast.walk(top)):
             if isinstance(node, ast.FunctionDef) and node.name == "__init__":
                 for arg in node.args.args + node.args.kwonlyargs:
                     if arg.annotation is not None and name in ast.unparse(arg.annotation).replace("'", "").replace('"', "").split("."):
                         return True
         return False
+
+    def imported_by(self, user: str, module: str, used: str, used_modules: Set[str]) -> bool:
+        """``user``'s part of ``module`` imports a module of ``used``. A module the used shares with other solutions counts only when
+        the import names a class the used declares there or its interface (importing the shared file says nothing about one arm)."""
+        for target in self.own_imports(user, module) & used_modules:
+            if target not in self.shared:
+                return True
+            wanted = {self.interface.get(used, "")} | {getattr(n, "name", "") for n in self.region_nodes.get((target, used), [])}
+            if self.names_imported(user, module, target) & (wanted - {""}):
+                return True
+        return False
+
+    def names_imported(self, user: str, module: str, target: str) -> Set[str]:
+        """The names ``user``'s part of ``module`` imports from ``target``."""
+        tree = self.trees.get(module)
+        nodes = self.region_nodes.get((module, user)) if module in self.shared else None
+        out: Set[str] = set()
+        for node in (n for top in (nodes or [tree]) for n in (ast.walk(top) if top is not None else [])):
+            if isinstance(node, ast.ImportFrom):
+                base = node.module or ""
+                if node.level:
+                    parts = module.split(".")
+                    if self.files[module].name != "__init__.py":
+                        parts = parts[:-1]
+                    parts = parts[: len(parts) - (node.level - 1)] if node.level > 1 else parts
+                    base = ".".join(parts + ([base] if base else []))
+                if base == target:
+                    out.update(a.name for a in node.names)
+        return out
 
     def evidence(self, user: str, used: str) -> str:
         """The strongest evidence that ``user`` uses ``used`` (E1, E2, E3, then W1, W2, W3), '' for none, 'n/a' when either end
@@ -220,16 +286,16 @@ class Code:
         mu, mc = self.modules.get(user, set()), self.modules.get(used, set())
         if not mu or not mc:
             return "n/a"
-        if any(self.imports[m] & mc for m in mu):
+        if any(self.imported_by(user, m, used, mc) for m in mu):
             return "E1"
         iface = self.interface.get(used)
         for m in mu:
             if any(position(used, {}, token) >= 0 or (iface and re.search(r"\b" + re.escape(iface) + r"\b", token))
-                   for token in self.tokens[m]):
+                   for token in self.own_tokens(user, m)):
                 return "E2"
         if self.typed_need(user, used):
             return "E3"
-        if any(self.imports.get(y, set()) & mc for m in mu for y in self.imports[m]):
+        if any(self.imports.get(y, set()) & mc for m in mu for y in self.own_imports(user, m)):
             return "W1"
         if mu & self.assemblers and used in self.declared:
             return "W2"

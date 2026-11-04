@@ -130,3 +130,100 @@ def test_weak_evidence_is_unchanged_by_docstrings(tmp_path):
         [{"solution_id": "user", "implementation_id": "u1", "filepath": "pk/user.py"},
          {"solution_id": "used", "implementation_id": "c1", "filepath": "pk/used.py"}], {})
     assert code.evidence("user", "used") == "W1"
+
+
+# ---- evidence is attributed per solution in a module several solutions share ---------------------------------------------------
+
+def shared_code(tmp_path: Path, shared_source: str, extra: dict = None):
+    """A package `pk` whose module `shared.py` holds the arms of three solutions a, b and c (interfaces A, B and C); `extra` adds
+    modules (name -> source) that are no solution's."""
+    pkg = tmp_path / "pk"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "shared.py").write_text(shared_source, encoding="utf-8")
+    for name, source in (extra or {}).items():
+        (pkg / f"{name}.py").write_text(source, encoding="utf-8")
+    cfg = SimpleNamespace(root=tmp_path, package="pk", package_dir="pk")
+    solutions = {s: {"solution_id": s, "interface_name": s.upper()} for s in "abc"}
+    impls = [{"solution_id": s, "implementation_id": f"{s}1", "filepath": "pk/shared.py"} for s in "abc"]
+    return coherence.Code(cfg, solutions, impls, {s: impls[i] for i, s in enumerate("abc")})
+
+
+SHARED = '''
+from .runtime import implementation, solution
+
+
+@solution("a")
+class A:
+    pass
+
+
+@solution("b")
+class B:
+    pass
+
+
+@solution("c")
+class C:
+    pass
+
+
+@implementation("a", "a1")
+class AArm:
+    def __init__(self, other: B):
+        self.other = other
+
+
+@implementation("b", "b1")
+class BArm:
+    def go(self):
+        return 1
+
+
+@implementation("c", "c1")
+class CArm:
+    def go(self):
+        return 2
+'''
+
+
+def test_two_arms_in_one_module_are_evidence_only_for_the_pair_their_own_class_shows(tmp_path):
+    code = shared_code(tmp_path, SHARED)
+    assert code.evidence("a", "b") == "E2"                 # a's own class is typed with b's interface
+    assert code.evidence("a", "c") == ""                   # the same file names c, but not through a's class
+    assert code.evidence("b", "a") == ""
+    assert code.evidence("c", "b") == ""
+
+
+def test_a_shared_module_that_names_every_interface_no_longer_gives_every_pair_evidence(tmp_path):
+    code = shared_code(tmp_path, SHARED)
+    pairs = [(x, y) for x in "abc" for y in "abc" if x != y]
+    strong = [p for p in pairs if code.evidence(*p) in coherence.STRONG]
+    assert strong == [("a", "b")]                          # per module it was all six
+
+
+def test_a_lazy_import_inside_an_arm_is_evidence_for_that_arm_only(tmp_path):
+    source = SHARED.replace("    def go(self):\n        return 1\n", "    def go(self):\n        from . import helper\n        return helper.x\n", 1)
+    code = shared_code(tmp_path, source, {"helper": "x = 1\n"})
+    code.modules["helper_sol"] = {"pk.helper"}
+    assert code.evidence("b", "helper_sol") == "E1"
+    assert code.evidence("c", "helper_sol") == ""
+
+
+def test_importing_a_shared_file_without_the_used_class_is_not_evidence(tmp_path):
+    user = "from . import shared\n\n\ndef go():\n    return shared\n"
+    code = shared_code(tmp_path, SHARED, {"user": user})
+    code.modules["u"] = {"pk.user"}
+    code.interface["u"] = "U"
+    assert code.evidence("u", "b") == ""
+    user_named = "from .shared import BArm\n\n\ndef go():\n    return BArm\n"
+    again = shared_code(tmp_path / "again", SHARED, {"user": user_named})
+    again.modules["u"] = {"pk.user"}
+    again.interface["u"] = "U"
+    assert again.evidence("u", "b") == "E1"
+
+
+def test_a_module_with_no_declared_classes_is_scored_whole(tmp_path):
+    plain = "\n".join(line for line in SHARED.splitlines() if not line.startswith("@"))
+    code = shared_code(tmp_path, plain)
+    assert code.evidence("a", "b") == "E2"                 # a declares no class here, so the file counts for it as before
