@@ -12,7 +12,8 @@ alternatives, measured like any other (the ``staleness_precision`` component):
 * ``import_closure``: for a Python arm, the files of the repository that its implementation module imports, transitively,
   found by reading the source (no execution), plus the component's evaluation folder. A changed file that is not Python is
   judged by ``component_paths``. When the arm is not Python, or the scan meets a dynamic import it cannot read, it falls
-  back to ``component_paths``.
+  back to ``component_paths`` plus the files the scan did find (a module that is loaded only by a computed name and that
+  another component owns is not seen: see ``docs/how-to/choose-when-a-result-is-stale.md``).
 
 ``rule_for`` picks the rule: ``staleness_rule`` in ``esoi.toml``, else the arm the repository's records select for the
 solution ``know-what-a-result-measures``, else ``DEFAULT_RULE`` (the arm the staleness precision metric selected). Standard library only; nothing is run or imported from the
@@ -56,7 +57,8 @@ class Scope:
     others: List[Tuple[re.Pattern, str]] = field(default_factory=list)    # patterns other components own
     evaluation: str = ""           # the evaluation folder, from the root
     component: str = ""
-    closure: Optional[Set[str]] = None
+    closure: Optional[Set[str]] = None   # the files the static scan found
+    complete: bool = False               # whether the scan saw every import (else the files it found only add to the component's)
 
 
 def glob_pattern(text: str) -> re.Pattern:
@@ -200,9 +202,11 @@ def module_files(roots: List[Path], dotted: str) -> List[Path]:
     return []
 
 
-def import_names(tree: ast.Module, here: Path, roots: List[Path]) -> Optional[Set[str]]:
-    """Every module a file imports, as dotted names from a search root; ``None`` when it imports one by a name it computes."""
+def import_names(tree: ast.Module, here: Path, roots: List[Path]) -> Tuple[Set[str], bool]:
+    """``(names, complete)``: every module a file imports, as dotted names from a search root, and whether it imports none by a name it
+    computes (the names found are returned either way)."""
     names: Set[str] = set()
+    complete = True
     base: Optional[List[str]] = None
     for root in roots:
         if root in here.parents:
@@ -227,39 +231,41 @@ def import_names(tree: ast.Module, here: Path, roots: List[Path]) -> Optional[Se
             func = node.func
             called = func.attr if isinstance(func, ast.Attribute) else func.id if isinstance(func, ast.Name) else ""
             if called in DYNAMIC_CALLS:
-                if called in ("spec_from_file_location", "load_source") or not node.args:
-                    return None
-                first = node.args[0]
-                if isinstance(first, ast.Constant) and isinstance(first.value, str) and not first.value.startswith("."):
+                first = node.args[0] if node.args else None
+                if called not in ("spec_from_file_location", "load_source") and isinstance(first, ast.Constant) \
+                        and isinstance(first.value, str) and not first.value.startswith("."):
                     names.add(first.value)
                 else:
-                    return None
-    return names
+                    complete = False
+    return names, complete
 
 
-def closure_of(config: Config, starts: List[Path]) -> Optional[Set[str]]:
-    """The repository files the start files import, transitively, from their source; ``None`` when a file cannot be read or imports
-    a module by a computed name."""
+def closure_of(config: Config, starts: List[Path]) -> Tuple[Set[str], bool]:
+    """``(files, complete)``: the repository files the start files import, transitively, from their source, and whether the scan was
+    complete. It is not when a file cannot be read, is not Python, or imports a module by a computed name; the files found so far
+    are still returned, for the rule that falls back."""
     roots = search_roots(config)
     root = config.root.resolve()
     seen: Dict[Path, None] = {}
     queue = [p.resolve() for p in starts]
+    complete = True
     while queue:
         here = queue.pop()
         if here in seen or not here.is_file():
             continue
         if here.suffix != ".py":
-            return None
+            complete = False
+            continue
         seen[here] = None
         tree = parse(here)
         if tree is None:
-            return None
-        names = import_names(tree, here, roots)
-        if names is None:
-            return None
+            complete = False
+            continue
+        names, whole = import_names(tree, here, roots)
+        complete = complete and whole
         for dotted in names:
             queue.extend(p for p in module_files(roots, dotted) if p not in seen and root in p.parents)
-    return {p.relative_to(root).as_posix() for p in seen}
+    return {p.relative_to(root).as_posix() for p in seen}, complete
 
 
 def start_files(config: Config, index: Index, component: str, impl: str, solutions: List[str]) -> Optional[List[Path]]:
@@ -303,9 +309,11 @@ def scope_for(config: Config, component: str, impl: str, rule: Optional[str] = N
     scope.rule = "component_paths"
     if rule == "import_closure":
         starts = start_files(config, index, component, impl, solutions)
-        scope.closure = closure_of(config, starts) if starts else None
-        if scope.closure is None:
-            scope.note = "its imports cannot be read statically (not Python, or a computed import), so its component's files count"
+        if starts:
+            scope.closure, scope.complete = closure_of(config, starts)
+        if scope.closure is None or not scope.complete:
+            scope.note = ("its imports cannot be read completely (not Python, or a computed import), so the files it does import "
+                          "and its component's files count")
         else:
             scope.rule = "import_closure"
     return scope
@@ -325,12 +333,15 @@ def judge(config: Config, scope: Scope, path: str) -> Tuple[bool, str]:
         if rest.startswith(scope.component + "/"):
             return True, f"in the evaluation folder of {scope.component}"
         if "/" not in rest:
-            imported = scope.closure is None or path in scope.closure or not path.endswith(".py")
+            imported = not scope.complete or path in (scope.closure or set()) or not path.endswith(".py")
             return imported, "a fixture shared by every evaluation" if imported else "a shared fixture the arm does not import"
         return False, f"in the evaluation folder of {rest.split('/')[0]}"
     exists = (config.root / path).is_file()
-    if scope.rule == "import_closure" and scope.closure is not None and path.endswith(".py") and exists:
-        return (path in scope.closure), ("imported by the arm" if path in scope.closure else "not imported by the arm")
+    if scope.closure is not None and path.endswith(".py") and exists:
+        if path in scope.closure:
+            return True, "imported by the arm"
+        if scope.rule == "import_closure":
+            return False, "not imported by the arm"
     owner = first_match(scope.own, path)
     if owner:
         return True, f"owned by {owner}"

@@ -28,8 +28,12 @@ Set `staleness_rule` in `esoi.toml` to one of:
 With no `staleness_rule`, the library uses the arm the repository's records select for the solution `know-what-a-result-measures`
 if it has that solution, else the library default, `import_closure`, which is the arm the staleness precision metric selected.
 Each rule falls back per arm to a safer one, so a result is never silently fresh: `import_closure` becomes `component_paths` for an arm
-that is not Python or that imports a module by a computed name, and either becomes `repo_wide` for a component with no entry in the
-ownership map.
+that is not Python or that imports a module by a computed name (the files the scan did find still count, beside the component's own),
+and either becomes `repo_wide` for a component with no entry in the ownership map.
+
+One limit to know: a module that an arm loads only by a name computed at run time, and that another component owns, is not seen by
+either narrow rule. An arm that does this (a plugin loader, an implementation chosen from the records) is best served by
+`staleness_rule = "repo_wide"` until the loader's targets are listed in the component that owns the arm.
 
 ## Make the narrow rules pay off
 

@@ -126,3 +126,15 @@ def test_a_rival_that_does_not_import_the_changed_file_stays_current_under_the_d
     assert harness.stale_reason(cfg, "greet_a_person", rows["shout"]) == ""   # shout never imports demo/greet.py
     cfg.staleness_rule = "repo_wide"
     assert "demo/greet.py" in harness.stale_reason(cfg, "greet_a_person", rows["shout"])
+
+
+def test_a_scan_that_meets_a_computed_import_still_counts_the_files_it_found(tmp_path):
+    built = staleness_fixture.build("touch-the-shared-utility")
+    cfg = config_module.load(built.root / "esoi.toml")
+    live = built.root / "evaluation/components/beta_eval/impls/live.py"
+    live.write_text(live.read_text() + "\nimport importlib\nfrom pkg import util\n\n\ndef late(name):\n    return importlib.import_module(name)\n")
+    cfg.staleness_rule = "import_closure"
+    scope = staleness.scope_for(cfg, "beta_eval", "live", "import_closure")
+    assert scope.rule == "component_paths" and not scope.complete
+    assert staleness.judge(cfg, scope, "pkg/util.py") == (True, "imported by the arm")   # found by the partial scan, though component_paths alone would miss it
+    assert staleness.judge(cfg, scope, "pkg/alpha.py")[0] is False                       # owned by another component and not seen importing

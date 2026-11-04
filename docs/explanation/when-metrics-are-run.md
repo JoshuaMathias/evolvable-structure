@@ -158,7 +158,7 @@ module imports, found by reading the source without running it (`import_closure`
 code changed (a false-fresh is a hard fail that disqualifies the arm); among the rest, the one that calls a result stale for
 nothing least often is selected. The measurement selected `import_closure`, and disqualified `component_paths`, because a shared
 utility the arm imports may be owned by another component, which the ownership map does not say. Every arm falls back, per
-component, to a safer rule: a non-Python arm or a computed import falls back to `component_paths`, and a component with no
+component, to a safer rule: a non-Python arm or a computed import falls back to `component_paths` plus the files the scan did find, and a component with no
 ownership entry keeps `repo_wide`, so a result is never silently fresh. A file in the code paths that no component owns counts for
 every arm. [Choose when a result is stale](../how-to/choose-when-a-result-is-stale.md) says how to set the rule and read why a row
 is stale.
