@@ -34,6 +34,14 @@ The rules that decide what counts as strong evidence of "A uses B", in the order
    imports A's own module, which imports B's. The ownership map and the import are both records of fact: a name in a docstring
    or comment on either side changes nothing.
 
+5. **E5** (documents) a markdown link or include in a document only A owns to a document only B owns. A solution that is a
+   document has no import to follow, so the evidence is the link a reader follows: an inline link, an image, a reference
+   definition or an include directive, resolved from the linking document's folder. A document is a solution's when
+   `components.csv` gives it the solution or the solution's selected implementation names it as its `filepath`. The same
+   discipline as the code rules holds: a link shown inside a fenced block, inline code or an HTML comment is not a link, a path
+   mentioned in prose is not a link, URLs and bare anchors point nowhere in the project, and a document several solutions own
+   (a whole `docs/**` folder) counts on neither side. An edge whose ends have no module is checkable when both own a document.
+
 Weak evidence (W1 to W3) is reported and never counts toward precision.
 
 E4 was added after measuring it against the alternatives on three repositories (esoi, the hub of hubs and quest-ai-runner), each
@@ -62,6 +70,11 @@ evidence rule that keeps docstrings out could see them:
   `interfaces.py` are one-fact probes of them (a line count, a number of cases), so they do not call each other. When a probe
   genuinely depends on another solution it should say so in code with a typed need, as `esoi-behaviour-judge` now does
   (it reads its cases through `judge-esoi-behaviour`); until then the floor records what is seen.
+
+Document edges are now readable when the records say which documents a solution owns. esoi's `components.csv` gives its guides
+to the folder as a whole (`docs/**` is owned by `docs-and-templates` and `follow-the-steps` together), so no guide is one
+solution's alone and E5 sees none of the fourteen yet; splitting a folder into per-solution documents means listing every file,
+because a file belongs to one component. E5 shows up where a repository does record that ownership.
 
 A floor is a measurement. `esoi.toml` holds esoi's at 0.55 and the runtime sub-intent's at 0.0 (with `min_lift = 0.0`, written
 there with its reason), and each rises when a composition is typed in code.

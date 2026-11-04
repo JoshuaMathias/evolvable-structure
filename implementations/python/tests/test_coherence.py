@@ -330,3 +330,58 @@ def test_a_chain_the_ownership_map_does_not_give_the_user_is_not_evidence(tmp_pa
     code = owned_code(tmp_path)
     code.owned.clear()                                   # no record says whose any module is
     assert code.evidence("user", "used") != "E4"
+
+
+# ---- document evidence (E5): a link between documents two solutions own, never prose or code samples ----------------------
+
+def documents_code(tmp_path: Path, user_doc: str, used_owners: str = "used", user_owners: str = "user", used_doc: str = "# Used\n"):
+    """A project whose `user` and `used` solutions are documents (no module): docs/user.md and docs/used.md, owned through
+    components.csv."""
+    (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "docs" / "user.md").write_text(user_doc, encoding="utf-8")
+    (tmp_path / "docs" / "used.md").write_text(used_doc, encoding="utf-8")
+    cfg = SimpleNamespace(root=tmp_path, package="", package_dir="")
+    solutions = {"user": {"solution_id": "user"}, "used": {"solution_id": "used"}}
+    components = [{"component_id": "u", "path": "docs/user.md", "solutions": user_owners},
+                  {"component_id": "d", "path": "docs/used.md", "solutions": used_owners}]
+    return coherence.Code(cfg, solutions, [], {}, components)
+
+
+def test_a_markdown_link_between_documents_two_solutions_own_is_strong_evidence_e5(tmp_path):
+    code = documents_code(tmp_path, "See [the used one](used.md#part) for the rest.\n")
+    assert code.evidence("user", "used") == "E5"
+    assert "E5" in coherence.STRONG
+    assert code.evidence("used", "user") == ""                  # the direction is the user's: used does not link back
+
+
+def test_reference_links_images_and_includes_count(tmp_path):
+    for n, text in enumerate(["[x][1]\n\n[1]: ./used.md \"title\"\n", "![chart](used.md)\n", "{{#include used.md}}\n",
+                              "{% include used.md %}\n", "!include used.md\n"]):
+        assert documents_code(tmp_path / str(n), text).evidence("user", "used") == "E5", text
+
+
+def test_a_link_shown_in_code_or_a_comment_is_not_evidence(tmp_path):
+    for n, text in enumerate(["```\n[used](used.md)\n```\n", "Write `[used](used.md)` to link.\n", "<!-- [used](used.md) -->\n",
+                              "~~~md\n[used](used.md)\n~~~\n"]):
+        assert documents_code(tmp_path / str(n), text).evidence("user", "used") == "", text
+
+
+def test_a_bare_mention_a_url_or_an_anchor_is_not_evidence(tmp_path):
+    text = "The used document, docs/used.md, says more. [web](https://example.org/used.md) and [here](#used) and [no](other.md).\n"
+    assert documents_code(tmp_path, text).evidence("user", "used") == ""
+
+
+def test_a_document_several_solutions_own_is_no_evidence_on_either_side(tmp_path):
+    assert documents_code(tmp_path, "[u](used.md)\n", used_owners="used;other").evidence("user", "used") == ""
+    assert documents_code(tmp_path / "b", "[u](used.md)\n", user_owners="user;other").evidence("user", "used") == ""
+
+
+def test_a_link_outside_the_project_or_to_a_missing_document_is_not_evidence(tmp_path):
+    assert documents_code(tmp_path, "[x](../../used.md) [y](missing.md)\n").evidence("user", "used") == ""
+
+
+def test_document_targets_read_only_real_links():
+    from esoi.coherence import document_targets
+    assert document_targets("[a](b.md#c) ![i](img/p.png) [r]: x/y.md\n") == ["b.md", "img/p.png"]
+    assert document_targets("[r]\n\n[r]: x/y.md\n") == ["x/y.md"]
+    assert document_targets("```\n[a](b.md)\n```\n[c](d.md)\n") == ["d.md"]

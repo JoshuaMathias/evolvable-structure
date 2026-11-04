@@ -19,7 +19,7 @@ uses are an alternative, not the structure). Per intent folder:
   roots (M5, S38)      the top intent has one root; a sub-intent's roots are used by the implementation it arises from; every
                        solution is reachable from a root
   diagram (M3, S39)    esoi's generated diagram.md is current and every edge is labelled (the provider's outputs is filled)
-  code (M2, S39)       for each uses edge whose two ends both have Python modules (coverage = checkable / all edges), the
+  code (M2, S39)       for each uses edge whose two ends both have Python modules or owned documents (coverage = checkable / all edges), the
                        strongest evidence the code shows in the user's direction:
                          E1  a module of the user imports a module of the used directly           (strong)
                          E2  executable code of a module of the user names the used's id or its interface class: an
@@ -29,6 +29,11 @@ uses are an alternative, not the structure). Per intent folder:
                              esoi Assembler injects                                               (strong)
                          E4  a module that components.csv gives only to the user (or to the user among others) imports a module
                              it gives only to the used: the user's code reaches the used through its own module   (strong)
+                         E5  a document only the user owns links to or includes a document only the used owns (a markdown link,
+                             image, reference definition or include directive; fenced code, inline code, HTML comments, URLs and
+                             bare mentions of a path never count). A document is a solution's when components.csv gives it the
+                             solution or the solution's selected implementation names it as its filepath; a document several
+                             solutions own does not say which is meant and counts on neither side    (strong)
                          W1  a module of the user imports one that imports the used               (weak, reported)
                          W2  a module of the user builds an esoi Assembler over a scope that declares the used (weak)
                          W3  a third module imports both ends                                     (weak)
@@ -54,8 +59,11 @@ import argparse
 import ast
 import csv
 import json
+import os
+import posixpath
 import re
 import sys
+import urllib.parse
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
@@ -66,9 +74,17 @@ from esoi.tables import glob_re
 
 DEFAULTS = {"max_fan_out": 9, "max_depth": 4, "code_floor": 1.0, "coverage_floor": 0.0, "min_lift": 1.0}
 MIN_CLAUSE_WORDS = 3          # words between the user and the used, names aside ("a uses b" has one: not enough)
-STRONG = ("E1", "E2", "E3", "E4")
+STRONG = ("E1", "E2", "E3", "E4", "E5")
 WEAK = ("W1", "W2", "W3")
 WORD = re.compile(r"[A-Za-z][A-Za-z'-]*")
+DOCUMENT_SUFFIXES = (".md", ".markdown", ".mdx")
+SKIPPED_FOLDERS = {"node_modules", "__pycache__", "venv", "site-packages", "dist", "build"}
+FENCE = re.compile(r"^[ \t]*(```|~~~).*?^[ \t]*\1[^\n]*$|^[ \t]*(```|~~~).*\Z", re.S | re.M)
+HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)
+INLINE_CODE = re.compile(r"(`+)[^`\n]*?\1")
+INLINE_LINK = re.compile(r"!?\[[^\]\n]*\]\(\s*<?([^)\s>]+)")
+REFERENCE_LINK = re.compile(r"^[ \t]{0,3}\[[^\]\n]+\]:[ \t]*<?(\S+?)>?(?:[ \t]+.*)?$", re.M)
+INCLUDE = re.compile(r"\{\{#include\s+([^\s}:]+)[^}]*\}\}|\{%[-\s]*include\s+[\"']?([^\s\"'%]+)|^[ \t]*!include[ \t]+(\S+)", re.M)
 
 
 def executable_tokens(text: str, tree, nodes=None) -> List[str]:
@@ -100,6 +116,23 @@ def executable_tokens(text: str, tree, nodes=None) -> List[str]:
             out.append(node.module)
         elif isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in prose:
             out.append(node.value)
+    return out
+
+
+def document_targets(text: str) -> List[str]:
+    """The relative targets a markdown document links to or includes: inline and reference links, images, and include directives
+    (``{{#include path}}``, ``{% include path %}``, ``!include path``). Fenced code, inline code and HTML comments are not links
+    (they show a link, or hold one out of use), so nothing in them counts; URLs and bare anchors are left out. Targets come back
+    as written, with any ``#fragment`` or ``?query`` removed."""
+    text = HTML_COMMENT.sub(" ", FENCE.sub(" ", text))
+    text = INLINE_CODE.sub(" ", text)
+    found = INLINE_LINK.findall(text) + REFERENCE_LINK.findall(text)
+    found += [x for groups in INCLUDE.findall(text) for x in groups if x]
+    out: List[str] = []
+    for target in found:
+        target = re.split(r"[#?]", target.strip(), maxsplit=1)[0]
+        if target and not re.match(r"^([A-Za-z][A-Za-z0-9+.-]*:|//)", target):
+            out.append(target)
     return out
 
 
@@ -199,6 +232,9 @@ class Code:
                 self.region_tokens[(m, sid)] = executable_tokens(self.source[m], self.trees[m], nodes)
                 self.region_imports[(m, sid)] = self.imports_of(m, nodes)
         self.owned = self.ownership(cfg, components)
+        self.documents = self.document_files(cfg)
+        self.document_owners = self.document_ownership(cfg, components, selected)
+        self.links: Dict[str, Set[str]] = {d: self.links_of(d) for d in self.document_owners}
         self.selected_module = {sid: self.module_of(r.get("filepath", "")) for sid, r in selected.items() if r}
         self.interface = {sid: (r.get("interface_name") or "").strip() for sid, r in solutions.items()}
         self.declared = {sid for text in self.source.values() for sid in re.findall(r"@solution\(\s*[\"']([\w.-]+)[\"']", text)}
@@ -217,6 +253,58 @@ class Code:
                 if m != cfg.package and any(rx.match(f.relative_to(self.root).as_posix()) for rx in patterns):
                     out[m] |= owners
         return out
+
+    def document_files(self, cfg) -> Dict[str, Path]:
+        """{posix path from the root: file} of every markdown document of the project (hidden and vendored folders left out)."""
+        out: Dict[str, Path] = {}
+        for folder, names, files in os.walk(self.root):
+            names[:] = [n for n in names if not n.startswith(".") and n not in SKIPPED_FOLDERS]
+            for name in files:
+                if name.lower().endswith(DOCUMENT_SUFFIXES):
+                    path = Path(folder) / name
+                    out[path.relative_to(self.root).as_posix()] = path
+        return out
+
+    def document_ownership(self, cfg, components, selected) -> Dict[str, Set[str]]:
+        """{document: solutions that own it}. A document is a solution's when ``components.csv`` gives it the solution (the same path
+        globs as modules) or when the solution's selected implementation names it as its ``filepath``: the document is the
+        implementation. Only documents that exist are counted."""
+        out: Dict[str, Set[str]] = defaultdict(set)
+        for row in components or ():
+            patterns = [glob_re(p) for p in ids(row.get("path", ""))]
+            owners = set(ids(row.get("solutions", "")))
+            if owners:
+                for rel in self.documents:
+                    if any(rx.match(rel) for rx in patterns):
+                        out[rel] |= owners
+        for sid, row in selected.items():
+            rel = ((row or {}).get("filepath") or "").strip().split("::")[0]
+            if rel in self.documents:
+                out[rel].add(sid)
+        return out
+
+    def links_of(self, document: str) -> Set[str]:
+        """The documents ``document`` links to or includes, as paths from the root, from its actual markdown links."""
+        text = self.documents[document].read_text(encoding="utf-8", errors="replace")
+        folder = posixpath.dirname(document)
+        out: Set[str] = set()
+        for target in document_targets(text):
+            target = urllib.parse.unquote(target)
+            path = posixpath.normpath(target.lstrip("/") if target.startswith("/") else posixpath.join(folder, target))
+            if not path.startswith("..") and path != document:
+                out.add(path)
+        return out
+
+    def documents_of(self, solution: str) -> Set[str]:
+        return {d for d, owners in self.document_owners.items() if solution in owners}
+
+    def linked(self, user: str, used: str) -> bool:
+        """A document that only ``user`` owns links to or includes a document that only ``used`` owns. Both ends must be one
+        solution's alone: a document several solutions own (a whole ``docs/**`` folder, say) does not say which of them a link
+        means, so it is no evidence on either side."""
+        mine = {d for d in self.documents_of(user) if self.document_owners[d] == {user}}
+        theirs = {d for d in self.documents_of(used) if self.document_owners[d] == {used}}
+        return any(self.links[d] & theirs for d in mine)
 
     def owned_by(self, solution: str) -> Set[str]:
         return {m for m, owners in self.owned.items() if solution in owners}
@@ -304,11 +392,15 @@ class Code:
         return out
 
     def evidence(self, user: str, used: str) -> str:
-        """The strongest evidence that ``user`` uses ``used`` (E1, E2, E3, then W1, W2, W3), '' for none, 'n/a' when either end
+        """The strongest evidence that ``user`` uses ``used`` (E1 to E5, then W1, W2, W3), '' for none, 'n/a' when either end
         has no module."""
         mu, mc = self.modules.get(user, set()), self.modules.get(used, set())
-        if not mu or not mc:
+        if not (mu or self.documents_of(user)) or not (mc or self.documents_of(used)):
             return "n/a"
+        if self.linked(user, used):
+            return "E5"
+        if not mu or not mc:
+            return ""
         if any(self.imported_by(user, m, used, mc) for m in mu):
             return "E1"
         iface = self.interface.get(used)
