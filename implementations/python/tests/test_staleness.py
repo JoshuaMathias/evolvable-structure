@@ -34,11 +34,11 @@ def test_repo_wide_is_safe_and_calls_every_change_stale():
     assert got["false_fresh"] == 0 and got["false_stale"] > 20
 
 
-def test_another_solutions_code_and_a_shared_fixture_never_stale_a_result_under_any_rule_that_reads_ownership():
+def test_another_solutions_code_never_stales_a_result_and_import_closure_ignores_a_shared_fixture():
     for rule in ("component_paths", "import_closure"):
         assert SCORE.aggregate(run_arm(rule))["false_fresh"] == 0
         assert decide(rule, "touch-the-shared-utility", "alpha")["stale"] is False        # util.py is sol-util's implementation
-        assert decide(rule, "touch-a-shared-evaluation-fixture", "alpha")["stale"] is False   # a shared test fixture
+    assert decide("import_closure", "touch-a-shared-evaluation-fixture", "alpha")["stale"] is False   # a shared test fixture
     assert decide("repo_wide", "touch-the-shared-utility", "alpha")["stale"] is True
 
 

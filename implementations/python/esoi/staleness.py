@@ -422,6 +422,7 @@ def judge(config: Config, scope: Scope, path: str) -> Tuple[bool, str]:
             return False, "another implementation's code: its own recorded selection answers for it, not this result"
         if path.startswith(inside):
             return False, "the evaluation folder holds the scorer, datasets and fixtures, not the arm's code"
+    elif path.startswith(inside):
         rest = path[len(inside):]
         if rest.startswith(scope.component + "/"):
             return True, f"in the evaluation folder of {scope.component}"
