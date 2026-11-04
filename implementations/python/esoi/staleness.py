@@ -36,6 +36,8 @@ SOLUTION_ID = "know-what-a-result-measures"
 DYNAMIC_CALLS = {"import_module", "__import__", "run_module", "spec_from_file_location", "load_source"}
 PARSED: Dict[Tuple[str, int, int], Optional[ast.Module]] = {}
 INDEXES: Dict[str, Tuple[tuple, "Index"]] = {}
+NAMES: Dict[tuple, Optional[Tuple[Set[str], bool]]] = {}   # (path, mtime, size, roots) -> what the file imports
+SCOPES: Dict[tuple, Tuple[tuple, "Scope"]] = {}   # (root, component, arm, rule) -> (stat of every file the scan read, scope)
 
 
 @dataclass
@@ -186,7 +188,18 @@ def parse(path: Path) -> Optional[ast.Module]:
     return PARSED[key]
 
 
+MODULES: Dict[tuple, List[Path]] = {}
+
+
 def module_files(roots: List[Path], dotted: str) -> List[Path]:
+    """Cached for the run of the process: a module that appears or disappears mid-run is seen by the next process."""
+    key = (tuple(map(str, roots)), dotted)
+    if key not in MODULES:
+        MODULES[key] = find_module_files(roots, dotted)
+    return MODULES[key]
+
+
+def find_module_files(roots: List[Path], dotted: str) -> List[Path]:
     """The files that importing ``dotted`` runs inside the repository: the module and the ``__init__`` of each package above it."""
     parts = dotted.split(".")
     for root in roots:
@@ -257,11 +270,16 @@ def closure_of(config: Config, starts: List[Path]) -> Tuple[Set[str], bool]:
             complete = False
             continue
         seen[here] = None
-        tree = parse(here)
-        if tree is None:
+        info = here.stat()
+        key = (str(here), info.st_mtime_ns, info.st_size, tuple(map(str, roots)))
+        if key not in NAMES:
+            tree = parse(here)
+            NAMES[key] = import_names(tree, here, roots) if tree is not None else None
+        found = NAMES[key]
+        if found is None:
             complete = False
             continue
-        names, whole = import_names(tree, here, roots)
+        names, whole = found
         complete = complete and whole
         for dotted in names:
             queue.extend(p for p in module_files(roots, dotted) if p not in seen and root in p.parents)
@@ -284,9 +302,32 @@ def start_files(config: Config, index: Index, component: str, impl: str, solutio
     return starts + [config.root / f for f in files]
 
 
+def file_stats(config: Config, scope: Scope) -> tuple:
+    root = config.root.resolve()
+    found = []
+    for rel in sorted(scope.closure or ()):
+        try:
+            info = (root / rel).stat()
+            found.append((rel, info.st_mtime_ns, info.st_size))
+        except OSError:
+            found.append((rel, 0, 0))
+    return tuple(found)
+
+
 def scope_for(config: Config, component: str, impl: str, rule: Optional[str] = None) -> Scope:
-    """What the arm measures under the rule (or the one in force), with the fallbacks written down."""
+    """What the arm measures under the rule (or the one in force), with the fallbacks written down. The scan is kept for the next
+    call and reused while the records and every file it read are unchanged."""
     rule = rule or rule_for(config)
+    key = (str(config.root), component, impl, rule)
+    kept = SCOPES.get(key)
+    if kept is not None and kept[0] == (signature(config), file_stats(config, kept[1])):
+        return kept[1]
+    scope = build_scope(config, component, impl, rule)
+    SCOPES[key] = ((signature(config), file_stats(config, scope)), scope)
+    return scope
+
+
+def build_scope(config: Config, component: str, impl: str, rule: str) -> Scope:
     impl = impl.partition(":")[0] if ":" in impl and "/" not in impl else impl
     root = config.root.resolve()
     evaluation = config.evaluation.resolve().relative_to(root).as_posix() if config.evaluation.resolve().is_relative_to(root) else config.evaluation_dir
