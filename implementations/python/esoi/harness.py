@@ -431,14 +431,27 @@ def external_reason(config: Config, row: Dict[str, str]) -> str:
     return ""
 
 
+def defect_reason(config: Config, component: str, row: Dict[str, str]) -> str:
+    """Why a recorded row is malformed, as opposed to stale: it names no commit (it cannot say what it measured), or
+    ``circumstances.csv`` cannot be read. A defect is a problem for ``esoi check``; every other reason in ``stale_reason``
+    (the cases, the code, the circumstances or the tree changed since the run) is a fact about time and only informs."""
+    if not row.get("git_sha", "").strip():
+        return "its latest row has no git_sha"
+    try:
+        circumstances.for_component(config, component)
+    except ValueError as exc:
+        return f"circumstances.csv cannot be read: {exc}"
+    return ""
+
+
 def stale_reason(config: Config, component: str, row: Optional[Dict[str, str]], strict: bool = True) -> str:
     """Why a recorded result no longer counts, or an empty string when it is current. A result is stale when it is missing,
     has no commit, was run on other cases than the ones now on disk, and (strict) was run on uncommitted code or the
     measured code, in this repository or in another one named by ``code_paths``, has changed since its commit."""
     if row is None:
         return "it has no recorded result"
-    if not row.get("git_sha", "").strip():
-        return "its latest row has no git_sha"
+    if why := defect_reason(config, component, row):
+        return why
     now = cases_digest(component, config.evaluation)
     if row.get("cases_sha", "") != now:
         return f"its latest row was recorded on other cases (cases_sha {row.get('cases_sha') or 'blank'}, now {now})"

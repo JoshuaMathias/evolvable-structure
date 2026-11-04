@@ -160,8 +160,10 @@ def test_results_rules_s10_s16_s20(cfg):
     for r in rows:
         r["cases_sha"] = ""
     tables.write_csv(results, cols, rows)
-    found = check.check(cfg)
-    assert any(line.startswith("S16") for line in found) and any(line.startswith("S20") for line in found)
+    problems, advice = check.check_all(cfg)
+    assert any(line.startswith("S16") for line in problems)   # a row with no cases_sha is malformed: still a problem
+    assert not any(line.startswith("S20") for line in problems)   # the cases it was run on are a fact, so S20 informs
+    assert any(line.startswith("S20") and "other cases" in line for line in advice)
 
 
 def test_strict_mode_rejects_a_result_recorded_on_dirty_code(cfg):
@@ -340,3 +342,37 @@ def test_s31_a_metric_must_be_meaningfully_real(cfg):
     assert not any(line.startswith("S31") for line in check.check(cfg))
     edit(cfg, "metrics.csv", "metric_id", "greeting-pass-rate", "record", "Cases passed, judged by a scripted judge.")
     assert any(line.startswith("S31") and "greeting-pass-rate" in line for line in check.check(cfg))
+
+
+def change_cases(cfg):
+    from esoi import leaderboard
+    path = leaderboard.cases_files("greet_a_person", cfg.evaluation)[0]
+    path.write_text(path.read_text() + "\n")
+
+
+def test_a_changed_case_file_is_advice_with_the_next_action_never_a_problem(cfg):
+    change_cases(cfg)
+    problems, advice = check.check_all(cfg)   # non-strict: the move or commit that edits a case file is not blocked
+    assert problems == []
+    found = [line for line in advice if line.startswith("S20 greet-a-person")]
+    assert found and "other cases" in found[0] and "esoi run greet_a_person --impl live --record" in found[0]
+    assert check.run_cli(cfg, strict=False, write=False, say=lambda text: None) == 0
+
+
+def test_a_row_with_no_git_sha_is_a_malformed_record_and_stays_a_problem(cfg):
+    rows, cols = tables.read_csv(cfg.results_path), tables.read_header(cfg.results_path)
+    for r in rows:
+        r["git_sha"] = ""
+    tables.write_csv(cfg.results_path, cols, rows)
+    problems, advice = check.check_all(cfg)
+    assert any(line.startswith("S20") and "no git_sha" in line for line in problems)
+
+
+def test_changed_circumstances_and_a_dirty_row_inform_but_do_not_fail(cfg):
+    from esoi import harness
+    row = {r["impl"]: r for r in tables.read_csv(cfg.results_path)}["live"]
+    row["git_sha"] = "abc1234-dirty"
+    assert harness.defect_reason(cfg, "greet_a_person", row) == ""            # dirty is a fact about the tree, not a defect
+    assert "uncommitted" in harness.stale_reason(cfg, "greet_a_person", row, True)
+    row["git_sha"] = ""
+    assert "no git_sha" in harness.defect_reason(cfg, "greet_a_person", row)  # malformed

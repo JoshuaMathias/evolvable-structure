@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from .. import leaderboard
-from ..harness import declares_simulated, stale_reason
+from ..harness import declares_simulated, defect_reason, stale_reason
 from ..records import FILES
 from ..tables import ids
 from .base import Context, RuleGroup, parse_file
@@ -234,16 +234,14 @@ def run(ctx: Context) -> List[str]:
             if ctx.strict and not waived:
                 ctx.advisory.append(f"S20 {sid}: rival {impl} is not comparable with {sel} ({rival_why}); "
                                     f"record both on the same sample when a decision depends on the comparison")
-        why = stale_reason(config, comp, row, False)   # other cases, no commit: the row does not describe what is measured now
-        if why:
+        defect = defect_reason(config, comp, row)   # a malformed row (no commit, unreadable circumstances) is a problem
+        if defect:
             if not ctx.waived("S20", sid):
-                bad.append(f"S20 {sid}: {why}; re-run `esoi run {comp} --impl {sel} --record` on committed code")
+                bad.append(f"S20 {sid}: {defect}; re-run `esoi run {comp} --impl {sel} --record` on committed code")
             continue
-        changed = stale_reason(config, comp, row, True)   # a changed file only informs (advice, never a problem)
-        if changed and ctx.strict and not ctx.waived("S20", sid):
+        changed = stale_reason(config, comp, row, True)   # other cases, other circumstances, changed or dirty code: advice, never a problem
+        if changed and not ctx.waived("S20", sid):
             ctx.advisory.append(f"S20 {sid}: {changed}; re-run `esoi run {comp} --impl {sel} --record` when a decision or release depends on it")
-        elif changed:
-            ctx.waived("S20", sid)   # a waiver for it is in use now, not unused
     return bad
 
 

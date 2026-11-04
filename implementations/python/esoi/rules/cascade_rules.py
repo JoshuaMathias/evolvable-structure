@@ -7,7 +7,7 @@ from __future__ import annotations
 import datetime
 
 from .. import cascade, leaderboard
-from ..harness import stale_reason
+from ..harness import defect_reason, stale_reason
 from ..tables import ids
 from .base import Context, RuleGroup
 
@@ -31,7 +31,7 @@ def run(ctx: Context) -> list:
         if errors or not stages or component not in ctx.history:
             continue
         standing = cascade.standings(stages, ctx.history[component], datetime.date.today(),
-                                     lambda row, c=component: stale_reason(ctx.config, c, row, False),
+                                     lambda row, c=component: defect_reason(ctx.config, c, row),   # a changed case file or code only informs
                                      ctx.config.evaluation)
         decision = cascade.decide(stages, standing, ctx.config.evaluation)
         for sid in ids(metric.get("solution_ids", "")):

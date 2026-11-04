@@ -143,7 +143,7 @@ One row per Metric record the policy governs, in the repository's own records (t
 - **stages:** the sample sizes run in order, each only after the last looked right (for example 3, then 10, then 30).
 - **call_budget:** the most calls a run may make; the run stops there.
 - **cost_estimate:** worked out before the run, so approval is for a known amount.
-- **stale_when:** the result no longer describes what it measured: the cases changed, code that the arm measures changed since its commit (name how you tell which files it measures: the whole repository, the files its component owns, or the files its module imports), it was run on uncommitted code, or the model or price behind it changed. Say also when a stale row is worth re-running: a decision depends on it, its cascade condition says so, or a declared expiration has passed.
+- **stale_when:** the result no longer describes what it measured: the cases changed, code that the arm measures changed since its commit (name how you tell which files it measures: the whole repository, the files its component owns, or the files its module imports), it was run on uncommitted code, or the model or price behind it changed. State that these only inform: `esoi check` lists a changed case file or changed code as advice with the next action and never fails or blocks a move or commit; only a malformed row (no `git_sha`, no `cases_sha`) is a problem. Say also when a stale row is worth re-running: a decision depends on it, its cascade condition says so, or a declared expiration has passed.
 
 ## 5. Link it up
 

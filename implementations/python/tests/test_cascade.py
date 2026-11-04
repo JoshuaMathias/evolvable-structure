@@ -227,3 +227,11 @@ def test_an_empty_selected_gets_its_first_choice_from_the_metric_and_a_tie_names
     tables.write_csv(cfg.results_path, header, only)
     [single] = promote.propose(cfg, registry.load(cfg), stale=fresh_rows)
     assert single.status == "propose" and single.winner == "shout"
+
+
+def test_s33_does_not_fail_because_the_cases_changed_after_the_run(cfg):
+    from esoi import leaderboard
+    set_cascade(cfg, "whole [sample=full | real=no]")
+    path = leaderboard.cases_files("greet_a_person", cfg.evaluation)[0]
+    path.write_text(path.read_text() + "\n")   # every recorded row is now on other cases: the standing still holds, as advice
+    assert not any(line.startswith("S33") for line in check.check(cfg))
