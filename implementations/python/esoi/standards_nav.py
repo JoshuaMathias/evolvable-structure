@@ -379,6 +379,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     m.add_argument("cases")
     m.add_argument("--repo", default=".")
     m.add_argument("--baseline", action="store_true", help="score the arm that ignores the task and shows the first standards")
+    m.add_argument("--label", choices=("applicable", "violated"), default="applicable")
     i = sub.add_parser("install-hook", help="write the pre-commit hook for a repository")
     i.add_argument("repo", nargs="?", default=".")
     args = ap.parse_args(argv)
@@ -392,7 +393,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 0
     if args.cmd == "measure" and root:
         from esoi import standards_measure
-        print(standards_measure.report(standards_measure.run(root, Path(args.repo).resolve(), Path(args.cases), args.baseline)))
+        print(standards_measure.report(standards_measure.run(root, Path(args.repo).resolve(), Path(args.cases), args.baseline, args.label)))
         return 0
     if args.cmd == "lint" and root:
         problems = lint(root)
