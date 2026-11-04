@@ -24,7 +24,7 @@ lift 1.14), so a precision of 1.0 meant nothing.
 
 The rules that decide what counts as strong evidence of "A uses B", in the order the check tries them:
 
-1. **E1** a module of A imports a module of B (a module B shares with other solutions counts only when the import names B's class).
+1. **E1** a module of A imports a module of B (at module level or lazily inside a function: an import is executable code wherever it stands) (a module B shares with other solutions counts only when the import names B's class).
 2. **E2** executable code of A names B's id or interface class (identifier, attribute, import, annotation, decorator or call
    argument, or a string used as a value). Docstrings, comments and bare string statements never count.
 3. **E3** A's implementation takes a parameter typed with B's interface, a need the Assembler injects.

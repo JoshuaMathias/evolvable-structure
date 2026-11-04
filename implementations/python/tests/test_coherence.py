@@ -423,3 +423,17 @@ def test_a_name_inside_a_longer_name_is_read_as_the_longer_one():
         assert coherence.position("mind", solutions["mind"], "The Minder works.") == -1   # a whole phrase, not a prefix of a word
     finally:
         coherence.SOLUTION_NAMES.clear()
+
+
+def test_a_lazy_import_inside_a_function_is_an_import_so_e1(tmp_path):
+    """An import inside ``def`` is executable code like any other: the edge is shown by E1, as it is for a module-level import."""
+    for n, body in enumerate(["def go():\n    from . import used\n    return used\n",
+                              "def go():\n    from pk import used\n    return used\n",
+                              "def go():\n    import pk.used\n    return pk.used\n",
+                              "class Runner:\n    def go(self):\n        from .used import Finder\n        return Finder()\n"]):
+        assert code_for(tmp_path / str(n), body).evidence("user", "used") == "E1", body
+
+
+def test_a_lazy_import_that_only_a_comment_or_string_shows_is_not_evidence(tmp_path):
+    code = code_for(tmp_path, 'def go():\n    # from . import used\n    text = "from . import used"\n    return text\n')
+    assert code.evidence("user", "used") != "E1"

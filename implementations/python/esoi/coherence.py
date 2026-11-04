@@ -21,7 +21,8 @@ uses are an alternative, not the structure). Per intent folder:
   diagram (M3, S39)    esoi's generated diagram.md is current and every edge is labelled (the provider's outputs is filled)
   code (M2, S39)       for each uses edge whose two ends both have Python modules or owned documents (coverage = checkable / all edges), the
                        strongest evidence the code shows in the user's direction:
-                         E1  a module of the user imports a module of the used directly           (strong)
+                         E1  a module of the user imports a module of the used directly (at module level or lazily inside a function:
+                             an import is executable code wherever it stands)                         (strong)
                          E2  executable code of a module of the user names the used's id or its interface class: an
                              identifier, attribute, import, annotation, decorator or call argument, or a string literal used as a
                              value. A docstring, a comment and any bare string statement are prose and never count   (strong)
