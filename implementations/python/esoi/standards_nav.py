@@ -179,11 +179,8 @@ def load_tags(root: Path) -> Dict[str, Tag]:
 WORD = re.compile(r"[a-z][a-z0-9-]+")
 
 
-def for_task(root: Path, task: str) -> str:
-    """Before any code exists: the standards a described task is likely to meet, found lexically (no model).
-
-    A standard scores one point per task word that is a keyword of one of its tags, and a half point per task word found in
-    its own title, rule or read-when line. Nothing under a point is shown, so a vague task shows nothing rather than a guess."""
+def rank_task(root: Path, task: str) -> List[Tuple[float, Standard, List[str]]]:
+    """The standards a described task is likely to meet, best first, as (score, standard, matched keywords)."""
     words = set(WORD.findall(task.lower()))
     tags = load_tags(root)
     scored = []
@@ -194,6 +191,15 @@ def for_task(root: Path, task: str) -> str:
         if score >= 1:
             scored.append((score, std, sorted(keyword_hits)))
     scored.sort(key=lambda item: -item[0])
+    return scored
+
+
+def for_task(root: Path, task: str) -> str:
+    """Before any code exists: the standards a described task is likely to meet, found lexically (no model).
+
+    A standard scores one point per task word that is a keyword of one of its tags, and a half point per task word found in
+    its own title, rule or read-when line. Nothing under a point is shown, so a vague task shows nothing rather than a guess."""
+    scored = rank_task(root, task)
     if not scored:
         return ""
     lines = ["Standards this task is likely to meet (open the file only for detail):"]
@@ -369,6 +375,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     t.add_argument("task", nargs="+")
     t.add_argument("--repo", default=".")
     sub.add_parser("lint", help="check the standards folder against the standard for writing standards").add_argument("repo", nargs="?", default=".")
+    m = sub.add_parser("measure", help="score for-task against the standards that applied to real past work (cases file)")
+    m.add_argument("cases")
+    m.add_argument("--repo", default=".")
+    m.add_argument("--baseline", action="store_true", help="score the arm that ignores the task and shows the first standards")
     i = sub.add_parser("install-hook", help="write the pre-commit hook for a repository")
     i.add_argument("repo", nargs="?", default=".")
     args = ap.parse_args(argv)
@@ -379,6 +389,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     root = find_root(Path(args.repo).resolve())
     if args.cmd == "for-task" and root:
         print(for_task(root, " ".join(args.task)))
+        return 0
+    if args.cmd == "measure" and root:
+        from esoi import standards_measure
+        print(standards_measure.report(standards_measure.run(root, Path(args.repo).resolve(), Path(args.cases), args.baseline)))
         return 0
     if args.cmd == "lint" and root:
         problems = lint(root)
