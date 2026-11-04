@@ -813,3 +813,14 @@ date,component,impl,cases,passed,dev,heldout,model_calls,tokens_in,tokens_out,co
 2026-11-03,public_evidence,graded,11,11,11/11,0/0,0,0,0,0.0,0.0,81fb6df,302f8fb7,none,,,
 2026-11-03,select_an_implementation,live_selector,32,32,32/32,0/0,0,0,0,0.0,0.0,81fb6df,8ba84fe1,none,"declared 13/13, resolve 19/19",,
 2026-11-03,assemble_by_name,live_assembler,41,41,41/41,0/0,0,0,0,0.0,0.3,81fb6df,1b43c4f0,none,"assemble 39/39, docs 2/2",,
+2026-11-03,check_the_structure,live_checker,76,61,61/76,0/0,0,0,0,0.0,3.2,8a47c37,43a28c76,none,"mutations detected 61/61, clean fixtures passed 0/14",,
+2026-11-03,know_stale_results,live_checker,16,10,10/16,0/0,0,0,0,0.0,0.5,8a47c37,754ec5d1,none,"mutations detected 10/10, clean fixtures passed 0/6",,
+2026-11-03,staleness_precision,repo_wide,55,15,15/55,0/0,0,0,0,0.0,0.3,8a47c37,f25e39ca,none,false_fresh=0; false_stale=40; decisions=55,,
+2026-11-03,staleness_precision,component_paths,55,33,33/55,0/0,0,0,0,0.0,0.3,8a47c37,f25e39ca,none,"DISQUALIFIED false-fresh in 2 decision(s): STP-005, STP-007; false_fresh=2; false_stale=20; decisions=55 | forced past unsolved failures: the decisions an arm gets wrong are what this metric measures; its failures are the result, not defects to fix first",,0.0
+2026-11-03,staleness_precision,import_closure,55,46,46/55,0/0,0,0,0,0.0,0.4,8a47c37,f25e39ca,none,"false_fresh=0; false_stale=9; decisions=55 | forced past unsolved failures: the decisions an arm gets wrong are what this metric measures; its failures are the result, not defects to fix first",,
+2026-11-03,staleness_precision,repo_wide,55,15,15/55,0/0,0,0,0,0.0,0.3,3ae94d3,f25e39ca,none,false_fresh=0; false_stale=40; decisions=55,,
+2026-11-03,staleness_precision,component_paths,55,33,33/55,0/0,0,0,0,0.0,0.3,3ae94d3,f25e39ca,none,"DISQUALIFIED false-fresh in 2 decision(s): STP-005, STP-007; false_fresh=2; false_stale=20; decisions=55",,0.0
+2026-11-03,staleness_precision,import_closure,55,46,46/55,0/0,0,0,0,0.0,0.4,3ae94d3,f25e39ca,none,false_fresh=0; false_stale=9; decisions=55,,
+2026-11-03,check_the_structure,live_checker,76,61,61/76,0/0,0,0,0,0.0,3.2,3ae94d3,43a28c76,none,"mutations detected 61/61, clean fixtures passed 0/14",,
+2026-11-03,know_stale_results,live_checker,16,9,9/16,0/0,0,0,0,0.0,0.6,3ae94d3,754ec5d1,none,"mutations detected 9/10, clean fixtures passed 0/6",,
+2026-11-03,know_stale_results,live_checker,16,10,10/16,0/0,0,0,0,0.0,0.6,fe5d2ac,ce157693,none,"mutations detected 10/10, clean fixtures passed 0/6 | forced past unsolved failures: S28 clean-fixture failures were already present at the previous commit",,
