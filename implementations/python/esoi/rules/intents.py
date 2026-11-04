@@ -1,4 +1,4 @@
-"""Rules about intents as containers: S28 and S29, and S46 (a solution's name is a name, not its handle). They apply only where the structure folder holds an ``intent.csv``.
+"""Rules about intents as containers: S28 and S29, S46 (a name is a name, not a handle), S48 and S49 (the role of a solution against its siblings). They apply only where the structure folder holds an ``intent.csv``.
 
 S28 the intent folders and the link from a sub-intent to the implementation it arises from, S29 ids across the tree
 and the solutions an implementation builds on. The record rules (R1 to R7, inside S26) check each record type.
@@ -28,7 +28,101 @@ SUMMARIES = {
     "S46": "Advisory: a record's `name` is the human-readable label that leads every generated page, not its handle: a name that is missing, equals its "
            "own id (or the arm part of it), is the id with a suffix or after a colon, or is written kebab-case or snake_case is informed, for intents, "
            "solutions, implementations, metrics, ideals, problems and components (waive as the record id).",
+    "S48": "Advisory role scoping: a solution with siblings states what it is not responsible for (out_of_scope) and who owns that (`delegates_to` "
+           "or a named sibling; `none` says nothing is delegated), two siblings do not overlap strongly in purpose and description, and a container names the `change_driver` that moves its "
+           "metric (waive as the solution id, or a+b for a pair).",
+    "S49": "Advisory review prompt: a solution with three or more implementations whose descriptions share little is read for one purpose and one level "
+           "of specificity (a solution holds alternatives of the same job); a prompt, never a verdict (waive as the solution id).",
 }
+
+STOP = frozenset("that this with from into their they them have has been being each every which what when where while than then also only "
+                 "such more most other over under about between without within through whose these those will would could should can may might "
+                 "does done make makes made using used uses use its itself your you our are for the and not but any all one two".split())
+OVERLAP = 0.45          # shared share of the content words of two sibling solutions that is called strong overlap
+OVERLAP_WORDS = 6       # and at least this many shared words, so two short texts do not match by accident
+CHANGE_DRIVERS = "outside systems, the system's own data model or code, ML task accuracy, alignment with humans or policies"
+
+
+def content(text: str) -> frozenset:
+    return frozenset(w for w in re.findall(r"[a-z][a-z-]{3,}", (text or "").lower()) if w not in STOP)
+
+
+def named_in(text: str, row) -> bool:
+    low = (text or "").lower()
+    for ident in (row.get("solution_id", ""), " ".join(row.get("name", "").split())):
+        if ident and re.search(r"(?<![\w-])" + re.escape(ident.lower()) + r"(?![\w-])", low):
+            return True
+    return False
+
+
+def role_scope(ctx: Context) -> List[str]:
+    """S48: the role of each solution against its siblings: what it is not responsible for and who owns that, overlap of purposes, and the
+    kind of change that moves a container's metric. Informing only: the texts are judged by people, these are the prompts."""
+    out: List[str] = []
+    rows = ctx.registry.every_solution()
+    by_intent: Dict[str, list] = defaultdict(list)
+    for row in rows:
+        by_intent[row.get("intent_id", "")].append(row)
+    known = {r.get("solution_id", "") for r in rows}
+    containers = {r.get("solution_id", "") for r in ctx.registry.implementations if (r.get("sub_intent") or "").strip()}
+    adopted = any("delegates_to" in row for row in rows)   # a repository that has the column records who owns what each solution excludes
+    for intent, group in by_intent.items():
+        if not adopted and len(group) > 1 and intent and not ctx.waived("S48", intent):
+            out.append(f"S48 {intent}: its {len(group)} solutions have siblings, but no solution records `delegates_to` (who owns what each one is not "
+                       "responsible for); next: add the `delegates_to` and `change_driver` columns to solutions.csv and scope each role "
+                       "(docs/how-to/scope-the-role-of-a-solution.md)")
+        for row in group:
+            sid = row.get("solution_id", "")
+            siblings = [s for s in group if s is not row]
+            if not sid or ctx.waived("S48", sid):
+                continue
+            scope, delegates = (row.get("out_of_scope") or "").strip(), ids(row.get("delegates_to", ""))
+            if siblings and not scope:
+                out.append(f"S48 {sid}: it has {len(siblings)} sibling solution(s) in {intent} but states no exclusions (out_of_scope is empty); next: "
+                           "say what it is NOT responsible for and which sibling owns that (name the owner in `delegates_to`), or why nothing is excluded")
+            elif adopted and siblings and scope and not delegates and not any(named_in(scope, s) for s in siblings):
+                out.append(f"S48 {sid}: out_of_scope says what it is not responsible for but not who owns it (it names no sibling); next: name the "
+                           "owning sibling in `delegates_to`, or record that nothing owns it, which is a gap in the hierarchy")
+            for target in delegates:
+                if target != "none" and target not in known:
+                    out.append(f"S48 {sid}: delegates_to names {target}, which is no solution; next: name the sibling that owns that part of the job")
+            if sid in containers and not (row.get("change_driver") or "").strip():
+                out.append(f"S48 {sid}: it is a container (an implementation of it is a sub-intent) but names no change_driver; next: say what kind "
+                           f"of change moves its metric: {CHANGE_DRIVERS}")
+        words = [(row, content(" ".join([row.get("purpose", ""), row.get("description", "")]))) for row in group]
+        for i, (a, wa) in enumerate(words):
+            for b, wb in words[i + 1:]:
+                shared = wa & wb
+                if len(shared) >= OVERLAP_WORDS and len(shared) / max(1, len(wa | wb)) >= OVERLAP:
+                    ia, ib = a.get("solution_id", ""), b.get("solution_id", "")
+                    if ctx.waived("S48", ia) or ctx.waived("S48", ib) or ctx.waived("S48", f"{ia}+{ib}"):
+                        continue
+                    out.append(f"S48 {ia}+{ib}: their purpose and description texts overlap strongly ({', '.join(sorted(shared)[:6])}); next: merge them, "
+                               "split the job so each owns one role, or let one delegate to the other (delegates_to). Also ask whether either exists only "
+                               "for a capability the other, or the world, already provides")
+    return out
+
+
+def review_prompts(ctx: Context) -> List[str]:
+    """S49: a review prompt, not a verdict, for each solution with three or more implementations whose descriptions share little: read the list for
+    one purpose and one level of specificity (a general solution's arms do the same job)."""
+    out: List[str] = []
+    by_solution: Dict[str, list] = defaultdict(list)
+    for impl in ctx.registry.implementations:
+        by_solution[impl.get("solution_id", "")].append(impl)
+    for sid, impls in sorted(by_solution.items()):
+        if len(impls) < 3 or not sid or ctx.waived("S49", sid):
+            continue
+        texts = [content(" ".join([i.get("name", ""), i.get("description", "")])) for i in impls]
+        pairs = [(a & b, a | b) for n, a in enumerate(texts) for b in texts[n + 1:] if a and b]
+        mean = sum(len(s) / len(u) for s, u in pairs) / len(pairs) if pairs else 1
+        if mean < 0.06:
+            names = "; ".join(" ".join(i.get("name", "").split()) or i.get("implementation_id", "") for i in impls[:8])
+            out.append(f"S49 {sid}: review prompt: read its {len(impls)} implementations for one purpose and one level of specificity ({names}). "
+                       "A solution holds alternatives that do the SAME job; arms that serve different purposes mean it is mis-defined: split by purpose "
+                       "(a general solution with general arms, specific solutions nested beneath or composed by it) and name the general alternatives missing")
+    return out
+
 
 HANDLE_STYLE = re.compile(r"^[a-z0-9]+(?:[-_][a-z0-9]+)+$")
 
@@ -154,6 +248,10 @@ def run(ctx: Context) -> List[str]:
                 bad.append(f"S29 {iid}: builds on its own solution {target}")
     if not config.is_disabled("S46"):
         ctx.advisory.extend(handle_names(ctx))
+    if not config.is_disabled("S48"):
+        ctx.advisory.extend(role_scope(ctx))
+    if not config.is_disabled("S49"):
+        ctx.advisory.extend(review_prompts(ctx))
     return bad
 
 

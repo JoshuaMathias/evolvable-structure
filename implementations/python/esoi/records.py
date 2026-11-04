@@ -98,7 +98,8 @@ def renamed_column_problems(name: str, header: Iterable[str], label: str) -> Lis
 #: path, a command a machine runs, or the name of the interface a solution defines. Any column ending `_id` or `_ids`
 #: is a link or an id, and any starting `tracking_` is the review tracker's own; neither needs listing.
 TECHNICAL_COLUMNS = {
-    "solutions.csv": {"interface_name", "implementations", "selected"},
+    "solutions.csv": {"interface_name", "implementations", "selected",
+                      "delegates_to", "change_driver"},   # the role statement: who owns what the solution is not responsible for; what kind of change moves its metric
     "implementations.csv": {"filepath", "sub_intent", "selected"},   # selected: the legacy overall network flags its chosen way
     "metrics.csv": {"command"},
     "intent.csv": {"implements"},
