@@ -630,7 +630,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         return spec_command(config, args)
     if args.cmd == "check":
         from . import check
-        return check.run_cli(config, args.strict, args.write_docs, findings=args.findings)
+        from . import intents
+        with intents.session():
+            return check.run_cli(config, args.strict, args.write_docs, findings=args.findings)
     if args.cmd == "rules":
         from . import rules
         for rid, text in rules.summaries(config).items():
@@ -724,17 +726,23 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(f"esoi stale: --rule must be one of {', '.join(staleness.RULES)}")
             return 2
         if args.count:
-            counts = {rule: staleness.count_stale(config, rule) for rule in staleness.RULES}
+            from . import intents
+            with intents.session():
+                counts = {rule: staleness.count_stale(config, rule) for rule in staleness.RULES}
             for rule, found in counts.items():
                 print(f"{rule}: {len(found)} row(s) stale because measured code changed")
             return 0
         if args.explain:
-            return staleness.explain_cli(config, args.explain, print, args.rule)
+            from . import intents
+            with intents.session():
+                return staleness.explain_cli(config, args.explain, print, args.rule)
         print("usage: esoi stale --explain COMPONENT [--rule RULE] | esoi stale --count")
         return 2
     if args.cmd == "leaderboard":
         from . import attest, harness, leaderboard, registry
-        return leaderboard.board(config, registry.load(config), args.strict, stale=harness.stale_reason, attested=attest.note)
+        from . import intents
+        with intents.session():
+            return leaderboard.board(config, registry.load(config), args.strict, stale=harness.stale_reason, attested=attest.note)
     if args.cmd == "select":
         return select_command(config, args)
     if args.cmd == "cascade":

@@ -21,6 +21,7 @@ apart. Standard library only.
 from __future__ import annotations
 
 import re
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -138,10 +139,33 @@ def discover(config: Config) -> List[Intent]:
     return found
 
 
+SESSION: Dict[str, List[Tuple[str, Path]]] = {}   # filled only while a ``session()`` is open
+OPEN = [0]
+
+
+@contextmanager
+def session():
+    """Within this block a command finds the record folders once (finding them globs the tree, and a run that judges many results asks
+    hundreds of times). Nothing outside a session is remembered, so a program that edits records and asks again sees the edit."""
+    OPEN[0] += 1
+    try:
+        yield
+    finally:
+        OPEN[0] -= 1
+        if not OPEN[0]:
+            SESSION.clear()
+
+
 def folders(config: Config) -> List[Tuple[str, Path]]:
     """``(intent id, folder)`` for every folder that holds records: each intent, or the one legacy folder."""
+    key = str(config.root)
+    if OPEN[0] and key in SESSION:
+        return SESSION[key]
     places = located(config)
-    return [(iid, folder) for iid, folder, _ in places] if places else [("", config.structure)]
+    found = [(iid, folder) for iid, folder, _ in places] if places else [("", config.structure)]
+    if OPEN[0]:
+        SESSION[key] = found
+    return found
 
 
 ENTITY_OF_FILE = {"solutions.csv": "solution", "metrics.csv": "metric"}

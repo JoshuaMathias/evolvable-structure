@@ -1316,9 +1316,11 @@ def run_cli(argv: List[str], config: Config, say: Callable[[str], None] = print)
     prepare_path(config)
     if argv and argv[0] == "--stale":
         include = [argv[i + 1] for i, word in enumerate(argv[:-1]) if word == "--include"]
-        return rerun_stale(config, say, record="--no-record" not in argv, include_paid="--include-paid" in argv,
-                           include=include, full="--full" in argv, plan="--plan" in argv, run_all="--all" in argv,
-                           for_decision="--for-decision" in argv)
+        from . import intents
+        with intents.session():   # the record folders are found once for the whole listing
+            return rerun_stale(config, say, record="--no-record" not in argv, include_paid="--include-paid" in argv,
+                               include=include, full="--full" in argv, plan="--plan" in argv, run_all="--all" in argv,
+                               for_decision="--for-decision" in argv)
     components = discover_components(config)
     if not argv or argv[0] not in components:
         say("usage: esoi run <component> --impl <name> [--only IDS | --failed] [--sample N] [--max-calls N] [--cassette DIR [--cassette-only]] [--keep-going] [--fresh] [--record] [--differs WHAT] [--force REASON]  |  esoi run --stale [--plan] [--full] [--for-decision | --all] [--include-paid | --include COMPONENT/IMPL]")

@@ -41,6 +41,7 @@ DEFAULT_RULE = DEFAULT_STALENESS_RULE
 SOLUTION_ID = "know-what-a-result-measures"
 DYNAMIC_CALLS = {"import_module", "__import__", "run_module", "spec_from_file_location", "load_source"}
 PARSED: Dict[Tuple[str, int, int], Optional[ast.Module]] = {}
+STATS = {"parses": 0, "worlds": 0}   # counters the performance guard test reads: files parsed, import graphs built
 INDEXES: Dict[str, Tuple[tuple, "Index"]] = {}
 NAMES: Dict[tuple, Optional[Tuple[Set[str], bool]]] = {}   # (path, mtime, size, roots) -> what the file imports
 SCOPES: Dict[tuple, Tuple[tuple, "Scope"]] = {}   # (root, component, arm, rule) -> (stat of every file the scan read, scope)
@@ -53,6 +54,8 @@ class Index:
     solutions: List[Dict[str, str]] = field(default_factory=list)
     implementations: List[Dict[str, str]] = field(default_factory=list)
     selected: str = ""
+    hosts: Optional[Set[Path]] = None                  # the folders that may hold records beside code, found once
+    code_folders: Dict[int, Optional[Path]] = field(default_factory=dict)   # id of an implementation row -> the folder of its code
 
 
 @dataclass
@@ -96,10 +99,21 @@ def normal(name: str) -> str:
     return name.split(":")[-1].split("::")[0].strip().lower().replace("-", "_")
 
 
-def signature(config: Config) -> tuple:
+def record_folders(config: Config) -> list:
     from . import intents
+    return intents.folders(config)
+
+
+def forget() -> None:
+    """Drop what a run remembers (the record folders, the import graphs, the scopes): the next question reads the repository again."""
+    WORLDS.clear()
+    SCOPES.clear()
+    INDEXES.clear()
+
+
+def signature(config: Config) -> tuple:
     found = []
-    for _, folder in intents.folders(config):
+    for _, folder in record_folders(config):
         for name in ("components.csv", "implementations.csv", "solutions.csv", "metrics.csv"):
             path = folder / name
             if path.is_file():
@@ -161,20 +175,27 @@ def implementation_files(index: Index, solutions: List[str]) -> List[str]:
 def beside_folders(config: Config, index: Index, solutions: List[str]) -> List[str]:
     """The beside-code folder of a solution, when the records live beside the code and its code is alone in that folder."""
     from . import besidecode
-    allowed = set(besidecode.hosts(config))
+    if index.hosts is None:
+        index.hosts = set(besidecode.hosts(config))
+    allowed = index.hosts
     if not allowed:
         return []
     root = config.root.resolve()
+
+    def code_folder(row: Dict[str, str]) -> Optional[Path]:
+        if id(row) not in index.code_folders:
+            index.code_folders[id(row)] = besidecode.code_folder(config, row.get("filepath", ""))
+        return index.code_folders[id(row)]
     found = []
     for sid in solutions:
-        folders = [besidecode.code_folder(config, r.get("filepath", "")) for r in index.implementations if r.get("solution_id") == sid]
+        folders = [code_folder(r) for r in index.implementations if r.get("solution_id") == sid]
         folders = [f for f in folders if f is not None]
         host = besidecode.host_for(allowed, besidecode.common(folders), root) if folders else None
         if host is None or host == root:
             continue
         shared = False
         for r in index.implementations:
-            where = besidecode.code_folder(config, r.get("filepath", ""))
+            where = code_folder(r)
             if r.get("solution_id") not in solutions and where is not None and host in [where, *where.parents]:
                 shared = True
         if not shared:
@@ -192,6 +213,7 @@ def parse(path: Path) -> Optional[ast.Module]:
     key = (str(path), info.st_mtime_ns, info.st_size)
     if key not in PARSED:
         try:
+            STATS["parses"] += 1
             PARSED[key] = ast.parse(path.read_text(encoding="utf-8"))
         except (OSError, SyntaxError, UnicodeDecodeError, ValueError):
             PARSED[key] = None
@@ -287,29 +309,89 @@ def foreign_files(config: Config, index: Index, own: Set[str]) -> Set[str]:
     return found - own
 
 
-def not_own_code(config: Config, rel: str, foreign: Set[str], own: Set[str]) -> bool:
+def evaluation_prefix(config: Config) -> str:
+    """The evaluation folder from the repository root, with a trailing slash (computed once per call that needs it)."""
+    root = config.root.resolve()
+    evaluation = config.evaluation.resolve()
+    return (evaluation.relative_to(root).as_posix() if evaluation.is_relative_to(root) else config.evaluation_dir) + "/"
+
+
+def not_own_code(config: Config, rel: str, foreign: Set[str], own: Set[str], prefix: str = "") -> bool:
     """Whether a file the scan reaches is left out of an arm's closure: a test or fixture, a package ``__init__``, anything else in
     the evaluation folder (scorer, datasets, shared fixtures), or a file another implementation owns."""
     if rel in own:
         return False
-    evaluation = config.evaluation.resolve().relative_to(config.root.resolve()).as_posix() if config.evaluation.resolve().is_relative_to(config.root.resolve()) else config.evaluation_dir
-    return (is_test_file(rel) or rel.endswith("/__init__.py") or rel == "__init__.py" or rel.startswith(evaluation + "/")
+    prefix = prefix or evaluation_prefix(config)
+    return (is_test_file(rel) or rel.endswith("/__init__.py") or rel == "__init__.py" or rel.startswith(prefix)
             or rel in foreign)
 
 
-def shared_helpers(config: Config, foreign: Set[str]) -> Set[str]:
-    """The helper files that at least one other implementation's closure imports: code shared with another arm is nobody's own
-    code, so a change to it stales no result. Each other implementation is scanned from its own file, stopping at files owned by
-    implementations (its own and everyone else's), tests, fixtures and ``__init__`` files."""
+@dataclass
+class World:
+    """The import graph of every implementation of a repository, built once and shared by every arm and every result row.
+
+    ``closures[f]`` is what implementation file ``f`` imports (transitively, from the source) up to the next implementation, test,
+    fixture or ``__init__``: its own code and plain helpers. ``importers[h]`` is the implementation files whose closure holds the helper
+    ``h``; a helper that another implementation imports is shared, so it is nobody's own code."""
+    stamp: tuple = ()
+    implementations: Set[str] = field(default_factory=set)
+    closures: Dict[str, Tuple[Set[str], bool]] = field(default_factory=dict)
+    importers: Dict[str, Set[str]] = field(default_factory=dict)
+    seen: Set[str] = field(default_factory=set)
+
+
+WORLDS: Dict[str, World] = {}
+
+
+def all_implementation_files(config: Config, index: Index) -> Set[str]:
+    found: Set[str] = set()
+    for row in index.implementations:
+        path = (row.get("filepath") or "").partition("::")[0].strip()
+        if path and not path.startswith("@"):
+            found.add(path)
     root = config.root.resolve()
-    shared: Set[str] = set()
-    for rel in sorted(foreign):
+    for path in config.evaluation.glob("*/impls/*.py"):
+        found.add(path.resolve().relative_to(root).as_posix())
+    return found
+
+
+def world_stamp(config: Config, world: World) -> tuple:
+    root = config.root.resolve()
+    stats = []
+    for rel in sorted(world.seen):
+        try:
+            info = (root / rel).stat()
+            stats.append((rel, info.st_mtime_ns, info.st_size))
+        except OSError:
+            stats.append((rel, 0, 0))
+    folders = []
+    for path in sorted(config.evaluation.glob("*/impls")):   # a new or removed arm changes its folder's time
+        info = path.stat()
+        folders.append((path.name, info.st_mtime_ns))
+    return (signature(config), tuple(folders), tuple(stats))
+
+
+def world_of(config: Config, index: Index) -> World:
+    """The shared import graph, rebuilt only when the records or a file it read changed."""
+    kept = WORLDS.get(str(config.root))
+    if kept is not None and kept.stamp == world_stamp(config, kept):
+        return kept
+    STATS["worlds"] += 1
+    root = config.root.resolve()
+    prefix = evaluation_prefix(config)
+    world = World(implementations=all_implementation_files(config, index))
+    for rel in sorted(world.implementations):
         start = root / rel
         if not start.is_file() or start.suffix != ".py":
             continue
-        found, _ = closure_of(config, [start], lambda other, mine=rel: not_own_code(config, other, foreign, {mine}))
-        shared |= found - {rel}
-    return shared
+        found, whole = closure_of(config, [start], lambda other, mine=rel: not_own_code(config, other, world.implementations, {mine}, prefix))
+        world.closures[rel] = (found, whole)
+        world.seen |= found
+        for helper in found - world.implementations:
+            world.importers.setdefault(helper, set()).add(rel)
+    world.stamp = world_stamp(config, world)
+    WORLDS[str(config.root)] = world
+    return world
 
 
 def closure_of(config: Config, starts: List[Path], skip=None) -> Tuple[Set[str], bool]:
@@ -413,10 +495,19 @@ def build_scope(config: Config, component: str, impl: str, rule: str) -> Scope:
         starts = start_files(config, index, component, impl, solutions)
         if starts:
             scope.own_files = {p.resolve().relative_to(root).as_posix() for p in starts if p.resolve().is_relative_to(root)}
-            foreign = scope.foreign = foreign_files(config, index, scope.own_files)
-            scope.closure, scope.complete = closure_of(config, starts, lambda rel: not_own_code(config, rel, foreign, scope.own_files))
-            scope.shared = shared_helpers(config, foreign)
-            scope.closure = scope.own_files & scope.closure | (scope.closure - scope.shared)
+            world = world_of(config, index)
+            scope.foreign = world.implementations - scope.own_files
+            closure, whole = set(scope.own_files), True
+            for rel in scope.own_files:
+                if rel in world.closures:
+                    found, ok = world.closures[rel]
+                    closure |= found
+                    whole = whole and ok
+                else:
+                    whole = False
+            scope.shared = {h for h in closure - world.implementations if world.importers.get(h, set()) - scope.own_files}
+            scope.closure = (closure & scope.own_files) | (closure - scope.shared - world.implementations) | (closure & world.implementations & scope.own_files)
+            scope.complete = whole
         if scope.closure is None or not scope.complete:
             scope.note = ("its imports cannot be read completely (not Python, or a computed import), so the files it does import "
                           "and its component's files count")

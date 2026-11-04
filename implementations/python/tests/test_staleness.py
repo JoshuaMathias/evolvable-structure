@@ -244,3 +244,47 @@ def test_a_non_python_file_a_component_shared_with_other_solutions_owns_stales_n
     assert staleness.judge(cfg, scope, "pkg/alpha.py")[0] is True
     assert staleness.judge(config_module.load(root / "esoi.toml"), staleness.scope_for(cfg, "alpha_eval", "live", "component_paths"),
                            "pkg/selection.json")[0] is True                             # the coarser rule still counts it
+
+
+def reference_scope(cfg, component, impl):
+    """The closure and shared helpers the way they were computed before the import graph was shared: one scan per arm, and one scan of every
+    other implementation per arm. The shared graph must give the same answer."""
+    index = staleness.index_of(cfg)
+    solutions = staleness.arm_solutions(cfg, index, component, impl)
+    starts = staleness.start_files(cfg, index, component, impl, solutions)
+    root = cfg.root.resolve()
+    own = {p.resolve().relative_to(root).as_posix() for p in starts}
+    foreign = staleness.foreign_files(cfg, index, own)
+    closure, whole = staleness.closure_of(cfg, starts, lambda rel: staleness.not_own_code(cfg, rel, foreign, own))
+    shared = set()
+    for rel in sorted(foreign):
+        found, _ = staleness.closure_of(cfg, [root / rel], lambda other, mine=rel: staleness.not_own_code(cfg, other, foreign, {mine}))
+        shared |= found - {rel}
+    return (closure - shared) | (closure & own), whole, shared & closure
+
+
+def test_the_shared_import_graph_gives_the_same_closures_and_shared_helpers_as_scanning_every_arm_alone(tmp_path):
+    cfg = helpers_repo(tmp_path)
+    for component in ("alpha_eval", "beta_eval", "gamma_eval", "delta_eval"):
+        scope = staleness.scope_for(cfg, component, "live", "import_closure")
+        closure, whole, shared = reference_scope(cfg, component, "live")
+        assert scope.closure == closure and scope.complete == whole, component
+        assert shared <= scope.shared, component
+
+
+def test_a_result_is_judged_against_one_parse_per_file_and_one_graph_however_many_rows_ask(tmp_path):
+    cfg = helpers_repo(tmp_path)
+    staleness.forget()
+    staleness.PARSED.clear()
+    staleness.NAMES.clear()
+    staleness.MODULES.clear()
+    before = dict(staleness.STATS)
+    arms = ("alpha_eval", "beta_eval", "gamma_eval", "delta_eval")
+    paths = [f"pkg/{name}.py" for name in ("alpha", "beta", "gamma", "delta", "util", "shared_helper", "only_alpha")] * 60
+    for row in range(300):                                  # many result rows, the same few arms
+        scope = staleness.scope_for(cfg, arms[row % 4], "live", "import_closure")
+        for path in paths[:20]:
+            staleness.judge(cfg, scope, path)
+    files = len(list(cfg.root.rglob("*.py")))
+    assert staleness.STATS["worlds"] - before["worlds"] == 1            # one import graph for the repository
+    assert staleness.STATS["parses"] - before["parses"] <= files       # no file parsed twice
