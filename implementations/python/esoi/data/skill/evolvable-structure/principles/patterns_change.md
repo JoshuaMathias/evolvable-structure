@@ -39,6 +39,26 @@ Part of `../principles.md`. Patterns 8, 9, 13, 14 and 15: one path from experime
    or tie-break threshold: Joshua, 2026-10-31, on finding the library used one: "i never authorized
    that ... it should be pragmatic for individual cases, metrics can be best guesses but
    statistically significant improvement where possible to justify switching".
+   **A cascade runs ONE criterion at rising cost; it never changes the criterion.** Every stage's
+   metric is a single number that says which alternative is best across all factors (accuracy, cost,
+   time, size), with the weights fixed and written down before any alternative is scored. Later
+   stages estimate the same number more faithfully (more cases, real inputs, a live model), and a
+   cheap stage may exclude an alternative only on that number, never on a different criterion.
+   Different kinds of cases (a single file, a whole topic, real inputs) are case sources of the one
+   metric, mixed in proportion to how real inputs occur, not stages with their own pass tests and
+   not separate leaderboards. A "must not regress" guard from one stage into the next is a second
+   criterion in disguise. Joshua, 2026-11-04, after an AI laid file finding, topic needs and real
+   inputs out as sequential stages and reported three leaderboards: "that's not how cascade is used,
+   that could cause huge problems, every stage metric must be a single number which represents
+   what alternative is best across all factors".
+   **Aim the metric at what the solution is for, not at what is easy to score.** Context cards
+   group information on one topic from many files and sources; a card per file is a file index, a
+   different thing. Scoring cards only on single-file lookup picked the file index and would have
+   put a card per file in the Quest database (Joshua, 2026-11-04). Before trusting a leaderboard,
+   ask whether the cases look like the real inputs (use real inputs to calibrate the case mix),
+   whether the unit being scored is the thing the solution produces, and whether a baseline that
+   exists only to show a floor (one card per file, one card for everything) is marked as one and can
+   never be selected.
 
 13. **A stable interface, with changes announced.** What lets an implementation be swapped is a
     contract that does not move: the same inputs, outputs and style rules. Tests pin it, the author

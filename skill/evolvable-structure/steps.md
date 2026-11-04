@@ -92,7 +92,9 @@ sensible default. Offer inventive restructurings as options, not only cuts.
     cascading conditionals cheapest first, each with the value needed to move on: a stage that costs nothing (a unit
     test, or qualitative questions scored as a number), then one case or an end-to-end run (simulated if needed), then
     more cases, and last the most objective measure. Each later stage includes what is useful from the earlier ones
-    without rerunning cases already run. A person confirms each metric and its
+    without rerunning cases already run. Every stage is the SAME single number (best across all
+    factors, weights fixed beforehand) estimated at higher fidelity, never a different criterion
+    (patterns_change.md, the cascade lesson of 2026-11-04). A person confirms each metric and its
     cases, since this is where people steer from (4).
 14. **Check the metric before trusting it.** A metric is a solution too, with its own best: agreeing with what a
     person would judge. Show it can tell good from bad: a known-good result passes, a known-bad one and a do-nothing
