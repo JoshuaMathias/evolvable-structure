@@ -6,7 +6,7 @@ Every intention is turned into a structure that optimizes the fulfilling of that
 
 ## How the solutions fit together
 
-esoi turns an intention into a structure that keeps fulfilling it while both change, and apply-esoi is how a project takes that up: apply-esoi teaches people through the-standard, guides AI agents through esoi-for-ai, holds the records and the code to their rules through structure-check, measures alternatives and moves the selection to the winner through promote-the-winner, chooses the implementation that serves each call through implementation-selection, finds the records a request concerns through spec-search, records one piece of work's metric before and after through keep-metric-record, finds which projects apply ESOI through local-application-index, and checks a project built on a library through consumer-check. the-standard explains ESOI and its fill-in templates in docs-and-templates, gives the order of the work in the-steps and ships the author's skill as a public folder through skill-distribution; the-steps is written down for readers in follow-the-steps. esoi-for-ai gives an agent the skill as standing instructions, behave-by-esoi measures case by case whether its replies act by the principles, and esoi-behaviour-judge grades the replies a pattern cannot settle, through judge-esoi-behaviour. structure-check applies every rule it holds through structure-rules, each rule kept only while structure-budget says it still pays and with ownership-map tying every file to a component, keeps the record fields in step with the template through template-sync, regenerates the pages of readable-records and the review-tracker sheet, and reads standings from leaderboard; template-sync parses the template that the intent-registry records follow. review-tracker puts the intent-registry records, the leaderboard standings and the fields kept in step by template-sync in front of a reviewer. promote-the-winner switches a solution's selected implementation when leaderboard shows a clear winner among the rows measurement-harness recorded, then updates the review-tracker sheet and the declarations that specify-from-code keeps in step with the intent-registry records; measurement-harness runs each implementation on its solution's cases, proves through discriminating-cases that those cases fail a naive implementation, follows when-metrics-are-run for when a stage may run and what it may spend, consults public-evidence before it pays to measure a candidate others have measured, asks know-what-a-result-measures which changed files make a recorded row stale, and hands its rows to leaderboard, which public-evidence reads as well. implementation-selection chooses which implementation serves a solution by name, configuration or table default, and its declarations grow into the esoi-runtime sub-intent. spec-search ranks the records a request concerns over the narrowed set spec-index gives it. keep-metric-record reads the slice spec-index gives for the work it records. local-application-index says where to look first in each project. consumer-check scores a consumer's own implementations with the library's cases and shows its version lag.
+ESOI turns an intention into a structure that keeps fulfilling it while both change, and Apply ESOI to a project is how a project takes that up: Apply ESOI to a project teaches people through The standard, guides AI agents through ESOI applied to AI behaviour, holds the records and the code to their rules through Rule engine, measures alternatives and moves the selection to the winner through Promote the winner, chooses the implementation that serves each call through Implementation selection, finds the records a request concerns through Spec search, records one piece of work's metric before and after through Keep a metric record, finds which projects apply ESOI through Local ESOI index, and checks a project built on a library through Consumer check. The standard explains ESOI and its fill-in templates in Documentation and templates, gives the order of the work in The ESOI steps and ships the author's skill as a public folder through Skill distribution; The ESOI steps is then written down for readers in Follow the steps. ESOI applied to AI behaviour gives an agent the skill as standing instructions, Behave by ESOI measures case by case whether its replies act by the principles, and ESOI behaviour judge grades the replies a pattern cannot settle, through Judge ESOI behaviour. Rule engine applies every rule it holds through Structure rules, each rule kept only while Structure budget says it still pays and with Ownership map tying every file to a component, keeps the record fields in step with the template through Template sync, regenerates the pages of Readable records and the Review tracker sheet, and reads standings from Implementation leaderboard; Template sync parses the template that the Intent registry records follow. Review tracker puts the Intent registry records, the Implementation leaderboard standings and the fields kept in step by Template sync in front of a reviewer. Promote the winner switches a solution's selected implementation when Implementation leaderboard shows a clear winner among the rows Measurement harness recorded, then updates the Review tracker sheet and the declarations that Specify from the code keeps in step with the Intent registry records. Measurement harness runs each implementation on its solution's cases, proves through Discriminating cases that those cases fail a naive implementation, follows When metrics are run for when a stage may run and what it may spend, consults Grade evidence before it pays to measure a candidate others have measured, asks Know what a result measures which changed files make a recorded row stale, and hands its rows to Implementation leaderboard, which Grade evidence reads as well. Implementation selection chooses which implementation serves a solution by name, configuration or table default, and its declarations grow into the sub-intent ESOI inside other people's running code. Spec search ranks the records a request concerns over the narrowed set Specification index gives it. Keep a metric record reads the slice Specification index gives for the work it records. Local ESOI index says where to look first in each project. Consumer check scores a consumer's own implementations with the library's cases and shows its version lag.
 
 ## Diagram
 
@@ -24,7 +24,7 @@ flowchart LR
     s7["Ownership map<br/><i>ownership-map</i>"]
     s8["Implementation selection<br/><i>implementation-selection</i>"]
     s9["Measurement harness<br/><i>measurement-harness</i>"]
-    s10["leaderboard"]
+    s10["Implementation leaderboard<br/><i>leaderboard</i>"]
     s11["Discriminating cases<br/><i>discriminating-cases</i>"]
     s12["Rule engine<br/><i>structure-check</i>"]
     s13["Structure rules<br/><i>structure-rules</i>"]
@@ -42,7 +42,7 @@ flowchart LR
     s25["Readable records<br/><i>readable-records</i>"]
     s26["Promote the winner<br/><i>promote-the-winner</i>"]
     s27["Specification index<br/><i>spec-index</i>"]
-    s28["keep-metric-record"]
+    s28["Keep a metric record<br/><i>keep-metric-record</i>"]
     s29["Spec search<br/><i>spec-search</i>"]
     s30["Grade evidence<br/><i>public-evidence</i>"]
     s31["Know what a result measures<br/><i>know-what-a-result-measures</i>"]
@@ -104,7 +104,7 @@ flowchart LR
 | Ownership map | `ownership-map` | `esoi.run("ownership-map", '.')` | `component-rows` | Trace completeness |
 | Implementation selection | `implementation-selection` | `esoi.run("implementation-selection", 'structure-check')` | `declarations` | Resolution correctness |
 | Measurement harness | `measurement-harness` | `esoi.run("measurement-harness", '.')` | `component-harness` | Provenance completeness |
-| Leaderboard | `leaderboard` | `esoi.run("leaderboard", '.')` | `margin-leaderboard` | Ranking correctness |
+| Implementation leaderboard | `leaderboard` | `esoi.run("leaderboard", '.')` | `margin-leaderboard` | Ranking correctness |
 | Discriminating cases | `discriminating-cases` | `esoi.run("discriminating-cases", '.')` | `broken-baselines` | Case discrimination |
 | Rule engine | `structure-check` | `esoi.run("structure-check", '.')` | `rule-script` | Check dependability |
 | Structure rules | `structure-rules` | `esoi.run("structure-rules", '.')` | `rule-modules` | Violation detection |
@@ -122,7 +122,7 @@ flowchart LR
 | Readable records | `readable-records` | `esoi.run("readable-records", '.')` | `at_a_glance` | README glanceability, README fidelity |
 | Promote the winner | `promote-the-winner` | `esoi.run("promote-the-winner", '.')` | `margin-promotion` | Promotion correctness |
 | Specification index | `spec-index` | `esoi.run("spec-index", ...)` | `weighted-tfidf` | Specification recall at k |
-| keep-metric-record | `keep-metric-record` | `esoi.run("keep-metric-record", '.')` | `library-modules` | Metric record kept |
+| Keep a metric record | `keep-metric-record` | `esoi.run("keep-metric-record", '.')` | `library-modules` | Metric record kept |
 | Spec search | `spec-search` | `esoi.run("spec-search", ...)` | `lexical-vector-gated` | Spec search correctness |
 | Grade evidence | `public-evidence` | `esoi.run("public-evidence", {'evidence': []})` | `graded` | Public evidence graded |
 | Know what a result measures | `know-what-a-result-measures` | `esoi stale --explain COMPONENT` | `import_closure` | Staleness precision |
@@ -258,7 +258,7 @@ flowchart LR
 | Ownership map | `ownership-map` | component-rows | Trace completeness |
 | Implementation selection | `implementation-selection` | declarations | Resolution correctness |
 | Measurement harness | `measurement-harness` | component-harness | Provenance completeness |
-| Leaderboard | `leaderboard` | margin-leaderboard | Ranking correctness |
+| Implementation leaderboard | `leaderboard` | margin-leaderboard | Ranking correctness |
 | Discriminating cases | `discriminating-cases` | broken-baselines | Case discrimination |
 | Rule engine | `structure-check` | rule-script | Check dependability |
 | Structure rules | `structure-rules` | rule-modules | Violation detection |
@@ -276,7 +276,7 @@ flowchart LR
 | Readable records | `readable-records` | at_a_glance | README glanceability, README fidelity |
 | Promote the winner | `promote-the-winner` | margin-promotion | Promotion correctness |
 | Specification index | `spec-index` | weighted-tfidf | Specification recall at k |
-| keep-metric-record | `keep-metric-record` | library-modules | Metric record kept |
+| Keep a metric record | `keep-metric-record` | library-modules | Metric record kept |
 | Spec search | `spec-search` | lexical-vector-gated | Spec search correctness |
 | Grade evidence | `public-evidence` | graded | Public evidence graded |
 | Know what a result measures | `know-what-a-result-measures` | import_closure | Staleness precision |
@@ -349,7 +349,7 @@ flowchart LR
 | Library modules | `keep-metric-record:library-modules` | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | Lexical only | `spec-search:lexical-only` | [implementations/python/esoi/spec_search.py](../implementations/python/esoi/spec_search.py) |  |
 | Lexical vector gated | `spec-search:lexical-vector-gated` | [implementations/python/esoi/spec_search.py](../implementations/python/esoi/spec_search.py) |  |
-| Graded | `public-evidence:graded` | [implementations/python/esoi/evidence.py](../implementations/python/esoi/evidence.py) |  |
+| Letter grades by weighted evidence | `public-evidence:graded` | [implementations/python/esoi/evidence.py](../implementations/python/esoi/evidence.py) |  |
 | Repo wide | `know-what-a-result-measures:repo_wide` | [implementations/python/esoi/staleness.py](../implementations/python/esoi/staleness.py) |  |
 | Component paths | `know-what-a-result-measures:component_paths` | [implementations/python/esoi/staleness.py](../implementations/python/esoi/staleness.py) |  |
 | Import closure | `know-what-a-result-measures:import_closure` | [implementations/python/esoi/staleness.py](../implementations/python/esoi/staleness.py) |  |
