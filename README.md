@@ -2,7 +2,7 @@
 
 ESOI is a framework that ensure every aspect of your ideas or code can measurably improve over time, while maintaining "evolvable structure." You declare a solution interface, implement alternatives, run them on metrics, and the esoi library ensures the best implementation is what's used at any given time.
 
-The same records (problem, ideal, solution, implementation, metric) work for code, business, and life.
+The same records (problems, ideals, solutions, implementations, metrics) work for code, business, and life.
 
 # Quick Start
 
@@ -45,12 +45,12 @@ compares with DSPy, MLflow's model registry, promptfoo, Inspect and fitness func
 
 ## Start here
 
-1. **[What ESOI is](https://github.com/JoshuaMathias/evolvable-structure/wiki/What-ESOI-is)**: the idea in five minutes.
-2. **[The ESOI steps](https://github.com/JoshuaMathias/evolvable-structure/wiki/The-ESOI-steps)**: what to do, in order,
+1. **[What ESOI is](https://github.com/JoshuaMathias/evolvable-structure/wiki/What-ESOI-is)**: The idea in five minutes.
+2. **[The ESOI steps](https://github.com/JoshuaMathias/evolvable-structure/wiki/The-ESOI-steps)**: What to do, in order,
    from your purpose to choosing by a measurement.
-3. **[Apply ESOI by hand](https://github.com/JoshuaMathias/evolvable-structure/wiki/Apply-ESOI-by-hand)**: a first pass
+3. **[Apply ESOI by hand](https://github.com/JoshuaMathias/evolvable-structure/wiki/Apply-ESOI-by-hand)**: A first pass
    in about an hour, with fill-in templates and no tools.
-4. **[The order of building with structure](https://github.com/JoshuaMathias/evolvable-structure/wiki/The-order-of-building-with-structure)**: the whole
+4. **[The order of building with structure](https://github.com/JoshuaMathias/evolvable-structure/wiki/The-order-of-building-with-structure)**: The whole
    sequence from the hierarchy and vision statements to the loop of continual improvement.
 
 The wiki is generated from [docs/](docs/README.md) in this repository, so the same pages are here too.
