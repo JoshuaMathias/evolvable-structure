@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from esoi.structure.intent_registry import intents
 from esoi.structure.intent_registry.config import Config
+from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
 from esoi.structure.intent_registry.records import TEMPLATE_DATA, fields, load_template
 from esoi.structure.intent_registry.registry import Registry
 from esoi.structure.intent_registry.tables import ids, read_csv, read_header, write_csv
@@ -73,7 +74,7 @@ def string_arg(node: ast.AST) -> Optional[str]:
 
 
 def imports_esoi(tree: ast.AST) -> bool:
-    for node in ast.walk(tree):
+    for node in nodes_of(tree):
         if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] == "esoi":
             return True
         if isinstance(node, ast.ImportFrom) and node.level and (node.module or "") == "runtime":
@@ -113,13 +114,17 @@ def literal(node: Optional[ast.AST]) -> Tuple[object, bool]:
 
 
 def scan_file(rel: str, text: str, out: Declared) -> None:
+    """``scan_tree`` for source text."""
     try:
-        tree = ast.parse(text)
+        scan_tree(rel, ast.parse(text), out)
     except SyntaxError:
         return
-    if not imports_esoi(tree):
+
+
+def scan_tree(rel: str, tree: Optional[ast.Module], out: Declared) -> None:
+    if tree is None or not imports_esoi(tree):
         return
-    for node in ast.walk(tree):
+    for node in nodes_of(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             for decorator in node.decorator_list:
                 found = decorator_call(decorator)
@@ -171,7 +176,7 @@ def scan(config: Config, files: Optional[List[str]] = None) -> Declared:
     for rel in files if files is not None else code_files(config):
         path = config.root / rel
         if path.is_file():
-            scan_file(rel, path.read_text(encoding="utf-8"), out)
+            scan_tree(rel, tree_of(path), out)
     return out
 
 

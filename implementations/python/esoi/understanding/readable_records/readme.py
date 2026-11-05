@@ -45,10 +45,18 @@ def pages(config: Config, registry: Registry, results: Optional[Dict[str, Dict[s
     """``(path, expected text)`` for every intent folder's README (none in the legacy layout, which has no intent folders)."""
     if not config.intent_mode:
         return []
-    view = view_of(config, registry, results)
-    return ([(i.folder / FILE, render(registry, i, view, layout)) for i in view.intents]
-            + [(folder / FILE, render_folder(registry, view, owner, folder)) for owner, folder in view.beside]
-            + arm_pages(config, registry, view, existing_only=written_arm_pages_only))
+    with intents.session():   # the record folders are found once for every page
+        view = view_of(config, registry, results)
+        return ([(i.folder / FILE, render(registry, i, view, layout)) for i in view.intents]
+                + [(folder / FILE, render_folder(registry, view, owner, folder)) for owner, folder in view.beside]
+                + arm_pages(config, registry, view, existing_only=written_arm_pages_only))
+
+
+def top_page(config: Config, registry: Registry, layout: Optional[str] = None) -> str:
+    """The README text of the first intent folder (the top intent) in a layout: the first page ``pages`` lists, without rendering the others."""
+    with intents.session():
+        view = view_of(config, registry)
+        return render(registry, view.intents[0], view, layout)
 
 
 def stale(config: Config, registry: Registry, results: Optional[Dict[str, Dict[str, Dict[str, str]]]] = None) -> List[Path]:

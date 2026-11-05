@@ -10,6 +10,7 @@ from esoi.runtime.assemble_by_name.entry_outcome import classify
 from esoi.runtime.assemble_by_name.entry_types import EntryError
 from esoi.runtime.assemble_by_name.offline_guard import offline_guard
 from esoi.runtime.assemble_by_name.project_runner import project_runner
+from esoi.structure.intent_registry import intents
 
 
 def check_entries(root: Path) -> List[Dict[str, Any]]:
@@ -22,6 +23,13 @@ def check_entries(root: Path) -> List[Dict[str, Any]]:
     offline_guard()
     run_one = project_runner(root)
     out: List[Dict[str, Any]] = []
+    with intents.session():   # the record folders are found once for every id (finding them globs the tree; an entry check edits no records)
+        check_each(run_one, out)
+    return out
+
+
+def check_each(run_one, out: List[Dict[str, Any]]) -> None:
+    """Call each id of the project and append its row to ``out``."""
     for target, level, kind, example in targets(run_one.assembler):
         row: Dict[str, Any] = {"id": target, "level": level, "kind": kind, "reasons": []}
         if not kind or example is None:
@@ -36,4 +44,3 @@ def check_entries(root: Path) -> List[Dict[str, Any]]:
                 outcome, detail, reasons = classify(error)
                 row.update(outcome=outcome, detail=detail, reasons=[vars(r) for r in reasons])
         out.append(row)
-    return out

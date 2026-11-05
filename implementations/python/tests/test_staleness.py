@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "evaluation" / "components"))
 
 from esoi.structure.intent_registry import config as config_module
+from esoi.structure.intent_registry import parsed_source
 from esoi.optimization.leaderboard import case_identity
 from esoi.optimization.measurement_harness import call_meter
 from esoi.optimization.measurement_harness import case_loading
@@ -282,10 +283,11 @@ def test_the_shared_import_graph_gives_the_same_closures_and_shared_helpers_as_s
 def test_a_result_is_judged_against_one_parse_per_file_and_one_graph_however_many_rows_ask(tmp_path):
     cfg = helpers_repo(tmp_path)
     stale_scope.forget()
-    import_scan.PARSED.clear()
+    parsed_source.TREES.clear()
     import_scan.NAMES.clear()
     import_scan.MODULES.clear()
     before = dict(import_scan.STATS)
+    parses_before = parsed_source.STATS["parses"]
     arms = ("alpha_eval", "beta_eval", "gamma_eval", "delta_eval")
     paths = [f"pkg/{name}.py" for name in ("alpha", "beta", "gamma", "delta", "util", "shared_helper", "only_alpha")] * 60
     for row in range(300):                                  # many result rows, the same few arms
@@ -294,4 +296,4 @@ def test_a_result_is_judged_against_one_parse_per_file_and_one_graph_however_man
             stale_scope.judge(cfg, scope, path)
     files = len(list(cfg.root.rglob("*.py")))
     assert import_scan.STATS["worlds"] - before["worlds"] == 1            # one import graph for the repository
-    assert import_scan.STATS["parses"] - before["parses"] <= files       # no file parsed twice
+    assert parsed_source.STATS["parses"] - parses_before <= files       # no file parsed twice

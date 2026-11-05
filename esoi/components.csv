@@ -44,6 +44,7 @@ ci,Continuous Integration Workflow,project,.github/workflows/check.yml,The conti
 skill-distribution,Skill Distribution,tools,implementations/python/esoi/understanding/the_standard/skill_distribution/skill.py,"Generating, checking and installing the public copy of the author's skill.",skill-distribution,
 eval-sync-the-skill,Skill Sync Cases,evaluation,implementations/python/evaluation/components/sync_the_skill/**,"Cases for the sync, the drift check, leak detection and install.",skill-distribution,
 intent-tree,Intent Tree,core,implementations/python/esoi/structure/intent_registry/intents.py,Finding the intent folders of a repository and reading their records as one tree.,intent-registry,
+parsed-source,Parsed Source,core,implementations/python/esoi/structure/intent_registry/parsed_source.py,Parsing each Python file once and walking each tree once per run for every reader of source.,intent-registry,
 intent-migration,Intent Migration,tools,implementations/python/esoi/structure/intent_registry/migrate.py,Moving a legacy two-level repository to the intent layout without inventing a sub-intent.,intent-registry,
 rules-intents,Intent Rules,tools,implementations/python/esoi/structure/structure_check/rules/intents.py,"The rules about intents as containers: the sub-intent link, the opportunity and ids across the tree.",structure-check,
 local-index,Local Index,tools,implementations/python/esoi/understanding/local_application_index/projects.py,"The local ESOI index: projects, their relations and where to look.",local-application-index,

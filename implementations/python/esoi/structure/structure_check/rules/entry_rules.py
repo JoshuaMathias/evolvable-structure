@@ -31,13 +31,15 @@ import re as regex
 import os
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Dict, List, Set
 
 from esoi.structure.intent_registry import intents
 from esoi.runtime.implementation_selection.declare import KINDS
 from esoi.structure.intent_registry.tables import ids
-from esoi.structure.structure_check.rules.base import Context, RuleGroup, parse_file
+from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
+from esoi.structure.structure_check.rules.base import Context, RuleGroup
 
 SUMMARIES = {
     "S36": "Opt-in network: the top intent's one root solution is the solution the repository implements (a problem, an ideal, an "
@@ -64,11 +66,10 @@ def declarations(ctx: Context) -> Dict[str, Dict[str, object]]:
     for rel in ctx.files:
         if rel not in measured or not rel.endswith(".py"):
             continue
-        try:
-            tree = ast.parse((ctx.root / rel).read_text(encoding="utf-8"))
-        except (SyntaxError, OSError, UnicodeDecodeError):
+        tree = tree_of(ctx.root / rel)
+        if tree is None:
             continue
-        for node in ast.walk(tree):
+        for node in nodes_of(tree):
             if not isinstance(node, (ast.ClassDef, ast.FunctionDef)):
                 continue
             for deco in node.decorator_list:
@@ -231,13 +232,15 @@ def chain_digest(ctx: Context) -> str:
     """A digest of what an entry check reads beyond the project's own files: the esoi library, and every package the project
     imports that itself uses esoi (the parent hubs of an Assembler chain), by file path, size and modification time."""
     import importlib.machinery
+    if ctx.chain:
+        return ctx.chain
     found = {Path(__file__).resolve().parents[3]}
     wanted: set = set()
     package_dir = (ctx.config.package_dir or "").rstrip("/") + "/"
     for rel in ctx.files:
         if rel.startswith(package_dir) and rel.endswith(".py"):
-            tree = parse_file(ctx.root / rel)
-            for node in ast.walk(tree) if tree is not None else []:
+            tree = tree_of(ctx.root / rel)
+            for node in nodes_of(tree) if tree is not None else []:
                 if isinstance(node, ast.Import):
                     wanted.update(a.name.split(".")[0] for a in node.names)
                 elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
@@ -262,7 +265,8 @@ def chain_digest(ctx: Context) -> str:
             if "__pycache__" not in file.parts:
                 stat = file.stat()
                 digest.update(f"{file}:{stat.st_size}:{stat.st_mtime_ns};".encode())
-    return digest.hexdigest()
+    ctx.chain = digest.hexdigest()   # both entry checks of one run share it
+    return ctx.chain
 
 
 def memo_globs(ctx: Context, *extra: str) -> List[str]:
@@ -288,6 +292,24 @@ def readme(ctx: Context) -> List[str]:
     if "error" in found:
         return [f"S37 README.md: the README check did not run: {found['error']}"]
     return [f"S37 {line}; next: make the README's example match what the call returns" for line in found.get("problems", [])]
+
+
+def start_background(ctx: Context) -> None:
+    """Start the two S37 child-process checks (every id's one line, and the README example) before the other rules run. Each waits on a child
+    process that does its own reading, so they run beside the rules that read this process's files, and ``run`` collects them in their order."""
+    if not ctx.config.intent_mode or not ctx.config.enabled("S37") or os.environ.get(INSIDE):
+        return
+    pool = ThreadPoolExecutor(max_workers=2)
+    ctx.background = {"entries": pool.submit(entries, ctx), "readme": pool.submit(readme, ctx)}
+    pool.shutdown(wait=False)
+
+
+def collected(name: str, part):
+    """The findings of a part started by ``start_background``, waited for here (a part that was not started runs now)."""
+    def finding(ctx: Context) -> List[str]:
+        started = ctx.background.get(name)
+        return started.result() if started is not None else part(ctx)
+    return finding
 
 
 def coherence(ctx: Context) -> List[str]:
@@ -359,7 +381,7 @@ def run(ctx: Context) -> List[str]:
     """The findings of the enabled opt-in rules go to ``ctx.advisory`` (to do, with the next action); none is a problem."""
     if not ctx.config.intent_mode:
         return []
-    for rule, parts in (("S36", (overall_network,)), ("S37", (interfaces, entries, readme)), ("S38", (coherence,)), ("S39", (ratchet,)), ("S50", (flow,))):
+    for rule, parts in (("S36", (overall_network,)), ("S37", (interfaces, collected("entries", entries), collected("readme", readme))), ("S38", (coherence,)), ("S39", (ratchet,)), ("S50", (flow,))):
         if ctx.config.enabled(rule):
             for part in parts:
                 ctx.advisory.extend(part(ctx))

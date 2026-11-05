@@ -27,6 +27,7 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from esoi.structure.intent_registry import intents
 from esoi.structure.intent_registry.config import Config
+from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
 from esoi.structure.intent_registry.records import FILES
 from esoi.structure.intent_registry.tables import ids, read_csv, read_header, write_csv
 
@@ -130,14 +131,13 @@ def import_graph(config: Config) -> Dict[str, Set[str]]:
     by_file = {v: k for k, v in modules.items()}
     graph: Dict[str, Set[str]] = {}
     for dotted, rel in modules.items():
-        try:
-            tree = ast.parse((config.root / rel).read_text(encoding="utf-8", errors="replace"))
-        except (OSError, SyntaxError, ValueError):
+        tree = tree_of(config.root / rel)
+        if tree is None:
             graph[rel] = set()
             continue
         is_pkg = rel.endswith("__init__.py")
         found: Set[str] = set()
-        for node in ast.walk(tree):
+        for node in nodes_of(tree):
             if isinstance(node, ast.Import):
                 names = [a.name for a in node.names]
             elif isinstance(node, ast.ImportFrom):

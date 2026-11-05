@@ -20,7 +20,7 @@ class FullPageReadme:
     def page(self, project: str) -> str:
         from esoi.understanding.readable_records import readme
         cfg, found = load_project(project)
-        return readme.pages(cfg, found, layout="full")[0][1]
+        return readme.top_page(cfg, found, layout="full")
 
 
 @implementation("readable-records", "at_a_glance")
@@ -30,7 +30,7 @@ class AtAGlanceReadme:
     def page(self, project: str) -> str:
         from esoi.understanding.readable_records import readme
         cfg, found = load_project(project)
-        return readme.pages(cfg, found, layout="glance")[0][1]
+        return readme.top_page(cfg, found, layout="glance")
 
 
 @implementation("readable-records", "links_page")
@@ -40,4 +40,4 @@ class LinksPageReadme:
     def page(self, project: str) -> str:
         from esoi.understanding.readable_records import readme
         cfg, found = load_project(project)
-        return readme.pages(cfg, found, layout="links")[0][1]
+        return readme.top_page(cfg, found, layout="links")

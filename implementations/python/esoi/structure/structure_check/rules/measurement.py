@@ -18,7 +18,8 @@ from esoi.optimization.when_metrics_are_run.paid_gating import declares_simulate
 from esoi.structure.intent_registry.records import FILES
 from esoi.structure.intent_registry.registry import adopts
 from esoi.structure.intent_registry.tables import ids
-from esoi.structure.structure_check.rules.base import Context, RuleGroup, parse_file
+from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
+from esoi.structure.structure_check.rules.base import Context, RuleGroup
 
 ALTERNATIVE_MARKERS = ("ALTERNATIVE", "ABLATION", "VALIDITY")
 # Counts of cases are numbers too: "56 offline cases" drifts the day a case is added.
@@ -56,7 +57,7 @@ UNREAL_METRIC = re.compile(r"\b(?:scripted|simulated|mocked|stubbed|fake|canned)
 def impl_kind(ctx: Context, path: Path) -> str:
     """Classify an evaluation implementation file: ``alternative`` (declares itself an alternative),
     ``live`` (imports or drives package code) or ``unclear`` (neither)."""
-    tree = parse_file(path)
+    tree = tree_of(path)
     if tree is None:
         return "unclear"
     for node in tree.body:
@@ -67,7 +68,7 @@ def impl_kind(ctx: Context, path: Path) -> str:
     if any(doc.startswith(m) for m in ALTERNATIVE_MARKERS):
         return "alternative"
     live_imports, live_calls = set(ctx.config.live_imports), set(ctx.config.live_calls)
-    for node in ast.walk(tree):
+    for node in nodes_of(tree):
         if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] in live_imports:
             return "live"
         if isinstance(node, ast.Import) and any(a.name.split(".")[0] in live_imports for a in node.names):

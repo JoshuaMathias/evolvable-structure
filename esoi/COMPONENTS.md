@@ -50,6 +50,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | Skill Distribution | `skill-distribution` | tools | Generating, checking and installing the public copy of the author's skill. | skill-distribution |
 | Skill Sync Cases | `eval-sync-the-skill` | evaluation | Cases for the sync, the drift check, leak detection and install. | skill-distribution |
 | Intent Tree | `intent-tree` | core | Finding the intent folders of a repository and reading their records as one tree. | intent-registry |
+| Parsed Source | `parsed-source` | core | Parsing each Python file once and walking each tree once per run for every reader of source. | intent-registry |
 | Intent Migration | `intent-migration` | tools | Moving a legacy two-level repository to the intent layout without inventing a sub-intent. | intent-registry |
 | Intent Rules | `rules-intents` | tools | The rules about intents as containers: the sub-intent link, the opportunity and ids across the tree. | structure-check |
 | Local Index | `local-index` | tools | The local ESOI index: projects, their relations and where to look. | local-application-index |

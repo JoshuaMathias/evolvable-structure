@@ -51,12 +51,14 @@ def reach(arms: Dict[Path, list], spec: Path, code: Path, row_folder: Path, shar
 
 
 def shared_in(config, spec: Path, code_file: str, graph: Dict[str, set], intent_code: Dict[Path, set],
-              solution_id: str = "", interface: str = "") -> bool:
-    """Whether ``code_file`` is in a shared layer that the code of the intent holding ``spec`` imports."""
+              solution_id: str = "", interface: str = "", resolved: Dict[str, Path] = None) -> bool:
+    """Whether ``code_file`` is in a shared layer that the code of the intent holding ``spec`` imports. ``resolved`` maps each file of
+    the graph to its resolved path, worked out once by the caller for every solution it asks about."""
     if not graph or not code_file:
         return False
-    package = config.root / (config.package_dir or config.package or "")
-    mine = {rel_file for rel_file in graph if (config.root / rel_file).resolve().is_relative_to(spec.resolve())} | intent_code.get(spec.resolve(), set())
+    resolved = resolved if resolved is not None else {rel_file: (config.root / rel_file).resolve() for rel_file in graph}
+    here = spec.resolve()
+    mine = {rel_file for rel_file, path in resolved.items() if path.is_relative_to(here)} | intent_code.get(here, set())
     return besidecode.shared_layer_reaches(config, spec, code_file, graph, mine, solution_id, interface)
 
 
@@ -79,6 +81,7 @@ def findings(ctx: Context) -> List[str]:
     codes: Dict[str, List[Tuple[Path, Path, str]]] = {}
     graph = besidecode.import_graph(config) if config.package else {}
     intent_code: Dict[Path, set] = {}
+    resolved = {rel_file: (config.root / rel_file).resolve() for rel_file in graph}
     for row, folder, _ in held["implementations.csv"]:
         here = besidecode.code_folder(config, row.get("filepath", ""))
         if here is not None:
@@ -98,7 +101,7 @@ def findings(ctx: Context) -> List[str]:
     for sid, folder in sorted(solution_folder.items()):
         near: Dict[Path, bool] = {}
         for c, row_folder, code_file in codes.get(sid, []):   # one file of the solution in a shared layer the intent reaches covers its arms there
-            near[c] = near.get(c, False) or shared_in(config, folder, code_file, graph, intent_code, sid, interfaces.get(sid, ""))
+            near[c] = near.get(c, False) or shared_in(config, folder, code_file, graph, intent_code, sid, interfaces.get(sid, ""), resolved)
         far = sorted({rel(config, c) for c, row_folder, code_file in codes.get(sid, []) if reach(arms, folder, c, row_folder, near[c]) > 1})
         if far and not ctx.waived("S40", sid):
             target = moves.get(("solutions.csv", sid))

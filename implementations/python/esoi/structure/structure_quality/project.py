@@ -14,6 +14,8 @@ from io import StringIO
 from pathlib import Path, PurePosixPath
 from typing import Dict, List, Set, Tuple
 
+from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
+
 SKIPPED = {".git", "node_modules", "venv", ".venv", "__pycache__", "build", "dist", "site-packages", ".esoi_cache", ".tox", ".mypy_cache"}
 MARKERS = ("interface.py", "solutions.csv")
 TESTS = {"tests", "test"}
@@ -129,7 +131,7 @@ KEYWORDS = frozenset("False None True and as assert async await break class cont
 
 def skipped_lines(tree: ast.AST) -> Set[int]:
     skip: Set[int] = set()
-    for node in ast.walk(tree):
+    for node in nodes_of(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             skip.update(range(node.lineno, (node.end_lineno or node.lineno) + 1))
         if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) and node.body:
@@ -142,12 +144,11 @@ def skipped_lines(tree: ast.AST) -> Set[int]:
 def read_module(root: Path, path: str, markers: Set[str]) -> Module:
     text = (root / path).read_text(encoding="utf-8", errors="replace")
     module = Module(path, unit_of(path, markers), text.count("\n") + 1)
-    try:
-        tree = ast.parse(text)
-    except (SyntaxError, ValueError):
+    tree = tree_of(root / path)
+    if tree is None:
         return module
     module.tree = tree
-    for node in ast.walk(tree):
+    for node in nodes_of(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             module.functions.append((node.name, node.lineno, (node.end_lineno or node.lineno) - node.lineno + 1))
         elif isinstance(node, (ast.Import, ast.ImportFrom)):

@@ -10,6 +10,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
+from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
 from esoi.structure.intent_registry.tables import document_entries, glob_re
 from esoi.structure.structure_check.coherence_paragraph import position
 from esoi.structure.structure_check.coherence_records import ids
@@ -32,7 +33,7 @@ def executable_tokens(text: str, tree, nodes=None) -> List[str]:
     a module several solutions share)."""
     if tree is None:
         return [line for line in text.splitlines() if not line.lstrip().startswith("#")]
-    walked = [n for top in (nodes if nodes is not None else [tree]) for n in ast.walk(top)]
+    walked = [n for top in (nodes if nodes is not None else [tree]) for n in nodes_of(top)]
     prose = {id(n.value) for n in walked if isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant)
              and isinstance(n.value.value, str)}
     out: List[str] = []
@@ -99,12 +100,7 @@ class Code:
                         parts = parts[:-1]
                     self.files[".".join(parts)] = f
         self.source = {m: f.read_text(encoding="utf-8", errors="replace") for m, f in self.files.items()}
-        self.trees = {}
-        for m, text in self.source.items():
-            try:
-                self.trees[m] = ast.parse(text)
-            except SyntaxError:
-                self.trees[m] = None
+        self.trees = {m: tree_of(self.files[m]) for m in self.source}
         self.tokens = {m: executable_tokens(text, self.trees[m]) for m, text in self.source.items()}
         self.imports: Dict[str, Set[str]] = {m: self.imports_of(m) for m in self.files}
         self.region_nodes: Dict[Tuple[str, str], list] = defaultdict(list)    # (module, solution id) -> the classes it declares there
@@ -230,7 +226,7 @@ class Code:
             return set()
         out: Set[str] = set()
         is_pkg = self.files[module].name == "__init__.py"
-        for node in (n for top in (nodes if nodes is not None else [tree]) for n in ast.walk(top)):
+        for node in (n for top in (nodes if nodes is not None else [tree]) for n in nodes_of(top)):
             if isinstance(node, ast.Import):
                 out.update(a.name for a in node.names)
             elif isinstance(node, ast.ImportFrom):
@@ -252,7 +248,7 @@ class Code:
         if not names or tree is None:
             return False
         own = self.region_nodes.get((module, user)) if module in self.shared else None
-        for node in (n for top in (own or [tree]) for n in ast.walk(top)):
+        for node in (n for top in (own or [tree]) for n in nodes_of(top)):
             if isinstance(node, ast.FunctionDef) and node.name == "__init__":
                 for arg in node.args.args + node.args.kwonlyargs:
                     if arg.annotation is not None and set(names) & set(ast.unparse(arg.annotation).replace("'", "").replace('"', "").split(".")):
@@ -275,7 +271,7 @@ class Code:
         tree = self.trees.get(module)
         nodes = self.region_nodes.get((module, user)) if module in self.shared else None
         out: Set[str] = set()
-        for node in (n for top in (nodes or [tree]) for n in (ast.walk(top) if top is not None else [])):
+        for node in (n for top in (nodes or [tree]) for n in (nodes_of(top) if top is not None else [])):
             if isinstance(node, ast.ImportFrom):
                 base = node.module or ""
                 if node.level:

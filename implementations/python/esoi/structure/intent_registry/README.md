@@ -13,7 +13,7 @@ Part of [A Project's Records and Code as One Structure](../README.md)
 - Entry call: `esoi.run("intent-registry", '.')`
 - Selected implementation: Records beside the code (`beside_code`)
 - Metric: Navigable records, Record completeness
-- Implemented by: [`esoi/COMPONENTS.md`](../../../../../esoi/COMPONENTS.md), [`esoi/components.csv`](../../../../../esoi/components.csv), [`esoi/esoi_template.csv`](../../../../../esoi/esoi_template.csv), [`esoi/metric-run-policy.md`](../../../../../esoi/metric-run-policy.md), [`esoi/network.md`](../../../../../esoi/network.md), [`esoi/standards/naming.md`](../../../../../esoi/standards/naming.md), [`esoi/standards/no-em-dash.md`](../../../../../esoi/standards/no-em-dash.md), [`esoi/standards/tags.csv`](../../../../../esoi/standards/tags.csv) and 34 more
+- Implemented by: [`esoi/COMPONENTS.md`](../../../../../esoi/COMPONENTS.md), [`esoi/components.csv`](../../../../../esoi/components.csv), [`esoi/esoi_template.csv`](../../../../../esoi/esoi_template.csv), [`esoi/metric-run-policy.md`](../../../../../esoi/metric-run-policy.md), [`esoi/network.md`](../../../../../esoi/network.md), [`esoi/standards/naming.md`](../../../../../esoi/standards/naming.md), [`esoi/standards/no-em-dash.md`](../../../../../esoi/standards/no-em-dash.md), [`esoi/standards/tags.csv`](../../../../../esoi/standards/tags.csv) and 35 more
 
 ## One level below
 

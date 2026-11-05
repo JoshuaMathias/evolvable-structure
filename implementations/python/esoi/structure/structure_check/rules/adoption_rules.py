@@ -18,6 +18,7 @@ import ast
 from typing import Dict, List, Optional
 
 from esoi.structure.library_adoption import resolve
+from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
 from esoi.structure.structure_quality.overlap import OVERLAP, OVERLAP_WORDS, content
 
@@ -71,12 +72,11 @@ def overlapping(ctx: Context, libraries: resolve.Libraries) -> List[str]:
 def declared_for(path_text: str, ctx: Context) -> Optional[set]:
     """The solution ids the module at ``path_text`` declares an implementation of with ``@implementation("<id>", ...)``; None when it cannot be read."""
     path = ctx.root / path_text.partition("::")[0].strip()
-    try:
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-    except (OSError, SyntaxError, UnicodeDecodeError):
+    tree = tree_of(path)
+    if tree is None:
         return None
     found = set()
-    for node in ast.walk(tree):
+    for node in nodes_of(tree):
         for deco in getattr(node, "decorator_list", []):
             if isinstance(deco, ast.Call) and getattr(deco.func, "id", getattr(deco.func, "attr", "")) == "implementation" \
                     and deco.args and isinstance(deco.args[0], ast.Constant):

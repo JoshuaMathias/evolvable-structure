@@ -7,11 +7,11 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 from esoi.structure.intent_registry.config import Config
+from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
 
 
 DYNAMIC_CALLS = {"import_module", "__import__", "run_module", "spec_from_file_location", "load_source"}
-PARSED: Dict[Tuple[str, int, int], Optional[ast.Module]] = {}
-STATS = {"parses": 0, "worlds": 0}   # counters the performance guard test reads: files parsed, import graphs built
+STATS = {"worlds": 0}   # the counter the performance guard test reads: import graphs built (files parsed are counted in ``parsed_source``)
 
 NAMES: Dict[tuple, Optional[Tuple[Set[str], bool]]] = {}   # (path, mtime, size, roots) -> what the file imports
 
@@ -19,18 +19,6 @@ NAMES: Dict[tuple, Optional[Tuple[Set[str], bool]]] = {}   # (path, mtime, size,
 def search_roots(config: Config) -> List[Path]:
     roots = [config.root / p for p in config.python_path] + [config.evaluation, config.root]
     return [r.resolve() for r in roots if r.is_dir()]
-
-
-def parse(path: Path) -> Optional[ast.Module]:
-    info = path.stat()
-    key = (str(path), info.st_mtime_ns, info.st_size)
-    if key not in PARSED:
-        try:
-            STATS["parses"] += 1
-            PARSED[key] = ast.parse(path.read_text(encoding="utf-8"))
-        except (OSError, SyntaxError, UnicodeDecodeError, ValueError):
-            PARSED[key] = None
-    return PARSED[key]
 
 
 MODULES: Dict[tuple, List[Path]] = {}
@@ -70,7 +58,7 @@ def import_names(tree: ast.Module, here: Path, roots: List[Path]) -> Tuple[Set[s
         if root in here.parents:
             base = list(here.parent.relative_to(root).parts)
             break
-    for node in ast.walk(tree):
+    for node in nodes_of(tree):
         if isinstance(node, ast.Import):
             names.update(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom):
@@ -108,6 +96,17 @@ def is_test_file(rel: str) -> bool:
     return bool(TEST_FOLDERS & set(parts[:-1])) or bool(TEST_NAMES.match(parts[-1]))
 
 
+RELATIVE: Dict[Tuple[Path, Path], Optional[str]] = {}
+
+
+def relative_in(root: Path, path: Path) -> Optional[str]:
+    """The posix path of ``path`` under ``root`` (a folder strictly inside it), or None when it is outside; worked out once per pair."""
+    key = (root, path)
+    if key not in RELATIVE:
+        RELATIVE[key] = path.relative_to(root).as_posix() if root in path.parents else None
+    return RELATIVE[key]
+
+
 def closure_of(config: Config, starts: List[Path], skip=None) -> Tuple[Set[str], bool]:
     """``(files, complete)``: the repository files the start files import, transitively, from their source, and whether the scan was
     complete. It is not when a file cannot be read, is not Python, or imports a module by a computed name; the files found so far
@@ -128,7 +127,7 @@ def closure_of(config: Config, starts: List[Path], skip=None) -> Tuple[Set[str],
         info = here.stat()
         key = (str(here), info.st_mtime_ns, info.st_size, tuple(map(str, roots)))
         if key not in NAMES:
-            tree = parse(here)
+            tree = tree_of(here)
             NAMES[key] = import_names(tree, here, roots) if tree is not None else None
         found = NAMES[key]
         if found is None:
@@ -137,6 +136,8 @@ def closure_of(config: Config, starts: List[Path], skip=None) -> Tuple[Set[str],
         names, whole = found
         complete = complete and whole
         for dotted in names:
-            queue.extend(p for p in module_files(roots, dotted) if p not in seen and root in p.parents
-                         and not (skip is not None and skip(p.relative_to(root).as_posix())))
-    return {p.relative_to(root).as_posix() for p in seen}, complete
+            for p in module_files(roots, dotted):
+                inside = relative_in(root, p)
+                if p not in seen and inside is not None and not (skip is not None and skip(inside)):
+                    queue.append(p)
+    return {relative_in(root, p) or p.relative_to(root).as_posix() for p in seen}, complete

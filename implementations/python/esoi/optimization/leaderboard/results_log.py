@@ -25,12 +25,25 @@ def is_partial(row: Row) -> bool:
     return bool(slice_id(row)) or (row.get("sample") or "").strip().startswith("only:")
 
 
+READ: Dict[tuple, Dict[str, Dict[str, List[Row]]]] = {}   # (path, modification time, size, slices) -> what that read of the log found
+
+
 def all_results(path: Path, slices: bool = False) -> Dict[str, Dict[str, List[Row]]]:
     """{component: {impl: [rows, oldest first]}}: every row of the results log, in date order (file order within a date).
-    Derived slice rows are left out unless ``slices`` is true (``slice_results`` reads those)."""
-    out: Dict[str, Dict[str, List[Row]]] = {}
+    Derived slice rows are left out unless ``slices`` is true (``slice_results`` reads those). The log is read again only after it
+    changes (a run asks for it hundreds of times); every call returns rows of its own, so a caller may edit what it gets."""
     if not Path(path).exists():
-        return out
+        return {}
+    info = Path(path).stat()
+    key = (str(path), info.st_mtime_ns, info.st_size, slices)
+    if key not in READ:
+        READ[key] = read_results(path, slices)
+    return {comp: {impl: [dict(r) for r in history] for impl, history in impls.items()} for comp, impls in READ[key].items()}
+
+
+def read_results(path: Path, slices: bool) -> Dict[str, Dict[str, List[Row]]]:
+    """``all_results`` read from the file."""
+    out: Dict[str, Dict[str, List[Row]]] = {}
     with open(path, newline="", encoding="utf-8-sig") as fh:
         for row in csv.DictReader(fh):
             if not (row.get("component") and row.get("impl")):

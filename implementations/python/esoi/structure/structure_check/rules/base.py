@@ -24,6 +24,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+from concurrent.futures import Future
 from dataclasses import asdict, dataclass, field
 from functools import cached_property
 from pathlib import Path
@@ -58,6 +59,8 @@ class Context:
     used_waivers: Set[Tuple[str, str]] = field(default_factory=set)
     modules: Optional[Cache] = None
     advisory: List[str] = field(default_factory=list)   # findings of opt-in rules that are not strict: to do, never a failure
+    chain: str = ""   # the digest of what an entry check reads beyond the project's files, worked out once per check
+    background: Dict[str, Future] = field(default_factory=dict)   # checks started before the rules run, by name (``entry_rules.start_background``)
 
     @property
     def root(self) -> Path:
@@ -157,10 +160,3 @@ class Context:
     def harness_arms(self, command: str) -> List[Tuple[str, str]]:
         from esoi.structure.intent_registry.registry import harness_arms
         return harness_arms(self.config, command)
-
-
-def parse_file(path: Path) -> Optional[ast.AST]:
-    try:
-        return ast.parse(path.read_text(encoding="utf-8"))
-    except (SyntaxError, OSError, UnicodeDecodeError):
-        return None

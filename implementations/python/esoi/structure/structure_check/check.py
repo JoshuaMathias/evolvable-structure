@@ -11,6 +11,7 @@ files (``COMPONENTS.md``, the tracker tabs, and anything a plugin's ``write_docs
 """
 from __future__ import annotations
 
+from concurrent.futures import wait
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple
 
@@ -22,6 +23,7 @@ from esoi.structure.intent_registry.template_sync import template, versioning
 from esoi.understanding.review_tracker import tracker
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.registry import load as load_registry
+from esoi.structure.structure_check.rules import entry_rules
 from esoi.structure.structure_check.rules.base import Context
 from esoi.structure.structure_check.rules.generated import render_components_doc
 from esoi.runtime.implementation_selection.select import load_table
@@ -55,12 +57,20 @@ def check(config: Config, strict: bool = False, files: Optional[List[str]] = Non
 def check_all(config: Config, strict: bool = False, files: Optional[List[str]] = None) -> Tuple[List[str], List[str]]:
     """``(problems, advisory)``: the problem lines that fail the check, and the to-do lines of enabled opt-in rules that are not
     strict (each says its next action)."""
+    with intents.session():   # the record folders are found once for the whole check (finding them globs the tree)
+        return check_in_session(config, strict, files)
+
+
+def check_in_session(config: Config, strict: bool, files: Optional[List[str]]) -> Tuple[List[str], List[str]]:
+    """``check_all`` inside an open ``intents.session``."""
     ctx = build_context(config, strict, files)
+    entry_rules.start_background(ctx)   # the entry checks wait on child processes: they run beside the other rules
     bad: List[str] = []
     for group in rules.all_groups(config):
         if all(config.is_disabled(rid) for rid in group.summaries):
             continue
         bad.extend(line for line in group.run(ctx) if not config.is_disabled(rule_id(line)))
+    wait(list(ctx.background.values()))   # a started check no rule collected still ends before the check does
     if not config.is_disabled("S9"):
         for w in ctx.registry.waivers:
             if config.is_disabled(w["rule"]):
