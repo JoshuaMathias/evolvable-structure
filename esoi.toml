@@ -93,3 +93,30 @@ coverage = 1.0
 
 [rules.S39]
 enabled = true
+
+# The balanced score of the structure-quality scorer's cases, fixed before any arm was scored (rule S44). Accuracy is the share of cases an arm gets
+# right; the arms are free and fast, so cost and time carry little. The seven dimension weights of the number a scorer reports for a project are in
+# implementations/python/esoi/structure/structure_quality/balance.py and in the metric record.
+[balance.score_structure_quality]
+weights = { accuracy = 0.7, cost = 0.15, time = 0.15 }
+cost_per_case_usd = 0.05
+seconds_per_case = 10
+
+# Structure Quality's advisory rules, one per dimension of its balanced number (docs/how-to/measure-structure-quality.md).
+[rules.S54]
+enabled = true
+
+[rules.S55]
+enabled = true
+
+[rules.S56]
+enabled = true
+
+[rules.S57]
+enabled = true
+
+[rules.S58]
+enabled = true
+
+[rules.S59]
+enabled = true

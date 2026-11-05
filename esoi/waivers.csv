@@ -2,3 +2,4 @@ rule,path,reason
 S10,esoi-for-ai:unmeasured,"The selected implementation calls a model, and a paid run waits for Joshua's approval of the spend (esoi/metric-run-policy.md). Remove this waiver once the staged runs are recorded."
 S10,esoi-behaviour-judge:unmeasured,"The selected implementation calls a model, and a paid run waits for Joshua's approval of the spend (esoi/metric-run-policy.md). Remove this waiver once the staged runs are recorded."
 S49,the-steps,"Read 2026-11-04: all four are written orders for applying ESOI (the full steps, the 2020 board checklist, a one-hour pass, no order), one job at different lengths."
+S24,structure-quality:expert_review,"The arm calls a model, and a paid run waits for Joshua's approval of the spend (esoi/metric-run-policy.md). Remove this waiver once the staged runs are recorded."

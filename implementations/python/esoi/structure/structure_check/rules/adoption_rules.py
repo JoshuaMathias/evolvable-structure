@@ -19,7 +19,7 @@ from typing import Dict, List, Optional
 
 from esoi.structure.library_adoption import resolve
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
-from esoi.structure.structure_check.rules.intents import OVERLAP, OVERLAP_WORDS, content
+from esoi.structure.structure_quality.overlap import OVERLAP, OVERLAP_WORDS, content
 
 SUMMARIES = {
     "S53": "Advisory adoption: a reference `adopts` or `specializes` (`@library/solution_id`, library named in `[adopts.<library>]`) resolves to a "

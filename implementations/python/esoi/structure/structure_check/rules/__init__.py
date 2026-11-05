@@ -23,12 +23,13 @@ from esoi.structure.structure_check.rules import (
     measurement,
     one_criterion,
     registry_rules,
+    structure_quality_rules,
     version_rules,
     wording,
 )
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
 
-BUILTIN: List[RuleGroup] = [layout.GROUP, registry_rules.GROUP, measurement.GROUP, generated.GROUP, intents.GROUP, declarations.GROUP, cascade_rules.GROUP, hierarchy_rules.GROUP, version_rules.GROUP, entry_rules.GROUP, beside_rules.GROUP, one_criterion.GROUP, foundation_rules.GROUP, wording.GROUP, adoption_rules.GROUP]
+BUILTIN: List[RuleGroup] = [layout.GROUP, registry_rules.GROUP, measurement.GROUP, generated.GROUP, intents.GROUP, declarations.GROUP, cascade_rules.GROUP, hierarchy_rules.GROUP, version_rules.GROUP, entry_rules.GROUP, beside_rules.GROUP, one_criterion.GROUP, foundation_rules.GROUP, wording.GROUP, adoption_rules.GROUP, structure_quality_rules.GROUP]
 
 
 def load_plugin(spec: str, root: Path) -> ModuleType:

@@ -20,6 +20,15 @@ def run_rules(config, args: argparse.Namespace) -> int:
     return 0
 
 
+def run_structure_quality(config, args: argparse.Namespace) -> int:
+    """Print the Structure Quality report of a path (advisory: the exit code is always 0)."""
+    from esoi.structure.structure_check.rules import structure_quality_rules
+    from esoi.structure.structure_quality import report
+    for line in report.lines(structure_quality_rules.assess_path(Path(args.path), args.stage)):
+        print(line)
+    return 0
+
+
 def run_template(config, args: argparse.Namespace) -> int:
     from esoi.structure.intent_registry.template_sync import templates
     return templates.sync(config, args.source, check=args.action == "check")
@@ -162,6 +171,10 @@ def register(sub) -> None:
     p = sub.add_parser("rules", help="list the rules")
     p.add_argument("--markdown", action="store_true")
     p.set_defaults(handler=run_rules)
+    p = sub.add_parser("structure-quality", help="score how well a project's code and records divide the work (advisory, never fails)")
+    p.add_argument("path", nargs="?", default=".")
+    p.add_argument("--stage", type=int, choices=[1, 2], default=1, help="1: static code and records; 2: also co-change mined from git history")
+    p.set_defaults(handler=run_structure_quality, needs_config=False)
     p = sub.add_parser("template", help="the intent template")
     p.add_argument("action", choices=["sync", "check"])
     p.add_argument("--source", default=None, help="the SKILL.md-style file holding the template")

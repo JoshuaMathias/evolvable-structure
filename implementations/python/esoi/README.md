@@ -12,7 +12,7 @@ Turn a project's intent into specifications that are checked, measured and selec
 - Entry call: `esoi.run("apply-esoi", '.')`
 - Selected implementation: Through the four containers (`through-the-four-containers`)
 - Metric: Adoption effort, Intents whose solutions one paragraph and one diagram explain as the code builds them
-- Implemented by: [`implementations/python/esoi/apply_esoi.py`](apply_esoi.py), [`implementations/python/esoi/esoi_selection.json`](esoi_selection.json), [`implementations/python/esoi/optimization/__init__.py`](optimization/__init__.py), [`implementations/python/esoi/optimization/keep_metric_record/__init__.py`](optimization/keep_metric_record/__init__.py), [`implementations/python/esoi/optimization/leaderboard/__init__.py`](optimization/leaderboard/__init__.py), [`implementations/python/esoi/optimization/measurement_harness/__init__.py`](optimization/measurement_harness/__init__.py), [`implementations/python/esoi/optimization/measurement_harness/discriminating_cases/__init__.py`](optimization/measurement_harness/discriminating_cases/__init__.py), [`implementations/python/esoi/optimization/promote_the_winner/__init__.py`](optimization/promote_the_winner/__init__.py) and 74 more
+- Implemented by: [`implementations/python/esoi/apply_esoi.py`](apply_esoi.py), [`implementations/python/esoi/esoi_selection.json`](esoi_selection.json), [`implementations/python/esoi/optimization/__init__.py`](optimization/__init__.py), [`implementations/python/esoi/optimization/keep_metric_record/__init__.py`](optimization/keep_metric_record/__init__.py), [`implementations/python/esoi/optimization/leaderboard/__init__.py`](optimization/leaderboard/__init__.py), [`implementations/python/esoi/optimization/measurement_harness/__init__.py`](optimization/measurement_harness/__init__.py), [`implementations/python/esoi/optimization/measurement_harness/discriminating_cases/__init__.py`](optimization/measurement_harness/discriminating_cases/__init__.py), [`implementations/python/esoi/optimization/promote_the_winner/__init__.py`](optimization/promote_the_winner/__init__.py) and 75 more
 
 ## Understanding (`esoi-understanding`)
 
@@ -77,6 +77,7 @@ Carry ESOI into other people's running programs, so a better measurement changes
 - [Ownership Map](structure/ownership_map/README.md) (solution with implementations): Assign every file to exactly one component and every component to the solutions it serves, so code with no purpose cannot hide.
 - [Structure Budget](structure/structure_budget/README.md) (solution with implementations): Keep the structure's own cost in view: admit a rule, record or sub-intent only with what it prevents, and prune what stops paying.
 - [Structure Check](structure/structure_check/README.md) (solution with implementations): Run every structural rule on each change and report each finding by rule and path with its next action, quickly enough that nobody skips it.
+- [Structure Quality](structure/structure_quality/README.md) (solution with implementations): Measure how well a project divides its work into solutions and parts, as one balanced number with the worst offenders named, before and after code exists.
 - [ESOI Applied to AI Behaviour](understanding/esoi_for_ai/README.md) (solution with implementations and parts below it): Make an AI agent act by the evolvable-structure principles when designing, building, writing and advising.
 - [Local ESOI Index](understanding/local_application_index/README.md) (solution with implementations): Find which projects ESOI is applied to, how they relate and where to look first in each.
 - [Readable Records](understanding/readable_records/README.md) (solution with implementations): Give every intent folder a page, made from its records, that says at a glance what the intent is and how its parts fit.
@@ -150,6 +151,7 @@ flowchart LR
 - Down: [implementations/python/esoi/structure/ownership_map](structure/ownership_map/README.md)
 - Down: [implementations/python/esoi/structure/structure_budget](structure/structure_budget/README.md)
 - Down: [implementations/python/esoi/structure/structure_check](structure/structure_check/README.md)
+- Down: [implementations/python/esoi/structure/structure_quality](structure/structure_quality/README.md)
 - Down: [implementations/python/esoi/understanding/esoi_for_ai](understanding/esoi_for_ai/README.md)
 - Down: [implementations/python/esoi/understanding/local_application_index](understanding/local_application_index/README.md)
 - Down: [implementations/python/esoi/understanding/readable_records](understanding/readable_records/README.md)

@@ -14,6 +14,7 @@ from esoi.structure.intent_registry.records import FILES, MAY_BE_EMPTY
 from esoi.structure.intent_registry.registry import adopts
 from esoi.structure.intent_registry.tables import ids
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
+from esoi.structure.structure_quality.overlap import ARMS_SHARE_LITTLE, OVERLAP, OVERLAP_WORDS, content, mean_overlap
 
 CROSS_PROJECT = re.compile(r"^@[\w.-]+/[\w.-]+$")
 CROSS_PROJECT_IMPLEMENTS = re.compile(r"^@[\w.-]+/[\w.-]+(:[\w.-]+)?$")
@@ -36,16 +37,7 @@ SUMMARIES = {
            "of specificity (a solution holds alternatives of the same job); a prompt, never a verdict (waive as the solution id).",
 }
 
-STOP = frozenset("that this with from into their they them have has been being each every which what when where while than then also only "
-                 "such more most other over under about between without within through whose these those will would could should can may might "
-                 "does done make makes made using used uses use its itself your you our are for the and not but any all one two".split())
-OVERLAP = 0.45          # shared share of the content words of two sibling solutions that is called strong overlap
-OVERLAP_WORDS = 6       # and at least this many shared words, so two short texts do not match by accident
 CHANGE_DRIVERS = "outside systems, the system's own data model or code, ML task accuracy, alignment with humans or policies"
-
-
-def content(text: str) -> frozenset:
-    return frozenset(w for w in re.findall(r"[a-z][a-z-]{3,}", (text or "").lower()) if w not in STOP)
 
 
 def named_in(text: str, row) -> bool:
@@ -114,10 +106,8 @@ def review_prompts(ctx: Context) -> List[str]:
     for sid, impls in sorted(by_solution.items()):
         if len(impls) < 3 or not sid or ctx.waived("S49", sid):
             continue
-        texts = [content(" ".join([i.get("name", ""), i.get("description", "")])) for i in impls]
-        pairs = [(a & b, a | b) for n, a in enumerate(texts) for b in texts[n + 1:] if a and b]
-        mean = sum(len(s) / len(u) for s, u in pairs) / len(pairs) if pairs else 1
-        if mean < 0.06:
+        mean = mean_overlap(" ".join([i.get("name", ""), i.get("description", "")]) for i in impls)
+        if mean < ARMS_SHARE_LITTLE:
             names = "; ".join(" ".join(i.get("name", "").split()) or i.get("implementation_id", "") for i in impls[:8])
             out.append(f"S49 {sid}: review prompt: read its {len(impls)} implementations for one purpose and one level of specificity ({names}). "
                        "A solution holds alternatives that do the SAME job; arms that serve different purposes mean it is mis-defined: split by purpose "

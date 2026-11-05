@@ -8,7 +8,7 @@ This sub-intent arises as the implementation `esoi-structure:composition` of its
 
 ## How the solutions fit together
 
-Structure keeps a project's records and code one true and lean whole. The Intent Registry holds every problem, solution, implementation, ideal and metric as linked records beside the code they describe. It takes its fields from the author's template through Template Sync and fills the rows the code already declares through Specify from the Code, leaving a person's words untouched. The Ownership Map ties every file to the solution it serves, so code that serves nothing has nowhere to hide. Structure Check runs every rule on each change, reading the files the Ownership Map assigns and the fields Template Sync reads from the template, and reports each finding by rule and path with the next action. Library Adoption lets a repository refer to a solution another library's records define instead of copying them, resolving each reference through the Intent Registry's records so no job is described twice. Structure Budget weighs what the rules that Structure Check runs cost each change against the real mistakes they catch, admits a new rule only with the mistake that justifies it, and prunes what stops paying.
+Structure keeps a project's records and code one true and lean whole. The Intent Registry holds every problem, solution, implementation, ideal and metric as linked records beside the code they describe. It takes its fields from the author's template through Template Sync and fills the rows the code already declares through Specify from the Code, leaving a person's words untouched. The Ownership Map ties every file to the solution it serves, so code that serves nothing has nowhere to hide. Structure Check runs every rule on each change, reading the files the Ownership Map assigns and the fields Template Sync reads from the template, and reports each finding by rule and path with the next action. Structure Check also hands the code and records to Structure Quality, which scores how well the work is divided into solutions (one job each, small parts, connections only through declared entry points, no copied code, a used public surface, behavior kept) as one balanced number with the worst offenders named, and Structure Check reports each part that scores low as an advisory finding. Library Adoption lets a repository refer to a solution another library's records define instead of copying them, resolving each reference through the Intent Registry's records so no job is described twice. Structure Budget weighs what the rules that Structure Check runs cost each change against the real mistakes they catch, admits a new rule only with the mistake that justifies it, and prunes what stops paying.
 
 ## Diagram
 
@@ -21,14 +21,16 @@ flowchart LR
     s2["Ownership Map<br/><i>ownership-map</i>"]
     s3["Structure Budget<br/><i>structure-budget</i>"]
     s4["Structure Check<br/><i>structure-check</i>"]
-    s5["Specify from the Code<br/><i>specify-from-code</i>"]
-    s6["Template Sync<br/><i>template-sync</i>"]
+    s5["Structure Quality<br/><i>structure-quality</i>"]
+    s6["Specify from the Code<br/><i>specify-from-code</i>"]
+    s7["Template Sync<br/><i>template-sync</i>"]
     s0 -->|"A linked intent network that the check, the tracker and the selection read"| s1
     s2 -->|"File-to-solution links and the generated component index"| s4
     s4 -->|"A list of violations, each led by its rule id, and an exit code"| s3
-    s5 -->|"Findings (rule S30), the rows written, and for a new solution the records, a code skeleton and an evaluation folder"| s0
-    s6 -->|"A committed field list per type"| s0
-    s6 -->|"A committed field list per type"| s4
+    s5 -->|"One balanced number from 0 to 1, each dimension's score, the dimensions flagged and each one's worst offenders"| s4
+    s6 -->|"Findings (rule S30), the rows written, and for a new solution the records, a code skeleton and an evaluation folder"| s0
+    s7 -->|"A committed field list per type"| s0
+    s7 -->|"A committed field list per type"| s4
 ```
 
 ## One level below
@@ -40,6 +42,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 - [Ownership Map](ownership_map/README.md) (solution with implementations): Assign every file to exactly one component and every component to the solutions it serves, so code with no purpose cannot hide.
 - [Structure Budget](structure_budget/README.md) (solution with implementations): Keep the structure's own cost in view: admit a rule, record or sub-intent only with what it prevents, and prune what stops paying.
 - [Structure Check](structure_check/README.md) (solution with implementations): Run every structural rule on each change and report each finding by rule and path with its next action, quickly enough that nobody skips it.
+- [Structure Quality](structure_quality/README.md) (solution with implementations): Measure how well a project divides its work into solutions and parts, as one balanced number with the worst offenders named, before and after code exists.
 
 ## Solutions at a glance
 
@@ -50,6 +53,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 | Ownership Map | `ownership-map` | `esoi.run("ownership-map", '.')` | Component rows (`component-rows`) | Trace completeness |
 | Structure Budget | `structure-budget` | `esoi.run("structure-budget", '.')` | Written weighing rule (`written-weighing-rule`) | Structure cost against catches |
 | Structure Check | `structure-check` | `esoi.run("structure-check", '.')` | Rule script (`rule-script`) | Violation detection, Check dependability |
+| Structure Quality | `structure-quality` | `esoi.run("structure-quality", '.')` | Balanced static scorer (`balanced_static`) | Structure quality agreement |
 | Specify from the Code | `specify-from-code` | `esoi.run("specify-from-code", '.')` | Declarations read from the code, rows synced (`declarations-and-sync`) | Declaration sync |
 | Template Sync | `template-sync` | `esoi.run("template-sync", '.')` | Template parser (`template-parser`) | Template agreement |
 
@@ -63,6 +67,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 - Structure costs more than it returns (`prob-structure-costs-more-than-it-returns`): Every rule, record and check adds work to each change, and past a point contributors spend more time satisfying the structure than improving the code.
 - Rules unjustified (`prob-rules-unjustified`): A rule is kept in code with no record of the mistake that justified it or of what it has caught since, so whether it still earns its place, or why its limit has its value, cannot be told without asking its author.
 - Structure rules decay (`prob-structure-rules-decay`): Rules written in prose (where files go, which way imports point, what must be documented) are followed by whoever read them and broken by the next agent, and generated documents drift from what they describe.
+- Scope and modularity drift (`prob-scope-and-modularity-drift`): Code and records that were divided well when written lose their shape as people and AI add to them: a package tree reached about a thousand files in one folder, a solution list of 74 records held 33 functions over 150 lines, a merge left a family of arms that define no method of their solution's interface, a library came to name its one consumer, and the same due-date arithmetic was written out in six places.
 - Records copy the code (`prob-records-copy-the-code`): The records repeat what the code already says: which alternatives of a solution exist, the file each lives in, and an interface's signature.
 - Template copies drift (`prob-template-copies-drift`): The intent template is being refined in the skill, and every registry and checker that copied its fields falls out of date.
 
@@ -74,6 +79,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 - Proportionate structure (`ideal-proportionate-structure`): The structure costs less than it returns, and a small change carries a small cost.
 - Rules earn their place (`ideal-rules-earn-their-place`): Every rule can say which mistake it prevents, and is removed when it stops catching any.
 - Self-evolving structure (`ideal-self-evolving-structure`): The structure notices where it falls short and improves itself at the moment a change makes it worse.
+- Well-divided work (`ideal-well-divided-work`): Each solution has one job, each part is small enough to read whole, and parts connect only through what they declare.
 - Living template (`ideal-living-template`): When the template's author refines it, every record and every tool that reads records follows.
 
 ## Metrics and their leaders
@@ -85,6 +91,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 - Structure cost against catches (`metric-structure-cost-against-catches`)
 - Violation detection (`metric-violation-detection`): leader `live_checker`, 61 of 76 cases
 - Check dependability (`metric-check-dependability`): leader `live_checker`, 61 of 76 cases
+- Structure quality agreement (`metric-structure-quality-agreement`): no result recorded
 - Declaration sync (`metric-declaration-sync`): leader `live_declarations`, 14 of 14 cases
 - Template agreement (`metric-template-agreement`): leader `live_parser`, 11 of 11 cases
 
@@ -92,7 +99,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 
 - Parent intent: [Evolvable Structure that Optimizes Intent (ESOI)](../../../../esoi/README.md)
 - Repository: [top README](../../../../README.md)
-- Records beside the code: [implementations/python/esoi/structure/intent_registry](intent_registry/README.md), [implementations/python/esoi/structure/library_adoption](library_adoption/README.md), [implementations/python/esoi/structure/ownership_map](ownership_map/README.md), [implementations/python/esoi/structure/structure_budget](structure_budget/README.md), [implementations/python/esoi/structure/structure_check](structure_check/README.md), [implementations/python/esoi/structure/intent_registry/specify_from_code](intent_registry/specify_from_code/README.md), [implementations/python/esoi/structure/intent_registry/template_sync](intent_registry/template_sync/README.md)
+- Records beside the code: [implementations/python/esoi/structure/intent_registry](intent_registry/README.md), [implementations/python/esoi/structure/library_adoption](library_adoption/README.md), [implementations/python/esoi/structure/ownership_map](ownership_map/README.md), [implementations/python/esoi/structure/structure_budget](structure_budget/README.md), [implementations/python/esoi/structure/structure_check](structure_check/README.md), [implementations/python/esoi/structure/structure_quality](structure_quality/README.md), [implementations/python/esoi/structure/intent_registry/specify_from_code](intent_registry/specify_from_code/README.md), [implementations/python/esoi/structure/intent_registry/template_sync](intent_registry/template_sync/README.md)
 - Records: [intent.csv](intent.csv), [problems.csv](problems.csv), [ideals.csv](ideals.csv)
 - Diagram page: [diagram.md](diagram.md)
 
@@ -108,6 +115,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 - Structure costs more than it returns (`prob-structure-costs-more-than-it-returns`): Every rule, record and check adds work to each change, and past a point contributors spend more time satisfying the structure than improving the code.
 - Rules unjustified (`prob-rules-unjustified`): A rule is kept in code with no record of the mistake that justified it or of what it has caught since, so whether it still earns its place, or why its limit has its value, cannot be told without asking its author.
 - Structure rules decay (`prob-structure-rules-decay`): Rules written in prose (where files go, which way imports point, what must be documented) are followed by whoever read them and broken by the next agent, and generated documents drift from what they describe.
+- Scope and modularity drift (`prob-scope-and-modularity-drift`): Code and records that were divided well when written lose their shape as people and AI add to them: a package tree reached about a thousand files in one folder, a solution list of 74 records held 33 functions over 150 lines, a merge left a family of arms that define no method of their solution's interface, a library came to name its one consumer, and the same due-date arithmetic was written out in six places.
 - Records copy the code (`prob-records-copy-the-code`): The records repeat what the code already says: which alternatives of a solution exist, the file each lives in, and an interface's signature.
 - Template copies drift (`prob-template-copies-drift`): The intent template is being refined in the skill, and every registry and checker that copied its fields falls out of date.
 
@@ -119,6 +127,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 - Proportionate structure (`ideal-proportionate-structure`): The structure costs less than it returns, and a small change carries a small cost.
 - Rules earn their place (`ideal-rules-earn-their-place`): Every rule can say which mistake it prevents, and is removed when it stops catching any.
 - Self-evolving structure (`ideal-self-evolving-structure`): The structure notices where it falls short and improves itself at the moment a change makes it worse.
+- Well-divided work (`ideal-well-divided-work`): Each solution has one job, each part is small enough to read whole, and parts connect only through what they declare.
 - Living template (`ideal-living-template`): When the template's author refines it, every record and every tool that reads records follows.
 
 ### Solutions
@@ -130,6 +139,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 | Ownership Map | `ownership-map` | Component rows (`component-rows`) | Trace completeness |
 | Structure Budget | `structure-budget` | Written weighing rule (`written-weighing-rule`) | Structure cost against catches |
 | Structure Check | `structure-check` | Rule script (`rule-script`) | Violation detection, Check dependability |
+| Structure Quality | `structure-quality` | Balanced static scorer (`balanced_static`) | Structure quality agreement |
 | Specify from the Code | `specify-from-code` | Declarations read from the code, rows synced (`declarations-and-sync`) | Declaration sync |
 | Template Sync | `template-sync` | Template parser (`template-parser`) | Template agreement |
 
@@ -149,6 +159,9 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 | Rule script | `structure-check:rule-script` | [implementations/python/esoi/structure/structure_check/interface.py::RuleScript](structure_check/interface.py) |  |
 | Rules as linter plugins | `structure-check:linter-plugins` |  |  |
 | Rules in prose | `structure-check:prose-rules` |  |  |
+| Balanced static scorer | `structure-quality:balanced_static` | [implementations/python/esoi/structure/structure_quality/interface.py::BalancedStatic](structure_quality/interface.py) |  |
+| File size only | `structure-quality:file_size_only` | [implementations/python/esoi/structure/structure_quality/interface.py::FileSizeOnly](structure_quality/interface.py) |  |
+| Expert scoping review | `structure-quality:expert_review` | [implementations/python/esoi/structure/structure_quality/interface.py::ExpertScopingReview](structure_quality/interface.py) |  |
 | Declarations read from the code, rows synced | `specify-from-code:declarations-and-sync` | [implementations/python/esoi/structure/intent_registry/specify_from_code/interface.py::DeclarationsAndSync](intent_registry/specify_from_code/interface.py) |  |
 | Records kept by hand | `specify-from-code:hand-kept-records` |  |  |
 | Template parser | `template-sync:template-parser` | [implementations/python/esoi/structure/intent_registry/template_sync/interface.py::TemplateParser](intent_registry/template_sync/interface.py) |  |
@@ -163,6 +176,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 - Structure cost against catches (`metric-structure-cost-against-catches`): `none`
 - Violation detection (`metric-violation-detection`): `esoi run check_the_structure --impl live_checker`
 - Check dependability (`metric-check-dependability`): `esoi run check_the_structure --impl live_checker`
+- Structure quality agreement (`metric-structure-quality-agreement`): `esoi run score_structure_quality --impl balanced_static; esoi run score_structure_quality --impl file_size_only; esoi run score_structure_quality --impl expert_review`
 - Declaration sync (`metric-declaration-sync`): `esoi run specify_from_code --impl live_declarations`
 - Template agreement (`metric-template-agreement`): `esoi run sync_the_template --impl live_parser`
 

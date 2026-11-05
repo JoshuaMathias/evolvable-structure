@@ -1,0 +1,280 @@
+[
+ {
+  "id": "SQ-001",
+  "kind": "assess",
+  "area": "a clean exemplar of four small solutions is sound and flags nothing",
+  "description": "a clean exemplar of four small solutions is sound and flags nothing",
+  "source": "clean exemplar",
+  "args": {
+   "shape": "clean_exemplar",
+   "stage": 1
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "SQ-002",
+  "kind": "assess",
+  "area": "the same project with one long routine under the size budgets flags only size",
+  "description": "the same project with one long routine under the size budgets flags only size",
+  "source": "clean exemplar",
+  "args": {
+   "shape": "real_structure",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "size"
+   ]
+  }
+ },
+ {
+  "id": "SQ-003",
+  "kind": "assess",
+  "area": "a package tree grown to a thousand files in one folder flags size",
+  "description": "a package tree grown to a thousand files in one folder flags size",
+  "source": "incident shape: one folder grew to about a thousand files",
+  "args": {
+   "shape": "flat_tree",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "size"
+   ]
+  }
+ },
+ {
+  "id": "SQ-004",
+  "kind": "assess",
+  "area": "a solution list of 74 records with 33 functions over 150 lines flags size",
+  "description": "a solution list of 74 records with 33 functions over 150 lines flags size",
+  "source": "incident shape: a record list with dozens of very long functions",
+  "args": {
+   "shape": "long_solution_list",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "size"
+   ]
+  }
+ },
+ {
+  "id": "SQ-005",
+  "kind": "assess",
+  "area": "a merge that stripped the interfaces so every arm implements none flags scope",
+  "description": "a merge that stripped the interfaces so every arm implements none flags scope",
+  "source": "incident shape: a merge left a family of arms off their interface",
+  "args": {
+   "shape": "stripped_interfaces",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "scope"
+   ]
+  }
+ },
+ {
+  "id": "SQ-006",
+  "kind": "assess",
+  "area": "a library that names its consumer flags coupling",
+  "description": "a library that names its consumer flags coupling",
+  "source": "incident shape: a library coded with its one consumer in mind",
+  "args": {
+   "shape": "library_names_consumer",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "coupling"
+   ]
+  }
+ },
+ {
+  "id": "SQ-007",
+  "kind": "assess",
+  "area": "the same due-date arithmetic copied into six units flags reuse",
+  "description": "the same due-date arithmetic copied into six units flags reuse",
+  "source": "incident shape: one calculation written out in six places",
+  "args": {
+   "shape": "due_arithmetic_copied",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "reuse"
+   ]
+  }
+ },
+ {
+  "id": "SQ-008",
+  "kind": "assess",
+  "area": "two units that import each other flag coupling",
+  "description": "two units that import each other flag coupling",
+  "source": "incident shape: a cycle between solutions",
+  "args": {
+   "shape": "import_cycle",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "coupling"
+   ]
+  }
+ },
+ {
+  "id": "SQ-009",
+  "kind": "assess",
+  "area": "solutions with several arms and no contract test flag behavior",
+  "description": "solutions with several arms and no contract test flag behavior",
+  "source": "incident shape: a refactor with nothing that holds the arms to one behavior",
+  "args": {
+   "shape": "no_contract",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "behavior"
+   ]
+  }
+ },
+ {
+  "id": "SQ-010",
+  "kind": "assess",
+  "area": "exported names no other unit uses flag the public surface",
+  "description": "exported names no other unit uses flag the public surface",
+  "source": "incident shape: a wide public surface nobody calls",
+  "args": {
+   "shape": "unused_exports",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "surface"
+   ]
+  }
+ },
+ {
+  "id": "SQ-011",
+  "kind": "assess",
+  "area": "two units with no import that change together in eight commits flag coupling at stage 2",
+  "description": "two units with no import that change together in eight commits flag coupling at stage 2",
+  "source": "history: co-change without an import",
+  "args": {
+   "shape": "cochange_hidden",
+   "stage": 2
+  },
+  "expect": {
+   "flags": [
+    "coupling"
+   ]
+  }
+ },
+ {
+  "id": "SQ-012",
+  "kind": "assess",
+  "area": "the same co-change explained by an import between the units is clean at stage 2",
+  "description": "the same co-change explained by an import between the units is clean at stage 2",
+  "source": "history: co-change that an import explains",
+  "args": {
+   "shape": "cochange_explained",
+   "stage": 2
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "SQ-013",
+  "kind": "compare",
+  "area": "the balanced real structure scores above tiny split",
+  "description": "the balanced real structure scores above tiny split",
+  "source": "goodhart bound: the project cut into tiny files",
+  "args": {
+   "better": "real_structure",
+   "worse": "tiny_split",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ },
+ {
+  "id": "SQ-014",
+  "kind": "compare",
+  "area": "the balanced real structure scores above flat tree",
+  "description": "the balanced real structure scores above flat tree",
+  "source": "incident shape: one folder grew to about a thousand files",
+  "args": {
+   "better": "clean_exemplar",
+   "worse": "flat_tree",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ },
+ {
+  "id": "SQ-015",
+  "kind": "compare",
+  "area": "the balanced real structure scores above stripped interfaces",
+  "description": "the balanced real structure scores above stripped interfaces",
+  "source": "incident shape: arms off their interface",
+  "args": {
+   "better": "clean_exemplar",
+   "worse": "stripped_interfaces",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ },
+ {
+  "id": "SQ-016",
+  "kind": "compare",
+  "area": "the balanced real structure scores above due arithmetic copied",
+  "description": "the balanced real structure scores above due arithmetic copied",
+  "source": "incident shape: copied arithmetic",
+  "args": {
+   "better": "clean_exemplar",
+   "worse": "due_arithmetic_copied",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ },
+ {
+  "id": "SQ-017",
+  "kind": "compare",
+  "area": "the balanced real structure scores above import cycle",
+  "description": "the balanced real structure scores above import cycle",
+  "source": "incident shape: a cycle between solutions",
+  "args": {
+   "better": "clean_exemplar",
+   "worse": "import_cycle",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ },
+ {
+  "id": "SQ-018",
+  "kind": "compare",
+  "area": "the balanced real structure scores above no contract",
+  "description": "the balanced real structure scores above no contract",
+  "source": "incident shape: no contract test",
+  "args": {
+   "better": "clean_exemplar",
+   "worse": "no_contract",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ }
+]
