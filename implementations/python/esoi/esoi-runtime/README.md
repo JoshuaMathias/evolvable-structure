@@ -70,6 +70,7 @@ flowchart LR
 | Selector class and table | `runtime-selection:select` | [implementations/python/esoi/select.py](../select.py) |  |
 | Declarations in code with one cascade | `runtime-selection:declarations-and-cascade` | [implementations/python/esoi/interfaces.py](../interfaces.py) |  |
 | Dependency-ordered assembler | `assemble-by-name:assembler` | [implementations/python/esoi/interfaces.py](../interfaces.py) |  |
+| Dependency injection container | `assemble-by-name:injection-container` |  |  |
 
 ### Metrics
 

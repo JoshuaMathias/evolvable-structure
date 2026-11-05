@@ -291,6 +291,16 @@ flowchart LR
 | Records kept by hand | `specify-from-code:hand-kept-records` |  |  |
 | README written by hand | `readable-records:hand-written-readme` |  |  |
 | A person edits the records | `promote-the-winner:person-edits-the-records` |  |  |
+| Ownership inferred from imports and declarations | `ownership-map:inferred-from-imports` |  |  |
+| Probability each arm is best | `leaderboard:posterior-ranking` |  |  |
+| Mutants of the selected implementation | `discriminating-cases:mutation-testing` |  |  |
+| Rules as linter plugins | `structure-check:linter-plugins` |  |  |
+| Review in the pull request | `review-tracker:pull-request-review` |  |  |
+| Contract tests the consumer installs | `consumer-check:contract-test-plugin` |  |  |
+| Worked example repository | `the-standard:worked-example-repository` |  |  |
+| Guided questionnaire | `docs-and-templates:guided-questionnaire` |  |  |
+| Values the worker reports | `keep-metric-record:worker-reported` |  |  |
+| A model summarizes the sources | `public-evidence:model-summary` |  |  |
 | Documents, templates and tools together | `apply-esoi:documents-templates-and-tools` | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | Records in the esoi folder | `intent-registry:esoi_folder` | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
 | Records beside the code | `intent-registry:beside_code` | [implementations/python/esoi/interfaces.py](../implementations/python/esoi/interfaces.py) |  |
