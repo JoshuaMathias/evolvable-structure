@@ -57,7 +57,7 @@ The author's `evolvable-structure` skill carries the principles and the steps fo
 [Install the skill](https://github.com/JoshuaMathias/evolvable-structure/wiki/Install-the-skill) as a plugin, a folder
 download or with `esoi`.
 
-## Check, measure and select with Python (optional)
+## Check, measure and select with Python
 
 ```bash
 pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git#subdirectory=implementations/python"
