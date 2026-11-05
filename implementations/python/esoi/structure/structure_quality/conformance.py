@@ -108,9 +108,10 @@ def members_of(node: ast.ClassDef) -> Tuple[Dict[str, ast.AST], Set[str]]:
     return methods, attributes
 
 
-def protocol_members(node: ast.ClassDef) -> Dict[str, Optional[ast.AST]]:
-    """Each public member a Protocol declares: a method's definition, or None for an attribute."""
-    methods, attributes = members_of(node)
+def protocol_members(node: ast.ClassDef, index: Optional[Dict[str, ast.ClassDef]] = None) -> Dict[str, Optional[ast.AST]]:
+    """Each public member a Protocol declares: a method's definition, or None for an attribute. With ``index`` (class name to definition) the members
+    of the base Protocols it extends count too, so a Protocol that only extends another (``class CardKeeping(CardStore, Protocol)``) is not read as empty."""
+    methods, attributes = inherited_members(node, index, {node.name}) if index is not None else members_of(node)
     return {**{a: None for a in attributes}, **methods}
 
 
@@ -156,11 +157,13 @@ def declared_solutions(projects: List[Project], protocols: Set[str]) -> Set[str]
     return found
 
 
-def arm_problems(arm: ast.ClassDef, protocols: List[Dict[str, Optional[ast.AST]]], index: Dict[str, ast.ClassDef]) -> List[str]:
-    """What one arm lacks of its solution's interface, measured against the Protocol it comes closest to when the project and an adopted library
-    both declare one for the id: a bare name for a missing member, ``name: reason`` for a method whose parameters do not match."""
+def arm_problems(arm: ast.ClassDef, protocols: List[Dict[str, Optional[ast.AST]]], index: Dict[str, ast.ClassDef]) -> Tuple[List[str], int]:
+    """``(problems, members)``: what one arm lacks of its solution's interface, measured against the Protocol it comes closest to when the project and
+    an adopted library both declare one for the id (a bare name for a missing member, ``name: reason`` for a method whose parameters do not match),
+    and how many members that Protocol declares (the whole against which the lack is a share)."""
     methods, attributes = inherited_members(arm, index, {arm.name})
-    return min((protocol_problems(protocol, methods, attributes) for protocol in protocols), key=len)
+    closest = min(protocols, key=lambda protocol: len(protocol_problems(protocol, methods, attributes)))
+    return protocol_problems(closest, methods, attributes), len(closest)
 
 
 def protocol_problems(protocol: Dict[str, Optional[ast.AST]], methods: Dict[str, ast.AST], attributes: Set[str]) -> List[str]:

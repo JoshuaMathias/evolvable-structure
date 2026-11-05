@@ -20,10 +20,11 @@ WEIGHTS: Dict[str, float] = {"scope": 0.20, "size": 0.15, "coupling": 0.20, "reu
 # The reference line replaces an arbitrary pass mark. It is the lowest balanced number (stage 1, flow measured, this scorer) among the latest states of
 # three repositories whose structure was reviewed and kept, rounded down to two decimals: an orchestration runner of about 1180 files, a records library
 # of about 480 files and a hub library of about 470 files, re-measured on 2026-11-05 after the shared kernel, graded size, complexity, stub, pass-through
-# and Protocol member parts were added. A project at or above the line scores as well as the worst structure its reviewers accepted; below it, the
+# and Protocol member parts were added, and the runner and hub again after arms were graded by the members they lack (the runner fell from 0.8099
+# because its arms off their solutions' extended Protocols now show; the records library is unchanged by that). A project at or above the line scores as well as the worst structure its reviewers accepted; below it, the
 # offenders say what to fix. It is a reference, not a standard of soundness, and it moves when a scorer change moves those three numbers (re-measure them
 # with ``esoi structure-quality`` and update the states together with the line).
-REFERENCE_STATES: Dict[str, float] = {"orchestration runner (1182 files)": 0.8099, "records library (479 files)": 0.7557, "hub library (469 files)": 0.8728}
+REFERENCE_STATES: Dict[str, float] = {"orchestration runner (1182 files)": 0.7683, "records library (479 files)": 0.7557, "hub library (469 files)": 0.869}
 REFERENCE_LINE = math.floor(min(REFERENCE_STATES.values()) * 100) / 100
 LOW_DIMENSION = 0.60   # a dimension below this is named as a weak one in the report
 
