@@ -40,17 +40,17 @@ flowchart LR
     s29["Spec search<br/><i>spec-search</i>"]
     s30["Grade evidence<br/><i>public-evidence</i>"]
     s31["Know what a result measures<br/><i>know-what-a-result-measures</i>"]
-    s0 -->|"The steps in the public skill and the guides that point to..."| s21
-    s1 -->|"The project containing the path with its first file to read..."| s4
-    s2 -->|"A reply per case, a pass or fail with a note, and a..."| s20
+    s0 -->|"The steps in the public skill and the guides that point to them"| s21
+    s1 -->|"The project containing the path with its first file to read and its specifications, the ids related in a given way, or the listed ids"| s4
+    s2 -->|"A reply per case, a pass or fail with a note, and a headline of passes per principle"| s20
     s3 -->|"A verdict and a reason, scored against the label"| s23
-    s5 -->|"A linked intent network that the check, the tracker and the..."| s6
-    s5 -->|"A linked intent network that the check, the tracker and the..."| s14
-    s5 -->|"A linked intent network that the check, the tracker and the..."| s24
+    s5 -->|"A linked intent network that the check, the tracker and the selection read"| s6
+    s5 -->|"A linked intent network that the check, the tracker and the selection read"| s14
+    s5 -->|"A linked intent network that the check, the tracker and the selection read"| s24
     s6 -->|"A committed field list per type"| s12
     s6 -->|"A committed field list per type"| s14
     s7 -->|"File-to-solution links and the generated component index"| s13
-    s8 -->|"The chosen implementation's class and its configuration..."| s4
+    s8 -->|"The chosen implementation's class and its configuration type"| s4
     s9 -->|"A results row per run"| s26
     s10 -->|"A verdict per solution and a ranked board"| s9
     s10 -->|"A verdict per solution and a ranked board"| s12
@@ -58,28 +58,28 @@ flowchart LR
     s10 -->|"A verdict per solution and a ranked board"| s26
     s10 -->|"A verdict per solution and a ranked board"| s30
     s11 -->|"A pass or fail per baseline"| s9
-    s12 -->|"A list of violations, each led by its rule id, and an exit..."| s4
+    s12 -->|"A list of violations, each led by its rule id, and an exit code"| s4
     s13 -->|"One problem line per violation, led by the rule id"| s12
     s14 -->|"Generated tracker tables and the synced sheet"| s12
     s14 -->|"Generated tracker tables and the synced sheet"| s26
     s15 -->|"Violations and notes"| s4
     s16 -->|"The standard document"| s4
     s17 -->|"A periodic report of cost against catches"| s13
-    s18 -->|"A row per run in the results log with the commit and the..."| s9
-    s19 -->|"A public skill folder, a plugin manifest and marketplace..."| s16
-    s20 -->|"The agent's reply and, for a judged run, a verdict with a..."| s4
-    s21 -->|"Linked records, a checked metric, measured implementations..."| s4
-    s21 -->|"Linked records, a checked metric, measured implementations..."| s16
+    s18 -->|"A row per run in the results log with the commit and the hash of the cases; the strict check's verdict"| s9
+    s19 -->|"A public skill folder, a plugin manifest and marketplace file, and an installed copy"| s16
+    s20 -->|"The agent's reply and, for a judged run, a verdict with a reason"| s4
+    s21 -->|"Linked records, a checked metric, measured implementations and a recorded selection; a short summary of how the steps were applied"| s4
+    s21 -->|"Linked records, a checked metric, measured implementations and a recorded selection; a short summary of how the steps were applied"| s16
     s22 -->|"Explanations, guides and generated templates"| s4
     s22 -->|"Explanations, guides and generated templates"| s16
     s23 -->|"A verdict (pass or fail) and a one-line reason"| s20
-    s24 -->|"Findings (rule S30), the rows written, and for a new..."| s26
+    s24 -->|"Findings (rule S30), the rows written, and for a new solution the records, a code skeleton and an evaluation folder"| s26
     s25 -->|"A README.md in the intent's folder"| s12
-    s26 -->|"Edits to selected, selected_by and the metric's command, or..."| s4
-    s27 -->|"An index (JSON-serializable: entries with id, kind, title..."| s28
-    s27 -->|"An index (JSON-serializable: entries with id, kind, title..."| s29
-    s28 -->|"From begin, the NEXT PRIORITY block for the brief; from..."| s4
-    s29 -->|"A Selection: ranked items best first with their linked..."| s4
+    s26 -->|"Edits to selected, selected_by and the metric's command, or a printed proposal"| s4
+    s27 -->|"An index (JSON-serializable: entries with id, kind, title, summary, links, weighted terms, digest, plus document frequencies), a ranked list of record ids, or a record shown at a tier"| s28
+    s27 -->|"An index (JSON-serializable: entries with id, kind, title, summary, links, weighted terms, digest, plus document frequencies), a ranked list of record ids, or a record shown at a tier"| s29
+    s28 -->|"From begin, the NEXT PRIORITY block for the brief; from finish, the reconciled MetricResult rows (solution_id, metric_id, name, milestone, before, after, delta, source, reason, disagrees) and whether the work did anything for them to describe"| s4
+    s29 -->|"A Selection: ranked items best first with their linked items, the candidates, which search proposed each, the number of judge calls, the route and the no-solution cue"| s4
     s30 -->|"Dict(Tuple(str, str), Estimate)"| s9
-    s31 -->|"Stale or current for the row, the reason naming the changed..."| s9
+    s31 -->|"Stale or current for the row, the reason naming the changed file and its owner, and the files that were ignored with their owners"| s9
 ```

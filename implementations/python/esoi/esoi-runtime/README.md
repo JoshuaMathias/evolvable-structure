@@ -16,7 +16,7 @@ An arrow runs from the solution that provides to the solution that builds on it;
 
 ```mermaid
 flowchart LR
-    s0["Select an implementation while the...<br/><i>runtime-selection</i>"]
+    s0["Select an implementation while the program runs<br/><i>runtime-selection</i>"]
     s1["Assemble parts by name<br/><i>assemble-by-name</i>"]
     s0 -->|"The chosen implementation, and for a table its config class"| s1
 ```
@@ -33,7 +33,7 @@ flowchart LR
 **Problems**
 
 - Selection default kept twice (`prob-selection-default-kept-twice`): The default implementation of a solution is written in the selection table and again in the records, and only a check holds the two equal.
-- Swappable needs ceremony (`prob-swappable-needs-ceremony`): Making a part swappable takes a port class, a table entry with an import path for every alternative, a wrapper file to measure each one, and edits wherever the choice is made, so most parts are never...
+- Swappable needs ceremony (`prob-swappable-needs-ceremony`): Making a part swappable takes a port class, a table entry with an import path for every alternative, a wrapper file to measure each one, and edits wherever the choice is made, so most parts are never made swappable.
 
 ## Metrics and their leaders
 

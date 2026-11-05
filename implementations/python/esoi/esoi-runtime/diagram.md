@@ -8,7 +8,7 @@ An arrow runs from the solution that provides to the solution that builds on it;
 
 ```mermaid
 flowchart LR
-    s0["Select an implementation while the...<br/><i>runtime-selection</i>"]
+    s0["Select an implementation while the program runs<br/><i>runtime-selection</i>"]
     s1["Assemble parts by name<br/><i>assemble-by-name</i>"]
     s0 -->|"The chosen implementation, and for a table its config class"| s1
 ```
