@@ -1,11 +1,12 @@
 """Dimension 1, scope: one job per solution.
 
-Four parts, each a share of items in good order: every arm (a class decorated ``@implementation``) implements every member of the Protocol its
-solution declares with matching parameters and a body that is more than a stub, under a solution id that exists (``conformance.py``; a merge once
-left a whole family of arms off their interface); every arm does work of its own instead of passing each call on to another object unchanged (a
-solution split finer than its job is a chain of such arms); a unit declares no more Protocols than its budget (several unrelated Protocols in one
+Three parts, each a share of items in good order: every arm (a class decorated ``@implementation``) implements every member of the Protocol its
+solution declares with matching parameters and a body that is more than a stub, under a solution id that exists, and does work of its own instead
+of passing each call on to another object unchanged (``conformance.py``; a merge once left a whole family of arms off their interface, and a solution
+split finer than its job is a chain of pass-through arms); a unit declares no more Protocols than its budget (several unrelated Protocols in one
 folder signal that it holds more than one job); and the arms of one solution share one purpose, by the word-overlap measure that rules S48 and S49
-read. The records are read for the last part only where an ``implementations.csv`` sits beside the code.
+read. The records are read for the last part only where an ``implementations.csv`` sits beside the code. The arm checks are one part on purpose:
+the dimension is a geometric mean of its parts, so a new part that most projects pass would dilute the others.
 """
 from __future__ import annotations
 
@@ -129,7 +130,8 @@ def measure(project: Project, budgets: Budgets) -> Dimension:
     purposes = {sid: texts for sid, texts in arm_purposes(project).items() if sid and len(texts) >= 3}
     unfocused = {sid: round(mean_overlap(texts), 3) for sid, texts in purposes.items() if mean_overlap(texts) < ARMS_SHARE_LITTLE}
     hollow = pass_through_arms(project)
-    parts = {"arms_on_interface": share(len(rows) - len(off), len(rows)), "arms_doing_work_of_their_own": share(len(rows) - len(hollow), len(rows)) if rows else None,
+    falling_short = {(r[0], r[1]) for r in off} | {(h[0], h[1]) for h in hollow}   # one part, so a new check does not dilute the others in the geometric mean
+    parts = {"arms_on_interface": share(len(rows) - len(falling_short), len(rows)),
              "protocols_within_budget": share(len(unit_protocols) - len(split), len(unit_protocols)),
              "arms_share_one_purpose": share(len(purposes) - len(unfocused), len(purposes))}
     offenders = [arm_line(p, c, s, m) for p, c, s, m in off]

@@ -414,7 +414,7 @@ def test_a_star_re_export_is_followed_and_a_named_re_export_is_the_units_declare
 def test_one_solution_split_into_a_chain_of_pass_through_solutions_flags_scope():
     found = report("split_into_many")
     assert "scope" in found["flagged"] and found["score"] < report("clean_exemplar")["score"]
-    assert found["dimensions"]["scope"]["parts"]["arms_doing_work_of_their_own"] < 1.0
+    assert found["dimensions"]["scope"]["parts"]["arms_on_interface"] < 1.0 and "arms_doing_work_of_their_own" not in found["dimensions"]["scope"]["parts"]
     assert "passes every call on unchanged (run)" in " ".join(found["dimensions"]["scope"]["offenders"])
 
 

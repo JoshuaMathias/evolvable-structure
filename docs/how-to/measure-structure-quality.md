@@ -25,7 +25,7 @@ Why: [code quality is structure quality](../explanation/code-quality-is-structur
    the per-solution scope and per-unit coupling deltas. Keep the change only if the number holds or rises; when it falls, state in the commit what the
    number does not see and why the structure is better. From code: `from esoi import compare_structure_quality`. `--fast` leaves the flow dimension
    unmeasured (it reads the records and takes most of the time on a large project); the report says which dimensions were measured.
-4. **Read the weak dimensions.** A dimension under 0.6 is named. Fix the worst offenders at their source: make an arm implement every member of its Protocol with matching parameters, call another solution through its interface, write copied code once, split a part at a seam of its own job (not into fragments: the
+4. **Read the weak dimensions.** A dimension under 0.6 is named. Fix the worst offenders at their source: make an arm implement every member of its Protocol with matching parameters and a real body, merge a solution whose arms only pass each call on into the one they call, call another solution through its interface, move a name that only one unit takes out of the shared kernel and into that unit, write copied code once, split a part at a seam of its own job (not into fragments: the
    coupling and reuse dimensions charge for that), add one contract test that runs every arm.
 5. **Turn on the rules** to see the same findings in `esoi check --findings`. In `esoi.toml`:
    ```
@@ -39,10 +39,25 @@ Why: [code quality is structure quality](../explanation/code-quality-is-structur
    from esoi.structure.structure_quality import assess
    from esoi.structure.structure_quality.balance import Budgets
 
-   report = assess.assess("path/to/project", stage=1, budgets=Budgets(consumers=("my_app",)).tightened(function_lines=60))
+   report = assess.assess("path/to/project", stage=1, budgets=Budgets(consumers=("my_app",)).tightened(function_lines=60, complexity=8, kernel_instability=0.1))
    print(report["score"], report["flagged"])
    ```
    The weights are fixed in the library; a consumer's metric names it with `[builds_on]` and adds only its thresholds and cases.
+
+## How to read the report
+
+- **The first line** is the number, where it sits against the reference line, and how many files and units were read. Compare it only with the same
+  repository at another commit (`--compare`), or with another repository measured the same way (both `--fast` or neither), because a dimension that is
+  not measured shares its weight out over the others.
+- **`measured` and `not measured`** say which dimensions the number rests on. `--fast` drops flow; a project with no solution of two or more arms has no
+  behavior to measure. A number over five dimensions is not the same number as one over seven.
+- **Each dimension line** gives its score, its weight and its parts. The parts are what moved: `function_lines_within_budget` falls with lines over the
+  budget, not with the count of long functions; `cross_calls_through_entries_or_kernel` counts imports of the shared kernel as clean, and the note
+  after it names the kernel modules, so read that list: a module there that you would call a solution's inside is a finding about the rule.
+- **The offenders** are the to-do list, worst first. Each opens with the path or unit to fix (the key a waiver takes) and says what is wrong.
+- **What the number cannot tell you**: whether the split fits the domain, whether code was deleted that production needs (only the contract tests,
+  run, can say), how many calls a request makes, or whether two solutions with different names do one job in different words. Read the offenders and
+  the code for those.
 
 The cases that keep the scorer honest are in `implementations/python/evaluation/components/score_structure_quality/`; run them with
 `esoi run score_structure_quality --impl balanced_static`. The expert review arm is paid and never runs without approval.
