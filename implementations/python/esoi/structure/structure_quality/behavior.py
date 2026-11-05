@@ -10,12 +10,13 @@ from __future__ import annotations
 import csv
 import re
 from collections import defaultdict
-from pathlib import Path
+from pathlib import PurePosixPath
 from typing import Dict, List
 
 from esoi.structure.structure_quality.balance import Budgets, Dimension, share
 from esoi.structure.structure_quality.project import Project
-from esoi.structure.structure_quality.scope import classes, decorator_id, is_protocol
+from esoi.structure.structure_quality.conformance import decorator_id, is_protocol
+from esoi.structure.structure_quality.scope import classes
 
 LOOPS = re.compile(r"parametrize|for\s+\w+\s+in\s+[\w.]*(arms|implementations|impls|variants)|contract", re.I)
 
@@ -33,16 +34,15 @@ def protocol_names(project: Project) -> Dict[str, str]:
     return {decorator_id(node, "solution"): node.name for _, node in classes(project) if decorator_id(node, "solution") and is_protocol(node)}
 
 
-def metric_cases(root: Path) -> Dict[str, bool]:
+def metric_cases(project: Project) -> Dict[str, bool]:
     """Solution ids whose metric command names an evaluation component that has a ``cases.json``."""
     out: Dict[str, bool] = {}
-    for path in root.rglob("metrics.csv"):
-        if {".git", "node_modules", "build"} & set(path.relative_to(root).parts):
-            continue
-        with path.open(newline="", encoding="utf-8") as handle:
+    case_folders = {PurePosixPath(p).parent.name for p in project.named["cases.json"]}
+    for relative in project.named["metrics.csv"]:
+        with (project.root / relative).open(newline="", encoding="utf-8") as handle:
             for row in csv.DictReader(handle):
                 names = re.findall(r"esoi run (\w+)", row.get("command", ""))
-                if any(next(root.rglob(f"{n}/cases.json"), None) for n in names):
+                if any(n in case_folders for n in names):
                     for sid in re.split(r"[;,]\s*", row.get("solution_ids", "")):
                         if sid.strip():
                             out[sid.strip()] = True
@@ -52,7 +52,7 @@ def metric_cases(root: Path) -> Dict[str, bool]:
 def measure(project: Project, budgets: Budgets) -> Dimension:
     arms = {sid: names for sid, names in arms_by_solution(project).items() if len(names) >= 2}
     protocols = protocol_names(project)
-    cases = metric_cases(project.root)
+    cases = metric_cases(project)
     missing = []
     for sid, names in sorted(arms.items()):
         keys = [sid, protocols.get(sid, sid)]

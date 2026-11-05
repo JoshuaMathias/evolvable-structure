@@ -9,7 +9,9 @@ from __future__ import annotations
 import ast
 import subprocess
 import tokenize
-from dataclasses import dataclass, field
+import hashlib
+import os
+from dataclasses import dataclass, field, replace
 from io import StringIO
 from pathlib import Path, PurePosixPath
 from typing import Dict, List, Set, Tuple
@@ -40,6 +42,7 @@ class Project:
     tests: Dict[str, str]
     markers: Set[str]   # folders holding an interface.py or solutions.csv
     index: Dict[str, str]   # dotted name (and every suffix of it) to the one file it names
+    named: Dict[str, List[str]] = field(default_factory=dict)   # record file name to its paths under the root, from the one walk that loaded the project
 
     def folder_files(self) -> Dict[str, int]:
         counts: Dict[str, int] = {}
@@ -141,9 +144,21 @@ def skipped_lines(tree: ast.AST) -> Set[int]:
     return skip
 
 
+FACTS: Dict[Tuple[str, str], Module] = {}   # (relative path, digest of the text) to the facts read from it, so a file unchanged between two projects is read once
+RECORD_NAMES = ("interface.py", "solutions.csv", "implementations.csv", "metrics.csv", "intent.csv", "cases.json")
+
+
 def read_module(root: Path, path: str, markers: Set[str]) -> Module:
     text = (root / path).read_text(encoding="utf-8", errors="replace")
-    module = Module(path, unit_of(path, markers), text.count("\n") + 1)
+    key = (path, hashlib.sha1(text.encode("utf-8", errors="replace")).hexdigest())
+    held = FACTS.get(key)
+    if held is None:
+        held = FACTS[key] = parse_module(root, path, text)
+    return replace(held, unit=unit_of(path, markers))
+
+
+def parse_module(root: Path, path: str, text: str) -> Module:
+    module = Module(path, "", text.count("\n") + 1)
     tree = tree_of(root / path)
     if tree is None:
         return module
@@ -161,18 +176,23 @@ def read_module(root: Path, path: str, markers: Set[str]) -> Module:
     return module
 
 
+def walk_records(root: Path) -> Dict[str, List[str]]:
+    """The record files (``RECORD_NAMES``) under the root outside the skipped folders, from one walk of the tree."""
+    found: Dict[str, List[str]] = {name: [] for name in RECORD_NAMES}
+    for folder, names, files in os.walk(root):
+        names[:] = [n for n in names if n not in SKIPPED]
+        for name in files:
+            if name in found:
+                found[name].append((Path(folder) / name).relative_to(root).as_posix())
+    return found
+
+
 def load(root: Path) -> Project:
     root = Path(root).resolve()
     every = listed(root)
     tests = {p: (root / p).read_text(encoding="utf-8", errors="replace") for p in every if is_test(p)}
     code = [p for p in every if not is_test(p)]
-    markers = {str(PurePosixPath(f).parent) for f in marker_files(root)}
+    named = walk_records(root)
+    markers = {str(PurePosixPath(f).parent) for name in MARKERS for f in named[name]}
     modules = {p: read_module(root, p, markers) for p in code}
-    return Project(root, modules, tests, markers, build_index(code))
-
-
-def marker_files(root: Path) -> List[str]:
-    found: List[str] = []
-    for name in MARKERS:
-        found += [p.relative_to(root).as_posix() for p in root.rglob(name) if not SKIPPED & set(p.relative_to(root).parts)]
-    return found
+    return Project(root, modules, tests, markers, build_index(code), named)

@@ -19,7 +19,7 @@ def score_case(fn, case):
         return dict(ok=ok, got="compare", note="ok" if ok else f"{args['better']} {better['score']} is not above {args['worse']} {worse['score']}")
     out = run(fn, args["shape"], args.get("stage", 1))
     if want.get("clean"):
-        ok = out["verdict"] == "sound" and not out["flagged"]
+        ok = out["verdict"] == "at_reference" and not out["flagged"]
         return dict(ok=ok, got="assess", note="ok" if ok else f"clean exemplar called {out['verdict']} and flagged {out['flagged']}")
     missing = [d for d in want["flags"] if d not in out["flagged"]]
     return dict(ok=not missing, got="assess", note="ok" if not missing else f"did not flag {missing}; flagged {out['flagged']}")

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import csv
 from collections import defaultdict
-from pathlib import Path, PurePosixPath
+from pathlib import PurePosixPath
 from typing import Dict, List, Optional, Set, Tuple
 
 from esoi.structure.structure_quality.balance import Budgets, Dimension, combine, share
@@ -18,13 +18,11 @@ from esoi.structure.structure_quality.project import Project
 ENTRY_NAMES = {"interface.py", "__init__.py"}
 
 
-def declared_entries(root: Path) -> Set[str]:
+def declared_entries(project: Project) -> Set[str]:
     """The files that implementations.csv records name as the code of an arm: a unit's declared way in."""
     found: Set[str] = set()
-    for path in root.rglob("implementations.csv"):
-        if {".git", "node_modules", "build"} & set(path.relative_to(root).parts):
-            continue
-        with path.open(newline="", encoding="utf-8") as handle:
+    for relative in project.named["implementations.csv"]:
+        with (project.root / relative).open(newline="", encoding="utf-8") as handle:
             for row in csv.DictReader(handle):
                 target = (row.get("filepath") or "").partition("::")[0].strip()
                 if target:
@@ -113,7 +111,7 @@ def names_consumer(project: Project, unit: str, consumers: Tuple[str, ...]) -> L
 
 def measure(project: Project, budgets: Budgets, cochange: Optional[Dict[str, object]] = None) -> Dimension:
     edges = cross_edges(project)
-    entries = declared_entries(project.root)
+    entries = declared_entries(project)
     through = [e for e in edges if PurePosixPath(e[3]).name in ENTRY_NAMES or e[3] in entries]
     reach_in: Dict[Tuple[str, str], int] = defaultdict(int)
     allowed = set(through)

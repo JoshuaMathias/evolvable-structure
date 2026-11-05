@@ -3,15 +3,18 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from esoi.structure.structure_quality.balance import SOUND_FLOOR, WEIGHTS
+from esoi.structure.structure_quality.balance import REFERENCE_LINE, REFERENCE_STATES, WEIGHTS
 
 OFFENDERS_SHOWN = 5
 
 
 def lines(report: Dict[str, Any], shown: int = OFFENDERS_SHOWN) -> List[str]:
     number = "not measured" if report["score"] is None else f"{report['score']:.3f}"
-    out = [f"structure quality {number} ({report['verdict']}; sound is {SOUND_FLOOR:.2f} or more) at stage {report['stage']}: "
-           f"{report['files']} files in {report['units']} units, {report['measured_weight']:.2f} of the weight measured"]
+    out = [f"structure quality {number} ({report['verdict'].replace('_', ' ')}; reference line {REFERENCE_LINE:.2f}, from {len(REFERENCE_STATES)} measured kept structures "
+           f"scoring {min(REFERENCE_STATES.values()):.2f} to {max(REFERENCE_STATES.values()):.2f}) at stage {report['stage']}: "
+           f"{report['files']} files in {report['units']} units",
+           f"  measured: {', '.join(report['measured']) or 'nothing'} ({report['measured_weight']:.2f} of the weight)"
+           + (f"; not measured: {', '.join(report['not_measured'])}, their weight shared out over the measured ones in proportion" if report["not_measured"] else "")]
     for name, weight in WEIGHTS.items():
         dim = report["dimensions"][name]
         value = "not measured" if dim["score"] is None else f"{dim['score']:.3f}"

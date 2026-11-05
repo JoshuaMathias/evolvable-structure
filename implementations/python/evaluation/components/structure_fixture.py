@@ -8,6 +8,7 @@ Protocol, two arms that define its method, an ``__all__`` of the one name the ot
 """
 from __future__ import annotations
 
+import atexit
 import os
 import random
 import subprocess
@@ -164,6 +165,35 @@ def stripped_interfaces() -> Dict[str, str]:
     return files
 
 
+def stripped_members() -> Dict[str, str]:
+    """A merge that kept each arm's one main method and dropped the rest of the interface: the Protocol declares a second member the arms never define."""
+    files = exemplar(False)
+    for n, unit in enumerate(UNITS):
+        text = interface(unit, n)
+        text = text.replace("    def run(self, data" + "".join(f", extra_{i}" for i in range(n)) + "): ...\n", "    def run(self, data" + "".join(f", extra_{i}" for i in range(n)) + "): ...\n\n    def describe(self): ...\n", 1)
+        files[f"app/{unit}/interface.py"] = text
+    return files
+
+
+def mismatched_parameters() -> Dict[str, str]:
+    """A merge that kept the method names of the interface but not its parameters: every arm takes ``payload`` where the Protocol passes ``data``."""
+    files = exemplar(False)
+    for n, unit in enumerate(UNITS):
+        text = interface(unit, n)
+        head, _, rest = text.partition("@implementation")
+        files[f"app/{unit}/interface.py"] = head + "@implementation" + rest.replace("def run(self, data", "def run(self, payload")
+    return files
+
+
+def arms_of_no_solution() -> Dict[str, str]:
+    """A merge that renamed the solutions and left the arms declaring the old ids."""
+    files = exemplar(False)
+    for n, unit in enumerate(UNITS):
+        text = interface(unit, n)
+        files[f"app/{unit}/interface.py"] = text.replace(f'@implementation("{unit}"', f'@implementation("{unit}-before-the-merge"')
+    return files
+
+
 def library_names_consumer() -> Dict[str, str]:
     files = exemplar(False)
     files["app/ledger/engine.py"] += '\n\ndef label_for(account):\n    return f"shopfront {account}"  # the library knows its shop\n\n\ndef report():\n    shopfront = 1\n    return shopfront\n'
@@ -219,6 +249,9 @@ SHAPES = {
     "flat_tree": (flat_tree, {}),
     "long_solution_list": (long_solution_list, {}),
     "stripped_interfaces": (stripped_interfaces, {}),
+    "stripped_members": (stripped_members, {}),
+    "mismatched_parameters": (mismatched_parameters, {}),
+    "arms_of_no_solution": (arms_of_no_solution, {}),
     "library_names_consumer": (library_names_consumer, {"consumers": ("shopfront",)}),
     "due_arithmetic_copied": (due_arithmetic_copied, {}),
     "import_cycle": (import_cycle, {}),
@@ -246,8 +279,22 @@ def add_history(root: Path, kind: str) -> None:
         run("commit", "-q", "-m", f"change {n}")
 
 
+def history_checkout(ref: str) -> Path:
+    """A throwaway worktree of this library's own repository at one commit (a case from git history), removed when the process ends."""
+    repo = Path(__file__).resolve().parents[4]
+    found = subprocess.run(["git", "-C", str(repo), "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"], capture_output=True, text=True)
+    if found.returncode != 0:
+        raise ValueError(f"commit {ref} is not in this clone (a git-history case needs the full history)")
+    folder = Path(tempfile.mkdtemp(prefix="esoi_sq_history_")) / "tree"
+    subprocess.run(["git", "-C", str(repo), "worktree", "add", "--detach", str(folder), found.stdout.strip()], capture_output=True, text=True, check=True)
+    atexit.register(lambda: subprocess.run(["git", "-C", str(repo), "worktree", "remove", "--force", str(folder)], capture_output=True, text=True))
+    return folder
+
+
 def project(name: str) -> Path:
-    """The folder of one shape, written once per process under the temporary directory."""
+    """The folder of one shape, written once per process under the temporary directory; ``git:<commit>`` is this library's own history at that commit."""
+    if name.startswith("git:") and name not in CACHE:
+        CACHE[name] = history_checkout(name[4:])
     if name not in CACHE:
         build, extra = SHAPES[name]
         root = Path(tempfile.mkdtemp(prefix=f"esoi_sq_{name}_"))
@@ -262,4 +309,4 @@ def project(name: str) -> Path:
 
 
 def options(name: str) -> dict:
-    return SHAPES[name][1]
+    return {} if name.startswith("git:") else SHAPES[name][1]

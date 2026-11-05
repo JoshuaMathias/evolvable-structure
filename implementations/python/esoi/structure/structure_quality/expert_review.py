@@ -10,7 +10,7 @@ import json
 import re
 from typing import Any, Callable, Dict
 
-from esoi.structure.structure_quality.balance import WEIGHTS, SOUND_FLOOR, balanced, Dimension
+from esoi.structure.structure_quality.balance import REFERENCE_LINE, WEIGHTS, balanced, Dimension
 from esoi.structure.structure_quality.project import Project
 
 PER_CALL_TOKENS = {"input": 6000, "output": 600}   # the estimate behind the cost line in the metric record: one call per project reviewed
@@ -53,7 +53,7 @@ def parse(reply: str) -> Dict[str, Any]:
         dims.append(Dimension(name, None if score is None else round(float(score), 4), {"expert_score": score} if score is not None else {},
                               [str(o) for o in entry.get("offenders", [])]))
     verdict = balanced(dims)
-    return {"stage": 3, **verdict, "sound_floor": SOUND_FLOOR,
+    return {"stage": 3, **verdict, "reference_line": REFERENCE_LINE,
             "dimensions": {d.name: {"score": d.score, "parts": d.parts, "offenders": d.offenders, "note": "expert review"} for d in dims}}
 
 

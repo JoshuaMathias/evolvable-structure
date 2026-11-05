@@ -8,21 +8,19 @@ is one part of the number and not the number.
 from __future__ import annotations
 
 import csv
-from pathlib import Path, PurePosixPath
+from pathlib import PurePosixPath
 from typing import List, Tuple
 
 from esoi.structure.structure_quality.balance import Budgets, Dimension, combine, share
-from esoi.structure.structure_quality.project import SKIPPED, Project
+from esoi.structure.structure_quality.project import Project
 
 
-def intent_children(root: Path) -> List[Tuple[str, int]]:
+def intent_children(project: Project) -> List[Tuple[str, int]]:
     """Per folder holding an ``intent.csv``, the solutions it groups: its own rows and those of folders directly below it that are not intents."""
+    root = project.root
     out: List[Tuple[str, int]] = []
-    for intent in root.rglob("intent.csv"):
-        rel = intent.relative_to(root)
-        if SKIPPED & set(rel.parts):
-            continue
-        folder = intent.parent
+    for relative in project.named["intent.csv"]:
+        folder = (root / relative).parent
         count = 0
         for solutions in [folder / "solutions.csv", *sorted(folder.glob("*/solutions.csv"))]:
             if solutions.parent != folder and (solutions.parent / "intent.csv").exists():
@@ -43,7 +41,7 @@ def measure(project: Project, budgets: Budgets) -> Dimension:
     crowded = {f: n for f, n in counts.items() if n > budgets.files_per_folder}
     files_in_crowded = sum(n - budgets.files_per_folder for n in crowded.values())   # the files past the budget
     deep = [m for m in modules if len(PurePosixPath(m.path).parts) - 1 > budgets.depth]
-    children = intent_children(project.root)
+    children = intent_children(project)
     wide = [(f, n) for f, n in children if n > budgets.children_per_intent]
     parts = {"functions_within_budget": share(len(functions) - len(long_functions), len(functions)),
              "modules_within_budget": share(len(modules) - len(long_modules), len(modules)),

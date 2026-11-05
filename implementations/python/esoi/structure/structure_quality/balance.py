@@ -12,11 +12,18 @@ Changing a weight afterwards ranks earlier rows on another criterion, so a chang
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field, replace
 from typing import Dict, List, Optional
 
 WEIGHTS: Dict[str, float] = {"scope": 0.20, "size": 0.15, "coupling": 0.20, "reuse": 0.15, "flow": 0.10, "surface": 0.05, "behavior": 0.15}
-SOUND_FLOOR = 0.80   # the balanced number at or above which a structure is called sound
+# The reference line replaces an arbitrary pass mark. It is the lowest balanced number (stage 1, flow measured, this scorer) among the latest states of
+# three repositories whose structure was reviewed and kept, rounded down to two decimals: an orchestration runner of about 1180 files, a records library
+# of about 470 files and a hub library of about 470 files, measured on 2026-11-05. A project at or above the line scores as well as the worst structure
+# its reviewers accepted; below it, the offenders say what to fix. It is a reference, not a standard of soundness, and it moves when a scorer change moves
+# those three numbers (re-measure them with ``esoi structure-quality --compare`` and update the states together with the line).
+REFERENCE_STATES: Dict[str, float] = {"orchestration runner (1180 files)": 0.8074, "records library (474 files)": 0.689, "hub library (469 files)": 0.8089}
+REFERENCE_LINE = math.floor(min(REFERENCE_STATES.values()) * 100) / 100
 LOW_DIMENSION = 0.60   # a dimension below this is named as a weak one in the report
 
 
@@ -29,7 +36,7 @@ class Budgets:
     depth: int = 7
     protocols_per_unit: int = 2
     clone_window: int = 30   # tokens in a window that counts as copied code
-    duplication_budget: float = 0.15   # share of code copied between files at which the reuse dimension reaches zero
+    family_files: int = 4   # files that share one copied window for it to count as boilerplate (a family of same-shaped wrappers) rather than an accidental clone
     min_cochange_support: int = 5
     min_cochange_confidence: float = 0.8
     history_commits: int = 400
@@ -74,11 +81,14 @@ def combine(values: List[Optional[float]]) -> Optional[float]:
 
 
 def balanced(dimensions: List[Dimension]) -> Dict[str, object]:
-    """``{score, measured_weight, weak, verdict}`` from the dimensions: the weighted mean over those measured."""
+    """``{score, measured_weight, measured, not_measured, weak, flagged, verdict}`` from the dimensions: the weighted mean over those measured, each
+    measured dimension weighing its fixed weight divided by the measured weight (so the weight of a dimension that could not be measured is shared
+    out in proportion, and the report says which)."""
     measured = [d for d in dimensions if d.score is not None]
     weight = sum(WEIGHTS[d.name] for d in measured)
     score = round(sum(WEIGHTS[d.name] * d.score for d in measured) / weight, 4) if weight else None
     weak = [d.name for d in measured if d.score < LOW_DIMENSION]
-    verdict = "unmeasured" if score is None else ("sound" if score >= SOUND_FLOOR else "unsound")
+    verdict = "unmeasured" if score is None else ("at_reference" if score >= REFERENCE_LINE else "below_reference")
     flagged = [d.name for d in dimensions if d.offenders]
-    return {"score": score, "measured_weight": round(weight, 4), "weak": weak, "flagged": flagged, "verdict": verdict}
+    return {"score": score, "measured_weight": round(weight, 4), "measured": [d.name for d in measured],
+            "not_measured": [d.name for d in dimensions if d.score is None], "weak": weak, "flagged": flagged, "verdict": verdict}

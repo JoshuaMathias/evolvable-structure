@@ -1,7 +1,7 @@
 """Dimension 1, scope: one job per solution.
 
-Three parts, each a share of items in good order: every arm (a class decorated ``@implementation``) defines the methods of the Protocol its
-solution declares (a merge once left a whole family of arms off their interface); a unit declares no more Protocols than its budget (several
+Three parts, each a share of items in good order: every arm (a class decorated ``@implementation``) implements every member of the Protocol its
+solution declares with matching parameters, under a solution id that exists (``conformance.py``; a merge once left a whole family of arms off their interface); a unit declares no more Protocols than its budget (several
 unrelated Protocols in one folder signal that it holds more than one job); and the arms of one solution share one purpose, by the word-overlap
 measure that rules S48 and S49 read. The records are read for the third part only where an ``implementations.csv`` sits beside the code.
 """
@@ -10,31 +10,14 @@ from __future__ import annotations
 import ast
 import csv
 from collections import defaultdict
-from pathlib import Path
-from typing import Dict, List, Set
+from typing import Dict, List
 
 from esoi.structure.intent_registry.parsed_source import nodes_of
+from esoi.structure.structure_quality.adopted import adopted_projects, installed_classes
+from esoi.structure.structure_quality.conformance import arm_problems, declared_solutions, decorator_id, is_protocol, protocol_members
 from esoi.structure.structure_quality.balance import Budgets, Dimension, combine, share
 from esoi.structure.structure_quality.overlap import ARMS_SHARE_LITTLE, mean_overlap
 from esoi.structure.structure_quality.project import Project
-
-
-def decorator_id(node: ast.ClassDef, name: str) -> str:
-    """The solution id a ``@solution("id", ...)`` or ``@implementation("id", ...)`` decorator names, or an empty string."""
-    for dec in node.decorator_list:
-        if isinstance(dec, ast.Call) and getattr(dec.func, "id", getattr(dec.func, "attr", "")) == name and dec.args:
-            first = dec.args[0]
-            if isinstance(first, ast.Constant) and isinstance(first.value, str):
-                return first.value
-    return ""
-
-
-def methods(node: ast.ClassDef) -> Set[str]:
-    return {n.name for n in node.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and not n.name.startswith("_")}
-
-
-def is_protocol(node: ast.ClassDef) -> bool:
-    return any(getattr(b, "id", getattr(b, "attr", "")) == "Protocol" for b in node.bases)
 
 
 def classes(project: Project):
@@ -46,33 +29,33 @@ def classes(project: Project):
                 yield module, node
 
 
-def inherited(node: ast.ClassDef, index: Dict[str, ast.ClassDef], seen: Set[str]) -> Set[str]:
-    """The public methods of a class and of every base class the project defines by name (an arm may take its methods from a base)."""
-    found = methods(node)
-    for base in node.bases:
-        name = getattr(base, "id", getattr(base, "attr", ""))
-        if name in index and name not in seen and name != "Protocol":
-            found |= inherited(index[name], index, seen | {name})
-    return found
-
-
 def arms_on_interface(project: Project):
-    """Each arm with the Protocol methods it lacks: ``(path, class, solution id, missing)``; the share of arms that lack none."""
-    declared: Dict[str, Set[str]] = {}
+    """Each arm with what it lacks of its solution's Protocol: ``(path, class, solution id, problems)`` (see ``conformance.arm_problems``). The Protocols and
+    base classes of the libraries the project adopts from and of installed packages count (``adopted.py``); an arm whose solution id names no solution, or
+    whose solution declares no Protocol, has that as its one problem."""
+    libraries = adopted_projects(project)
+    protocols: Dict[str, List[Dict[str, object]]] = {}
     arms = []
-    index = {node.name: node for _, node in classes(project)}
-    for module, node in classes(project):
-        sid = decorator_id(node, "solution")
-        if sid and is_protocol(node):
-            declared[sid] = methods(node)
-        arm = decorator_id(node, "implementation")
-        if arm:
-            arms.append((module.path, node, arm))
+    index: Dict[str, object] = {}
+    for source in [*libraries, project]:
+        for module, node in classes(source):
+            index[node.name] = node
+            sid = decorator_id(node, "solution")
+            if sid and is_protocol(node):
+                protocols.setdefault(sid, []).append(protocol_members(node))
+            arm = decorator_id(node, "implementation")
+            if arm and source is project:
+                arms.append((module.path, node, arm))
+    wanted = {getattr(b, "id", getattr(b, "attr", "")) for _, node, _ in arms for b in node.bases} - set(index)
+    index.update(installed_classes(project, wanted))
+    known = declared_solutions([project, *libraries], set(protocols))
     rows = []
     for path, node, sid in arms:
-        have = inherited(node, index, {node.name})
-        missing = sorted(declared[sid] - have) if sid in declared else ["its solution declares no Protocol"]
-        rows.append((path, node.name, sid, missing))
+        if sid in protocols:
+            problems = arm_problems(node, protocols[sid], index)
+        else:
+            problems = ["its solution declares no Protocol" if sid in known else "its solution id names no solution the project declares"]
+        rows.append((path, node.name, sid, problems))
     return rows
 
 
@@ -84,16 +67,22 @@ def protocols_per_unit(project: Project) -> Dict[str, List[str]]:
     return found
 
 
-def arm_purposes(root: Path) -> Dict[str, List[str]]:
+def arm_purposes(project: Project) -> Dict[str, List[str]]:
     """Per solution id, the name and description of each of its arms, from every implementations.csv under the project."""
     out: Dict[str, List[str]] = defaultdict(list)
-    for path in root.rglob("implementations.csv"):
-        if any(part in {".git", "node_modules", "build", "__pycache__"} for part in path.relative_to(root).parts):
-            continue
-        with path.open(newline="", encoding="utf-8") as handle:
+    for relative in project.named["implementations.csv"]:
+        with (project.root / relative).open(newline="", encoding="utf-8") as handle:
             for row in csv.DictReader(handle):
                 out[row.get("solution_id", "")].append(" ".join([row.get("name", ""), row.get("description", "")]))
     return out
+
+
+def arm_line(path: str, name: str, sid: str, problems: List[str]) -> str:
+    lacking = [p for p in problems if ":" not in p and " " not in p]
+    mismatched = [p for p in problems if ":" in p]
+    statements = [p for p in problems if p not in lacking and p not in mismatched]
+    parts = ([f"lacks {', '.join(lacking)}"] if lacking else []) + ["has " + m.replace(": ", " (", 1) + ")" for m in mismatched] + statements
+    return f"{path}: arm {name} of {sid}: " + "; ".join(parts)
 
 
 def measure(project: Project, budgets: Budgets) -> Dimension:
@@ -101,11 +90,11 @@ def measure(project: Project, budgets: Budgets) -> Dimension:
     off = [r for r in rows if r[3]]
     unit_protocols = protocols_per_unit(project)
     split = {u: n for u, n in unit_protocols.items() if len(n) > budgets.protocols_per_unit}
-    purposes = {sid: texts for sid, texts in arm_purposes(project.root).items() if sid and len(texts) >= 3}
+    purposes = {sid: texts for sid, texts in arm_purposes(project).items() if sid and len(texts) >= 3}
     unfocused = {sid: round(mean_overlap(texts), 3) for sid, texts in purposes.items() if mean_overlap(texts) < ARMS_SHARE_LITTLE}
     parts = {"arms_on_interface": share(len(rows) - len(off), len(rows)), "protocols_within_budget": share(len(unit_protocols) - len(split), len(unit_protocols)),
              "arms_share_one_purpose": share(len(purposes) - len(unfocused), len(purposes))}
-    offenders = [f"{p}: arm {c} of {s} lacks {', '.join(m)}" for p, c, s, m in off]
+    offenders = [arm_line(p, c, s, m) for p, c, s, m in off]
     offenders += [f"{u}: {len(n)} Protocols ({', '.join(n[:4])}) signal more than one job" for u, n in sorted(split.items(), key=lambda kv: -len(kv[1]))]
     offenders += [f"{s}: its arms share little purpose (mean overlap {v})" for s, v in unfocused.items()]
     return Dimension("scope", combine(list(parts.values())), {k: v for k, v in parts.items() if v is not None}, offenders)

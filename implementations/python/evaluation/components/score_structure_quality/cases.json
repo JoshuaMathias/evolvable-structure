@@ -276,5 +276,113 @@
   "expect": {
    "better_scores_higher": true
   }
+ },
+ {
+  "id": "SQ-019",
+  "kind": "compare",
+  "area": "a merge that leaves arms that implement only the main method of an interface that declares more scores below the clean exemplar",
+  "description": "a merge that leaves arms that implement only the main method of an interface that declares more scores below the clean exemplar",
+  "source": "incident shape: a merge that kept the arms' names and not their interface",
+  "args": {
+   "better": "clean_exemplar",
+   "worse": "stripped_members",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ },
+ {
+  "id": "SQ-020",
+  "kind": "assess",
+  "area": "arms that implement only the main method of an interface that declares more flags scope",
+  "description": "arms that implement only the main method of an interface that declares more flags scope",
+  "source": "incident shape: a merge that kept the arms' names and not their interface",
+  "args": {
+   "shape": "stripped_members",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "scope"
+   ]
+  }
+ },
+ {
+  "id": "SQ-021",
+  "kind": "compare",
+  "area": "a merge that leaves arms whose methods carry the interface's names and not its parameters scores below the clean exemplar",
+  "description": "a merge that leaves arms whose methods carry the interface's names and not its parameters scores below the clean exemplar",
+  "source": "incident shape: a merge that kept the arms' names and not their interface",
+  "args": {
+   "better": "clean_exemplar",
+   "worse": "mismatched_parameters",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ },
+ {
+  "id": "SQ-022",
+  "kind": "assess",
+  "area": "arms whose methods carry the interface's names and not its parameters flags scope",
+  "description": "arms whose methods carry the interface's names and not its parameters flags scope",
+  "source": "incident shape: a merge that kept the arms' names and not their interface",
+  "args": {
+   "shape": "mismatched_parameters",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "scope"
+   ]
+  }
+ },
+ {
+  "id": "SQ-023",
+  "kind": "compare",
+  "area": "a merge that leaves arms whose solution id names no solution after a rename scores below the clean exemplar",
+  "description": "a merge that leaves arms whose solution id names no solution after a rename scores below the clean exemplar",
+  "source": "incident shape: a merge that kept the arms' names and not their interface",
+  "args": {
+   "better": "clean_exemplar",
+   "worse": "arms_of_no_solution",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ },
+ {
+  "id": "SQ-024",
+  "kind": "assess",
+  "area": "arms whose solution id names no solution after a rename flags scope",
+  "description": "arms whose solution id names no solution after a rename flags scope",
+  "source": "incident shape: a merge that kept the arms' names and not their interface",
+  "args": {
+   "shape": "arms_of_no_solution",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "scope"
+   ]
+  }
+ },
+ {
+  "id": "SQ-025",
+  "kind": "compare",
+  "area": "the library's restructure into four containers with one folder per solution scores above the flat layout it replaced",
+  "description": "the library's restructure into four containers with one folder per solution scores above the flat layout it replaced",
+  "source": "git-history: this library's own commit that moved a flat package into four containers",
+  "args": {
+   "better": "git:532ba10",
+   "worse": "git:532ba10^",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
  }
 ]

@@ -2,6 +2,7 @@
 from typing import Any, Callable, Dict, Optional, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
+from esoi.structure.structure_quality.balance import REFERENCE_LINE
 
 __all__ = ["StructureQualityAssessing"]
 
@@ -32,7 +33,7 @@ class FileSizeOnly:
         report = assess.assess(project)
         size = report["dimensions"]["size"]
         return {**report, "score": size["score"], "flagged": ["size"] if size["offenders"] else [],
-                "verdict": "unmeasured" if size["score"] is None else ("sound" if size["score"] >= 0.8 else "unsound")}
+                "verdict": "unmeasured" if size["score"] is None else ("at_reference" if size["score"] >= REFERENCE_LINE else "below_reference")}
 
 
 @implementation("structure-quality", "expert_review")

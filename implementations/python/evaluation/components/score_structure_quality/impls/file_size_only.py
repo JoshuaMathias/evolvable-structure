@@ -2,13 +2,13 @@
 bound for the Goodhart cases. Zero model calls."""
 import structure_fixture
 from esoi.structure.structure_quality import assess
-from esoi.structure.structure_quality.balance import Budgets
+from esoi.structure.structure_quality.balance import REFERENCE_LINE, Budgets
 
 
 def build(meter):
     def run(kind, args):
         report = assess.assess(str(structure_fixture.project(args["shape"])), args["stage"], Budgets(consumers=tuple(args.get("consumers", ()))))
         size = report["dimensions"]["size"]
-        verdict = "unmeasured" if size["score"] is None else ("sound" if size["score"] >= 0.8 else "unsound")
+        verdict = "unmeasured" if size["score"] is None else ("at_reference" if size["score"] >= REFERENCE_LINE else "below_reference")
         return {"score": size["score"], "verdict": verdict, "flagged": ["size"] if size["offenders"] else []}
     return run
