@@ -430,5 +430,206 @@
     "coupling"
    ]
   }
+ },
+ {
+  "id": "SQ-029",
+  "kind": "assess",
+  "area": "a small configuration and error module with no imports, imported by every unit for names two or more units take, is a shared kernel and clean",
+  "description": "a small configuration and error module with no imports, imported by every unit for names two or more units take, is a shared kernel and clean",
+  "source": "foundation question: a shared kernel imported by every unit",
+  "args": {
+   "shape": "foundation_kernel",
+   "stage": 1
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "SQ-030",
+  "kind": "compare",
+  "area": "a shared kernel scores above the same module once it imports a solution's engine",
+  "description": "a shared kernel scores above the same module once it imports a solution's engine",
+  "source": "foundation question: a widely imported module that depends on a solution is not a kernel",
+  "args": {
+   "better": "foundation_kernel",
+   "worse": "kernel_reaches_up",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ },
+ {
+  "id": "SQ-031",
+  "kind": "assess",
+  "area": "a widely imported module that imports a solution's engine is not a kernel and flags coupling",
+  "description": "a widely imported module that imports a solution's engine is not a kernel and flags coupling",
+  "source": "foundation question: a widely imported module that depends on a solution is not a kernel",
+  "args": {
+   "shape": "kernel_reaches_up",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "coupling"
+   ]
+  }
+ },
+ {
+  "id": "SQ-032",
+  "kind": "assess",
+  "area": "each unit's own functions moved into one foundation module, every name taken by one unit, flags coupling",
+  "description": "each unit's own functions moved into one foundation module, every name taken by one unit, flags coupling",
+  "source": "Goodhart check: internals moved into a foundation module to pass as a kernel",
+  "args": {
+   "shape": "kernel_dump",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "coupling"
+   ]
+  }
+ },
+ {
+  "id": "SQ-033",
+  "kind": "compare",
+  "area": "the clean exemplar scores above its units' own functions moved into one foundation module",
+  "description": "the clean exemplar scores above its units' own functions moved into one foundation module",
+  "source": "Goodhart check: internals moved into a foundation module to pass as a kernel",
+  "args": {
+   "better": "clean_exemplar",
+   "worse": "kernel_dump",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ },
+ {
+  "id": "SQ-034",
+  "kind": "assess",
+  "area": "arms that meet a fat interface with pass, ellipsis or raise NotImplementedError flag scope",
+  "description": "arms that meet a fat interface with pass, ellipsis or raise NotImplementedError flag scope",
+  "source": "Goodhart check: a fat interface whose arms stub the members",
+  "args": {
+   "shape": "stub_arms",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "scope"
+   ]
+  }
+ },
+ {
+  "id": "SQ-035",
+  "kind": "compare",
+  "area": "the clean exemplar scores above the same project whose arms stub a fat interface",
+  "description": "the clean exemplar scores above the same project whose arms stub a fat interface",
+  "source": "Goodhart check: a fat interface whose arms stub the members",
+  "args": {
+   "better": "clean_exemplar",
+   "worse": "stub_arms",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ },
+ {
+  "id": "SQ-036",
+  "kind": "assess",
+  "area": "a fat interface whose members the arms implement and callers never use flags the public surface",
+  "description": "a fat interface whose members the arms implement and callers never use flags the public surface",
+  "source": "Goodhart check: a fat interface that callers barely use",
+  "args": {
+   "shape": "unused_members",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "surface"
+   ]
+  }
+ },
+ {
+  "id": "SQ-037",
+  "kind": "compare",
+  "area": "the clean exemplar scores above the same project with a fat interface callers barely use",
+  "description": "the clean exemplar scores above the same project with a fat interface callers barely use",
+  "source": "Goodhart check: a fat interface that callers barely use",
+  "args": {
+   "better": "clean_exemplar",
+   "worse": "unused_members",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ },
+ {
+  "id": "SQ-038",
+  "kind": "assess",
+  "area": "a reach-in moved behind import star in the unit's own package still flags coupling",
+  "description": "a reach-in moved behind import star in the unit's own package still flags coupling",
+  "source": "Goodhart check: hiding a reach-in behind a star re-export",
+  "args": {
+   "shape": "star_re_export",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "coupling"
+   ]
+  }
+ },
+ {
+  "id": "SQ-039",
+  "kind": "assess",
+  "area": "a unit package that re-exports every engine function by name while other units use one flags the public surface",
+  "description": "a unit package that re-exports every engine function by name while other units use one flags the public surface",
+  "source": "Goodhart check: re-exporting a unit's inside by name",
+  "args": {
+   "shape": "explicit_re_exports",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "surface"
+   ]
+  }
+ },
+ {
+  "id": "SQ-040",
+  "kind": "assess",
+  "area": "one solution split into a chain of solution folders whose arms only pass each call on flags scope",
+  "description": "one solution split into a chain of solution folders whose arms only pass each call on flags scope",
+  "source": "Goodhart check: one solution split into many",
+  "args": {
+   "shape": "split_into_many",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "scope"
+   ]
+  }
+ },
+ {
+  "id": "SQ-041",
+  "kind": "compare",
+  "area": "the clean exemplar scores above the same project with one solution split into a chain of pass-through solutions",
+  "description": "the clean exemplar scores above the same project with one solution split into a chain of pass-through solutions",
+  "source": "Goodhart check: one solution split into many",
+  "args": {
+   "better": "clean_exemplar",
+   "worse": "split_into_many",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
  }
 ]

@@ -1,13 +1,18 @@
 """Dimension 3, coupling: solutions connect through declared entry points, in one direction, without cycles.
 
 Parts: the share of cross-unit imports that land on a unit's declared entry (its ``interface.py``, its ``__init__.py``, a file an
-``implementations.csv`` names or one that declares a ``@solution`` or ``@implementation``); the share of units outside an import cycle; the share of
+``implementations.csv`` names or one that declares a ``@solution`` or ``@implementation``) or on the project's shared kernel with names two or more
+units take (``foundation.py``: configuration, error types and registries are imported by many units by design, and the history shows such imports
+ripple about as rarely as imports through entries); the share of units outside an import cycle (an import of a kernel is left out of the cycle graph,
+since a kernel's own imports reach only other kernels, so no file-level cycle can pass through it); the share of
 units that never name a consumer the project declares (a library never names or imports its consumers); and, at stage 2, the share of files that
 change together across units with an import edge to explain it (see ``cochange``). Co-change is the history's evidence of the same thing the imports show.
 
 A project's front door (``api.py``, the top package's ``__init__.py``) exists to expose the parts: what it imports is not a cross-solution call and is
 left out of the cycle graph. A name another unit takes from a front door counts as an entry only when it resolves, through the re-exports, to a declared
-entry; otherwise it is a reach-in on the module that defines it, so moving imports behind a re-export hides nothing.
+entry; otherwise it is a reach-in on the module that defines it, so moving imports behind a re-export hides nothing. A unit's own ``__init__.py`` that
+names a re-export declares it (PEP 8 counts a package's ``__init__`` as its public interface); a name it only passes on through ``import *`` is
+followed to the module that defines it.
 """
 from __future__ import annotations
 
@@ -17,6 +22,7 @@ from collections import defaultdict
 from pathlib import PurePosixPath
 from typing import Dict, List, Optional, Set, Tuple
 
+from esoi.structure.structure_quality import foundation
 from esoi.structure.structure_quality.balance import Budgets, Dimension, combine, share
 from esoi.structure.structure_quality.project import Project
 
@@ -73,7 +79,8 @@ def is_front_door(project: Project, path: str) -> bool:
     pure = PurePosixPath(path)
     if pure.name in FRONT_DOOR_NAMES:
         return True
-    return pure.name == "__init__.py" and str(pure.parent.parent / "__init__.py") not in project.modules
+    # a solution folder's own __init__.py is that unit's entry even when no package __init__.py sits above it
+    return pure.name == "__init__.py" and str(pure.parent.parent / "__init__.py") not in project.modules and str(pure.parent) not in project.markers
 
 
 def is_entry(project: Project, path: str, entries: Set[str]) -> bool:
@@ -94,24 +101,78 @@ def through_front_door(project: Project, door: str, names: Tuple[str, ...], dept
                 for hit in hits:
                     origin += through_front_door(project, hit, (name,), depth - 1) if is_front_door(project, hit) and hit != door else [hit]
                 break
-        found += origin or [door]
+        found += origin if origin and origin != [door] else through_star(project, door, name)
     return found
 
 
+def top_level_names(module) -> Set[str]:
+    """The names a module defines or imports by name at its top level (what ``from it import name`` finds without a star)."""
+    found: Set[str] = set()
+    for node in getattr(module.tree, "body", ()):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            found.add(node.name)
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            found |= {t.id for t in (node.targets if isinstance(node, ast.Assign) else [node.target]) if isinstance(t, ast.Name)}
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            found |= {(alias.asname or alias.name).split(".")[0] for alias in node.names if alias.name != "*"}
+    return found
+
+
+def through_star(project: Project, package: str, name: str) -> List[str]:
+    """Where a name taken from a unit's own ``__init__.py`` comes from: the package itself when it names the name, else the module of an ``import *``
+    in it that defines the name (the star passes the module's inside on without declaring any of it)."""
+    module = project.modules[package]
+    if name in top_level_names(module):
+        return [package]
+    for base, taken in module.imports:
+        if "*" in taken:
+            for hit in targets(project, base, ()):
+                if hit in project.modules and name in top_level_names(project.modules[hit]):
+                    return [hit]
+    return [package]
+
+
+def landings(project: Project, target: str, names: Tuple[str, ...]) -> List[Tuple[str, Tuple[str, ...]]]:
+    """``(file, names)`` for an import of ``target``: a front door and a unit's own ``__init__.py`` are followed name by name, any other file is itself."""
+    if names and is_front_door(project, target):
+        return [(final, (name,)) for name in names for final in through_front_door(project, target, (name,))]
+    if names and PurePosixPath(target).name == "__init__.py":
+        return [(final, (name,)) for name in names for final in through_star(project, target, name)]
+    return [(target, names)]
+
+
 def entry_edges(project: Project) -> List[Tuple[str, str, str, str, Tuple[str, ...]]]:
-    """``cross_edges`` as coupling reads them: a front door is not a source, and a name taken from a front door lands on the file that defines it."""
+    """``cross_edges`` as coupling reads them: a front door is not a source, and a name taken from a front door or passed on by an ``import *`` lands on
+    the file that defines it."""
     edges = []
     for module in project.modules.values():
         if is_front_door(project, module.path):
             continue
         for base, names in module.imports:
             for target in targets(project, base, names):
-                landed = through_front_door(project, target, names) if is_front_door(project, target) else [target]
-                for final in landed:
+                for final, taken in landings(project, target, names):
                     other = project.modules.get(final)
                     if other is not None and other.unit != module.unit:
-                        edges.append((module.unit, other.unit, module.path, final, names))
+                        edges.append((module.unit, other.unit, module.path, final, taken))
     return edges
+
+
+def classified(project: Project, budgets: Budgets) -> Tuple[List[Tuple[Tuple[str, str, str, str, Tuple[str, ...]], str]], Set[str], Set[str]]:
+    """Each entry edge with its verdict (``entry``, ``kernel``, ``kernel_one_unit``, ``reach_in``), the declared entries and the kernel modules."""
+    edges = entry_edges(project)
+    entries = declared_entries(project)
+    entry = lambda path: is_entry(project, path, entries)
+    kernel = foundation.kernels(project, edges, entry, budgets, targets)
+    takers = foundation.shared_names(edges)
+    out = []
+    for edge in edges:
+        if entry(edge[3]):
+            out.append((edge, "entry"))
+        elif edge[3] in kernel:
+            out.append((edge, "kernel_one_unit" if foundation.single_unit_names(edge, takers) else "kernel"))
+        else:
+            out.append((edge, "reach_in"))
+    return out, entries, kernel
 
 
 def entry_point_of(project: Project, unit: str, entries: Set[str]) -> str:
@@ -183,18 +244,21 @@ def names_consumer(project: Project, unit: str, consumers: Tuple[str, ...]) -> L
 
 
 def measure(project: Project, budgets: Budgets, cochange: Optional[Dict[str, object]] = None) -> Dimension:
-    edges = entry_edges(project)
-    entries = declared_entries(project)
-    through = [e for e in edges if is_entry(project, e[3], entries)]
+    verdicts, entries, kernel = classified(project, budgets)
+    edges = [e for e, _ in verdicts]
+    through = [e for e, verdict in verdicts if verdict in ("entry", "kernel")]
     reach_in: Dict[Tuple[str, str], int] = defaultdict(int)
-    allowed = set(through)
-    for e in edges:
-        if e not in allowed:
+    one_unit: Dict[Tuple[str, str], Set[str]] = defaultdict(set)
+    for e, verdict in verdicts:
+        if verdict == "reach_in":
             reach_in[(e[2], e[3])] += 1
+        elif verdict == "kernel_one_unit":
+            one_unit[(e[2], e[3])] |= set(e[4])
     units = {m.unit for m in project.modules.values()}
     graph: Dict[str, Set[str]] = {u: set() for u in units}
     for e in edges:
-        graph[e[0]].add(e[1])
+        if e[3] not in kernel:
+            graph[e[0]].add(e[1])
     cycles = components(graph)
     cyclic = {u for group in cycles for u in group}
     named: List[str] = []
@@ -205,15 +269,22 @@ def measure(project: Project, budgets: Budgets, cochange: Optional[Dict[str, obj
             if found:
                 named_units.add(unit)
                 named += found
-    parts = {"cross_calls_through_entry_points": share(len(through), len(edges)), "units_outside_cycles": share(len(units) - len(cyclic), len(units)),
+    parts = {"cross_calls_through_entries_or_kernel": share(len(through), len(edges)), "units_outside_cycles": share(len(units) - len(cyclic), len(units)),
              "units_not_naming_consumers": share(len(units) - len(named_units), len(units)) if budgets.consumers else None}
     offenders = [f"{a} imports {b} inside another unit; its entry point is {entry_point_of(project, project.modules[b].unit, entries)}"
                  for (a, b), _ in sorted(reach_in.items())[:200]]
+    offenders += [f"{a} takes {', '.join(sorted(n))} from the shared kernel module {b}, and no other unit uses it: move it into the unit that does"
+                  for (a, b), n in sorted(one_unit.items())[:100]]
     offenders += [f"cycle between units: {', '.join(g)}" for g in cycles]
     offenders += [f"a library names its consumer: {line}" for line in named]
-    note = ""
+    landed = defaultdict(int)
+    for e in edges:
+        landed[e[3]] += 1
+    shared = sorted(kernel, key=lambda path: (-landed[path], path))
+    note = (f"shared kernel: {len(kernel)} modules imported by {budgets.min_kernel_importers} or more units that depend on no solution "
+            f"({', '.join(PurePosixPath(p).name for p in shared[:5])}{', ...' if len(shared) > 5 else ''})") if kernel else ""
     if cochange is not None:
         parts["changes_explained_by_imports"] = cochange.get("explained_share")
         offenders += [f"changes together without an import: {a} and {b} ({n} commits)" for a, b, n in cochange.get("hidden", [])]
-        note = f"stage 2: {cochange.get('commits', 0)} commits read"
+        note = "; ".join(filter(None, [note, f"stage 2: {cochange.get('commits', 0)} commits read"]))
     return Dimension("coupling", combine(list(parts.values())), {k: v for k, v in parts.items() if v is not None}, offenders, note)

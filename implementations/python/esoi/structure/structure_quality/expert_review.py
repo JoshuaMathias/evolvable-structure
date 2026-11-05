@@ -20,9 +20,11 @@ INSTRUCTIONS = (
     "You are an expert reviewer of how a software project is divided into solutions. For each dimension below, give a score from 0 to 1 "
     "(1 is excellent) and the worst offenders as short strings that begin with a path or unit name. Judge only what the outline shows. "
     "Do not use em dashes in any text you write.\n"
-    "Dimensions: scope (one job per solution, arms share one purpose, every arm implements its interface), size (parts small enough to read "
-    "whole), coupling (units call each other only through declared entry points, no cycles, a library never names its consumers), reuse (no "
-    "copied code), surface (exported names are used), behavior (a contract test runs every arm of a solution).\n"
+    "Dimensions: scope (one job per solution, arms share one purpose, every arm implements its interface with real bodies, no solution whose arms "
+    "only pass each call on), size (parts short and simple enough to read whole), coupling (units call each other only through declared entry points, "
+    "no cycles, a library never names its consumers; a stable low-level module many units import and that imports no solution, such as configuration "
+    "or error types, is a shared kernel and not a reach-in), reuse (no copied code), surface (exported names and interface members are used), "
+    "behavior (a contract test runs every arm of a solution).\n"
     'Reply with one JSON object: {"scope": {"score": 0.0, "offenders": []}, "size": {...}, "coupling": {...}, "reuse": {...}, "surface": {...}, "behavior": {...}}.'
 )
 
@@ -31,7 +33,7 @@ def outline(project: Project) -> str:
     """Per unit, its files with their line counts and the names of its functions: what an expert reads in place of the whole code."""
     rows = []
     for path, module in sorted(project.modules.items())[:OUTLINE_FILES]:
-        longest = max([length for _, _, length in module.functions] or [0])
+        longest = max([function[2] for function in module.functions] or [0])
         rows.append(f"{module.unit} | {path} | {module.lines} lines | longest function {longest} | imports {', '.join(sorted({b for b, _ in module.imports})[:8])}")
     return "\n".join(rows)
 

@@ -30,6 +30,7 @@ LOW_DIMENSION = 0.60   # a dimension below this is named as a weak one in the re
 @dataclass(frozen=True)
 class Budgets:
     function_lines: int = 100
+    complexity: int = 10   # McCabe's own limit for one function's decision points
     module_lines: int = 600
     files_per_folder: int = 30
     children_per_intent: int = 8
@@ -40,6 +41,8 @@ class Budgets:
     min_cochange_support: int = 5
     min_cochange_confidence: float = 0.8
     history_commits: int = 400
+    min_kernel_importers: int = 3   # other units that import a module before it can be a shared kernel (foundation.py)
+    kernel_instability: float = 0.2   # the most a kernel's fan-out may be of its fan-in plus fan-out (Martin's instability), in units
     consumers: tuple = ()   # names a library must not mention (its own consumers), declared by the project
 
     def tightened(self, **overrides) -> "Budgets":

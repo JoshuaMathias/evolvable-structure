@@ -1,8 +1,10 @@
 """Dimension 6, public surface: what a unit exports against what other units use.
 
-A unit has a declared surface when it holds an ``interface.py`` (its public top-level names) or an ``__init__.py`` with ``__all__``. The part is
-the share of those exported names that some module of another unit imports by name: an exported name nobody uses widens the surface and
-the cost of every change to it. Units with no surface, or no outside consumer, add nothing, so a project with no declared surfaces is not measured.
+A unit has a declared surface when it holds an ``interface.py`` (its public top-level names) or an ``__init__.py`` (its ``__all__``, or without one
+the names it re-exports from its own modules). The first part is the share of those exported names that some module of another unit imports by
+name: an exported name nobody uses widens the surface and the cost of every change to it. The second is the share of each used Protocol's members
+that another unit mentions: a member no caller uses still has to be written by every arm (the interface segregation principle), so a fat interface
+costs here even when its arms implement it. Units with no surface, or no outside consumer, add nothing, so a project with no declared surfaces is not measured.
 Reaching into a path inside a library is counted under coupling, not here, so one mistake is not charged twice.
 
 A name is used when another unit imports it by name, and also when it is used through the library's front door: a Protocol declared with
@@ -18,8 +20,8 @@ from pathlib import PurePosixPath
 from typing import Dict, Set
 
 from esoi.structure.intent_registry.parsed_source import nodes_of
-from esoi.structure.structure_quality.conformance import decorator_id
-from esoi.structure.structure_quality.balance import Budgets, Dimension, mean, share
+from esoi.structure.structure_quality.conformance import decorator_id, is_protocol, protocol_members
+from esoi.structure.structure_quality.balance import Budgets, Dimension, combine, mean
 from esoi.structure.structure_quality.coupling import cross_edges
 from esoi.structure.structure_quality.project import Project
 
@@ -36,6 +38,12 @@ def exported(project: Project) -> Dict[str, Set[str]]:
                 listed = {e.value for e in node.value.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)}
         if listed is not None:
             out[module.unit] |= listed
+        elif name == "__init__.py":
+            # without __all__, the names an __init__ imports from its own unit's modules are what it re-exports (PEP 8: the package's interface)
+            for base, taken in module.imports:
+                origin = project.index.get(base)
+                if origin in project.modules and project.modules[origin].unit == module.unit and origin != module.path:
+                    out[module.unit] |= {n for n in taken if n != "*"}
         elif name == "interface.py":
             for node in module.tree.body:
                 if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) and not node.name.startswith("_"):
@@ -73,6 +81,33 @@ def served_names(project: Project) -> Dict[str, Set[str]]:
     return out
 
 
+def entry_member(node: ast.ClassDef) -> str:
+    """The member a ``@solution(..., entry="name")`` decorator names: the one the front door calls when a caller runs the solution by its id."""
+    for dec in node.decorator_list:
+        if isinstance(dec, ast.Call) and getattr(dec.func, "id", getattr(dec.func, "attr", "")) == "solution":
+            for keyword in dec.keywords:
+                if keyword.arg == "entry" and isinstance(keyword.value, ast.Constant):
+                    return str(keyword.value.value)
+    return ""
+
+
+def members_used(project: Project, used: Dict[str, Set[str]]) -> Dict[str, tuple]:
+    """Per Protocol that another unit uses: ``(members, members another unit mentions or the front door calls)``."""
+    mentions: Dict[str, Set[str]] = defaultdict(set)
+    for module in project.modules.values():
+        for name in module.names:
+            mentions[name].add(module.unit)
+    out: Dict[str, tuple] = {}
+    for module in project.modules.values():
+        for node in nodes_of(module.tree) if module.tree is not None else ():
+            if isinstance(node, ast.ClassDef) and is_protocol(node) and decorator_id(node, "solution") and node.name in used.get(module.unit, ()):
+                members = set(protocol_members(node))
+                called = {m for m in members if mentions.get(m, set()) - {module.unit}} | ({entry_member(node)} & members)
+                if members:
+                    out[f"{module.path}::{node.name}"] = (members, called)
+    return out
+
+
 def measure(project: Project, budgets: Budgets) -> Dimension:
     surface = exported(project)
     used: Dict[str, Set[str]] = defaultdict(set)
@@ -84,5 +119,10 @@ def measure(project: Project, budgets: Budgets) -> Dimension:
     shares = {u: len(names & used[u]) / len(names) for u, names in scored.items()}
     offenders = [f"{u}: exports {len(scored[u])} names, other units use {len(scored[u] & used[u])} ({', '.join(sorted(scored[u] - used[u])[:5])} unused)"
                  for u, v in sorted(shares.items(), key=lambda kv: kv[1]) if v < 1.0]
-    value = mean([round(v, 4) for v in shares.values()])
-    return Dimension("surface", value, {"exported_names_used": value} if value is not None else {}, offenders)
+    protocols = members_used(project, used)
+    member_shares = {k: len(called) / len(members) for k, (members, called) in protocols.items()}
+    offenders += [f"{k.split('::')[0]}: Protocol {k.split('::')[1]} declares {len(protocols[k][0])} members, callers use {len(protocols[k][1])} "
+                  f"({', '.join(sorted(protocols[k][0] - protocols[k][1])[:5])} unused), so every arm writes members nobody calls"
+                  for k, v in sorted(member_shares.items(), key=lambda kv: kv[1]) if v < 1.0]
+    parts = {"exported_names_used": mean([round(v, 4) for v in shares.values()]), "protocol_members_used": mean([round(v, 4) for v in member_shares.values()])}
+    return Dimension("surface", combine(list(parts.values())), {k: v for k, v in parts.items() if v is not None}, offenders)

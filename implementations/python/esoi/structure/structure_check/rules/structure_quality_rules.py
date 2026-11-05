@@ -17,18 +17,18 @@ from esoi.structure.structure_quality import assess
 SHOWN = 10
 DIMENSION_OF = {"S54": "scope", "S55": "size", "S56": "coupling", "S57": "reuse", "S58": "surface", "S59": "behavior"}
 NEXT = {
-    "S54": "give each solution one job: make every arm implement every member of its Protocol with matching parameters, split a folder that declares several unrelated jobs, and split arms that serve different purposes",
+    "S54": "give each solution one job: make every arm implement every member of its Protocol with matching parameters and a real body, merge a solution whose arms only pass each call on into the one they call, split a folder that declares several unrelated jobs, and split arms that serve different purposes",
     "S55": "split the part at a seam of its own job, not into fragments (a function by step, a module by responsibility, a folder by solution); fragments raise the coupling and navigation cost this rule balances",
-    "S56": "call the other unit through its entry point (its interface), break the cycle by moving the shared part down to a unit both use, and never name a consumer from a library",
+    "S56": "call the other unit through its entry point (its interface), move a name only one unit takes out of the shared kernel into that unit, break the cycle by moving the shared part down to a unit both use, and never name a consumer from a library",
     "S57": "write the copied code once in the unit that owns the job and call it from the rest",
     "S58": "export only the names another unit uses, or add the consumer that justifies the name",
     "S59": "add one contract test or one shared case set that runs every arm of the solution, so a refactor cannot delete behavior production uses",
 }
 SUMMARIES = {
-    "S54": "Opt-in advisory, Structure Quality scope: every arm implements every member of its solution's Protocol with matching parameters under a solution id that exists, a folder declares no more Protocols than its budget, "
-           "and the arms of one solution share one purpose (waive as the path, unit or solution id a finding opens with).",
-    "S55": "Opt-in advisory, Structure Quality size and cohesion: functions, modules, folders, intents and depth stay inside their budgets (waive as the path or folder a finding opens with).",
-    "S56": "Opt-in advisory, Structure Quality coupling: a unit is called through its entry point, units form no import cycle, and a library names no consumer the project declares (waive as the path or unit a finding opens with).",
+    "S54": "Opt-in advisory, Structure Quality scope: every arm implements every member of its solution's Protocol with matching parameters and more than a stub under a solution id that exists, an arm does work of its own, "
+           "a folder declares no more Protocols than its budget, and the arms of one solution share one purpose (waive as the path, unit or solution id a finding opens with).",
+    "S55": "Opt-in advisory, Structure Quality size and cohesion: function lines, module lines, complexity per function, folders, intents and depth stay inside their budgets (waive as the path or folder a finding opens with).",
+    "S56": "Opt-in advisory, Structure Quality coupling: a unit is called through its entry point or the shared kernel, units form no import cycle, and a library names no consumer the project declares (waive as the path or unit a finding opens with).",
     "S57": "Opt-in advisory, Structure Quality reuse: code copied between files stays under the duplication budget (waive as the path a finding opens with).",
     "S58": "Opt-in advisory, Structure Quality public surface: a unit exports names that other units use (waive as the unit a finding opens with).",
     "S59": "Opt-in advisory, Structure Quality behavior preserved: a solution with several arms has a contract test or shared cases that run every arm (waive as the solution id a finding opens with).",

@@ -17,6 +17,7 @@ from pathlib import Path, PurePosixPath
 from typing import Dict, List, Set, Tuple
 
 from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
+from esoi.structure.structure_quality.complexity import cyclomatic
 
 SKIPPED = {".git", "node_modules", "venv", ".venv", "__pycache__", "build", "dist", "site-packages", ".esoi_cache", ".tox", ".mypy_cache"}
 MARKERS = ("interface.py", "solutions.csv")
@@ -28,7 +29,7 @@ class Module:
     path: str
     unit: str
     lines: int
-    functions: List[Tuple[str, int, int]] = field(default_factory=list)   # name, first line, length in lines
+    functions: List[Tuple[str, int, int, int, bool]] = field(default_factory=list)   # name, first line, length in lines, cyclomatic complexity, outermost (not inside another function)
     imports: List[Tuple[str, Tuple[str, ...]]] = field(default_factory=list)   # dotted module, names taken from it
     names: Set[str] = field(default_factory=set)   # every identifier and attribute the code mentions
     tokens: List[str] = field(default_factory=list)   # normalized tokens outside imports and docstrings
@@ -163,9 +164,11 @@ def parse_module(root: Path, path: str, text: str) -> Module:
     if tree is None:
         return module
     module.tree = tree
+    inner = {id(sub) for node in nodes_of(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+             for sub in ast.walk(node) if sub is not node and isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef))}
     for node in nodes_of(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            module.functions.append((node.name, node.lineno, (node.end_lineno or node.lineno) - node.lineno + 1))
+            module.functions.append((node.name, node.lineno, (node.end_lineno or node.lineno) - node.lineno + 1, cyclomatic(node), id(node) not in inner))
         elif isinstance(node, (ast.Import, ast.ImportFrom)):
             module.imports.extend(resolve_import(node, path))
         elif isinstance(node, ast.Name):

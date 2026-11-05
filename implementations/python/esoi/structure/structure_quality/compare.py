@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 from esoi.structure.structure_quality import coupling, scope
-from esoi.structure.structure_quality.balance import WEIGHTS
+from esoi.structure.structure_quality.balance import WEIGHTS, Budgets
 from esoi.structure.structure_quality.project import load
 
 Assessor = Callable[[Path, int], Dict[str, Any]]
@@ -55,15 +55,13 @@ def checked_out(side: str, repo: Path) -> Iterator[Path]:
 
 
 def coupling_by_unit(path: Path) -> Dict[str, float]:
-    """Per unit that imports from another unit: the share of those imports that land on a declared entry point (1.0 when all do)."""
-    project = load(path)
-    entries = coupling.declared_entries(project)
+    """Per unit that imports from another unit: the share of those imports that land on a declared entry point or on the shared kernel with shared names (1.0 when all do)."""
     total: Dict[str, int] = defaultdict(int)
     through: Dict[str, int] = defaultdict(int)
-    for unit, _, _, target, _ in coupling.entry_edges(project):
-        total[unit] += 1
-        if coupling.is_entry(project, target, entries):
-            through[unit] += 1
+    for edge, verdict in coupling.classified(load(path), Budgets())[0]:
+        total[edge[0]] += 1
+        if verdict in ("entry", "kernel"):
+            through[edge[0]] += 1
     return {u: round(through[u] / n, 4) for u, n in total.items()}
 
 
@@ -130,7 +128,7 @@ def lines(result: Dict[str, Any], shown: int = SHOWN) -> List[str]:
         if len(every) > shown:
             out.append(f"  ... and {len(every) - shown} more")
     for label, rows in (("scope per solution (arms that implement the whole interface)", result["scope_by_solution"]),
-                        ("coupling per unit (imports of other units that land on an entry point)", result["coupling_by_unit"])):
+                        ("coupling per unit (imports of other units that land on an entry point or the shared kernel)", result["coupling_by_unit"])):
         out.append(f"{label}: {len(rows)} changed")
         out += [f"  {k}: {number(a)} -> {number(b)}" for k, a, b in rows[:shown]]
         if len(rows) > shown:

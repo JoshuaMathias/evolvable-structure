@@ -272,6 +272,116 @@ def reach_in_behind_the_front_door() -> Dict[str, str]:
     return files
 
 
+KERNEL = ('"""Settings and errors every unit shares."""\n\n\nclass SettingsError(Exception):\n    """A setting that cannot be read."""\n\n\n'
+          'class Settings:\n    """The settings of one run."""\n\n    def __init__(self, values):\n        self.values = dict(values)\n\n\n'
+          'def load_settings(values=None):\n    if values is not None and not isinstance(values, dict):\n        raise SettingsError(values)\n    return Settings(values or {})\n')
+SETTINGS_USE = ["    found = load_settings(values)\n    return found.values.get(key) if isinstance(found, Settings) else None\n",
+                "    found = load_settings(values)\n    return isinstance(found, Settings) and key in found.values\n",
+                "    try:\n        return len(load_settings(values).values) > key\n    except SettingsError:\n        return False\n",
+                "    if not isinstance(values, dict):\n        raise SettingsError(values)\n    return sorted(load_settings({key: values}).values)\n"]
+
+
+def foundation_kernel(reaches_up: bool = False) -> Dict[str, str]:
+    """A small configuration and error module with no imports, imported by every unit, each name taken by two or more units: a shared kernel.
+    ``reaches_up``: the same module imports a solution's engine, so it depends on a solution and is not a kernel."""
+    files = exemplar(False)
+    files["app/common/config.py"] = KERNEL if not reaches_up else KERNEL.replace('"""\n\n\n', '"""\nfrom app.planner.engine import label\n\n\n', 1) + \
+        "\n\ndef labelled(words):\n    return label(words, 2)\n"
+    taken = ["Settings, load_settings", "Settings, load_settings", "SettingsError, load_settings", "SettingsError, load_settings"]
+    for n, unit in enumerate(UNITS):
+        files[f"app/{unit}/setup.py"] = (f'"""How {unit} reads its settings."""\nfrom app.common.config import {taken[n]}\n\n\n'
+                                         f"def setting_of_{unit}(values, key):\n{SETTINGS_USE[n]}")
+    return files
+
+
+def kernel_dump() -> Dict[str, str]:
+    """Each unit's own engine moved into one foundation module that every unit imports, so the imports look like a shared kernel; every name is taken by one unit."""
+    files = exemplar(False)
+    files["app/common/shared.py"] = '"""Everything in one place."""\n\n\n' + "\n\n".join(function_text(i) for i in range(12)) + "\n"
+    for n, unit in enumerate(UNITS):
+        names = [FUNCTIONS[i][0] for i in (3 * n, 3 * n + 1, 3 * n + 2)]
+        files[f"app/{unit}/engine.py"] = (f'"""The work of {unit}, kept in the shared module."""\nfrom app.common.shared import {", ".join(names)}\n\n\n'
+                                          f"def run_{unit}(data):\n    return {names[0]}, {names[1]}, {names[2]}, data\n")
+    return files
+
+
+EXTRA_MEMBERS = ["describe", "validate", "export", "reset"]
+
+
+def fat_interface(stubbed: bool) -> Dict[str, str]:
+    """Each Protocol gains four members beyond ``run``. ``stubbed``: the arms meet them with ``pass``, ``...`` or ``raise NotImplementedError``;
+    otherwise the arms implement them and the callers still use only ``run``."""
+    files = exemplar(False)
+    stubs = ["        pass\n", "        ...\n", "        raise NotImplementedError\n", '        """Nothing yet."""\n']
+    for n, unit in enumerate(UNITS):
+        text = interface(unit, n)
+        protocol_end = text.index("\n\n\n@implementation")
+        text = text[:protocol_end] + "".join(f"\n\n    def {m}(self): ..." for m in EXTRA_MEMBERS) + text[protocol_end:]
+        for arm, marker in (("Plain", "        return data\n"), ("Careful", "        return list(data)\n")):
+            end = text.index(marker, text.index(f"class {arm}")) + len(marker)
+            if stubbed:
+                added = "".join(f"\n    def {m}(self):\n{stubs[k]}" for k, m in enumerate(EXTRA_MEMBERS))
+            else:
+                added = "".join(f"\n    def {m}(self):\n        return '{unit} {arm.lower()} {m} {k * 7 + n}'\n" for k, m in enumerate(EXTRA_MEMBERS))
+            text = text[:end] + added + text[end:]
+        files[f"app/{unit}/interface.py"] = text
+    return files
+
+
+def star_re_export() -> Dict[str, str]:
+    """A reach-in into the planner's engine moved behind ``import *`` in the planner's own ``__init__.py``."""
+    files = exemplar(False)
+    files["app/planner/__init__.py"] = "from app.planner.engine import *\n"
+    files["app/ledger/use.py"] = '"""Ledger reads the planner through its package."""\nfrom app.planner import label\n\n\ndef ask(words):\n    return label(words, 1)\n'
+    return files
+
+
+def explicit_re_exports() -> Dict[str, str]:
+    """The planner's ``__init__.py`` re-exports every engine function by name and the ledger uses one of them."""
+    files = exemplar(False)
+    files["app/planner/__init__.py"] = "from app.planner.engine import label, grow, steps\n"
+    files["app/ledger/use.py"] = ('"""Ledger reads planner through its entry point and one re-exported function."""\nfrom app.planner import label\n'
+                                  'from app.planner.interface import PlannerDoing\n\n\ndef ask(planner: PlannerDoing):\n    return planner.run([1], 2), label(["a"], 1)\n')
+    return files
+
+
+CHAIN = ["front", "middle", "back"]
+
+
+def split_into_many() -> Dict[str, str]:
+    """The catalog solution split into a chain of four solution folders: three of them only hand each call on to the next."""
+    files = exemplar(False)
+    for k, piece in enumerate(CHAIN):
+        unit = f"catalog_{piece}"
+        nxt = f"catalog_{CHAIN[k + 1]}" if k + 1 < len(CHAIN) else "catalog"
+        cls, next_cls = unit.title().replace("_", ""), nxt.title().replace("_", "")
+        files[f"app/{unit}/__init__.py"] = ""
+        files[f"app/{unit}/solutions.csv"] = f"solution_id,name\n{unit},{cls}\n"
+        files[f"app/{unit}/implementations.csv"] = (
+            "implementation_id,solution_id,filepath,name,description,advantages,disadvantages,sub_intent,uses_solution_ids\n"
+            f"{unit}:plain,{unit},app/{unit}/interface.py::Plain,Plain,{unit} hands the listing on the plain way,,,,\n"
+            f"{unit}:careful,{unit},app/{unit}/interface.py::Careful,Careful,{unit} hands the listing on the careful way,,,,\n")
+        arms = "".join(f'@implementation("{unit}", "{arm.lower()}")\nclass {arm}:\n    """The {arm.lower()} way."""\n\n    def __init__(self, following: {next_cls}Doing):\n'
+                       f"        self.following = following\n\n    def run(self, data, extra_0, extra_1, extra_2):\n        return self.following.run(data, extra_0, extra_1, extra_2)\n\n\n"
+                       for arm in ("Plain", "Careful"))
+        files[f"app/{unit}/interface.py"] = (f'"""The interface of {cls}: one Protocol and two arms."""\nfrom typing import Protocol\n\n'
+                                             f"from app.{nxt}.interface import {next_cls}Doing\n"
+                                             f"from esoi.runtime.implementation_selection.declare import implementation, solution\n\n"
+                                             f'__all__ = ["{cls}Doing"]\n\n\n@solution("{unit}", kind="evaluate", entry="run")\nclass {cls}Doing(Protocol):\n'
+                                             f'    """What {unit} does."""\n\n    def run(self, data, extra_0, extra_1, extra_2): ...\n\n\n{arms}')
+        files[f"tests/test_{unit}.py"] = contract_test(unit)
+    files["app/mailer/use.py"] = ('"""Mailer reads the catalog chain through its entry point."""\nfrom app.catalog_front.interface import CatalogFrontDoing\n\n\n'
+                                  "def ask(catalog: CatalogFrontDoing):\n    first = catalog.run(3, 1, 2, 3)\n    return first or None\n")
+    return files
+
+
+def deleted_hard_code() -> Dict[str, str]:
+    """``real_structure`` with its long routine deleted and nothing put in its place: what a static score cannot see."""
+    files = exemplar(True)
+    files.pop("app/catalog/bulk.py")
+    return files
+
+
 SHAPES = {
     "clean_exemplar": (exemplar, {}),
     "real_structure": (lambda: exemplar(True), {}),
@@ -292,6 +402,15 @@ SHAPES = {
     "unused_exports": (unused_exports, {}),
     "cochange_hidden": (cochange_hidden, {"history": "hidden"}),
     "cochange_explained": (exemplar, {"history": "explained"}),
+    "foundation_kernel": (foundation_kernel, {}),
+    "kernel_reaches_up": (lambda: foundation_kernel(reaches_up=True), {}),
+    "kernel_dump": (kernel_dump, {}),
+    "stub_arms": (lambda: fat_interface(stubbed=True), {}),
+    "unused_members": (lambda: fat_interface(stubbed=False), {}),
+    "star_re_export": (star_re_export, {}),
+    "explicit_re_exports": (explicit_re_exports, {}),
+    "split_into_many": (split_into_many, {}),
+    "deleted_hard_code": (deleted_hard_code, {}),
 }
 
 

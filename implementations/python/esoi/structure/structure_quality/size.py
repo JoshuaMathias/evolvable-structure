@@ -1,9 +1,12 @@
 """Dimension 2, size and cohesion: parts small enough to read whole, and not so many that the folder cannot be read either.
 
-Five parts, each a share of items inside its budget (the dimension is their geometric mean, so one part that fails pulls it down): functions by count, modules by count, files by the folder they sit in (only the files past a
-folder's budget count as out of it), solutions per intent folder (read from the records beside the code), and files by depth.
-Shrinking files raises the first two and lowers the third and fifth, and the coupling and reuse dimensions pay for the split, which is why this
-is one part of the number and not the number.
+Six parts (the dimension is their geometric mean, so one part that fails pulls it down). Three are graded by how far over the budget a part goes, so a
+5000-line function costs fifty times a 200-line one instead of counting as one offender among thousands: the share of function lines inside the
+function budget (outermost functions, so a nested function is not counted twice), the share of module lines inside the module budget, and the share of
+decision points inside the complexity budget (McCabe's count per function, ``complexity.py``). Three are shares of items: files by the folder they
+sit in (only the files past a folder's budget count as out of it), solutions per intent folder (read from the records beside the code), and files by
+depth. Shrinking files raises the graded parts and lowers the folder and depth parts, and the coupling and reuse dimensions pay for the split, which is
+why this is one part of the number and not the number.
 """
 from __future__ import annotations
 
@@ -32,10 +35,18 @@ def intent_children(project: Project) -> List[Tuple[str, int]]:
     return out
 
 
+def within(sizes: List[int], budget: int):
+    """The share of the total that sits inside the budget: ``1 - sum of the excess over the budget / sum of the sizes``, None when there is nothing."""
+    total = sum(sizes)
+    return None if total <= 0 else round(1 - sum(max(0, n - budget) for n in sizes) / total, 4)
+
+
 def measure(project: Project, budgets: Budgets) -> Dimension:
     modules = list(project.modules.values())
-    functions = [(m.path, name, line, length) for m in modules for name, line, length in m.functions]
-    long_functions = sorted((f for f in functions if f[3] > budgets.function_lines), key=lambda f: -f[3])
+    functions = [(m.path, name, line, length, decisions, outermost) for m in modules for name, line, length, decisions, outermost in m.functions]
+    outermost = [f for f in functions if f[5]]
+    long_functions = sorted((f for f in outermost if f[3] > budgets.function_lines), key=lambda f: -f[3])
+    complex_functions = sorted((f for f in functions if f[4] > budgets.complexity), key=lambda f: -f[4])
     long_modules = sorted((m for m in modules if m.lines > budgets.module_lines), key=lambda m: -m.lines)
     counts = project.folder_files()
     crowded = {f: n for f, n in counts.items() if n > budgets.files_per_folder}
@@ -43,13 +54,15 @@ def measure(project: Project, budgets: Budgets) -> Dimension:
     deep = [m for m in modules if len(PurePosixPath(m.path).parts) - 1 > budgets.depth]
     children = intent_children(project)
     wide = [(f, n) for f, n in children if n > budgets.children_per_intent]
-    parts = {"functions_within_budget": share(len(functions) - len(long_functions), len(functions)),
-             "modules_within_budget": share(len(modules) - len(long_modules), len(modules)),
+    parts = {"function_lines_within_budget": within([f[3] for f in outermost], budgets.function_lines),
+             "module_lines_within_budget": within([m.lines for m in modules], budgets.module_lines),
+             "decisions_within_complexity_budget": within([f[4] for f in functions], budgets.complexity),
              "files_in_folders_within_budget": share(len(modules) - files_in_crowded, len(modules)),
              "intents_within_children_budget": share(len(children) - len(wide), len(children)),
              "files_within_depth_budget": share(len(modules) - len(deep), len(modules))}
-    offenders = [f"{p}: function {n} is {length} lines (budget {budgets.function_lines})" for p, n, _, length in long_functions]
+    offenders = [f"{p}: function {n} is {length} lines (budget {budgets.function_lines})" for p, n, _, length, _, _ in long_functions]
     offenders += [f"{m.path}: {m.lines} lines (budget {budgets.module_lines})" for m in long_modules]
+    offenders += [f"{p}: function {n} has complexity {c} (budget {budgets.complexity})" for p, n, _, _, c, _ in complex_functions[:50]]
     offenders += [f"{f}: {n} files in one folder (budget {budgets.files_per_folder})" for f, n in sorted(crowded.items(), key=lambda kv: -kv[1])]
     offenders += [f"{f}: groups {n} solutions (budget {budgets.children_per_intent})" for f, n in sorted(wide, key=lambda kv: -kv[1])]
     offenders += [f"{m.path}: {len(PurePosixPath(m.path).parts) - 1} folders deep (budget {budgets.depth})" for m in deep[:10]]

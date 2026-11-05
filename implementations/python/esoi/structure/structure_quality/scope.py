@@ -1,9 +1,11 @@
 """Dimension 1, scope: one job per solution.
 
-Three parts, each a share of items in good order: every arm (a class decorated ``@implementation``) implements every member of the Protocol its
-solution declares with matching parameters, under a solution id that exists (``conformance.py``; a merge once left a whole family of arms off their interface); a unit declares no more Protocols than its budget (several
-unrelated Protocols in one folder signal that it holds more than one job); and the arms of one solution share one purpose, by the word-overlap
-measure that rules S48 and S49 read. The records are read for the third part only where an ``implementations.csv`` sits beside the code.
+Four parts, each a share of items in good order: every arm (a class decorated ``@implementation``) implements every member of the Protocol its
+solution declares with matching parameters and a body that is more than a stub, under a solution id that exists (``conformance.py``; a merge once
+left a whole family of arms off their interface); every arm does work of its own instead of passing each call on to another object unchanged (a
+solution split finer than its job is a chain of such arms); a unit declares no more Protocols than its budget (several unrelated Protocols in one
+folder signal that it holds more than one job); and the arms of one solution share one purpose, by the word-overlap measure that rules S48 and S49
+read. The records are read for the last part only where an ``implementations.csv`` sits beside the code.
 """
 from __future__ import annotations
 
@@ -14,10 +16,11 @@ from typing import Dict, List
 
 from esoi.structure.intent_registry.parsed_source import nodes_of
 from esoi.structure.structure_quality.adopted import adopted_projects, installed_classes
-from esoi.structure.structure_quality.conformance import arm_problems, declared_solutions, decorator_id, is_protocol, protocol_members
+from esoi.structure.structure_quality.conformance import (arm_problems, declared_solutions, decorator_id, inherited_members, is_protocol, passes_through,
+                                                         protocol_members)
 from esoi.structure.structure_quality.balance import Budgets, Dimension, combine, share
 from esoi.structure.structure_quality.overlap import ARMS_SHARE_LITTLE, mean_overlap
-from esoi.structure.structure_quality.project import Project
+from esoi.structure.structure_quality.project import Project, resolve_import
 
 
 def classes(project: Project):
@@ -59,6 +62,39 @@ def arms_on_interface(project: Project):
     return rows
 
 
+def own_module_names(project: Project, path: str) -> set:
+    """The local names a module binds, by any import in it, to a module of its own unit: a call through them is the unit's own work."""
+    module = project.modules[path]
+    out = set()
+    for node in nodes_of(module.tree) if module.tree is not None else ():
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            resolved = resolve_import(node, path)
+            bases = [b for b, _ in resolved] if isinstance(node, ast.Import) else [resolved[0][0]] * len(node.names)
+            for base, alias in zip(bases, node.names):
+                full = base if isinstance(node, ast.Import) else f"{base}.{alias.name}"
+                target = project.index.get(full) or project.index.get(base)
+                if target in project.modules and project.modules[target].unit == module.unit:
+                    out.add((alias.asname or alias.name).split(".")[0])
+    return out
+
+
+def pass_through_arms(project: Project) -> List[tuple]:
+    """``(path, class, solution id, members)`` for each arm whose every public method passes its call on unchanged (see ``conformance.passes_through``)."""
+    index = {node.name: node for _, node in classes(project)}
+    out = []
+    own: Dict[str, set] = {}
+    for module, node in classes(project):
+        sid = decorator_id(node, "implementation")
+        if not sid:
+            continue
+        methods, _ = inherited_members(node, index, {node.name})
+        if module.path not in own:
+            own[module.path] = own_module_names(project, module.path)
+        if methods and all(passes_through(fn, own[module.path]) for fn in methods.values()):
+            out.append((module.path, node.name, sid, sorted(methods)))
+    return out
+
+
 def protocols_per_unit(project: Project) -> Dict[str, List[str]]:
     found: Dict[str, List[str]] = defaultdict(list)
     for module, node in classes(project):
@@ -92,9 +128,13 @@ def measure(project: Project, budgets: Budgets) -> Dimension:
     split = {u: n for u, n in unit_protocols.items() if len(n) > budgets.protocols_per_unit}
     purposes = {sid: texts for sid, texts in arm_purposes(project).items() if sid and len(texts) >= 3}
     unfocused = {sid: round(mean_overlap(texts), 3) for sid, texts in purposes.items() if mean_overlap(texts) < ARMS_SHARE_LITTLE}
-    parts = {"arms_on_interface": share(len(rows) - len(off), len(rows)), "protocols_within_budget": share(len(unit_protocols) - len(split), len(unit_protocols)),
+    hollow = pass_through_arms(project)
+    parts = {"arms_on_interface": share(len(rows) - len(off), len(rows)), "arms_doing_work_of_their_own": share(len(rows) - len(hollow), len(rows)) if rows else None,
+             "protocols_within_budget": share(len(unit_protocols) - len(split), len(unit_protocols)),
              "arms_share_one_purpose": share(len(purposes) - len(unfocused), len(purposes))}
     offenders = [arm_line(p, c, s, m) for p, c, s, m in off]
+    offenders += [f"{p}: arm {c} of {s} passes every call on unchanged ({', '.join(m)}): it adds no work of its own, so the solution may be split finer than its job"
+                  for p, c, s, m in hollow]
     offenders += [f"{u}: {len(n)} Protocols ({', '.join(n[:4])}) signal more than one job" for u, n in sorted(split.items(), key=lambda kv: -len(kv[1]))]
     offenders += [f"{s}: its arms share little purpose (mean overlap {v})" for s, v in unfocused.items()]
     return Dimension("scope", combine(list(parts.values())), {k: v for k, v in parts.items() if v is not None}, offenders)

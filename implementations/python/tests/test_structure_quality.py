@@ -57,13 +57,13 @@ def coupling_of(shape):
 def test_front_doors_and_declared_entries_are_clean_coupling():
     found = coupling_of("front_door_and_entries")
     assert found["offenders"] == [] and found["score"] == 1.0
-    assert found["parts"]["cross_calls_through_entry_points"] == 1.0
+    assert found["parts"]["cross_calls_through_entries_or_kernel"] == 1.0
 
 
 def test_a_reach_into_another_units_internals_is_an_offender_and_names_the_entry_point():
     found = coupling_of("reach_into_internals")
     assert any("app/ledger/use.py imports app/planner/engine.py inside another unit; its entry point is app/planner/interface.py" == line for line in found["offenders"])
-    assert found["parts"]["cross_calls_through_entry_points"] < 1.0
+    assert found["parts"]["cross_calls_through_entries_or_kernel"] < 1.0
 
 
 def test_moving_an_import_behind_a_front_door_re_export_does_not_hide_the_reach_in():
@@ -367,3 +367,80 @@ def test_a_protocol_used_through_the_front_door_is_not_an_unused_export(tmp_path
     assert served["lib"] == {"Served", "Typed"}
     found = assess.assess(str(tmp_path))["dimensions"]["surface"]
     assert "Idle" in " ".join(found["offenders"]) and "Served" not in " ".join(found["offenders"])
+
+
+def test_a_shared_kernel_is_clean_and_a_widely_imported_module_that_reaches_into_a_solution_is_not():
+    kernel = report("foundation_kernel")
+    assert kernel["flagged"] == [] and kernel["score"] == 1.0
+    assert "shared kernel: 1 modules" in kernel["dimensions"]["coupling"]["note"] and "config.py" in kernel["dimensions"]["coupling"]["note"]
+    reaches_up = report("kernel_reaches_up")
+    assert "coupling" in reaches_up["flagged"] and reaches_up["score"] < kernel["score"]
+    assert any("app/common/config.py inside another unit" in line for line in reaches_up["dimensions"]["coupling"]["offenders"])
+
+
+def test_moving_a_units_own_code_into_a_foundation_module_does_not_pass_as_a_kernel():
+    found = report("kernel_dump")
+    assert "coupling" in found["flagged"] and found["score"] < report("clean_exemplar")["score"]
+    assert any("from the shared kernel module app/common/shared.py, and no other unit uses it" in line for line in found["dimensions"]["coupling"]["offenders"])
+
+
+def test_a_kernel_may_be_tightened_and_never_loosened():
+    assert Budgets().tightened(kernel_instability=0.1).kernel_instability == 0.1
+    with pytest.raises(ValueError, match="not loosen"):
+        Budgets().tightened(kernel_instability=0.5)
+
+
+def test_arms_that_stub_a_fat_interface_do_not_implement_it():
+    found = report("stub_arms")
+    assert "scope" in found["flagged"] and found["score"] < report("clean_exemplar")["score"]
+    assert "describe (a stub that implements nothing)" in " ".join(found["dimensions"]["scope"]["offenders"])
+
+
+def test_protocol_members_no_caller_uses_widen_the_surface_even_when_the_arms_implement_them():
+    found = report("unused_members")
+    assert "surface" in found["flagged"] and found["dimensions"]["scope"]["score"] == 1.0
+    assert found["dimensions"]["surface"]["parts"]["protocol_members_used"] < 1.0
+    assert "declares 5 members, callers use 1" in " ".join(found["dimensions"]["surface"]["offenders"])
+
+
+def test_a_star_re_export_is_followed_and_a_named_re_export_is_the_units_declared_interface():
+    star = report("star_re_export")
+    assert any("app/ledger/use.py imports app/planner/engine.py inside another unit" in line for line in star["dimensions"]["coupling"]["offenders"])
+    named = report("explicit_re_exports")
+    assert named["dimensions"]["coupling"]["score"] == 1.0 and "surface" in named["flagged"]
+    assert "grow" in " ".join(named["dimensions"]["surface"]["offenders"])
+
+
+def test_one_solution_split_into_a_chain_of_pass_through_solutions_flags_scope():
+    found = report("split_into_many")
+    assert "scope" in found["flagged"] and found["score"] < report("clean_exemplar")["score"]
+    assert found["dimensions"]["scope"]["parts"]["arms_doing_work_of_their_own"] < 1.0
+    assert "passes every call on unchanged (run)" in " ".join(found["dimensions"]["scope"]["offenders"])
+
+
+def test_a_call_into_the_arms_own_unit_is_its_own_work_not_a_pass_through(tmp_path):
+    write(tmp_path, {"unit/solutions.csv": "id,name\ns,S\n", "unit/engine.py": "def own_runner():\n    return None\n",
+                     "unit/interface.py": "from typing import Protocol\nfrom unit.engine import own_runner\n\n@solution('s', kind='x', entry='names')\nclass S(Protocol):\n    def names(self, sid): ...\n\n"
+                                          "@implementation('s', 'own')\nclass Own:\n    def names(self, sid):\n        return own_runner().assembler.names(sid)\n\n"
+                                          "@implementation('s', 'hollow')\nclass Hollow:\n    def __init__(self, other):\n        self.other = other\n    def names(self, sid):\n        return self.other.names(sid)\n"})
+    hollow = {name for _, name, _, _ in scope.pass_through_arms(project.load(tmp_path))}
+    assert hollow == {"Hollow"}
+
+
+def test_size_is_graded_by_how_far_over_the_budget_a_part_goes():
+    from esoi.structure.structure_quality import size
+    assert size.within([5000, 100], 100) < size.within([200, 100], 100) < size.within([100, 100], 100) == 1.0
+    assert size.within([], 100) is None
+    assert "function_lines_within_budget" in report("real_structure")["dimensions"]["size"]["parts"]
+
+
+def test_cyclomatic_complexity_counts_the_functions_own_branches():
+    import ast
+    from esoi.structure.structure_quality import complexity
+    tree = ast.parse("def f(a, b):\n    if a and b:\n        return 1\n    for x in a:\n        pass\n    def inner():\n        if a:\n            return 2\n    return [y for y in b if y]\n")
+    assert complexity.cyclomatic(tree.body[0]) == 5   # one, the if, its and, the for and the comprehension clause; the nested function's if is its own
+
+
+def test_a_static_score_cannot_see_deleted_behavior():
+    # the limit stated in the explanation: deleting the long routine raises the number, and only running the contract tests can tell
+    assert report("deleted_hard_code")["score"] >= report("real_structure")["score"]

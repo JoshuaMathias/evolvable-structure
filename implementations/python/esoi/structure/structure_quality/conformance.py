@@ -4,7 +4,12 @@ A merge once left a whole family of arms carrying the ``@implementation`` decora
 arms barely implement pass. So an arm must define (or inherit from a base the project defines) every public member of the Protocol its solution
 declares, a method with parameters that match (each Protocol parameter present by name and in position, every extra parameter optional, async kept),
 an attribute under the same name; and the solution id it names must be a solution the project declares (an ``@solution`` or a row of a
-``solutions.csv``). Nothing is imported or run.
+``solutions.csv``). A method whose body is only ``pass``, ``...`` or ``raise NotImplementedError`` (after its docstring) is a stub and does not
+implement the member, so a fat interface cannot be met by stubbing it. Nothing is imported or run.
+
+An arm passes through when every member it implements is one call of a method of the same name on another object (``self.next.run(data)``) with
+its own parameters handed on unchanged: it adds no work of its own (Ousterhout's pass-through method, the sign of a solution split finer than its job).
+A call rooted in a name the arm's own unit binds (one of its modules, or a function of one) is the arm's own work, not a pass-through.
 """
 from __future__ import annotations
 
@@ -40,6 +45,46 @@ def signature(node: ast.AST) -> Signature:
 
 def public(name: str) -> bool:
     return not name.startswith("_")
+
+
+def body_statements(function: ast.AST) -> List[ast.AST]:
+    """A function's statements without its docstring and without imports (an import inside a method is how it reaches its own code lazily)."""
+    body = list(function.body)
+    if body and isinstance(body[0], ast.Expr) and isinstance(getattr(body[0], "value", None), ast.Constant) and isinstance(body[0].value.value, str):
+        body = body[1:]
+    return [s for s in body if not isinstance(s, (ast.Import, ast.ImportFrom))]
+
+
+def is_stub(function: ast.AST) -> bool:
+    """Whether a method only stands in for an implementation: nothing, ``pass``, ``...`` or ``raise NotImplementedError``."""
+    for statement in body_statements(function):
+        if isinstance(statement, ast.Pass) or (isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Constant) and statement.value.value is Ellipsis):
+            continue
+        raised = getattr(statement, "exc", None) if isinstance(statement, ast.Raise) else None
+        raised = raised.func if isinstance(raised, ast.Call) else raised
+        if isinstance(raised, ast.Name) and raised.id == "NotImplementedError":
+            continue
+        return False
+    return True
+
+
+def passes_through(function: ast.AST, own_modules: Set[str]) -> bool:
+    """Whether a method is one call of a same-named method on another object with its own parameters handed on unchanged; ``own_modules`` are the
+    local names bound to modules of the arm's own unit (a call into them is the arm's own work)."""
+    statements = body_statements(function)
+    if len(statements) != 1 or not isinstance(statements[0], (ast.Return, ast.Expr)) or not isinstance(statements[0].value, ast.Call):
+        return False
+    call = statements[0].value
+    if not isinstance(call.func, ast.Attribute) or call.func.attr != function.name:
+        return False
+    owner = call.func.value
+    while isinstance(owner, (ast.Attribute, ast.Call)):   # own_runner().assembler.names(...) is rooted in own_runner
+        owner = owner.func if isinstance(owner, ast.Call) else owner.value
+    if isinstance(owner, ast.Name) and owner.id in own_modules:
+        return False
+    params = [a.arg for a in [*function.args.posonlyargs, *function.args.args] if a.arg not in ("self", "cls")]
+    handed = [a.id for a in call.args if isinstance(a, ast.Name)] + [k.value.id for k in call.keywords if isinstance(k.value, ast.Name)]
+    return len(handed) == len(call.args) + len(call.keywords) and sorted(handed) == sorted(params + [a.arg for a in function.args.kwonlyargs])
 
 
 def members_of(node: ast.ClassDef) -> Tuple[Dict[str, ast.AST], Set[str]]:
@@ -126,6 +171,8 @@ def protocol_problems(protocol: Dict[str, Optional[ast.AST]], methods: Dict[str,
                 problems.append(name)
         elif name not in methods:
             problems.append(name)
+        elif is_stub(methods[name]):
+            problems.append(f"{name}: a stub that implements nothing")
         else:
             why = mismatch(want, methods[name])
             if why:
