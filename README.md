@@ -37,11 +37,7 @@ esoi lock                                       # pin it
 []
 ```
 
-`esoi.run(id, input)` reaches any solution or intent the same way, and `esoi.run(Interface)` returns a typed handle. Your package gets
-the same function with one line, `run = esoi.runtime.assemble_by_name.entry.runner(<your Assembler>)`: a user picks one of your parts by id, overrides one
-implementation (`arms=`), changes its parameters (`arm@option=value`) or registers their own, and every other part keeps its measured
-default. How to declare an interface: [declare a solution's interface](docs/how-to/declare-a-solutions-interface.md). How esoi
-compares with DSPy, MLflow's model registry, promptfoo, Inspect and fitness functions: [related work](docs/explanation/related-work.md).
+`esoi.run(id, input)` reaches any solution or intent the same way, and `esoi.run(Interface)` returns a typed handle. Your package gets the same function with one line, `run = esoi.runtime.assemble_by_name.entry.runner(<your Assembler>)`: a user picks one of your parts by id, overrides one implementation (`arms=`), changes its parameters (`arm@option=value`) or registers their own, and every other part keeps its measured default. 
 
 ## Start here
 
