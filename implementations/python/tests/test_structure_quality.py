@@ -1,5 +1,6 @@
 """Structure Quality: the balanced number, its dimensions on generic incident shapes, the Goodhart bound, stage two from git history, the advisory rules and the command. Offline; no model."""
 import json
+import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -12,7 +13,8 @@ sys.path.insert(0, str(ROOT / "evaluation" / "components"))
 
 import structure_fixture
 from esoi.structure.structure_check.rules import structure_quality_rules
-from esoi.structure.structure_quality import assess, balance, expert_review, interface, overlap, project, scope
+from esoi.structure.intent_registry import parsed_source
+from esoi.structure.structure_quality import assess, balance, compare, expert_review, interface, overlap, project, report as report_module, scope
 from esoi.structure.structure_quality.balance import Budgets
 
 
@@ -27,9 +29,9 @@ def test_weights_are_fixed_sum_to_one_and_no_dimension_can_win():
     assert set(balance.WEIGHTS) == {"scope", "size", "coupling", "reuse", "flow", "surface", "behavior"}
 
 
-def test_a_clean_exemplar_is_sound_and_flags_nothing():
+def test_a_clean_exemplar_is_at_the_reference_and_flags_nothing():
     found = report("clean_exemplar")
-    assert found["verdict"] == "sound" and found["flagged"] == [] and found["score"] == 1.0
+    assert found["verdict"] == "at_reference" and found["flagged"] == [] and found["score"] == 1.0
     assert found["dimensions"]["flow"]["score"] is None   # no records of flow to compare: not measured, never perfect
 
 
@@ -155,7 +157,7 @@ def test_every_rule_has_a_summary_and_a_next_action():
 
 def test_the_command_prints_the_number_and_always_exits_zero(capsys):
     from esoi.structure.commands import run_structure_quality
-    code = run_structure_quality(None, SimpleNamespace(path=str(structure_fixture.project("stripped_interfaces")), stage=1))
+    code = run_structure_quality(None, SimpleNamespace(path=str(structure_fixture.project("stripped_interfaces")), stage=1, compare=None, fast=False))
     out = capsys.readouterr().out
     assert code == 0 and out.startswith("structure quality 0.") and "scope" in out and "weak dimensions: scope" in out
 
@@ -173,3 +175,169 @@ def test_an_arm_takes_the_methods_of_its_base_class_into_account(tmp_path):
         "@implementation('s', 'b')\nclass B:\n    pass\n")
     rows = {name: missing for _, name, _, missing in scope.arms_on_interface(project.load(tmp_path))}
     assert rows["A"] == [] and rows["B"] == ["run"]
+
+
+@pytest.mark.parametrize("shape,offender", [("stripped_members", "lacks describe"), ("mismatched_parameters", "parameter 1 is payload"),
+                                            ("arms_of_no_solution", "names no solution the project declares")])
+def test_an_arm_must_implement_every_member_with_matching_parameters_under_a_real_solution(shape, offender):
+    found = report(shape)
+    assert offender in " ".join(found["dimensions"]["scope"]["offenders"])
+    assert found["dimensions"]["scope"]["parts"]["arms_on_interface"] == 0.0
+    assert found["score"] < report("clean_exemplar")["score"]
+
+
+def test_an_arm_that_takes_extra_optional_parameters_or_async_must_still_match(tmp_path):
+    (tmp_path / "unit").mkdir()
+    (tmp_path / "unit" / "interface.py").write_text(
+        "from typing import Protocol\n\n@solution('s', kind='x', entry='run')\nclass S(Protocol):\n    name: str\n    def run(self, data, limit=1): ...\n\n"
+        "@implementation('s', 'ok')\nclass Ok:\n    def __init__(self):\n        self.name = 'a'\n    def run(self, data, limit=1, extra=2):\n        return data\n\n"
+        "@implementation('s', 'required_extra')\nclass RequiredExtra:\n    name = 'b'\n    def run(self, data, limit, extra):\n        return data\n\n"
+        "@implementation('s', 'no_name')\nclass NoName:\n    def run(self, data, limit=1):\n        return data\n\n"
+        "@implementation('s', 'async_run')\nclass AsyncRun:\n    name = 'c'\n    async def run(self, data, limit=1):\n        return data\n")
+    rows = {name: problems for _, name, _, problems in scope.arms_on_interface(project.load(tmp_path))}
+    assert rows["Ok"] == [] and rows["NoName"] == ["name"]
+    assert "required parameters" in rows["RequiredExtra"][0] and "async differs" in rows["AsyncRun"][0]
+
+
+def test_compare_ranks_a_stripped_members_merge_below_the_structure_before_it_and_names_what_changed(tmp_path):
+    result = compare.compare(str(structure_fixture.project("clean_exemplar")), str(structure_fixture.project("stripped_members")),
+                             lambda folder, stage: assess.assess(str(folder), stage))
+    assert not result["holds"] and result["after"]["score"] < result["before"]["score"]
+    assert result["introduced"]["scope"] and not result["fixed"]["scope"]
+    assert any(after == 0.0 for _, _, after in result["scope_by_solution"])
+    text = "\n".join(compare.lines(result))
+    assert "the number falls: keep the change only with the reason stated in the commit" in text and "offenders introduced" in text and "scope per solution" in text
+    back = compare.compare(str(structure_fixture.project("stripped_members")), str(structure_fixture.project("clean_exemplar")),
+                           lambda folder, stage: assess.assess(str(folder), stage))
+    assert back["holds"] and back["fixed"]["scope"] and "keep the change: the number holds or rises" in compare.lines(back)[-1]
+
+
+def test_compare_checks_out_git_references_into_a_temporary_worktree_and_removes_it(tmp_path):
+    def git(*args):
+        subprocess.run(["git", "-C", str(tmp_path), "-c", "user.name=t", "-c", "user.email=t@example.com", *args], check=True, capture_output=True)
+    git("init", "-q")
+    for shape in ("clean_exemplar", "stripped_members"):
+        for rel, text in (getattr(structure_fixture, shape if shape != "clean_exemplar" else "exemplar")()).items():
+            (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+            (tmp_path / rel).write_text(text, encoding="utf-8")
+        git("add", "-A")
+        git("commit", "-q", "-m", shape)
+    result = compare.compare("HEAD~1", "HEAD", lambda folder, stage: assess.assess(str(folder), stage), repo=str(tmp_path))
+    assert not result["holds"] and result["before"]["score"] == 1.0
+    listing = subprocess.run(["git", "-C", str(tmp_path), "worktree", "list"], capture_output=True, text=True).stdout
+    assert len(listing.strip().splitlines()) == 1
+    with pytest.raises(ValueError, match="neither a folder nor a git reference"):
+        compare.compare("no-such-ref", "HEAD", lambda folder, stage: assess.assess(str(folder), stage), repo=str(tmp_path))
+
+
+def test_the_second_side_of_a_compare_reads_only_the_files_that_changed(tmp_path):
+    first = structure_fixture.project("clean_exemplar")
+    assess.assess(str(first))
+    parses = parsed_source.STATS["parses"]
+    copy = tmp_path / "copy"
+    subprocess.run(["cp", "-r", str(first), str(copy)], check=True)
+    assess.assess(str(copy))
+    assert parsed_source.STATS["parses"] == parses
+
+
+def test_a_move_alone_does_not_count_as_a_fixed_or_an_introduced_offender():
+    assert compare.same_offender("a/b/c.py: function f is 200 lines (budget 100)") == compare.same_offender("x/c.py: function f is 200 lines (budget 100)")
+
+
+def test_a_project_with_no_arms_shows_behavior_as_not_measured_and_says_which_dimensions_were(tmp_path):
+    (tmp_path / "a.py").write_text("def f():\n    return 1\n")
+    found = assess.assess(str(tmp_path))
+    assert "behavior" in found["not_measured"] and "size" in found["measured"] and found["dimensions"]["behavior"]["score"] is None
+    text = "\n".join(report_module.lines(found))
+    assert "not measured: " in text and "behavior" in text.split("not measured: ")[1].split("\n")[0] and "shared out" in text
+    assert "measured: " in text
+
+
+def test_the_fast_flag_leaves_the_flow_dimension_unmeasured():
+    from esoi.structure.structure_check.rules import structure_quality_rules
+    found = structure_quality_rules.assess_path(structure_fixture.project("clean_exemplar"), 1, flow=False)
+    assert "flow" in found["not_measured"]
+
+
+def test_the_reference_line_is_the_lowest_of_the_measured_kept_structures_and_no_floor_is_arbitrary():
+    assert balance.REFERENCE_STATES and balance.REFERENCE_LINE <= min(balance.REFERENCE_STATES.values()) < balance.REFERENCE_LINE + 0.01
+    assert not hasattr(balance, "SOUND_FLOOR")
+    assert balance.balanced([balance.Dimension(name, balance.REFERENCE_LINE) for name in balance.WEIGHTS])["verdict"] == "at_reference"
+    assert balance.balanced([balance.Dimension(name, balance.REFERENCE_LINE - 0.01) for name in balance.WEIGHTS])["verdict"] == "below_reference"
+
+
+def test_the_command_compares_two_folders_and_always_exits_zero(capsys):
+    from esoi.structure.commands import run_structure_quality
+    args = SimpleNamespace(path=".", stage=1, compare=[str(structure_fixture.project("clean_exemplar")), str(structure_fixture.project("stripped_members"))], fast=True)
+    assert run_structure_quality(None, args) == 0
+    out = capsys.readouterr().out
+    assert out.startswith("structure quality before 1.000 after 0.") and "the number falls" in out
+    args.compare = ["no-such-ref", "HEAD"]
+    assert run_structure_quality(None, args) == 2
+
+
+def write(root, files):
+    for rel, text in files.items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text, encoding="utf-8")
+
+
+def test_an_arm_of_an_adopted_solution_is_checked_against_the_library_protocol_and_base_classes(tmp_path):
+    write(tmp_path / "lib", {"core/interface.py": "from typing import Protocol\n\n@solution('shared', kind='x', entry='go')\nclass Shared(Protocol):\n    def go(self, item): ...\n    def stop(self): ...\n\n"
+                                                  "class Base:\n    def stop(self):\n        return None\n"})
+    write(tmp_path / "app", {"esoi.toml": "[adopts.lib]\nrepo = \"../lib\"\n",
+                             "part/interface.py": "from lib.core.interface import Base\n\n@implementation('shared', 'mine')\nclass Mine(Base):\n    def go(self, item):\n        return item\n\n"
+                                                  "@implementation('shared', 'half')\nclass Half:\n    def go(self, item):\n        return item\n"})
+    rows = {name: problems for _, name, _, problems in scope.arms_on_interface(project.load(tmp_path / "app"))}
+    assert rows["Mine"] == [] and rows["Half"] == ["stop"]
+    (tmp_path / "app" / "esoi.toml").write_text("")
+    alone = {name: problems for _, name, _, problems in scope.arms_on_interface(project.load(tmp_path / "app"))}
+    assert alone["Mine"] == ["its solution id names no solution the project declares"]
+
+
+def test_a_base_class_from_an_installed_package_supplies_the_members_an_arm_inherits(tmp_path):
+    write(tmp_path, {"part/interface.py": "from json.encoder import JSONEncoder\nfrom typing import Protocol\n\n@solution('enc', kind='x', entry='default')\nclass Enc(Protocol):\n    def default(self, o): ...\n\n"
+                                          "@implementation('enc', 'inherits')\nclass Inherits(JSONEncoder):\n    pass\n"})
+    rows = {name: problems for _, name, _, problems in scope.arms_on_interface(project.load(tmp_path))}
+    assert rows["Inherits"] == []
+
+
+def test_the_reuse_score_is_a_graded_curve_that_never_saturates_at_a_real_share_of_copying():
+    from esoi.structure.structure_quality import duplication
+    shares = [0.0, 0.05, 0.158, 0.30, 0.5, 0.9, 1.0]
+    scores = [duplication.reuse_score(v) for v in shares]
+    assert scores[0] == 1.0 and scores[-1] == 0.0 and all(a > b for a, b in zip(scores, scores[1:]))
+    assert duplication.reuse_score(0.158) > 0.5 > duplication.reuse_score(0.30) - 0.2   # a restructure that removes a tenth of the copies shows
+    assert duplication.reuse_score(0.058) - duplication.reuse_score(0.158) > 0.1
+
+
+def wrapper(n):
+    body = "".join(f"    value_{i} = fetch(client, 'path', {i}, retries=3)\n    if value_{i} is None:\n        raise KeyError({i})\n" for i in range(8))
+    return f"def call_{n}(client):\n{body}    return value_0\n"
+
+
+def test_boilerplate_shared_by_a_family_of_files_is_reported_apart_from_accidental_clones(tmp_path):
+    write(tmp_path, {f"wrappers/w{n}.py": wrapper(n) for n in range(5)})
+    write(tmp_path, {"distinct/engine.py": structure_fixture.engine("distinct", list(range(12)))})
+    write(tmp_path, {f"pair/p{n}.py": "def other_%d(rows):\n%s    return rows\n" % (n, "".join(f"    rows = [r + {i} for r in rows if r % {i + 2}]\n    rows.sort()\n    rows.reverse()\n" for i in range(8))) for n in range(2)})
+    parts = assess.assess(str(tmp_path))["dimensions"]["reuse"]["parts"]
+    assert parts["of_it_boilerplate_in_families"] > 0 and parts["of_it_accidental_clones"] > 0
+    assert abs(parts["of_it_boilerplate_in_families"] + parts["of_it_accidental_clones"] - parts["share_of_code_copied"]) < 1e-3
+    table = tmp_path / "wrappers"
+    for n in range(1, 5):
+        (table / f"w{n}.py").unlink()
+    (table / "w0.py").write_text("TABLE = {'a': 1}\n")
+    after = assess.assess(str(tmp_path))["dimensions"]["reuse"]
+    assert after["parts"]["of_it_boilerplate_in_families"] == 0 and after["score"] > parts["reuse_score"]
+
+
+def test_a_protocol_used_through_the_front_door_is_not_an_unused_export(tmp_path):
+    write(tmp_path, {"lib/interface.py": "from typing import Protocol\n\n__all__ = ['Served', 'Typed', 'Idle']\n\n@solution('served', kind='x', entry='go')\nclass Served(Protocol):\n    def go(self): ...\n\n"
+                                         "@solution('typed', kind='x', entry='go')\nclass Typed(Protocol):\n    def go(self): ...\n\n@solution('idle', kind='x', entry='go')\nclass Idle(Protocol):\n    def go(self): ...\n",
+                     "lib/solutions.csv": "id,name\nserved,S\ntyped,T\nidle,I\n",
+                     "app/main.py": "def front(run, handle: Typed):\n    return run('served')\n"})
+    from esoi.structure.structure_quality import surface
+    served = surface.served_names(project.load(tmp_path))
+    assert served["lib"] == {"Served", "Typed"}
+    found = assess.assess(str(tmp_path))["dimensions"]["surface"]
+    assert "Idle" in " ".join(found["offenders"]) and "Served" not in " ".join(found["offenders"])

@@ -21,10 +21,19 @@ def run_rules(config, args: argparse.Namespace) -> int:
 
 
 def run_structure_quality(config, args: argparse.Namespace) -> int:
-    """Print the Structure Quality report of a path (advisory: the exit code is always 0)."""
+    """Print the Structure Quality report of a path, or with ``--compare`` the comparison of two structures (advisory: the exit code is always 0)."""
     from esoi.structure.structure_check.rules import structure_quality_rules
-    from esoi.structure.structure_quality import report
-    for line in report.lines(structure_quality_rules.assess_path(Path(args.path), args.stage)):
+    from esoi.structure.structure_quality import compare, report
+    if args.compare:
+        try:
+            result = structure_quality_rules.compare_refs(args.compare[0], args.compare[1], args.path, args.stage, not args.fast)
+        except ValueError as exc:
+            print(f"esoi: {exc}", file=sys.stderr)
+            return 2
+        for line in compare.lines(result):
+            print(line)
+        return 0
+    for line in report.lines(structure_quality_rules.assess_path(Path(args.path), args.stage, not args.fast)):
         print(line)
     return 0
 
@@ -172,8 +181,10 @@ def register(sub) -> None:
     p.add_argument("--markdown", action="store_true")
     p.set_defaults(handler=run_rules)
     p = sub.add_parser("structure-quality", help="score how well a project's code and records divide the work (advisory, never fails)")
-    p.add_argument("path", nargs="?", default=".")
+    p.add_argument("path", nargs="?", default=".", help="the project (with --compare: the repository that git references are read from)")
     p.add_argument("--stage", type=int, choices=[1, 2], default=1, help="1: static code and records; 2: also co-change mined from git history")
+    p.add_argument("--compare", nargs=2, metavar=("BEFORE", "AFTER"), help="compare two structures, each a folder or a git reference (a restructuring is kept only when the number holds or rises)")
+    p.add_argument("--fast", action="store_true", help="leave the flow dimension unmeasured (it reads the records and costs most of the time on a large project)")
     p.set_defaults(handler=run_structure_quality, needs_config=False)
     p = sub.add_parser("template", help="the intent template")
     p.add_argument("action", choices=["sync", "check"])
