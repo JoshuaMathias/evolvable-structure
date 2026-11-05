@@ -1,10 +1,7 @@
-# ESOI: choose each implementation by measurement, and keep the reason
+# ESOI: Evolvable Structure that Optimizes Intent
 
-esoi is a small Python library, with no dependencies in its core, for code that has more than one way to do a job. You declare an
-interface, register implementations beside their code, run them on shared cases, and esoi records pass rate, cost and latency per
-case, labels the leader significant (an exact two-sided paired test) or a best guess, and makes it the default. A lockfile pins the
-defaults for production. The same records (problem, ideal, solution, implementation, metric) work without code, for a course or a
-team process: [the guide](docs/README.md). Terms: [glossary](docs/explanation/glossary.md).
+ESOI is a framework that ensure every aspect of your ideas or code can measurably improve over time, while maintaining "evolvable structure." You declare an
+interface, register implementations beside their code, run them on shared cases, and the esoi library records pass rate, cost and latency per case, labels the leader significant (an exact two-sided paired test) or a best guess, and makes it the default. A lockfile pins the defaults for production. The same records (problem, ideal, solution, implementation, metric) work without code, for a course or a team process: [the guide](docs/README.md). Terms: [glossary](docs/explanation/glossary.md).
 
 ```bash
 pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git@v0.3.0#subdirectory=implementations/python"
