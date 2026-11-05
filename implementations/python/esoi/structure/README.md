@@ -53,7 +53,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 | Ownership Map | `ownership-map` | `esoi.run("ownership-map", '.')` | Component rows (`component-rows`) | Trace completeness |
 | Structure Budget | `structure-budget` | `esoi.run("structure-budget", '.')` | Written weighing rule (`written-weighing-rule`) | Structure cost against catches |
 | Structure Check | `structure-check` | `esoi.run("structure-check", '.')` | Rule script (`rule-script`) | Violation detection, Check dependability |
-| Structure Quality | `structure-quality` | `esoi.run("structure-quality", '.')` | Balanced static scorer (`balanced_static`) | Structure quality agreement |
+| Structure Quality | `structure-quality` | `esoi.run("structure-quality", 'docs')` | Balanced static scorer (`balanced_static`) | Structure quality agreement |
 | Specify from the Code | `specify-from-code` | `esoi.run("specify-from-code", '.')` | Declarations read from the code, rows synced (`declarations-and-sync`) | Declaration sync |
 | Template Sync | `template-sync` | `esoi.run("template-sync", '.')` | Template parser (`template-parser`) | Template agreement |
 
@@ -91,7 +91,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 - Structure cost against catches (`metric-structure-cost-against-catches`)
 - Violation detection (`metric-violation-detection`): leader `live_checker`, 61 of 76 cases
 - Check dependability (`metric-check-dependability`): leader `live_checker`, 61 of 76 cases
-- Structure quality agreement (`metric-structure-quality-agreement`): no result recorded
+- Structure quality agreement (`metric-structure-quality-agreement`): leader `balanced_static`, 18 of 18 cases
 - Declaration sync (`metric-declaration-sync`): leader `live_declarations`, 14 of 14 cases
 - Template agreement (`metric-template-agreement`): leader `live_parser`, 11 of 11 cases
 

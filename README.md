@@ -52,6 +52,8 @@ compares with DSPy, MLflow's model registry, promptfoo, Inspect and fitness func
    in about an hour, with fill-in templates and no tools.
 4. **[The order of building with structure](https://github.com/JoshuaMathias/evolvable-structure/wiki/The-order-of-building-with-structure)**: the whole
    sequence from the hierarchy and vision statements to the loop of continual improvement.
+5. **[Code quality is structure quality](https://github.com/JoshuaMathias/evolvable-structure/wiki/Code-quality-is-structure-quality)**: one balanced
+   number for how well a project divides its work, and `esoi structure-quality` to read it.
 
 The wiki is generated from [docs/](docs/README.md) in this repository, so the same pages are here too.
 

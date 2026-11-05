@@ -6,7 +6,7 @@ from esoi.runtime.implementation_selection.declare import implementation, soluti
 __all__ = ["StructureQualityAssessing"]
 
 
-@solution("structure-quality", kind="evaluate", entry="assess", example=".")
+@solution("structure-quality", kind="evaluate", entry="assess", example="docs")
 @runtime_checkable
 class StructureQualityAssessing(Protocol):
     """How well a project's code and records divide the work: one balanced number from 0 to 1, each dimension's score, the dimensions flagged and their worst offenders."""

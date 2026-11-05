@@ -10,7 +10,7 @@ Part of [A Project's Records and Code as One Structure](../README.md)
 
 - Out of scope: Running the structural rules on each change; deciding whether a rule earns its place; the correctness of what any one part produces; deciding that a solution's purpose is worth having.
 - Delegates to: structure-check, structure-budget
-- Entry call: `esoi.run("structure-quality", '.')`
+- Entry call: `esoi.run("structure-quality", 'docs')`
 - Selected implementation: Balanced static scorer (`balanced_static`)
 - Metric: Structure quality agreement
 - Implemented by: [`implementations/python/esoi/structure/structure_check/rules/structure_quality_rules.py`](../structure_check/rules/structure_quality_rules.py), [`implementations/python/esoi/structure/structure_quality/assess.py`](assess.py), [`implementations/python/esoi/structure/structure_quality/balance.py`](balance.py), [`implementations/python/esoi/structure/structure_quality/behavior.py`](behavior.py), [`implementations/python/esoi/structure/structure_quality/cochange.py`](cochange.py), [`implementations/python/esoi/structure/structure_quality/coupling.py`](coupling.py), [`implementations/python/esoi/structure/structure_quality/duplication.py`](duplication.py), [`implementations/python/esoi/structure/structure_quality/expert_review.py`](expert_review.py) and 16 more
@@ -25,7 +25,7 @@ Part of [A Project's Records and Code as One Structure](../README.md)
 
 ## Metrics
 
-- Structure quality agreement (`metric-structure-quality-agreement`): no result recorded
+- Structure quality agreement (`metric-structure-quality-agreement`): leader `balanced_static`, 18 of 18 cases
 
 ## Problems
 

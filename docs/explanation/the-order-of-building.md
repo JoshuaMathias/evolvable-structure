@@ -15,7 +15,11 @@ offerings, how an AI behaves); code is one case. Each step says what it settles,
    in names, how the intent's solutions connect and implement the parent solution. Writing one shows what is missing from the other: a
    step in the paragraph with no interface, an interface the paragraph never uses, a solution that nothing calls. Repeat until every
    solution is in the paragraph and every call in the paragraph has an interface. The interface exists before any implementation does;
-   until one does, the step is reported as pending.
+   until one does, the step is reported as pending. Judge the scoping here, before any code exists, with these questions: does each
+   interface do one job, and do all its alternatives serve that job at one level of specificity? Does any call reach past an interface into
+   another solution's inside? Does any solution name a consumer, or does the dependency run both ways? Is any step written twice, so that two
+   interfaces would hold the same arithmetic? Is there one contract that every alternative must keep? These are the dimensions of
+   [Structure Quality](code-quality-is-structure-quality.md), which measures them on code once there is some.
 3. **Create the diagram.** Draw it from the finished paragraph, so that the picture shows the same relationships the words and the flow
    state.
 4. **Define the metrics.** Each solution gets the metric that says what it is for: one balanced number at rising fidelity, with its

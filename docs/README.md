@@ -21,6 +21,7 @@ Steps for a task you already know you want to do.
 
 - [Apply ESOI by hand](how-to/apply-by-hand.md): a first pass in about an hour, with no tools.
 - [Apply ESOI with the Python tools](how-to/apply-with-tools.md)
+- [Measure structure quality](how-to/measure-structure-quality.md): `esoi structure-quality` at stage one and two, the rules S54 to S59, and tightening budgets.
 - [Migrate to intents](how-to/migrate-to-intents.md): from the two-level overall layout.
 - [Migrate from esoi 0.3 to 0.4](how-to/migrate-from-0.x.md): the public API, the commands and where every module went.
 - [Install the skill](how-to/install-the-skill.md): give an AI agent the principles.
@@ -68,6 +69,7 @@ Why it is built this way. Start with the idea, then the pieces.
 - [Choosing by metric](explanation/choosing-by-metric.md)
 - [What a metric includes](explanation/what-a-metric-includes.md): the checklist (outcome, cost, time, risk gates, robustness, abstention, freshness, evidence quality, checkable cascade, fixed weights) with nine examples, and three ways to lean on other metrics.
 - [A metric must be meaningfully real](explanation/metrics-must-be-real.md): no scripted stand-ins; creative and limited measures are fine, fake ones are not (rule S31).
+- [Code quality is structure quality](explanation/code-quality-is-structure-quality.md): scope, size, coupling, reuse, flow, surface and behavior as one balanced number, why no single dimension can win, and the cascade (rules S54 to S59).
 - [A cascade runs one criterion](explanation/a-cascade-runs-one-criterion.md): every stage's metric is one number, kinds of cases are case sources, floors are marked (rules S41 to S44).
 - [The first stage needs no model](explanation/first-stage-needs-no-model.md): start a metric's cascade with a free stage that proves the scorer.
 - [Declare, call, measure, promote](explanation/graceful-selection.md): the graceful way to declare alternatives in code and let the metric pick.
