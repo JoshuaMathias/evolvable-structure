@@ -24,6 +24,7 @@ list projects: it routes by kind of task, and which projects exist is the user's
 | Read | When | Skip when |
 |---|---|---|
 | `steps.md` | defining or applying ESOI to anything new, or working through a project in order: the steps from purpose to selection by metric and where to loop back, and how the process itself is improved | you are only answering a narrow design question |
+| `metrics.md` | you write or change a metric: start from a generic metric, reuse public results for public arms, build on a foundation metric when customizing, and the checklist of what a metric includes | the metric already exists and you only run it |
 | `python_tools.md` | the work is a code repository where ESOI's checks and measurements could be automated, the user asks whether a tool exists, or you are about to push a public repository: the optional `esoi` Python package, when to suggest it, and how to ask whether to use it and whether the repo may become a development or runtime dependency | a first pass, or any non-code intent: do it by hand |
 | `principles.md` | you need concrete design or review questions for the ideals (the 15 patterns), you are deciding whether to generalize at all, writing up a design, or editing this skill. It is a sub-index for `principles/` | `SKILL.md` already settles the question |
 | `coding.md` | writing, reviewing or restructuring code, especially code AI writes. It is a sub-index for the project examples in `coding/` | the work is not code |
@@ -37,6 +38,8 @@ list projects: it routes by kind of task, and which projects exist is the user's
 | A data model, fields, where data lives | patterns 1, 4; `coding/pipelines_and_experiments.md` (examples 4, 5) | |
 | Pipelines, stages, one function for notebook, CLI, pipeline and test | pattern 8; `coding/pipelines_and_experiments.md` (examples 3, 7); `coding/writealyze.md` (examples 13, 15) | |
 | Experiments, tuning, evals, choosing the best implementation by a metric | pattern 9; `principles.md` "How to think and document"; `coding/pipelines_and_experiments.md` (example 6) | `principles/patterns_change.md` |
+| Writing or reviewing problems and ideals: true and plain problems, ideals as states not solutions | `steps.md` steps 5 and 8; `principles.md` "A problem says what is true; an ideal says the state you want" | the ESOI repository's `docs/how-to/write-problems-and-ideals-that-hold-up.md` |
+| Writing or changing a metric, fitting public benchmarks to it, building on another solution's metric | `metrics.md`; step 13 of `steps.md` | the ESOI docs page it links |
 | Parameters, config, defaults that vary by run, user or environment | patterns 3, 4; `coding/pipelines_and_experiments.md` (example 5); `coding/registry_and_templates.md` (example 12) | `principles/patterns_core.md`, `principles/patterns_people.md` |
 | A component other systems will use; versions, swappable implementations, changing a shared interface | `coding/components.md`; patterns 2, 13, 15 | `coding/registry_and_templates.md` (example 1); `coding/writealyze.md` (examples 9, 13, 14); `sources/INDEX.md` "Functional components" |
 | A new repo or package, CI, environments, a deployment or lane as config, a script rebuilding a library's wiring | `coding/registry_and_templates.md` (examples 2, 8); `coding/concept_ai_quest_qar.md` (example 16) | |

@@ -86,6 +86,22 @@ problems nobody has defined yet. Before building, look for an existing structure
 public source that already serves the definition. When AI writes code, start from the interface and
 one example call (`coding.md`).
 
+**A problem says what is true; an ideal says the state you want (Joshua, 2026-11-04).** On a hub problem that read
+"Parts that are best alone can fail when assembled, and nobody tests the whole", Joshua: "this isn't correct, it's that
+the parts need to be justified as part of the whole but just independently optimized, and it's not correct that the
+whole is never tested, what developer would say that ... ensure that problems don't say false things just to make easy
+statements; it should have nuanced yet clear and simple language." A problem describes today, so a domain expert must
+recognise it as accurate: replace a sweeping absolute or a strawman with the real gap (what is missing, for whom, how often,
+at what cost). Then: "absolutes are more expected in ideals than in problems, that's kind of what ideals are", and "ideals
+should avoid being solutions, that's the easiest trap; solutions are strategic approaches or roles in a system, ideals are
+the state we want." So an ideal states the limit state from the point of view of whoever is affected ("Every request
+reaches a model that is up and within its budget"), never the means ("Use one router for every model call"). Test: could
+two different solutions both reach it? The ESOI repository's explanation `a-problem-says-what-is-true.md` and how-to
+`write-problems-and-ideals-that-hold-up.md` hold the checklist; its advisory rules S51 (absolutes in problems) and S52
+(solution-shaped ideals) point at candidates.
+
+**A vision statement is one short sentence naming the overall concept in its optimal, ongoing state (Joshua, 2026-11-04).** AI drafts were "too long and detailed, like going into the metrics or subsolutions instead of an overall concept", and "every week" is "too specific for a vision statement, that's a metric or implementation". His rewrites show the pattern: start from who the concept serves and what they get ("AI builders have consistent interfaces for whatever the current best AI solutions are, to adapt only what is unique to their project"); name the central concept itself, not its steps or parts; state the optimal ongoing state with words like "optimally", "in the best way possible", "continuously" ("The AI system optimally learns and interacts with the world outside of it", "AI requests are handled in the best way possible, given all relevant information"); write "The AI system", not "An AI system"; qualify with what the result depends on, not with an outcome clause; leave out frequencies, counts, flow steps and sub-solutions. An ideal takes the comprehensive absolute form ("The implementations selected for solutions always reflect the best alternative available across all known resources and methods"). AI may write vision wording but shows it to him first.
+
 **A problem is not a restated solution; every type is written as itself.** Lesson from an AI-runner project, 2026-10-17.
 Joshua: "Not a single problem is written as a problem", and "keep in mind my feedback is about all five
 types of things". The registry had generated one "problem" per solution, worded as the job ("Decide per
@@ -118,6 +134,8 @@ record, not in implementations; status, gaps and numbers go in the project's tra
 records. The project's own notes are in the local ESOI index.
 
 **Hierarchy is intents, not solutions (Joshua, 2026-10-18).** Joshua: "In ESOI have hierarchy be defined in terms of intents and sub-intents instead of solutions and sub-solutions." An intent is a clear, encapsulating container (in a repository, a folder with its own record). A sub-intent arises as an implementation of a solution in the parent intent, and is specified "if and only if that intent brings insights on opportunities that don't emerge directly from the parent intent or solution that the sub-intent is implementing". Risks and uncertainties alone do not justify one. SKILL.md: "Risks are addressed by considering disadvantages of Implementations and Metrics, uncertainties are addressed by Metrics, and opportunities are addressed by Solutions." Implementations are ideas that can start as sub-intents or evolve into them. The two-level "overall network plus detailed records" layout is legacy (it maps to the top intent plus sub-intents and `uses_solution_ids`). The 2026-10-17 answers below that say "sub-solution" are from before this change.
+
+**A restructuring is an alternative structure, measured before and after (Joshua, 2026-11-05).** Each merge, split, adoption, interface change or moved module is compared like any other alternative: run `esoi structure-quality` before, `esoi structure-quality --compare <before> <after>` after, and keep the change only if the balanced number holds or rises, stating the reason in the commit when it does not. Joshua had to ask for this; the library's order of building, standard and CLAUDE.md now say it so nobody has to be told.
 
 **A project's top intent is why that project exists, never "the structure" (Joshua, 2026-10-18).** Joshua: "The top intent is very importantly custom to the project, why the project exists." The folder that holds the specifications is not the intent. The evolvable structure a project applies is a solution inside the project's own top intent; its implementation may use the generic ESOI solutions (a "uses" link across projects), and anything project-specific about the structure lives inside that project's top intent. Only in the ESOI repository itself is the top intent ESOI, because that is why that project exists; do not generalize from it.
 

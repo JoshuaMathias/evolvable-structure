@@ -35,7 +35,9 @@ sensible default. Offer inventive restructurings as options, not only cuts.
 4. **Describe who it serves.** For each kind of person (or system) the work is for: why they'd use it, what makes them
    different, how serving them changes the way the work is done, and what may make it hard for them to use.
 5. **Write the problems.** One Problem record each: what it is, who has it, why it matters, why it is hard, and the
-   current workarounds. Give each record a short, clear id (13).
+   current workarounds. Give each record a short, clear id (13). A problem describes today, so every sentence must be
+   true: no sweeping "never", "nobody" or "always" a person who knows the field would call false, and no strawman written
+   to make a solution look needed. Say what is missing, for whom, how often and at what cost, in plain words (7, 13).
 6. **Gather what is already known, and what already exists.** Collect knowledge about these people and problems, and
    look for existing structure to reuse before building any: earlier work of your own, open-source tools, science,
    data, advice (8). Link each source to the records it affects.
@@ -45,6 +47,8 @@ sensible default. Offer inventive restructurings as options, not only cuts.
 
 8. **Write the ideals (human).** One Ideal record per direction of improvement: a name, the principle it asks for, a
    description of what reaching it would be like, and hints of how you would know. Each opposes at least one problem.
+   An ideal is the state you want, seen by whoever is affected; absolutes are expected here, since it is the limit case.
+   It is never a means: a tool, mechanism, component or role ("use one router", "build a dashboard") is a solution.
 9. **Check coverage.** Every critical problem is opposed by at least one ideal. A problem left uncovered gets a new
    ideal, or moves to "probably won't be done" with a reason.
 10. **List the difficulties.** What may make this hard: missing knowledge, approvals needed, dependencies, risks. Each
@@ -63,7 +67,14 @@ sensible default. Offer inventive restructurings as options, not only cuts.
     whether the resources to create and maintain it outweigh the benefit of defining it, within the timeframe up to the
     next highest priority milestone (step 1). Risks and uncertainties alone do not justify one: "Risks are addressed by
     considering disadvantages of Implementations and Metrics, uncertainties are addressed by Metrics". Where a solution elsewhere
-    already serves a need, record that the implementation builds on it. Each Solution record names its problems and ideals, a description, purpose, approach and out of scope,
+    already serves a need, record that the implementation builds on it. A solution holds alternatives that do the SAME job: read
+    its implementation list for purpose and specificity, and if the arms serve different purposes (a one-call file edit beside
+    coding-agent runners under one "Acting"), split by purpose into a general solution with general arms and specific solutions
+    nested beneath or composed by it, and name the general alternatives that are missing. Scope the solution's ROLE against its
+    siblings, which is specialization and delegation of responsibility: purpose (what it is responsible for), out of scope (what it
+    is not) and `delegates_to` (which sibling owns that, or `none`); if its only justification is a capability a sibling or the
+    world already provides, it is not a solution; for a container, name the `change_driver` (outside systems, the system's own data
+    model or code, ML task accuracy, alignment with humans or policies). Each Solution record names its problems and ideals, a description, purpose, approach and out of scope,
     milestones, knowledge, measures of success and tags. The description is its unique value proposition, never a
     restatement of its knowledge. The purpose is the niche of utility it serves; the approach is how it solves problems,
     true of every implementation, and is the strategy statement people see in the app (start with a verb, name no actor).
@@ -103,16 +114,21 @@ sensible default. Offer inventive restructurings as options, not only cuts.
     then 30 cases) and who approves the spend. Say what makes a result expire, such as an implementation that changed or
     a dataset that aged, and what checks the metric itself (10).
 15. **Review from other perspectives.** Read the records as the people served, the people who maintain the work, a
-    critic looking for risk, and someone a year from now. Add the problems, ideals and cases they would add (6, 7).
+    critic looking for risk, and someone a year from now. Add the problems, ideals and cases they would add (6, 7). Read each
+    solution's implementation list for purpose and specificity: arms that do different jobs mean a mis-defined solution (11). Check each against its siblings for overlap and for who owns what
+    it excludes (11).
 
 ## Part 4: Build, measure and choose
 
 16. **Write the implementations, with alternatives.** For each solution, the implementation you plan plus at least
-    one alternative to compare it against. When there's no second idea yet, use a simple baseline such as "do nothing"
-    or "the current way" as the floor (7).
+    one alternative to compare it against. When there's no second idea yet, use a simple one such as "do nothing"
+    or "the current way" (7): it competes on the same metric like any other, and wins when the metric says so.
 17. **Build what is needed.** Carry out the implementations worth measuring, behind the interface from step 12, and
     in a way that is useful the next time (11). Not every alternative needs to be built in full before it is measured
-    once.
+    once. Start from the flow, in any medium (code is one case): first write the flow the intent's coherence paragraph
+    describes (entry-point calls, handoffs and steps, sections that refer to each other, roles and delegations) with each
+    solution's interface defined, then implement what it reaches one level down at a time at every point of the hierarchy in
+    scope, and revise interfaces and flow from what implementing teaches (patterns_change.md, flow first).
 18. **Measure.** Run every implementation on the same cases, as the run policy from step 14 allows, and record each
     result with the date, the implementation, the version measured and which cases were used. Run a stage of the
     cascade only when its value is worth its cost; a stage not run stays empty (null), never estimated (10). Save every
@@ -141,6 +157,7 @@ sensible default. Offer inventive restructurings as options, not only cuts.
     - a part that keeps growing, an implementation that shows a new opportunity, or two uses that want different bests: step 11 (a separate solution or a sub-intent)
     - a new idea for how to do it: step 16
     - the structure itself making the work harder: run these steps on the structure, which is itself a solution
+    - a merge, split, adoption, interface change or moved module (a restructuring): it is an alternative structure, so measure it before and after with Structure Quality (`esoi structure-quality --compare <before> <after>`) and keep it only if the balanced number holds or rises, with the reason stated when it does not
 
 When you finish a pass, say in a few lines how the steps were applied and what was skipped and why, so the next pass
 starts from there.

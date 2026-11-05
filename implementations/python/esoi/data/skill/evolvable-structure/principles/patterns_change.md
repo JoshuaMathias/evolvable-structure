@@ -56,9 +56,11 @@ Part of `../principles.md`. Patterns 8, 9, 13, 14 and 15: one path from experime
    different thing. Scoring cards only on single-file lookup picked the file index and would have
    put a card per file in the Quest database (Joshua, 2026-11-04). Before trusting a leaderboard,
    ask whether the cases look like the real inputs (use real inputs to calibrate the case mix),
-   whether the unit being scored is the thing the solution produces, and whether a baseline that
-   exists only to show a floor (one card per file, one card for everything) is marked as one and can
-   never be selected.
+   whether the unit being scored is the thing the solution produces. No arm is excluded by a mark
+   (Joshua, 2026-11-04: "a metric should determine whether something is used, not marking as
+   baseline"): every implementation competes on the one balanced metric, and if a trivial arm (one
+   card per file) wins, the metric lacks a factor (cost, size, efficiency, accessibility), so put it
+   into the number.
 
 13. **A stable interface, with changes announced.** What lets an implementation be swapped is a
     contract that does not move: the same inputs, outputs and style rules. Tests pin it, the author
@@ -169,3 +171,18 @@ A principle above must not depend on any of these, and each stays true if the fr
   the owner overruled the decision". Sources: `cantr_governance_proposals.md > A standard workflow, written down`,
   `> Accountability for the owner's override`.
 
+
+**Staleness of a measured result (Joshua, 2026-11-04)**
+- A metric result goes stale only when the implementation's own code changes, never for a test or fixture, the scorer, or code that another implementation owns even if imported; another solution's code is answered by that solution's own recorded selection.
+
+**Names and ids (Joshua, 2026-11-04)**
+- A record's `name` is the human-readable label that leads every output (tables, headings, diagrams, the coherence paragraph); its `id` is the stable handle that commands and links use. Write the paragraph in names; ids are optional.
+
+**Flow first (Joshua, 2026-11-04)**
+- Start from the flow, and not only in code (specs, processes, documents, offerings, how an AI behaves; code is one case). Unless told otherwise, first write the FLOW the intent's coherence paragraph describes, in the medium the implementation will be (entry-point calls in code, handoffs and steps in a process, sections that refer to each other in a document, roles and delegations in an organisation), with each solution's interface (what it takes and returns, who is responsible) defined even where nothing implements it yet; then implement what the flow reaches, one level down at a time, at every point of the hierarchy in scope (an implementation may be code, a document, a registry, a process or a person). Revise interfaces and flow from what implementing teaches. Joshua: "always start implementation from top to bottom and code for the conceptual flow which the intent solution coherence paragraph describes, using the entry points for each solution, unless told otherwise; after the flow is implemented, implement the code for what the flow calls; in other words function definitions and calls of solution functions first (interfaces), then implementations, at all points of the hierarchy for everything within scope of the current task (which can be the whole repository); interfaces and flow can be updated as needed based on learnings from implementation."
+
+**A solution holds alternatives of one job (Joshua, 2026-11-04)**
+- A solution is a container for alternatives that do the SAME job. When its implementations serve different purposes or very different specificity (an "Acting" whose arms are a one-call file edit, an MCP write and coding-agent runners), it is mis-defined: read the implementation list for purpose and specificity when defining or reviewing a solution, split by purpose (a general solution with general arms, specific solutions nested beneath or composed by it, optionally routed cheapest-first), and name which general alternatives are missing.
+
+**Role scoping of solutions (Joshua, 2026-11-04)**
+- Nuances of a solution's scope are easy to miss, so state the role: what it is responsible for (purpose), what it is not and which sibling owns that (out of scope, `delegates_to`), and for a container what kind of change moves its metric (`change_driver`). A solution justified only by a capability a sibling or the world already provides is not a solution. This is specialization and delegation of responsibility.
