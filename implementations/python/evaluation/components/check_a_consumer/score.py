@@ -9,6 +9,12 @@ def score_case(fn, case):
     if want.get("clean"):
         ok = out["exit"] == 0 and not problems
         return dict(ok=ok, got="clean", note="ok" if ok else f"false positive: {problems[:2]}")
+    if want.get("advisory"):
+        seen = [n for n in out.get("notes", []) if want["rule"] + " " in n and want.get("contains", "") in n]
+        ok = out["exit"] == 0 and not problems and bool(seen)
+        return dict(ok=ok, got=f"{case['kind']}:{want['rule']}:advisory",
+                    note="ok" if ok else f"advisory {want['rule']} {want.get('contains', '')!r} not noted, or raised as a problem; "
+                                         f"problems {[p[:60] for p in problems[:3]]}")
     hits = [p for p in problems if p.startswith(want["rule"] + " ") and want.get("contains", "") in p]
     ok = out["exit"] == 1 and bool(hits)
     return dict(ok=ok, got=f"{case['kind']}:{want['rule']}",

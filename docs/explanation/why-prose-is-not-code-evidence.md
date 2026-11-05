@@ -45,11 +45,11 @@ The rules that decide what counts as strong evidence of "A uses B", in the order
 
 Weak evidence (W1 to W3) is reported and never counts toward precision.
 
-E4 was added after measuring it against the alternatives on three repositories (esoi, the hub of hubs and quest-ai-runner), each
+E4 was added after measuring it against the alternatives on three repositories (esoi, the hub of hubs and an adopting application), each
 by the base rate (the share of pairs that are not recorded edges and still show strong evidence) and the lift (precision over base
 rate). Counting any import of a module the used solution owns raised esoi's base rate to 0.048 and the hub's to 0.178, so it was
 rejected. Following a call into a helper function of the same module added nothing to precision and was dropped. E4 as written raised the
-base rate of esoi from 0.006 to 0.022 and quest-ai-runner's from 0.023 to 0.034, left the hub's at 0.017, and kept lift above
+base rate of esoi from 0.006 to 0.022 and the application's from 0.023 to 0.034, left the hub's at 0.017, and kept lift above
 20 on all three. The remaining non-edge pairs it finds are mostly relations the records leave unstated, which is what a base rate
 is for.
 

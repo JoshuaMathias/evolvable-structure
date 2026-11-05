@@ -388,7 +388,7 @@
   "id": "CCK-018",
   "area": "consumer",
   "kind": "consumer",
-  "description": "a result whose case files changed since",
+  "description": "a result whose case files changed since is an advisory note, never a problem",
   "args": {
    "edits": [
     {
@@ -400,7 +400,8 @@
   },
   "expect": {
    "rule": "C10",
-   "contains": "stale result"
+   "contains": "stale result",
+   "advisory": true
   }
  },
  {

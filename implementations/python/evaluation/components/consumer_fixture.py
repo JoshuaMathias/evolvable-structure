@@ -65,6 +65,8 @@ def run_check(edits: list) -> dict:
         report = consumer.check_consumer(root / "registry.csv", root, OPTIONS, solutions=root / "solutions.csv",
                                          results=root / "results.csv")
         problems = report.problems
+        notes = report.notes
     except Exception as exc:
         problems = [f"CRASH {type(exc).__name__}: {exc}"]
-    return {"exit": 1 if problems else 0, "problems": problems}
+        notes = []
+    return {"exit": 1 if problems else 0, "problems": problems, "notes": notes}
