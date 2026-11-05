@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import List, Optional
-from esoi.understanding.readable_records import diagram
+from esoi.understanding.readable_records import diagram, readme_adopted
 from esoi.structure.intent_registry.intents import Intent
 from esoi.structure.intent_registry.registry import Registry
 from esoi.understanding.readable_records.readme_view import DIVIDER, FILE, FIRST_LINE, LIST_LIMIT, NOTE, RECORD_FILES, View, entry_call, first_sentence, impl_label, leader, link, list_item, metric_names, mine, named, one_line
@@ -145,6 +145,7 @@ def render_full(registry: Registry, intent: Intent, view: View) -> str:
                   f"intent `{intent.parent}`. Opportunities: {one_line(intent.row.get('opportunities', ''))}", ""]
     if intent.row.get("solution_coherence", "").strip():
         lines += ["## How the solutions fit together", "", one_line(intent.row["solution_coherence"]), ""]
+    lines += readme_adopted.lines(view, registry, intent)
     return "\n".join(lines + record_tables(registry, intent, "##", view)).rstrip() + "\n"
 
 
@@ -165,6 +166,7 @@ def render_glance(registry: Registry, intent: Intent, view: View) -> str:
     table = solutions_table(view, registry, intent)
     if table:
         lines += ["## Solutions at a glance", ""] + table + [""]
+    lines += readme_adopted.lines(view, registry, intent)
     shorts = short_lists(registry, intent)
     if shorts:
         lines += ["## Problems and ideals", ""] + shorts

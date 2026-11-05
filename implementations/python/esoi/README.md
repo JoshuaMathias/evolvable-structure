@@ -34,7 +34,7 @@ Turn a project's intent into specifications that are checked, measured and selec
 - Entry call: `esoi.run("apply-esoi", '.')`
 - Selected implementation: Through the four containers (`through-the-four-containers`)
 - Metric: Adoption effort, Intents whose solutions one paragraph and one diagram explain as the code builds them
-- Implemented by: [`implementations/python/esoi/apply_esoi.py`](apply_esoi.py), [`implementations/python/esoi/esoi_selection.json`](esoi_selection.json), [`implementations/python/esoi/optimization/__init__.py`](optimization/__init__.py), [`implementations/python/esoi/optimization/keep_metric_record/__init__.py`](optimization/keep_metric_record/__init__.py), [`implementations/python/esoi/optimization/leaderboard/__init__.py`](optimization/leaderboard/__init__.py), [`implementations/python/esoi/optimization/measurement_harness/__init__.py`](optimization/measurement_harness/__init__.py), [`implementations/python/esoi/optimization/measurement_harness/discriminating_cases/__init__.py`](optimization/measurement_harness/discriminating_cases/__init__.py), [`implementations/python/esoi/optimization/promote_the_winner/__init__.py`](optimization/promote_the_winner/__init__.py) and 73 more
+- Implemented by: [`implementations/python/esoi/apply_esoi.py`](apply_esoi.py), [`implementations/python/esoi/esoi_selection.json`](esoi_selection.json), [`implementations/python/esoi/optimization/__init__.py`](optimization/__init__.py), [`implementations/python/esoi/optimization/keep_metric_record/__init__.py`](optimization/keep_metric_record/__init__.py), [`implementations/python/esoi/optimization/leaderboard/__init__.py`](optimization/leaderboard/__init__.py), [`implementations/python/esoi/optimization/measurement_harness/__init__.py`](optimization/measurement_harness/__init__.py), [`implementations/python/esoi/optimization/measurement_harness/discriminating_cases/__init__.py`](optimization/measurement_harness/discriminating_cases/__init__.py), [`implementations/python/esoi/optimization/promote_the_winner/__init__.py`](optimization/promote_the_winner/__init__.py) and 74 more
 
 ## Understanding (`esoi-understanding`)
 
@@ -134,6 +134,7 @@ flowchart LR
 - Down: [implementations/python/esoi/runtime/consumer_check](runtime/consumer_check/README.md)
 - Down: [implementations/python/esoi/runtime/implementation_selection](runtime/implementation_selection/README.md)
 - Down: [implementations/python/esoi/structure/intent_registry](structure/intent_registry/README.md)
+- Down: [implementations/python/esoi/structure/library_adoption](structure/library_adoption/README.md)
 - Down: [implementations/python/esoi/structure/ownership_map](structure/ownership_map/README.md)
 - Down: [implementations/python/esoi/structure/structure_budget](structure/structure_budget/README.md)
 - Down: [implementations/python/esoi/structure/structure_check](structure/structure_check/README.md)

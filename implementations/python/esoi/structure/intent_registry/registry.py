@@ -30,6 +30,7 @@ class Registry:
     missing: List[Tuple[str, str]] = field(default_factory=list)   # (file, column) the rules read that a file lacks
     specifications: List[Dict[str, str]] = field(default_factory=list)   # solutions with no metric command (derived)
     solution_order: List[str] = field(default_factory=list)   # every solution id in tree order
+    adopted: List[Dict[str, str]] = field(default_factory=list)   # rows whose `adopts` cell references a library's solution: a reference only, kept out of every other list
 
     def every_solution(self) -> List[Dict[str, str]]:
         """Measured solutions and specification solutions together, in the order the records list them."""
@@ -83,13 +84,16 @@ def load(config: Config) -> Registry:
     that have them."""
     metrics = read_rows(config, "metrics.csv")
     missing: List[Tuple[str, str]] = []
-    every = join_metrics(fill_columns("solutions.csv", read_rows(config, "solutions.csv"), missing), metrics)
+    rows = join_metrics(fill_columns("solutions.csv", read_rows(config, "solutions.csv"), missing), metrics)
+    adopted = [r for r in rows if (r.get("adopts") or "").strip()]
+    every = [r for r in rows if not (r.get("adopts") or "").strip()]
     measured = [r for r in every if is_command(r.get("metric_command", ""), config.metric_command)]
     return Registry(
         components=fill_columns("components.csv", read_rows(config, "components.csv"), missing),
         solutions=measured,
         specifications=[r for r in every if not is_command(r.get("metric_command", ""), config.metric_command)],
         solution_order=[r.get("solution_id", "") for r in every],
+        adopted=adopted,
         metrics=metrics,
         problems=read_rows(config, "problems.csv"),
         ideals=read_rows(config, "ideals.csv"),

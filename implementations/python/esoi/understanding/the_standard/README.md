@@ -33,7 +33,7 @@ Teach anyone, person or AI, how a solution is shaped and how a project adopts it
 - Entry call: `esoi.run("the-standard", '.')`
 - Selected implementation: Standard document (`standard-document`)
 - Metric: Adoption effort, Newcomer effort
-- Implemented by: [`.gitignore`](../../../../../.gitignore), [`CHANGELOG.md`](../../../../../CHANGELOG.md), [`CLAUDE.md`](../../../../../CLAUDE.md), [`CONTRIBUTING.md`](../../../../../CONTRIBUTING.md), [`LICENSE`](../../../../../LICENSE), [`NOTICE`](../../../../../NOTICE), [`SECURITY.md`](../../../../../SECURITY.md), [`docs/explanation/a-cascade-runs-one-criterion.md`](../../../../../docs/explanation/a-cascade-runs-one-criterion.md) and 92 more
+- Implemented by: [`.gitignore`](../../../../../.gitignore), [`CHANGELOG.md`](../../../../../CHANGELOG.md), [`CLAUDE.md`](../../../../../CLAUDE.md), [`CONTRIBUTING.md`](../../../../../CONTRIBUTING.md), [`LICENSE`](../../../../../LICENSE), [`NOTICE`](../../../../../NOTICE), [`SECURITY.md`](../../../../../SECURITY.md), [`docs/explanation/a-cascade-runs-one-criterion.md`](../../../../../docs/explanation/a-cascade-runs-one-criterion.md) and 94 more
 
 ## Diagram
 

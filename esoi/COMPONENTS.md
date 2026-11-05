@@ -125,3 +125,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | Flow of Runtime | `flow-runtime` | tools | The interface of Runtime and its composition arm: the order in which it calls its parts. | esoi-runtime |
 | Flow of Apply ESOI to a Project | `flow-root` | tools | The root's interface and its two arms: through the four containers, or documents only. | apply-esoi |
 | Package Folders | `package-folders` | core | The empty __init__.py that makes each folder of the four containers a package. | apply-esoi |
+| Library Adoption Reader | `library-adoption` | tools | Reading the adopts and specializes references of a repository and the library records they point at. | library-adoption |
+| Interface of Library Adoption | `interface-library-adoption` | tools | The Protocol declared with @solution for Library Adoption and its selected arm. | library-adoption |
+| Adoption Rule | `rules-adoption` | tools | The advisory rule S53: references resolve, an adopted row restates nothing, an own solution does not repeat a library solution, an arm declares the library solution id. | structure-check, library-adoption |
+| Adopted Solutions Section | `readme-adopted` | tools | The part of an intent's README that links adopted solutions to the library's page. | readable-records, library-adoption |

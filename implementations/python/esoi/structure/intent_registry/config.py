@@ -100,6 +100,7 @@ class Config:
     readme: Dict[str, Any] = field(default_factory=dict)   # [readme] layout = "glance" | "full" | "links": the README layout (esoi.understanding.readable_records.readme)
     harness: Dict[str, Any] = field(default_factory=dict)   # [harness] cassette = "dir": record and replay model calls (esoi.optimization.measurement_harness.cassette); off by default
     builds_on: Dict[str, Any] = field(default_factory=dict)   # [builds_on.<component>.<name>] repo, component, share, on_stale: metrics this one builds on (esoi.runtime.consumer_check.foundation)
+    adopts: Dict[str, Any] = field(default_factory=dict)   # [adopts.<library>] repo, url: libraries whose solutions this repository adopts (esoi.structure.library_adoption.resolve)
     source: Optional[Path] = None
 
     def __post_init__(self) -> None:

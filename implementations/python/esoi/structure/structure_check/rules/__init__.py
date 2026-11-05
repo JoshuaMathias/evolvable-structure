@@ -10,6 +10,7 @@ from typing import Dict, List
 
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.structure_check.rules import (
+    adoption_rules,
     beside_rules,
     cascade_rules,
     declarations,
@@ -27,7 +28,7 @@ from esoi.structure.structure_check.rules import (
 )
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
 
-BUILTIN: List[RuleGroup] = [layout.GROUP, registry_rules.GROUP, measurement.GROUP, generated.GROUP, intents.GROUP, declarations.GROUP, cascade_rules.GROUP, hierarchy_rules.GROUP, version_rules.GROUP, entry_rules.GROUP, beside_rules.GROUP, one_criterion.GROUP, foundation_rules.GROUP, wording.GROUP]
+BUILTIN: List[RuleGroup] = [layout.GROUP, registry_rules.GROUP, measurement.GROUP, generated.GROUP, intents.GROUP, declarations.GROUP, cascade_rules.GROUP, hierarchy_rules.GROUP, version_rules.GROUP, entry_rules.GROUP, beside_rules.GROUP, one_criterion.GROUP, foundation_rules.GROUP, wording.GROUP, adoption_rules.GROUP]
 
 
 def load_plugin(spec: str, root: Path) -> ModuleType:

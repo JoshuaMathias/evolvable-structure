@@ -99,6 +99,7 @@ def renamed_column_problems(name: str, header: Iterable[str], label: str) -> Lis
 #: is a link or an id, and any starting `tracking_` is the review tracker's own; neither needs listing.
 TECHNICAL_COLUMNS = {
     "solutions.csv": {"interface_name", "implementations", "selected",
+                      "adopts", "specializes",   # @library/solution: the library solution this row adopts (a reference only) or specializes
                       "delegates_to", "change_driver"},   # the role statement: who owns what the solution is not responsible for; what kind of change moves its metric
     "implementations.csv": {"filepath", "sub_intent", "selected"},   # selected: the legacy overall network flags its chosen way
     "metrics.csv": {"command"},

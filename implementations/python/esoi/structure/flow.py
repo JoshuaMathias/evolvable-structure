@@ -9,6 +9,7 @@ from esoi.structure.intent_registry import intents
 from esoi.runtime.implementation_selection.declare import implementation
 from esoi.structure.interface import Structuring
 from esoi.structure.intent_registry.interface import IntentRegistering
+from esoi.structure.library_adoption.interface import LibraryAdopting
 from esoi.structure.ownership_map.interface import OwnershipMapping
 from esoi.structure.structure_check.interface import StructureChecking
 from esoi.structure.structure_budget.interface import StructureBudgeting
@@ -19,11 +20,13 @@ class StructureFlow:
     """Hands the call to each part of Structure in turn and gathers what each reports; the parts are typed needs, so each one can be
     replaced without changing this flow."""
 
-    def __init__(self, registry: Lazy[IntentRegistering], ownership: Lazy[OwnershipMapping], check: Lazy[StructureChecking], budget: Lazy[StructureBudgeting]):
+    def __init__(self, registry: Lazy[IntentRegistering], ownership: Lazy[OwnershipMapping], check: Lazy[StructureChecking], budget: Lazy[StructureBudgeting],
+                 adoption: Lazy[LibraryAdopting]):
         self.registry = registry
         self.ownership = ownership
         self.check = check
         self.budget = budget
+        self.adoption = adoption
 
     def review(self, project: str) -> Dict[str, Any]:
         with intents.session():    # the record folders are found once for the whole review
@@ -31,6 +34,7 @@ class StructureFlow:
                 "intent-registry": self.registry.count(project),
                 "ownership-map": self.ownership.unowned(project),
                 "structure-budget": self.budget.describe(project),
+                "library-adoption": self.adoption.unresolved(project),
             }
             if os.environ.get("ESOI_IN_ENTRY_CHECK"):    # the entry check (rule S37) calls this flow from inside a structure check: it does not start another
                 report["structure-check"] = {"skipped": "inside an entry check"}
