@@ -1,4 +1,4 @@
-# esoi: choose each implementation by measurement, and keep the reason
+# ESOI: choose each implementation by measurement, and keep the reason
 
 esoi is a small Python library, with no dependencies in its core, for code that has more than one way to do a job. You declare an
 interface, register implementations beside their code, run them on shared cases, and esoi records pass rate, cost and latency per
