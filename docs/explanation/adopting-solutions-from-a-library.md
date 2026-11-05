@@ -10,7 +10,14 @@ structure is large, two places say the same thing in different words, and the co
 
 A solution is defined once, in the repository that owns the job. A repository that needs the same job **adopts** the solution: it records a
 reference to the library's solution and nothing else the library already says. What the application adds is only what differs: its own
-arms (implementations) that compete under the library's metric, its own binding and configuration, and the solutions that are its own.
+arms (implementations) that compete under the library's metric, its own metrics, ports and components, its own binding and configuration, and
+the solutions that are its own.
+
+An adopted solution is a solution of the application in every way except its words. Its id resolves wherever a solution id resolves: an
+arm, a metric, a port in `interface_name`, a component, a waiver, a tracker row or another arm's `uses_solution_ids` may name it, and the
+run-time selection, the lock file and `esoi run --stale` treat it like any solution. Only what the library already says (description,
+purpose, approach, scope, milestones, problems, ideals and role) is inherited, so the rules that read those words (the template fields,
+problems and ideals of S26 and S20, S46, S48) do not apply to an adopted row.
 
 This is [override only what differs](override-only-what-differs.md) applied to records, with [a metric building on its
 foundation](a-metric-builds-on-its-foundation.md) as the way the two measure together and [dependence by name](cross-dependency-by-name.md)
@@ -20,7 +27,7 @@ as the way the reference is written.
 
 | Kind | What the library has | What the application records | Where its vision, problems, ideals and role come from |
 |---|---|---|---|
-| **Adopted** | The solution is defined | A reference (`adopts`), its binding, and any arms of its own | The library, never copied |
+| **Adopted** | The solution is defined | A reference (`adopts`), its binding, and its own arms, metrics, ports and components | The library, never copied |
 | **Specialized** | A general solution that needs the application's data to do its job | A full record with its own short vision, naming the library solution it specializes (`specializes`) | Its own, scoped to the one part the library cannot know |
 | **Own** | Nothing for this job | Full records: problems, ideals, role, metrics and code | Its own |
 

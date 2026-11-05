@@ -102,7 +102,7 @@ def overall_network(ctx: Context) -> List[str]:
     top = found[0]
     def mine(rows):
         return [r for r in rows if r.get("intent_id", top.intent_id) == top.intent_id]
-    solutions = {r["solution_id"]: r for r in mine(ctx.registry.every_solution())}
+    solutions = {r["solution_id"]: r for r in mine(ctx.registry.authored())}
     implementations = ctx.registry.implementations
     from esoi.runtime.implementation_selection.select import default_name
     uses: Dict[str, List[str]] = {}

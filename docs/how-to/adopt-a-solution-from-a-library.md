@@ -45,6 +45,10 @@ class OurTierRouter:
     def route(self, request): ...
 ```
 
+The adopted solution takes your own arms and metrics like any solution: list the arms in its `implementations` cell, name a metric in its
+`metric_ids`, a port in its `interface_name`, and a component in `components.csv` may list its id in `solutions`. The checks that resolve a
+solution id (S7, S11, S21, S26, S29) see it; only the words the library holds are not asked of you.
+
 Then make the application's metric build on the library's with a `[builds_on]` table (see [Build a metric on a foundation](../explanation/a-metric-builds-on-its-foundation.md)),
 so your arm is scored on the library's cases plus your own, in one number.
 

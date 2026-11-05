@@ -45,7 +45,7 @@ def lines(view: View, registry: Registry, intent: Intent, level: str = "##") -> 
     if view.config is None:
         return []
     refs, _ = resolve.references(view.config, registry)
-    own = {r.get("solution_id", "") for r in mine(registry.every_solution() + registry.adopted, intent.intent_id)}
+    own = {r.get("solution_id", "") for r in mine(registry.every_solution(), intent.intent_id)}
     mine_refs = [r for r in refs if r.local_id in own]
     if not mine_refs:
         return []

@@ -57,7 +57,7 @@ def test_two_words_between_the_names_are_not_enough(project):
 from types import SimpleNamespace
 
 
-def code_for(tmp_path: Path, user_source: str, used_source: str = "class Finder:\n    pass\n", user_row=None):
+def code_for(tmp_path: Path, user_source: str, used_source: str = "class Finder:\n    pass\n", user_row=None, used_interface: str = "Finder"):
     """A package `pk` with one module per solution `user` and `used` (used's interface class is Finder)."""
     pkg = tmp_path / "pk"
     pkg.mkdir(parents=True)
@@ -66,7 +66,7 @@ def code_for(tmp_path: Path, user_source: str, used_source: str = "class Finder:
     (pkg / "used.py").write_text(used_source, encoding="utf-8")
     cfg = SimpleNamespace(root=tmp_path, package="pk", package_dir="pk")
     solutions = {"user": {"solution_id": "user", "interface_name": "Runner"},
-                 "used": {"solution_id": "used", "interface_name": "Finder"}}
+                 "used": {"solution_id": "used", "interface_name": used_interface}}
     impls = [{"solution_id": "user", "implementation_id": "u1", "filepath": "pk/user.py"},
              {"solution_id": "used", "implementation_id": "c1", "filepath": "pk/used.py"}]
     selected = {"user": dict(impls[0], **(user_row or {})), "used": impls[1]}
@@ -99,6 +99,16 @@ def test_the_interface_class_as_an_identifier_attribute_or_annotation_is_strong(
     assert code_for(tmp_path / "a", "def go(x):\n    return Finder(x)\n").evidence("user", "used") == "E2"
     assert code_for(tmp_path / "b", "def go(x):\n    return x.Finder\n").evidence("user", "used") == "E2"
     assert code_for(tmp_path / "c", "def go(x: 'Finder'):\n    return x\n").evidence("user", "used") == "E2"
+
+
+def test_each_name_of_a_multi_name_interface_cell_is_evidence_not_only_the_whole_cell(tmp_path):
+    cell = "Finder;Seeker"   # the used solution's `interface_name` cell lists two ports
+    used = "class Finder:\n    pass\n\n\nclass Seeker:\n    pass\n"
+    assert code_for(tmp_path / "a", "def go(x):\n    return Seeker(x)\n", used, used_interface=cell).evidence("user", "used") == "E2"
+    assert code_for(tmp_path / "b", "def go(x):\n    return Finder(x)\n", used, used_interface=cell).evidence("user", "used") == "E2"
+    source = "class Runner:\n    def __init__(self, seeker: Seeker):\n        self.seeker = seeker\n"
+    assert code_for(tmp_path / "c", source, used, used_interface=cell).typed_need("user", "used")
+    assert code_for(tmp_path / "d", "def go(x):\n    return Other(x)\n", used, used_interface=cell).evidence("user", "used") == ""
 
 
 def test_a_declared_uses_string_is_strong(tmp_path):

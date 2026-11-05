@@ -43,11 +43,12 @@ def s53(cfg):
     return [line for line in check.check_all(cfg)[1] if line.startswith("S53")]
 
 
-def test_an_adopted_row_is_a_reference_kept_apart_and_the_check_stays_clean(repo):
+def test_an_adopted_row_is_a_reference_and_the_check_stays_clean(repo):
     cfg = adopt(repo)
     loaded = registry.load(cfg)
     assert [r["solution_id"] for r in loaded.adopted] == ["greet-people"]
-    assert "greet-people" not in [r["solution_id"] for r in loaded.every_solution()]
+    assert "greet-people" in [r["solution_id"] for r in loaded.every_solution()]   # an id of an adopted solution resolves like any solution's
+    assert "greet-people" not in [r["solution_id"] for r in loaded.authored()]
     assert check.check(cfg) == [] and s53(cfg) == []
     assert resolve.unresolved(cfg, loaded) == []
 

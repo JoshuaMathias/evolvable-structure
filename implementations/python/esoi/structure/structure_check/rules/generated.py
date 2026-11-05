@@ -85,6 +85,7 @@ def run(ctx: Context) -> List[str]:
             bad.append(f"S17 {config.structure_dir}/tracker/{tab}.csv: out of date (run `esoi tracker build`)")
 
     pending = {r["solution_id"] for r in ctx.every_solution() if ctx.waived("S26", r["solution_id"])}
+    adopted = {r.get("solution_id", "") for r in ctx.registry.adopted}
     overall = None
     if config.intent_mode:
         if config.overall:
@@ -97,7 +98,7 @@ def run(ctx: Context) -> List[str]:
         every = {entity: {r.get(key, "") for r in tree[entity]} - {""} for entity, key in KEYS.items()}
         bad += [f"S26 {line}" for line in check_records(
             config.structure, ctx.template, pending, overall=every, tables=tree, retired={"overall_solution_ids"}, scope="the intent tree",
-            require_parent=bool(config.option("S26", "require_parent", False)), approved=config.approved_fields, metric_command=config.metric_command)]
+            require_parent=bool(config.option("S26", "require_parent", False)), approved=config.approved_fields, metric_command=config.metric_command, adopted=adopted)]
     elif config.overall:
         folder = config.root / config.overall
         if folder.is_dir():
@@ -110,7 +111,7 @@ def run(ctx: Context) -> List[str]:
     if not config.intent_mode:
         bad += [f"S26 {line}" for line in check_records(
             config.structure, ctx.template, pending, overall=overall,
-            require_parent=bool(config.option("S26", "require_parent", False)), approved=config.approved_fields, metric_command=config.metric_command)]
+            require_parent=bool(config.option("S26", "require_parent", False)), approved=config.approved_fields, metric_command=config.metric_command, adopted=adopted)]
     if template_module.stale_against_source(config):
         bad.append(f"S27 {config.structure_dir}/esoi_template.csv: stale against its source "
                    "(run `esoi template sync`, then fill the columns it adds)")

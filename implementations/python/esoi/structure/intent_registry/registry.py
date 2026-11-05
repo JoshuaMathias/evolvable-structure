@@ -16,6 +16,11 @@ from esoi.structure.intent_registry.intents import read_rows
 from esoi.structure.intent_registry.tables import SEP, ids, is_command
 
 
+def adopts(row: Dict[str, str]) -> bool:
+    """Whether a solution row is an adopted one: its ``adopts`` cell references a library's solution."""
+    return bool((row.get("adopts") or "").strip())
+
+
 @dataclass
 class Registry:
     """The CSV records of one repository, as lists of row dicts."""
@@ -30,12 +35,17 @@ class Registry:
     missing: List[Tuple[str, str]] = field(default_factory=list)   # (file, column) the rules read that a file lacks
     specifications: List[Dict[str, str]] = field(default_factory=list)   # solutions with no metric command (derived)
     solution_order: List[str] = field(default_factory=list)   # every solution id in tree order
-    adopted: List[Dict[str, str]] = field(default_factory=list)   # rows whose `adopts` cell references a library's solution: a reference only, kept out of every other list
+    adopted: List[Dict[str, str]] = field(default_factory=list)   # rows whose `adopts` cell references a library's solution (the same row objects as in ``solutions`` or ``specifications``)
 
     def every_solution(self) -> List[Dict[str, str]]:
         """Measured solutions and specification solutions together, in the order the records list them."""
         by_id = {r.get("solution_id", ""): r for r in self.solutions + self.specifications}
         return [by_id[i] for i in self.solution_order if i in by_id]
+
+    def authored(self) -> List[Dict[str, str]]:
+        """The solutions whose words this repository writes: every solution but the adopted ones. A rule or page that reads a solution's
+        own text (description, purpose, problems, ideals, role) takes these; a rule that resolves an id or reads arms, metrics and ports takes ``every_solution()``."""
+        return [r for r in self.every_solution() if not adopts(r)]
 
 
 def join_metrics(solutions: List[Dict[str, str]], metrics: List[Dict[str, str]]) -> List[Dict[str, str]]:
@@ -85,8 +95,8 @@ def load(config: Config) -> Registry:
     metrics = read_rows(config, "metrics.csv")
     missing: List[Tuple[str, str]] = []
     rows = join_metrics(fill_columns("solutions.csv", read_rows(config, "solutions.csv"), missing), metrics)
-    adopted = [r for r in rows if (r.get("adopts") or "").strip()]
-    every = [r for r in rows if not (r.get("adopts") or "").strip()]
+    adopted = [r for r in rows if adopts(r)]
+    every = rows
     measured = [r for r in every if is_command(r.get("metric_command", ""), config.metric_command)]
     return Registry(
         components=fill_columns("components.csv", read_rows(config, "components.csv"), missing),

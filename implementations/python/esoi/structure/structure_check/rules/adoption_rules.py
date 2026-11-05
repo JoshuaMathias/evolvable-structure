@@ -24,7 +24,7 @@ from esoi.structure.structure_check.rules.intents import OVERLAP, OVERLAP_WORDS,
 SUMMARIES = {
     "S53": "Advisory adoption: a reference `adopts` or `specializes` (`@library/solution_id`, library named in `[adopts.<library>]`) resolves to a "
            "solution of a readable library; an adopted row holds no description, purpose, approach, scope, milestones, problems, ideals or role of its "
-           "own; an own solution does not say the same job as a library solution; an arm under an adopted solution declares the library's solution "
+           "own (it does take the application's own arms, metrics, ports and components, and its id resolves like any solution's); an own solution does not say the same job as a library solution; an arm under an adopted solution declares the library's solution "
            "id (waive as the local solution id, or own+@library/solution_id for one overlap).",
 }
 

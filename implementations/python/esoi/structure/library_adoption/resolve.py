@@ -65,7 +65,7 @@ def references(config: Config, registry: Registry) -> Tuple[List[Reference], Lis
     """Every adoption and specialization the records make, and the cells that are not an ``@library/solution`` reference."""
     out: List[Reference] = []
     malformed: List[str] = []
-    rows = registry.adopted + [r for r in registry.every_solution() if (r.get("specializes") or "").strip()]
+    rows = [r for r in registry.every_solution() if any((r.get(kind) or "").strip() for kind in KINDS)]
     for row in rows:
         for kind in KINDS:
             cell = (row.get(kind) or "").strip()

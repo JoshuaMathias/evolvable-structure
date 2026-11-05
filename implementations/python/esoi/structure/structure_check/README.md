@@ -38,7 +38,7 @@ Run every structural rule on each change and report each finding by rule and pat
 - Entry call: `esoi.run("structure-check", '.')`
 - Selected implementation: Rule script (`rule-script`)
 - Metric: Violation detection, Check dependability
-- Implemented by: [`implementations/python/conftest.py`](../../../conftest.py), [`implementations/python/docs/configuration.md`](../../../docs/configuration.md), [`implementations/python/docs/evaluation-components.md`](../../../docs/evaluation-components.md), [`implementations/python/docs/rules.md`](../../../docs/rules.md), [`implementations/python/esoi/__main__.py`](../../__main__.py), [`implementations/python/esoi/esoi_selection.json`](../../esoi_selection.json), [`implementations/python/esoi/runtime/assemble_by_name/arm_inspection.py`](../../runtime/assemble_by_name/arm_inspection.py), [`implementations/python/esoi/runtime/assemble_by_name/arm_ranking.py`](../../runtime/assemble_by_name/arm_ranking.py) and 161 more
+- Implemented by: [`implementations/python/conftest.py`](../../../conftest.py), [`implementations/python/docs/configuration.md`](../../../docs/configuration.md), [`implementations/python/docs/evaluation-components.md`](../../../docs/evaluation-components.md), [`implementations/python/docs/rules.md`](../../../docs/rules.md), [`implementations/python/esoi/__main__.py`](../../__main__.py), [`implementations/python/esoi/esoi_selection.json`](../../esoi_selection.json), [`implementations/python/esoi/runtime/assemble_by_name/arm_inspection.py`](../../runtime/assemble_by_name/arm_inspection.py), [`implementations/python/esoi/runtime/assemble_by_name/arm_ranking.py`](../../runtime/assemble_by_name/arm_ranking.py) and 162 more
 
 ## Implementations
 

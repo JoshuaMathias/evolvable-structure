@@ -16,6 +16,7 @@ from esoi.optimization.leaderboard import arm_selection, case_identity, held_out
 from esoi.optimization.measurement_harness.stale_reasons import defect_reason, stale_reason
 from esoi.optimization.when_metrics_are_run.paid_gating import declares_simulated
 from esoi.structure.intent_registry.records import FILES
+from esoi.structure.intent_registry.registry import adopts
 from esoi.structure.intent_registry.tables import ids
 from esoi.structure.structure_check.rules.base import Context, RuleGroup, parse_file
 
@@ -207,7 +208,8 @@ def run(ctx: Context) -> List[str]:
 
     for r in ctx.solutions:
         sid = r["solution_id"]
-        needed = ("selected",) if ctx.waived("S26", sid) else ("problem_ids", "ideal_ids", "metric_ids", "selected")
+        needed = ("selected",) if ctx.waived("S26", sid) else ("metric_ids", "selected") if adopts(r) \
+            else ("problem_ids", "ideal_ids", "metric_ids", "selected")   # an adopted solution's problems and ideals are the library's
         for col in needed:
             parent = {"problem_ids": "parent_problem_ids", "ideal_ids": "parent_ideal_ids"}.get(col)
             if parent and r.get(parent, "").strip():

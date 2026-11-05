@@ -134,7 +134,7 @@ class Code:
         self.document_owners = self.document_ownership(cfg, components, selected)
         self.links: Dict[str, Set[str]] = {d: self.links_of(d) for d in self.document_owners}
         self.selected_module = {sid: self.module_of(r.get("filepath", "")) for sid, r in selected.items() if r}
-        self.interface = {sid: (r.get("interface_name") or "").strip() for sid, r in solutions.items()}
+        self.interface: Dict[str, List[str]] = {sid: ids(r.get("interface_name") or "") for sid, r in solutions.items()}   # every name of the cell, never the cell as one string
         self.declared = {sid for text in self.source.values() for sid in re.findall(r"@solution\(\s*[\"']([\w.-]+)[\"']", text)}
         self.assemblers = {m for m, text in self.source.items() if "Assembler(" in text or "assemble_defaults(" in text}
 
@@ -247,15 +247,15 @@ class Code:
 
     def typed_need(self, user: str, used: str) -> bool:
         """The user's selected implementation module has a constructor parameter annotated with the used's interface class."""
-        name, module = self.interface.get(used, ""), self.selected_module.get(user, "")
+        names, module = self.interface.get(used, []), self.selected_module.get(user, "")
         tree = self.trees.get(module) if module else None
-        if not name or tree is None:
+        if not names or tree is None:
             return False
         own = self.region_nodes.get((module, user)) if module in self.shared else None
         for node in (n for top in (own or [tree]) for n in ast.walk(top)):
             if isinstance(node, ast.FunctionDef) and node.name == "__init__":
                 for arg in node.args.args + node.args.kwonlyargs:
-                    if arg.annotation is not None and name in ast.unparse(arg.annotation).replace("'", "").replace('"', "").split("."):
+                    if arg.annotation is not None and set(names) & set(ast.unparse(arg.annotation).replace("'", "").replace('"', "").split(".")):
                         return True
         return False
 
@@ -265,7 +265,7 @@ class Code:
         for target in self.own_imports(user, module) & used_modules:
             if target not in self.shared:
                 return True
-            wanted = {self.interface.get(used, "")} | {getattr(n, "name", "") for n in self.region_nodes.get((target, used), [])}
+            wanted = set(self.interface.get(used, [])) | {getattr(n, "name", "") for n in self.region_nodes.get((target, used), [])}
             if self.names_imported(user, module, target) & (wanted - {""}):
                 return True
         return False
@@ -300,9 +300,9 @@ class Code:
             return ""
         if any(self.imported_by(user, m, used, mc) for m in mu):
             return "E1"
-        iface = self.interface.get(used)
+        named = [re.compile(r"\b" + re.escape(name) + r"\b") for name in self.interface.get(used, [])]
         for m in mu:
-            if any(position(used, {}, token) >= 0 or (iface and re.search(r"\b" + re.escape(iface) + r"\b", token))
+            if any(position(used, {}, token) >= 0 or any(pattern.search(token) for pattern in named)
                    for token in self.own_tokens(user, m)):
                 return "E2"
         if self.typed_need(user, used):

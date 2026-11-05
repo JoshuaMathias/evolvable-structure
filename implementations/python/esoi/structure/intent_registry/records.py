@@ -235,7 +235,8 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
                   overall: Optional[Overall] = None, require_command: bool = True,
                   require_parent: bool = False, tables: Optional[Dict[str, List[Dict[str, str]]]] = None,
                   retired: Optional[Set[str]] = None, scope: str = "the overall network",
-                  approved: Optional[Dict[str, Set[str]]] = None, metric_command: str = DEFAULT_METRIC_COMMAND) -> List[str]:
+                  approved: Optional[Dict[str, Set[str]]] = None, metric_command: str = DEFAULT_METRIC_COMMAND,
+                  adopted: Optional[Set[str]] = None) -> List[str]:
     """Problems found in the intent records of ``struct``. ``waived`` holds solution ids whose records are still
     to be written (each is justified in the registry's waivers); their own template fields, links, implementations
     and metrics are not checked, and nothing else is relaxed. A problem may carry a ``related_problem_ids`` column
@@ -246,8 +247,11 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
     holds the rows of every record file already read (the intent layout merges the intents' files, and then the
     header of each file is checked by ``check_headers`` instead); ``retired`` names parent columns that are reported
     wherever they appear (``overall_solution_ids`` in the intent layout); ``scope`` names, in a parent-link message, where
-    the link should have resolved."""
+    the link should have resolved. ``adopted`` holds the ids of solutions adopted from a library: the library says what they are
+    for, so their template fields, problems, ideals and metric are not required here, while their metrics, implementations
+    and every id that points at them are checked like any solution's."""
     waived = waived or set()
+    adopted = adopted or set()
     bad: List[str] = []
     merged = tables is not None
     retired = retired or set()
@@ -294,7 +298,7 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
             bad += renamed_column_problems(FILES[entity][0], rows[0], FILES[entity][0])
             bad += unapproved_column_problems(FILES[entity][0], rows[0], template, FILES[entity][0], approved)
         for row in rows:
-            if skipped(entity, row):
+            if skipped(entity, row) or (entity == "solution" and row.get("solution_id") in adopted):
                 continue
             wanted = checked_fields(template, entity, False) if specification_only(entity, row) else need
             empty = [k for k in wanted if k in row and not row[k].strip() and k not in MAY_BE_EMPTY.get(entity, ())]
@@ -316,7 +320,7 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
         if not ids(row.get("ideal_ids", "")):
             bad.append(f"R3 {pid}: no ideal opposes this problem")
         for sid in ids(row.get("solution_ids", "")):
-            if sid in solutions and pid not in ids(solutions[sid].get("problem_ids", "")) and sid not in waived:
+            if sid in solutions and pid not in ids(solutions[sid].get("problem_ids", "")) and sid not in waived and sid not in adopted:
                 bad.append(f"R3 {pid}: lists solution {sid} but {sid} does not list it in problem_ids")
         for iid in ids(row.get("ideal_ids", "")):
             if iid in ideals and pid not in ids(ideals[iid].get("problem_ids", "")):
@@ -339,16 +343,17 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
         unknown(sid, "problem_ids", ids(row.get("problem_ids", "")), problems)
         unknown(sid, "ideal_ids", ids(row.get("ideal_ids", "")), ideals)
         unknown(sid, "metric_ids", ids(row.get("metric_ids", "")), index["metric"])
-        if not ids(row.get("problem_ids", "")) and not ids(row.get("parent_problem_ids", "")):
+        inherits = sid in adopted   # the library says what the solution is for
+        if not ids(row.get("problem_ids", "")) and not ids(row.get("parent_problem_ids", "")) and not inherits:
             bad.append(f"R3 {sid}: addresses no problem")
         own = row.get("intent_id", "")
-        if own and (ids(row.get("problem_ids", "")) or ids(row.get("parent_problem_ids", ""))) and not any(
+        if own and not inherits and (ids(row.get("problem_ids", "")) or ids(row.get("parent_problem_ids", ""))) and not any(
                 problems.get(pid, {}).get("intent_id", "") == own for pid in ids(row.get("problem_ids", ""))):
             bad.append(f"R3 {sid}: addresses no problem of its own intent {own} (it may also link problems of other intents, "
                        "but is motivated by at least one of its own)")
-        if not ids(row.get("ideal_ids", "")) and not ids(row.get("parent_ideal_ids", "")):
+        if not ids(row.get("ideal_ids", "")) and not ids(row.get("parent_ideal_ids", "")) and not inherits:
             bad.append(f"R3 {sid}: has no ideal")
-        if not ids(row.get("metric_ids", "")):
+        if not ids(row.get("metric_ids", "")) and not inherits:
             bad.append(f"R3 {sid}: has no metric")
         for pid in ids(row.get("problem_ids", "")):
             if pid in problems and sid not in ids(problems[pid].get("solution_ids", "")):

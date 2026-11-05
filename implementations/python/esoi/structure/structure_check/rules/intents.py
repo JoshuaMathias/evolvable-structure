@@ -11,6 +11,7 @@ from typing import Dict, List
 
 from esoi.structure.intent_registry import intents
 from esoi.structure.intent_registry.records import FILES, MAY_BE_EMPTY
+from esoi.structure.intent_registry.registry import adopts
 from esoi.structure.intent_registry.tables import ids
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
 
@@ -65,22 +66,22 @@ def role_scope(ctx: Context) -> List[str]:
         by_intent[row.get("intent_id", "")].append(row)
     known = {r.get("solution_id", "") for r in rows}
     containers = {r.get("solution_id", "") for r in ctx.registry.implementations if (r.get("sub_intent") or "").strip()}
-    adopted = any("delegates_to" in row for row in rows)   # a repository that has the column records who owns what each solution excludes
+    scoped = any("delegates_to" in row for row in rows)   # a repository that has the column records who owns what each solution excludes
     for intent, group in by_intent.items():
-        if not adopted and len(group) > 1 and intent and not ctx.waived("S48", intent):
+        if not scoped and len(group) > 1 and intent and not ctx.waived("S48", intent):
             out.append(f"S48 {intent}: its {len(group)} solutions have siblings, but no solution records `delegates_to` (who owns what each one is not "
                        "responsible for); next: add the `delegates_to` and `change_driver` columns to solutions.csv and scope each role "
                        "(docs/how-to/scope-the-role-of-a-solution.md)")
         for row in group:
             sid = row.get("solution_id", "")
             siblings = [s for s in group if s is not row]
-            if not sid or ctx.waived("S48", sid):
+            if not sid or ctx.waived("S48", sid) or adopts(row):   # the library states an adopted solution's role
                 continue
             scope, delegates = (row.get("out_of_scope") or "").strip(), ids(row.get("delegates_to", ""))
             if siblings and not scope:
                 out.append(f"S48 {sid}: it has {len(siblings)} sibling solution(s) in {intent} but states no exclusions (out_of_scope is empty); next: "
                            "say what it is NOT responsible for and which sibling owns that (name the owner in `delegates_to`), or why nothing is excluded")
-            elif adopted and siblings and scope and not delegates and not any(named_in(scope, s) for s in siblings):
+            elif scoped and siblings and scope and not delegates and not any(named_in(scope, s) for s in siblings):
                 out.append(f"S48 {sid}: out_of_scope says what it is not responsible for but not who owns it (it names no sibling); next: name the "
                            "owning sibling in `delegates_to`, or record that nothing owns it, which is a gap in the hierarchy")
             for target in delegates:
@@ -89,7 +90,7 @@ def role_scope(ctx: Context) -> List[str]:
             if sid in containers and not (row.get("change_driver") or "").strip():
                 out.append(f"S48 {sid}: it is a container (an implementation of it is a sub-intent) but names no change_driver; next: say what kind "
                            f"of change moves its metric: {CHANGE_DRIVERS}")
-        words = [(row, content(" ".join([row.get("purpose", ""), row.get("description", "")]))) for row in group]
+        words = [(row, content(" ".join([row.get("purpose", ""), row.get("description", "")]))) for row in group if not adopts(row)]
         for i, (a, wa) in enumerate(words):
             for b, wb in words[i + 1:]:
                 shared = wa & wb
@@ -131,7 +132,7 @@ def handle_names(ctx: Context) -> List[str]:
     """S46: a record's name that is missing, only its id again, its id plus a suffix, or kebab-case or snake_case is a handle, not a name."""
     out: List[str] = []
     registry = ctx.registry
-    kinds = (("intent", [i.row for i in intents.discover(ctx.config)], "intent_id"), ("solution", registry.every_solution(), "solution_id"),
+    kinds = (("intent", [i.row for i in intents.discover(ctx.config)], "intent_id"), ("solution", registry.authored(), "solution_id"),
              ("implementation", registry.implementations, "implementation_id"), ("metric", registry.metrics, "metric_id"),
              ("ideal", registry.ideals, "ideal_id"), ("problem", registry.problems, "problem_id"),
              ("component", registry.components, "component_id"))
