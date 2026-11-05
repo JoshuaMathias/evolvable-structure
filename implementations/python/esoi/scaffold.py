@@ -89,7 +89,7 @@ STRUCTURE = {
     "problem": {
         "problem": "What this project is for has no single written statement, so its parts drift from any shared intent.",
         "who_has_it": "People and AI agents who change the project.",
-        "why_it_matters": "Without a stated purpose nobody can say whether a change helps.",
+        "why_it_matters": "Without a stated purpose, people judge a change by their own guess at what the project is for, and they disagree.",
         "why_hard": "Intent is held in people's heads and changes over time.",
         "existing_attempts": "A README and chat history."},
     "ideal": {
@@ -269,7 +269,7 @@ def files_for(package: str, template) -> Dict[str, str]:
         ["problem_id", "name"] + fields(template, "problem", True) + ["solution_ids", "ideal_ids", "parent_problem_ids", "parent_ideal_ids"],
         [record("problem", template, SAMPLE["problem"], problem_id="greeting-by-hand", name="Greetings written by hand",
                 solution_ids=SOLUTION, ideal_ids="consistent-greeting"),
-         record("problem", template, STRUCTURE["problem"], problem_id="purpose-unrecorded", name="Purpose never written down",
+         record("problem", template, STRUCTURE["problem"], problem_id="purpose-unrecorded", name="Purpose not written in one place",
                 solution_ids="project-structure", ideal_ids="explicit-purpose")])
     out[f"{structure}/ideals.csv"] = render_csv(
         ["ideal_id"] + fields(template, "ideal", True) + ["problem_ids", "parent_ideal_ids"],

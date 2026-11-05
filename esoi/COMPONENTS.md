@@ -93,6 +93,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | Metric foundation | `metric-foundation` | core | A consumer's metric building on the metric of the library it depends on: reusing the foundation's recorded per-case results when the digests match, running the foundation's own scorer when they do not, composing one number at stated shares, and inheriting its cascade gates. | measurement-harness, leaderboard |
 | Source access | `source-access` | core | Metering, pricing and bounding what a request reads from source systems (records, bytes, calls, scopes, full scans) as cost and as gates a consumer may only tighten. | measurement-harness, leaderboard |
 | Rules foundation | `rules-foundation` | tools | The rule about a metric building on a foundation: a readable declaration, inherited stages that exist, and gates no looser than the foundation's (S47). | structure-rules, measurement-harness |
+| Rules wording | `rules-wording` | tools | The advisory rules S51 and S52: a problem says what is true, and an ideal says the state that is wanted, not a solution. | structure-rules |
 | selection | `selection` | core | Resolving an implementation of a solution from a selection table. | runtime-selection |
 | eval-select-an-implementation | `eval-select-an-implementation` | evaluation | Cases for resolving a selection. | runtime-selection |
 | runtime | `runtime` | core | Declarations in code and the cascade that picks the implementation a call runs. | runtime-selection |

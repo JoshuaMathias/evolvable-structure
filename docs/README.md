@@ -40,6 +40,7 @@ Steps for a task you already know you want to do.
 - [Measure an implementation per circumstance](how-to/measure-per-circumstance.md): circumstances, variants, slice rows, and how to read a slice verdict as a proposal.
 - [Keep records beside the code](how-to/keep-records-beside-the-code.md): put each solution's records in the folder that holds its code, with a generated README in each.
 - [Generate the README of every intent folder](how-to/generate-intent-readmes.md): write a page per intent folder that shows what it is, how its parts fit and where to go next.
+- [Write problems and ideals that hold up](how-to/write-problems-and-ideals-that-hold-up.md): a problem true today in plain words, an ideal as the state you want and not a solution; rules S51 and S52.
 - [Admit a technology that does not fit the structure](how-to/admit-a-technology-that-does-not-fit.md): the decision steps, what a specification change may touch, three worked examples, `esoi admit`.
 - [Generate the wiki from the docs](how-to/generate-the-wiki.md): check the four categories and publish a wiki that cannot drift.
 
@@ -53,6 +54,7 @@ Why it is built this way. Start with the idea, then the pieces.
 - [Intents and the five specification types](explanation/intent-types.md): an intent as the container; problems, ideals,
   solutions, implementations and metrics.
 - [How the records connect](explanation/how-they-connect.md)
+- [A problem says what is true; an ideal says the state you want](explanation/a-problem-says-what-is-true.md): no overstated absolutes or strawmen in problems; absolutes belong in ideals, which describe a state, never a means.
 - [Intents and sub-intents](explanation/intents-and-sub-intents.md): the hierarchy, and the legacy two-level layout.
 - [When to create a sub-intent](explanation/when-to-create-a-sub-intent.md)
 - [Why a new technology needs a decision, not a slot](explanation/admitting-a-technology.md): what differs, in which of how, judged by, where it sits and what is wanted, and why a change is recorded.
