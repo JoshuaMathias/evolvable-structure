@@ -1,8 +1,8 @@
 # Evolvable Structure that Optimizes Intent (ESOI)
 
-Every intention is operationalized as an evolvable structure that optimizes the fulfilling of that intent.
+**Vision statement:** Every intention is operationalized as an evolvable structure that optimizes the fulfilling of that intent.
 
-*ESOI records of this intent (evolvable structure that optimizes intent), generated from the CSV files beside this page by `esoi readmes`. Edit the CSV files, not this page.*
+Breadcrumb: Top
 
 ## How the solutions fit together
 
@@ -24,6 +24,16 @@ flowchart LR
     s3 -->|"One read-only report from each part: components measured, what a run costs, the standings, the proposals and the metric readings"| s0
     s4 -->|"One read-only report from each part: the choice for the solution, the names it assembles and the ids a consumer knows"| s0
 ```
+
+## One level below
+
+This intent is implemented by the sub-intents and solutions below it; each shows whether it goes deeper.
+
+- [Implementations Chosen on Evidence](../implementations/python/esoi/optimization/README.md) (sub-intent): Solution implementations continuously improve through a pragmatic balance of measurement and efficient iteration.
+- [ESOI Inside Other People's Running Code](../implementations/python/esoi/runtime/README.md) (sub-intent): Projects continuously use the best implementations without having to change what depends on them.
+- [A Project's Records and Code as One Structure](../implementations/python/esoi/structure/README.md) (sub-intent): A project's structure enables the continuous evolution of interdependent parts to optimize its intent.
+- [How People and Agents Come to Apply ESOI](../implementations/python/esoi/understanding/README.md) (sub-intent): Documentation ensures that an intent is optimally carried out.
+- [Apply ESOI to a Project](../implementations/python/esoi/README.md) (solution with implementations and parts below it): Turn a project's intent into specifications that are checked, measured and selected by metric, so the structure keeps evolving with the intent.
 
 ## Solutions at a glance
 
@@ -61,10 +71,10 @@ flowchart LR
 
 ## Where to go next
 
-- Sub-intent: [Implementations Chosen on Evidence](../implementations/python/esoi/optimization/README.md) (Solution implementations continuously improve through a pragmatic balance of measurement and efficient iteration.)
-- Sub-intent: [ESOI Inside Other People's Running Code](../implementations/python/esoi/runtime/README.md) (Projects continuously use the best implementations without having to change what depends on them.)
-- Sub-intent: [A Project's Records and Code as One Structure](../implementations/python/esoi/structure/README.md) (A project's structure enables the continuous evolution of interdependent parts to optimize its intent.)
-- Sub-intent: [How People and Agents Come to Apply ESOI](../implementations/python/esoi/understanding/README.md) (Documentation ensures that an intent is optimally carried out.)
+- Sub-intent: [Implementations Chosen on Evidence](../implementations/python/esoi/optimization/README.md)
+- Sub-intent: [ESOI Inside Other People's Running Code](../implementations/python/esoi/runtime/README.md)
+- Sub-intent: [A Project's Records and Code as One Structure](../implementations/python/esoi/structure/README.md)
+- Sub-intent: [How People and Agents Come to Apply ESOI](../implementations/python/esoi/understanding/README.md)
 - Repository: [top README](../README.md)
 - Records beside the code: [implementations/python/esoi](../implementations/python/esoi/README.md)
 - Records: [intent.csv](intent.csv), [problems.csv](problems.csv), [ideals.csv](ideals.csv), [solutions.csv](solutions.csv), [implementations.csv](implementations.csv), [metrics.csv](metrics.csv)
@@ -116,3 +126,6 @@ flowchart LR
 
 - Adoption effort (`metric-adoption-effort`): `none`
 - Intents whose solutions one paragraph and one diagram explain as the code builds them (`metric-solution-coherence`): `python3 -m esoi.structure.structure_check.coherence --gate`
+
+
+*Generated from the CSV files beside this page by `esoi readmes`. Edit the CSV files, not this page.*

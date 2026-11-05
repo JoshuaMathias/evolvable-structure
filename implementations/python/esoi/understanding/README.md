@@ -1,8 +1,8 @@
 # How People and Agents Come to Apply ESOI
 
-Documentation ensures that an intent is optimally carried out.
+**Vision statement:** Documentation ensures that an intent is optimally carried out.
 
-*ESOI records of this intent (evolvable structure that optimizes intent), generated from the CSV files beside this page by `esoi readmes`. Edit the CSV files, not this page.*
+Breadcrumb: [Top](../../../../esoi/README.md) > How People and Agents Come to Apply ESOI
 
 This sub-intent arises as the implementation `esoi-understanding:composition` of its parent intent [`esoi`](../../../../esoi/README.md). Opportunities: ESOI can be taught and guided in many media (documents, an installable skill, a questionnaire, standing instructions for agents, generated pages, a course) for people who never install the tools. This creative space goes beyond any one tool, and it is where every adopter first meets ESOI.
 
@@ -25,6 +25,17 @@ flowchart LR
     s3 -->|"A public skill folder, a plugin manifest and marketplace file, and an installed copy"| s1
     s4 -->|"Linked records, a checked metric, measured implementations and a recorded selection; a short summary of how the steps were applied"| s1
 ```
+
+## One level below
+
+This intent is implemented by the sub-intents and solutions below it; each shows whether it goes deeper.
+
+- [ESOI Applied to AI Behaviour](esoi_for_ai/README.md) (solution with implementations and parts below it): Make an AI agent act by the evolvable-structure principles when designing, building, writing and advising.
+- [Local ESOI Index](local_application_index/README.md) (solution with implementations): Find which projects ESOI is applied to, how they relate and where to look first in each.
+- [Readable Records](readable_records/README.md) (solution with implementations): Give every intent folder a page, made from its records, that says at a glance what the intent is and how its parts fit.
+- [Review Tracker](review_tracker/README.md) (solution with implementations): Put the whole intent network and its current results in front of a reviewer, and carry their edits back to the records.
+- [Spec Search](spec_search/README.md) (solution with implementations): Find the records, standards and product items that a request concerns, cheapest first, each with the records it links to.
+- [The Standard](the_standard/README.md) (solution with implementations and parts below it): Teach anyone, person or AI, how a solution is shaped and how a project adopts it, with explanation and fill-in templates that need no code.
 
 ## Solutions at a glance
 
@@ -181,3 +192,6 @@ flowchart LR
 - Judge agreement (`metric-esoi-judge-agreement`): `esoi run judge_esoi_behaviour --impl model_judge`
 - Skill copy agreement and leaks (`metric-skill-copy-agreement`): `esoi run sync_the_skill --impl live_skill`
 - Steps followed (`metric-steps-followed`): `none`
+
+
+*Generated from the CSV files beside this page by `esoi readmes`. Edit the CSV files, not this page.*

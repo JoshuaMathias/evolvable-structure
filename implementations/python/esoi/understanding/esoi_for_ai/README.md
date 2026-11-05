@@ -1,39 +1,23 @@
 # ESOI Applied to AI Behaviour
 
-*ESOI records kept beside the code in `implementations/python/esoi/understanding/esoi_for_ai`, generated from the CSV files in this folder by `esoi readmes`. Edit the CSV files, not this page.*
+**Purpose:** Make an AI agent act by the evolvable-structure principles when designing, building, writing and advising.
 
-Documentation ensures that an intent is optimally carried out.
+Breadcrumb: [Top](../../../../../esoi/README.md) > [How People and Agents Come to Apply ESOI](../README.md) > ESOI Applied to AI Behaviour
 
-These are the solutions of [How People and Agents Come to Apply ESOI](../README.md).
-
-## How the solutions fit together
-
-Understanding is how ESOI reaches the people and agents who apply it. The Standard teaches anyone how a solution is shaped and how a project adopts it, with templates to fill in by hand, and for the order of the work it relies on The ESOI Steps. The Standard also ships the author's skill through Skill Distribution, which publishes a complete public copy that cannot leak or go stale. ESOI Applied to AI Behaviour gives an agent the principles as standing instructions and measures, case by case, whether its replies act on them, asking the ESOI Behaviour Judge to grade what a pattern cannot settle. When a reader needs one part of a project, three parts help. Readable Records gives every intent folder a page made from its records. Spec Search finds the records and standards a request concerns. The Local ESOI Index says which projects apply ESOI and where to look first in each. The Review Tracker puts the whole intent network and its latest results in front of a reviewer and carries the reviewer's edits back to the records, so people steer by metrics without reading the code.
-
-## Overview diagram
-
-An arrow runs from the solution that provides to the solution that builds on it; its label is what the provider outputs.
-
-```mermaid
-flowchart LR
-    s0["ESOI Applied to AI Behaviour<br/><i>esoi-for-ai</i>"]
-    s1["The Standard<br/><i>the-standard</i>"]
-    s2["ESOI Behaviour Judge<br/><i>esoi-behaviour-judge</i>"]
-    s3["Skill Distribution<br/><i>skill-distribution</i>"]
-    s4["The ESOI Steps<br/><i>the-steps</i>"]
-    s2 -->|"A verdict (pass or fail) and a one-line reason"| s0
-    s3 -->|"A public skill folder, a plugin manifest and marketplace file, and an installed copy"| s1
-    s4 -->|"Linked records, a checked metric, measured implementations and a recorded selection; a short summary of how the steps were applied"| s1
-```
+Part of [How People and Agents Come to Apply ESOI](../README.md)
 
 ## ESOI Applied to AI Behaviour (`esoi-for-ai`)
 
-Make an AI agent act by the evolvable-structure principles when designing, building, writing and advising.
-
+- Out of scope: Teaching people; finding which records or standards bear on a task; general agent ability.
+- Delegates to: the-standard, spec-search
 - Entry call: `esoi.run("esoi-for-ai", '.')`
 - Selected implementation: Skill as standing instructions (`skill-as-standing-instructions`)
 - Metric: Behaviour adherence
 - Implemented by: [`.claude-plugin/marketplace.json`](../../../../../.claude-plugin/marketplace.json), [`implementations/python/esoi/data/skill/evolvable-structure/INDEX.md`](../../data/skill/evolvable-structure/INDEX.md), [`implementations/python/esoi/data/skill/evolvable-structure/SKILL.md`](../../data/skill/evolvable-structure/SKILL.md), [`implementations/python/esoi/data/skill/evolvable-structure/coding.md`](../../data/skill/evolvable-structure/coding.md), [`implementations/python/esoi/data/skill/evolvable-structure/coding/components.md`](../../data/skill/evolvable-structure/coding/components.md), [`implementations/python/esoi/data/skill/evolvable-structure/coding/concept_ai_quest_qar.md`](../../data/skill/evolvable-structure/coding/concept_ai_quest_qar.md), [`implementations/python/esoi/data/skill/evolvable-structure/coding/pipelines_and_experiments.md`](../../data/skill/evolvable-structure/coding/pipelines_and_experiments.md), [`implementations/python/esoi/data/skill/evolvable-structure/coding/registry_and_templates.md`](../../data/skill/evolvable-structure/coding/registry_and_templates.md) and 79 more
+
+## One level below
+
+- [ESOI Behaviour Judge](esoi_behaviour_judge/README.md) (solution with implementations): Grade whether one reply acts by the principles when a pattern match cannot tell, and show how far the grading agrees with people.
 
 ## Diagram
 
@@ -48,12 +32,12 @@ flowchart LR
 
 ## Implementations
 
-| Implementation | Handle | Code | Selected |
-|---|---|---|---|
-| Skill as standing instructions | `esoi-for-ai:skill-as-standing-instructions` | [`implementations/python/esoi/understanding/esoi_for_ai/interface.py`](interface.py) | selected |
-| Skill on request | `esoi-for-ai:skill-on-request` | [`implementations/python/evaluation/components/behave_by_esoi/impls/skill_on_request.py`](../../../evaluation/components/behave_by_esoi/impls/skill_on_request.py) |  |
-| No skill | `esoi-for-ai:no-skill` | [`implementations/python/evaluation/components/behave_by_esoi/impls/no_skill.py`](../../../evaluation/components/behave_by_esoi/impls/no_skill.py) |  |
-| Perspective review | `esoi-for-ai:perspective-review` | no code yet |  |
+| Implementation | Handle | Purpose | Code | Selected |
+|---|---|---|---|---|
+| Skill as standing instructions | `esoi-for-ai:skill-as-standing-instructions` | The author's skill is loaded as the system text of every session, so the agent reads the principles before any task and ends its work with a short summary of how it applied them. | [`implementations/python/esoi/understanding/esoi_for_ai/interface.py`](interface.py) | selected |
+| Skill on request | `esoi-for-ai:skill-on-request` | The agent sees only the skill's name and description and loads the full text when it judges that the task is about design, reuse or how it should behave; the measurement includes that loading decision. | [`implementations/python/evaluation/components/behave_by_esoi/impls/skill_on_request.py`](../../../evaluation/components/behave_by_esoi/impls/skill_on_request.py) |  |
+| No skill | `esoi-for-ai:no-skill` | The agent works from its general training and the person's corrections in conversation; measured with the same model and a plain assistant instruction, so what the skill adds is a number. | [`implementations/python/evaluation/components/behave_by_esoi/impls/no_skill.py`](../../../evaluation/components/behave_by_esoi/impls/no_skill.py) |  |
+| Perspective review | `esoi-for-ai:perspective-review` | After drafting, the agent asks named perspectives, each an implementation of what good looks like, to review the draft against the principles, and revises it. | no code yet |  |
 
 ## Metrics
 
@@ -73,3 +57,5 @@ flowchart LR
 - Intent: [How People and Agents Come to Apply ESOI](../README.md)
 - Down: [implementations/python/esoi/understanding/esoi_for_ai/esoi_behaviour_judge](esoi_behaviour_judge/README.md)
 - Repository: [top README](../../../../../README.md)
+
+*Generated from the CSV files in this folder by `esoi readmes`. Edit the CSV files, not this page.*

@@ -8,14 +8,16 @@ the CSV files, then run the command. A person's own prose about the network stay
 
 | Part | Heading | What it holds |
 |---|---|---|
-| 1 | the intent's name | The vision statement, a one-line note that the page is generated, and the opportunities (for a sub-intent, the implementation of the parent intent it arises from, linked to the parent) |
+| 1 | the intent's name | `**Vision statement:** <the statement>` directly under the title, the breadcrumb line (`Top > Container > ... > this page`, each ancestor linked to its README), and the opportunities (for a sub-intent, the implementation of the parent intent it arises from, linked to the parent) |
 | 2 | How the solutions fit together | The solution coherence paragraph |
 | 3 | Diagram | The Mermaid diagram of the solutions' connections, the same source as `diagram.md` |
+| 3b | One level below | Each child with a link and its kind, so a reader sees before clicking whether it goes deeper: a sub-intent with its vision statement; a solution with its own page (`solution with implementations`, or `... and parts below it` when it has folders below) with its purpose; a solution with no page of its own with its purpose and a note that its implementations are in this intent's records |
 | 4 | Solutions at a glance | One row per solution: its one-line entry call (`package.run("id", example)`, or "no entry declared"), its selected implementation and its metrics |
 | 5 | Problems and ideals | One line each: the id and the first sentence; at most 10 of each, with a link to the full list below |
 | 6 | Metrics and their leaders | Each metric with the implementation that leads it in the results log and its score |
 | 7 | Where to go next | Links down to each sub-intent, up to the parent intent and out to the repository's top README, the record files, and the diagram page |
 | 8 | The full record | After a divider (`---`): the full problem, ideal, solution, implementation and metric tables |
+| 9 | Generated note | The last line of the page: it was generated from the CSV files beside it by `esoi readmes`. It is not at the top because a reader needs the purpose first; rule S8 compares the whole page with its records, so the note is part of what is checked |
 
 A cell that holds only an `unconfirmed:` marker is an unwritten cell and is left out of the page, so a page states finished truth only.
 No em dashes appear in generated text. `diagram.md` stays beside the records: it is the diagram on a page of its own (with the
@@ -23,7 +25,7 @@ coherence paragraph), generated from the same lines as the diagram in the README
 
 ## Folders beside the code
 
-Where a repository keeps its records beside the code ([the standard](records-beside-code.md)), the top intent's page lists the solution folders under "Where to go next" ("Records beside the code"), a sub-intent beside its code gets the page above, and every solution folder gets its own generated page, described in the standard.
+Where a repository keeps its records beside the code ([the standard](records-beside-code.md)), the top intent's page lists the solution folders under "Where to go next" ("Records beside the code"), a sub-intent beside its code gets the page above, and every solution folder gets its own generated page, described in the standard. The two kinds of page look different on purpose: an intent page lists its children ("One level below") with their kinds, and a leaf solution page, the bottom of the hierarchy, has no children section at all, only its implementations. It is never announced in words.
 
 ## The two rival layouts
 

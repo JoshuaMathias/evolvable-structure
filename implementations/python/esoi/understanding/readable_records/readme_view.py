@@ -23,14 +23,19 @@ WRAP = 110                # characters of prose per rendered line
 SUMMARY_LINES = 320       # the part of a page above its divider stays within this many rendered lines
 LIST_LIMIT = 10           # a short list in the summary shows this many entries; the full record below holds them all
 
-FIRST_LINE = ("These are ESOI records (evolvable structure that optimizes intent): why {subject} exists, and its problems, "
-              "solutions, implementations, ideals and metrics. This page is generated from the CSV files beside it by "
-              "`esoi check --write-docs`; edit the CSV files, not this page.")
-NOTE = ("*ESOI records of this intent (evolvable structure that optimizes intent), generated from the CSV files beside this page by "
-        "`esoi readmes`. Edit the CSV files, not this page.*")
+NOTE = "*Generated from the CSV files beside this page by `esoi readmes`. Edit the CSV files, not this page.*"
+FOLDER_NOTE = "*Generated from the CSV files in this folder by `esoi readmes`. Edit the CSV files, not this page.*"
+ARM_NOTE = "*Generated from the records of the intents that own these arms by `esoi readmes`. Edit those records, not this page.*"
+GENERATED_NOTES = (NOTE, FOLDER_NOTE, ARM_NOTE)   # the final line of a generated page; a page ending in one was written by `esoi readmes`
 DIVIDER = "---"
 RECORD_FILES = (("problems.csv", "problems"), ("ideals.csv", "ideals"), ("solutions.csv", "solutions"),
                 ("implementations.csv", "implementations"), ("metrics.csv", "metrics"))
+
+
+def vision_lines(text: str) -> List[str]:
+    """The vision statement as its page shows it: a bold label, then the statement as the record states it ('' gives no lines)."""
+    clean = one_line(text)
+    return [f"**Vision statement:** {clean}", ""] if clean else []
 
 
 def impl_label(registry: Registry, solution_id: str, selected: str) -> str:

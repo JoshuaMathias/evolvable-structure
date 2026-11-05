@@ -1,40 +1,15 @@
 # Structure Budget
 
-*ESOI records kept beside the code in `implementations/python/esoi/structure/structure_budget`, generated from the CSV files in this folder by `esoi readmes`. Edit the CSV files, not this page.*
+**Purpose:** Keep the structure's own cost in view: admit a rule, record or sub-intent only with what it prevents, and prune what stops paying.
 
-A project's structure enables the continuous evolution of interdependent parts to optimize its intent.
+Breadcrumb: [Top](../../../../../esoi/README.md) > [A Project's Records and Code as One Structure](../README.md) > Structure Budget
 
-These are the solutions of [A Project's Records and Code as One Structure](../README.md).
-
-## How the solutions fit together
-
-Structure keeps a project's records and code one true and lean whole. The Intent Registry holds every problem, solution, implementation, ideal and metric as linked records beside the code they describe. It takes its fields from the author's template through Template Sync and fills the rows the code already declares through Specify from the Code, leaving a person's words untouched. The Ownership Map ties every file to the solution it serves, so code that serves nothing has nowhere to hide. Structure Check runs every rule on each change, reading the files the Ownership Map assigns and the fields Template Sync reads from the template, and reports each finding by rule and path with the next action. Library Adoption lets a repository refer to a solution another library's records define instead of copying them, resolving each reference through the Intent Registry's records so no job is described twice. Structure Budget weighs what the rules that Structure Check runs cost each change against the real mistakes they catch, admits a new rule only with the mistake that justifies it, and prunes what stops paying.
-
-## Overview diagram
-
-An arrow runs from the solution that provides to the solution that builds on it; its label is what the provider outputs.
-
-```mermaid
-flowchart LR
-    s0["Intent Registry<br/><i>intent-registry</i>"]
-    s1["Library Adoption<br/><i>library-adoption</i>"]
-    s2["Ownership Map<br/><i>ownership-map</i>"]
-    s3["Structure Budget<br/><i>structure-budget</i>"]
-    s4["Structure Check<br/><i>structure-check</i>"]
-    s5["Specify from the Code<br/><i>specify-from-code</i>"]
-    s6["Template Sync<br/><i>template-sync</i>"]
-    s0 -->|"A linked intent network that the check, the tracker and the selection read"| s1
-    s2 -->|"File-to-solution links and the generated component index"| s4
-    s4 -->|"A list of violations, each led by its rule id, and an exit code"| s3
-    s5 -->|"Findings (rule S30), the rows written, and for a new solution the records, a code skeleton and an evaluation folder"| s0
-    s6 -->|"A committed field list per type"| s0
-    s6 -->|"A committed field list per type"| s4
-```
+Part of [A Project's Records and Code as One Structure](../README.md)
 
 ## Structure Budget (`structure-budget`)
 
-Keep the structure's own cost in view: admit a rule, record or sub-intent only with what it prevents, and prune what stops paying.
-
+- Out of scope: Removing what still catches real mistakes; running the rules.
+- Delegates to: structure-check
 - Entry call: `esoi.run("structure-budget", '.')`
 - Selected implementation: Written weighing rule (`written-weighing-rule`)
 - Metric: Structure cost against catches
@@ -42,10 +17,10 @@ Keep the structure's own cost in view: admit a rule, record or sub-intent only w
 
 ## Implementations
 
-| Implementation | Handle | Code | Selected |
-|---|---|---|---|
-| Written weighing rule | `structure-budget:written-weighing-rule` | [`implementations/python/esoi/structure/structure_budget/interface.py`](interface.py) | selected |
-| Measured cost and catches | `structure-budget:measured-cost-and-catches` | no code yet |  |
+| Implementation | Handle | Purpose | Code | Selected |
+|---|---|---|---|---|
+| Written weighing rule | `structure-budget:written-weighing-rule` | Before adding a sub-intent, rule or record, weigh its build and upkeep cost against what comparing alternatives and defining it clearly would gain, counted to the next highest priority milestone (docs/explanation/when-to-create-a-sub-intent.md), and weigh it again at each milestone. | [`implementations/python/esoi/structure/structure_budget/interface.py`](interface.py) | selected |
+| Measured cost and catches | `structure-budget:measured-cost-and-catches` | A tool records the time the check adds and which rules, records and checks caught a real violation, and proposes removing those that catch nothing over a period. | no code yet |  |
 
 ## Metrics
 
@@ -66,3 +41,5 @@ Keep the structure's own cost in view: admit a rule, record or sub-intent only w
 - Up: [implementations/python/esoi](../../README.md)
 - Intent: [A Project's Records and Code as One Structure](../README.md)
 - Repository: [top README](../../../../../README.md)
+
+*Generated from the CSV files in this folder by `esoi readmes`. Edit the CSV files, not this page.*

@@ -19,7 +19,7 @@ implementations/python/esoi/
 ## The rule
 
 A container folder holds one folder for each of its second-level solutions, an `intent.csv` (the container is a sub-intent of
-the top intent), its own `solutions.csv` and the other record files where they have rows, the generated `README.md` and
+the top intent), its own `solutions.csv` and the other record files where they have rows, the generated `README.md` (an intent page lists its children with their kinds; a leaf solution page lists only its implementations) and
 `diagram.md`, its `interface.py` (the Protocol of the container, entry `review`) and its `flow.py`, which holds the container's
 `composition` arm: the order in which it calls its parts, each one a typed `Lazy` need on the part's interface.
 

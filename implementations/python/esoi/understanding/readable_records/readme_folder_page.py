@@ -2,15 +2,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 from esoi.structure.intent_registry import besidecode, intents
-from esoi.understanding.readable_records import diagram
+from esoi.understanding.readable_records import diagram, readme_trail
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.intents import Intent
 from esoi.structure.intent_registry.registry import Registry
 from esoi.structure.intent_registry import implementedby
 from esoi.structure.intent_registry.tables import read_csv
-from esoi.understanding.readable_records.readme_view import FILE, View, entry_call, first_sentence, impl_label, leader, link, list_item, metric_names, mine, named, one_line
+from esoi.understanding.readable_records.readme_view import ARM_NOTE, FILE, FOLDER_NOTE, View, entry_call, first_sentence, impl_label, leader, link, list_item, metric_names, mine, named, one_line
 
 def ids_in(folder: Path, name: str, key: str) -> List[str]:
     """The record ids one folder's own file holds, in file order."""
@@ -69,41 +69,64 @@ def folder_links(view: View, owner: str, folder: Path) -> List[str]:
     return out
 
 
+def one_level_below(registry: Registry, view: View, folder: Path) -> List[str]:
+    """The section naming the children of a solution folder, each with its kind: a sub-intent that implements one of its solutions (with its
+    vision statement) and each solution folder directly below it (a solution with implementations, with its purpose). A leaf solution has
+    none, so it has no such section at all: its implementations under their own heading are all there is below it."""
+    lines: List[str] = []
+    for child in readme_trail.sub_intents_of(view, ids_in(folder, "solutions.csv", "solution_id")):
+        vision = one_line(child.row.get("vision_statement", ""))
+        name = one_line(child.row.get("name", "")) or child.intent_id
+        lines.append(f"- [{name}]({link(folder, child.folder / FILE)}) (sub-intent)" + (f": {vision}" if vision else ""))
+    for down in readme_trail.child_folders(view, folder):
+        for sid in ids_in(down, "solutions.csv", "solution_id"):
+            row = next((r for r in registry.every_solution() if r.get("solution_id", "") == sid), {})
+            purpose = one_line(row.get("purpose", "")) or one_line(row.get("description", ""))
+            lines.append(f"- [{one_line(row.get('name', '')) or sid}]({link(folder, down / FILE)}) ({readme_trail.kind_of(view, registry, down)})"
+                         + (f": {purpose}" if purpose else ""))
+    return ["## One level below", ""] + lines + [""] if lines else []
+
+
 def render_folder(registry: Registry, view: View, owner: str, folder: Path) -> str:
     """The README of a solution folder kept beside its code: each solution it holds, with its entry call and selected
     implementation, the implementations it holds with a link to the code, the metrics with their leaders, the problems and
     ideals, links up and down, and the diagram when the folders below it hold solutions it builds on."""
     config = view.config
-    where = folder.relative_to(config.root).as_posix()
     solutions = [r for r in registry.every_solution() if r.get("solution_id", "") in ids_in(folder, "solutions.csv", "solution_id")]
     heading_text = one_line(solutions[0].get("name", "")) if len(solutions) == 1 else folder.name
-    lines = [f"# {heading_text or folder.name}", "",
-             f"*ESOI records kept beside the code in `{where}`, generated from the CSV files in this folder by `esoi readmes`. "
-             "Edit the CSV files, not this page.*", ""]
+    lines = [f"# {heading_text or folder.name}", ""]
     parent = view.intent(owner)
     if parent is not None and parent.folder.resolve() != folder.resolve() and solutions:
-        # The folder holds the solutions of an intent whose own page is elsewhere: open with that intent's purpose and how its solutions fit.
-        vision = one_line(parent.row.get("vision_statement", ""))
-        if vision:
-            lines += [vision, ""]
-        lines += [f"These are the solutions of [{one_line(parent.row.get('name', '')) or parent.intent_id}]({link(folder, parent.folder / FILE)}).", ""]
-        if parent.row.get("solution_coherence", "").strip():
-            lines += ["## How the solutions fit together", "", one_line(parent.row["solution_coherence"]), ""]
-        picture = diagram.block(registry, parent)
-        if picture:
-            lines += ["## Overview diagram", "", "An arrow runs from the solution that provides to the solution that builds on it; its label is "
-                      "what the provider outputs.", ""] + picture + [""]
+        # A solution folder is not an intent: it shows its own name and purpose, and only points to the intent that owns it (the nearest
+        # intent.csv at or above the folder). That intent's vision, paragraph and diagram stay on its own page.
+        if len(solutions) == 1:
+            purpose = one_line(solutions[0].get("purpose", "")) or one_line(solutions[0].get("description", ""))
+            lines += [f"**Purpose:** {purpose}", ""] if purpose else []
+    steps = readme_trail.folder_steps(view, registry, owner, folder)
+    lines += [readme_trail.breadcrumb(folder, steps), ""]
+    above = readme_trail.immediate_parent(steps)
+    if above is not None:
+        top = next((i for i in view.intents if not i.parent), None)
+        shown = (one_line(top.row.get("name", "")) or top.intent_id) if above[0] == "Top" and top is not None else above[0]
+        lines += [f"Part of [{shown}]({link(folder, above[1] / FILE)})", ""]
+    single, parent_shown = len(solutions) == 1, parent is not None and parent.folder.resolve() != folder.resolve()
     for r in solutions:
         sid = r.get("solution_id", "")
         lines += [f"## {one_line(r.get('name', '')) or sid} (`{sid}`)", ""]
         purpose = first_sentence(r.get("purpose", "")) or first_sentence(r.get("description", ""))
-        if purpose:
+        if purpose and not (single and parent_shown):
             lines += [purpose, ""]
         picked = one_line(r.get("selected", ""))
+        for label, column in (("Out of scope", "out_of_scope"), ("Delegates to", "delegates_to")):
+            said = one_line(r.get(column, ""))
+            said = ", ".join(part.strip() for part in said.split(";") if part.strip()) if column == "delegates_to" else said
+            if said and said.lower().rstrip(".") != "none":
+                lines.append(f"- {label}: {said}")
         lines += [f"- Entry call: {entry_call(view, config.package, sid, r)}",
                   f"- Selected implementation: {impl_label(registry, sid, picked)}",
                   f"- Metric: {metric_names(r.get('metric', ''))}"]
         lines += implemented_line(registry, view, folder, sid) + [""]
+    lines += one_level_below(registry, view, folder)
     picture = folder_diagram(registry, view, owner, folder)
     if picture:
         lines += ["## Diagram", "", "An arrow runs from the solution that provides to the solution that builds on it; its label is "
@@ -112,10 +135,11 @@ def render_folder(registry: Registry, view: View, owner: str, folder: Path) -> s
     impls = [r for r in registry.implementations if r.get("implementation_id", "") in mine_impl]
     if impls:
         chosen = {r.get("solution_id", ""): one_line(r.get("selected", "")) for r in registry.every_solution()}
-        lines += ["## Implementations", "", "| Implementation | Handle | Code | Selected |", "|---|---|---|---|"]
+        lines += ["## Implementations", "", "| Implementation | Handle | Purpose | Code | Selected |", "|---|---|---|---|---|"]
         for r in impls:
             name = r.get("implementation_id", "").split(":", 1)[-1]
-            lines.append(f"| {one_line(r.get('name', '')) or r.get('implementation_id', '')} | `{r.get('implementation_id', '')}` | {code_cell(view, folder, r.get('filepath', ''))} | "
+            lines.append(f"| {one_line(r.get('name', '')) or r.get('implementation_id', '')} | `{r.get('implementation_id', '')}` | {one_line(r.get('description', ''))} | "
+                         f"{code_cell(view, folder, r.get('filepath', ''))} | "
                          f"{'selected' if chosen.get(r.get('solution_id', '')) in (name, r.get('implementation_id', '')) else ''} |")
         lines.append("")
     metric_ids = set(ids_in(folder, "metrics.csv", "metric_id"))
@@ -131,26 +155,25 @@ def render_folder(registry: Registry, view: View, owner: str, folder: Path) -> s
                                      ("Ideals", [r for r in registry.ideals if r.get("ideal_id", "") in ideal_ids], "ideal_id", "principle")):
         if rows:
             lines += [f"## {title}", ""] + [list_item(r, key, column) for r in rows] + [""]
-    lines += ["## Where to go next", ""] + folder_links(view, owner, folder) + [""]
+    lines += ["## Where to go next", ""] + folder_links(view, owner, folder) + ["", FOLDER_NOTE]
     return "\n".join(lines).rstrip() + "\n"
-
-
-ARM_MARK = "ESOI arms kept in"
 
 
 def render_arms(registry: Registry, view: View, folder: Path, owners: List[Tuple[str, Path]]) -> str:
     """The README of a folder of arm code whose records belong to an intent elsewhere: the arms it holds, each with its code and
     the intent that owns it, and a link to every owning intent's README."""
     config = view.config
-    where = folder.relative_to(config.root).as_posix()
     here = {f.resolve(): owner for owner, f in owners}
     mine = []
     for row in registry.implementations:
         path = (row.get("filepath", "") or "").split("::")[0].strip()
         if path and (config.root / path).resolve().parent == folder.resolve():
             mine.append(row)
-    lines = [f"# Arms in {folder.name}", "",
-             f"*{ARM_MARK} `{where}`, generated from the records of the intents that own them by `esoi readmes`. Edit those records, not this page.*", ""]
+    lines = [f"# Arms in {folder.name}", ""]
+    first = view.intent(owners[0][0]) if owners else None
+    if first is not None:
+        trail = [(readme_trail.label(i), i.folder) for i in readme_trail.intent_chain(view, first)] + [(f"Arms in {folder.name}", None)]
+        lines += [readme_trail.breadcrumb(folder, trail), ""]
     chosen = {r.get("solution_id", ""): one_line(r.get("selected", "")) for r in registry.every_solution()}
     lines += ["| Implementation | Handle | Code | Selected |", "|---|---|---|---|"]
     for r in sorted(mine, key=lambda r: r.get("implementation_id", "")):
@@ -164,7 +187,7 @@ def render_arms(registry: Registry, view: View, folder: Path, owners: List[Tuple
         lines.append(f"- Owning intent: [{label}]({link(folder, owner_folder / FILE)})")
     if (config.root / FILE).is_file():
         lines.append(f"- Repository: [top README]({link(folder, config.root / FILE)})")
-    return "\n".join(lines).rstrip() + "\n"
+    return "\n".join(lines + ["", ARM_NOTE]).rstrip() + "\n"
 
 
 def arm_pages(config: Config, registry: Registry, view: View, existing_only: bool = False) -> List[Tuple[Path, str]]:
@@ -173,7 +196,7 @@ def arm_pages(config: Config, registry: Registry, view: View, existing_only: boo
     out: List[Tuple[Path, str]] = []
     for folder, owners in sorted(besidecode.arm_folders(config).items()):
         path = folder / FILE
-        if path.is_file() and ARM_MARK not in path.read_text(encoding="utf-8")[:600]:
+        if path.is_file() and ARM_NOTE not in path.read_text(encoding="utf-8"):
             continue
         if existing_only and not path.is_file():
             continue

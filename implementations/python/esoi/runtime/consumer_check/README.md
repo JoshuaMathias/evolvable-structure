@@ -1,32 +1,15 @@
 # Consumer Check
 
-*ESOI records kept beside the code in `implementations/python/esoi/runtime/consumer_check`, generated from the CSV files in this folder by `esoi readmes`. Edit the CSV files, not this page.*
+**Purpose:** Let a system built on the library show which library solution each part serves, score its parts on the library's cases by building on the library's metric, and see how far its pins trail.
 
-Projects continuously use the best implementations without having to change what depends on them.
+Breadcrumb: [Top](../../../../../esoi/README.md) > [ESOI Inside Other People's Running Code](../README.md) > Consumer Check
 
-These are the solutions of [ESOI Inside Other People's Running Code](../README.md).
-
-## How the solutions fit together
-
-Runtime carries ESOI into other people's running programs. Implementation Selection serves each call with the declared implementation chosen by a per-call name, an override, the environment, the lock or the recorded default, and refuses an unknown name by listing the valid choices. Assemble Parts by Name builds whole programs from named parts in dependency order, choosing each part through Implementation Selection and checking what each part needs from its environment before it runs. Consumer Check lets a system built on the library show which library solution each of its parts serves and scores those parts with the library's cases, and it reads the pins that Implementation Selection keeps to show how far they trail the library.
-
-## Overview diagram
-
-An arrow runs from the solution that provides to the solution that builds on it; its label is what the provider outputs.
-
-```mermaid
-flowchart LR
-    s0["Assemble Parts by Name<br/><i>assemble-by-name</i>"]
-    s1["Consumer Check<br/><i>consumer-check</i>"]
-    s2["Implementation Selection<br/><i>implementation-selection</i>"]
-    s2 -->|"The chosen implementation's class and its configuration type"| s0
-    s2 -->|"The chosen implementation's class and its configuration type"| s1
-```
+Part of [ESOI Inside Other People's Running Code](../README.md)
 
 ## Consumer Check (`consumer-check`)
 
-Let a system built on the library show which library solution each part serves, score its parts on the library's cases by building on the library's metric, and see how far its pins trail.
-
+- Out of scope: Copying the library's checks; putting the consumer's private data in the library; switching the consumer's selection for it.
+- Delegates to: implementation-selection, measurement-harness
 - Entry call: `esoi.run("consumer-check", 'esoi')`
 - Selected implementation: Consumer command (`consumer-command`)
 - Metric: Consumer soundness
@@ -34,10 +17,10 @@ Let a system built on the library show which library solution each part serves, 
 
 ## Implementations
 
-| Implementation | Handle | Code | Selected |
-|---|---|---|---|
-| Consumer command | `consumer-check:consumer-command` | [`implementations/python/esoi/runtime/consumer_check/interface.py`](interface.py) | selected |
-| Contract tests the consumer installs | `consumer-check:contract-test-plugin` | no code yet |  |
+| Implementation | Handle | Purpose | Code | Selected |
+|---|---|---|---|---|
+| Consumer command | `consumer-check:consumer-command` | `esoi consumer check` reads the consumer's own registry, requirements and results, and the library's cases score the consumer's stores through `--impl module:build`. | [`implementations/python/esoi/runtime/consumer_check/interface.py`](interface.py) | selected |
+| Contract tests the consumer installs | `consumer-check:contract-test-plugin` | Ships the library's cases as a test plugin that the consumer's own test suite runs against its stores. | no code yet |  |
 
 ## Metrics
 
@@ -56,3 +39,5 @@ Let a system built on the library show which library solution each part serves, 
 - Up: [implementations/python/esoi](../../README.md)
 - Intent: [ESOI Inside Other People's Running Code](../README.md)
 - Repository: [top README](../../../../../README.md)
+
+*Generated from the CSV files in this folder by `esoi readmes`. Edit the CSV files, not this page.*

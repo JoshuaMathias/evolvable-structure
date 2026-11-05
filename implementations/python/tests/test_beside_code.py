@@ -437,3 +437,4 @@ def test_an_area_that_wires_a_shared_member_by_name_reaches_it_and_a_docstring_d
 def test_a_docstring_naming_the_solution_is_not_wiring(cfg):
     after = shared_setup(cfg, importer='"""It uses speak-a-greeting."""\nVALUE = 1\n')
     assert any("more than one link apart" in ln for ln in ours(advice(after)))
+

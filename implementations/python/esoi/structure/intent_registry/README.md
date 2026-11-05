@@ -1,44 +1,24 @@
 # Intent Registry
 
-*ESOI records kept beside the code in `implementations/python/esoi/structure/intent_registry`, generated from the CSV files in this folder by `esoi readmes`. Edit the CSV files, not this page.*
+**Purpose:** Record every problem, solution, implementation, ideal and metric of a project as linked records that people and checks both read.
 
-A project's structure enables the continuous evolution of interdependent parts to optimize its intent.
+Breadcrumb: [Top](../../../../../esoi/README.md) > [A Project's Records and Code as One Structure](../README.md) > Intent Registry
 
-These are the solutions of [A Project's Records and Code as One Structure](../README.md).
-
-## How the solutions fit together
-
-Structure keeps a project's records and code one true and lean whole. The Intent Registry holds every problem, solution, implementation, ideal and metric as linked records beside the code they describe. It takes its fields from the author's template through Template Sync and fills the rows the code already declares through Specify from the Code, leaving a person's words untouched. The Ownership Map ties every file to the solution it serves, so code that serves nothing has nowhere to hide. Structure Check runs every rule on each change, reading the files the Ownership Map assigns and the fields Template Sync reads from the template, and reports each finding by rule and path with the next action. Library Adoption lets a repository refer to a solution another library's records define instead of copying them, resolving each reference through the Intent Registry's records so no job is described twice. Structure Budget weighs what the rules that Structure Check runs cost each change against the real mistakes they catch, admits a new rule only with the mistake that justifies it, and prunes what stops paying.
-
-## Overview diagram
-
-An arrow runs from the solution that provides to the solution that builds on it; its label is what the provider outputs.
-
-```mermaid
-flowchart LR
-    s0["Intent Registry<br/><i>intent-registry</i>"]
-    s1["Library Adoption<br/><i>library-adoption</i>"]
-    s2["Ownership Map<br/><i>ownership-map</i>"]
-    s3["Structure Budget<br/><i>structure-budget</i>"]
-    s4["Structure Check<br/><i>structure-check</i>"]
-    s5["Specify from the Code<br/><i>specify-from-code</i>"]
-    s6["Template Sync<br/><i>template-sync</i>"]
-    s0 -->|"A linked intent network that the check, the tracker and the selection read"| s1
-    s2 -->|"File-to-solution links and the generated component index"| s4
-    s4 -->|"A list of violations, each led by its rule id, and an exit code"| s3
-    s5 -->|"Findings (rule S30), the rows written, and for a new solution the records, a code skeleton and an evaluation folder"| s0
-    s6 -->|"A committed field list per type"| s0
-    s6 -->|"A committed field list per type"| s4
-```
+Part of [A Project's Records and Code as One Structure](../README.md)
 
 ## Intent Registry (`intent-registry`)
 
-Record every problem, solution, implementation, ideal and metric of a project as linked records that people and checks both read.
-
+- Out of scope: Measured results; pages for readers.
+- Delegates to: measurement-harness, readable-records
 - Entry call: `esoi.run("intent-registry", '.')`
 - Selected implementation: Records beside the code (`beside_code`)
 - Metric: Navigable records, Record completeness
-- Implemented by: [`esoi/COMPONENTS.md`](../../../../../esoi/COMPONENTS.md), [`esoi/components.csv`](../../../../../esoi/components.csv), [`esoi/esoi_template.csv`](../../../../../esoi/esoi_template.csv), [`esoi/metric-run-policy.md`](../../../../../esoi/metric-run-policy.md), [`esoi/network.md`](../../../../../esoi/network.md), [`esoi/standards/naming.md`](../../../../../esoi/standards/naming.md), [`esoi/standards/no-em-dash.md`](../../../../../esoi/standards/no-em-dash.md), [`esoi/standards/tags.csv`](../../../../../esoi/standards/tags.csv) and 33 more
+- Implemented by: [`esoi/COMPONENTS.md`](../../../../../esoi/COMPONENTS.md), [`esoi/components.csv`](../../../../../esoi/components.csv), [`esoi/esoi_template.csv`](../../../../../esoi/esoi_template.csv), [`esoi/metric-run-policy.md`](../../../../../esoi/metric-run-policy.md), [`esoi/network.md`](../../../../../esoi/network.md), [`esoi/standards/naming.md`](../../../../../esoi/standards/naming.md), [`esoi/standards/no-em-dash.md`](../../../../../esoi/standards/no-em-dash.md), [`esoi/standards/tags.csv`](../../../../../esoi/standards/tags.csv) and 34 more
+
+## One level below
+
+- [Specify from the Code](specify_from_code/README.md) (solution with implementations): Keep the records of a solution and its alternatives in step with the code that declares them, and create a new solution in one command.
+- [Template Sync](template_sync/README.md) (solution with implementations): Derive the registry's fields from the intent template in the skill so the author's wording stays the single definition.
 
 ## Diagram
 
@@ -55,11 +35,11 @@ flowchart LR
 
 ## Implementations
 
-| Implementation | Handle | Code | Selected |
-|---|---|---|---|
-| Records in the esoi folder | `intent-registry:esoi_folder` | [`implementations/python/esoi/structure/intent_registry/interface.py`](interface.py) |  |
-| Records beside the code | `intent-registry:beside_code` | [`implementations/python/esoi/structure/intent_registry/interface.py`](interface.py) | selected |
-| Sheet as source | `intent-registry:sheet-as-source` | no code yet |  |
+| Implementation | Handle | Purpose | Code | Selected |
+|---|---|---|---|---|
+| Records in the esoi folder | `intent-registry:esoi_folder` | Every record of the top intent in one CSV per type under the project's `esoi/` folder, edited by hand and read by the check, the tracker and the selection; a sub-intent is a folder of its own inside it. | [`implementations/python/esoi/structure/intent_registry/interface.py`](interface.py) |  |
+| Records beside the code | `intent-registry:beside_code` | Each solution's records live once, in the folder that holds its code (the lowest folder that holds all of its implementations), next to that code; the folders are named in `[records] beside_code` in esoi.toml, the library reads them as part of the same tree, and each folder gets a generated README. The top intent stays in `esoi/` with its intent.csv; a sub-intent is a folder with its own intent.csv beside its code. `esoi records place` moves the records there. | [`implementations/python/esoi/structure/intent_registry/interface.py`](interface.py) | selected |
+| Sheet as source | `intent-registry:sheet-as-source` | The Google Sheet holds the records and the repository pulls a copy. | no code yet |  |
 
 ## Metrics
 
@@ -81,3 +61,5 @@ flowchart LR
 - Down: [implementations/python/esoi/structure/intent_registry/specify_from_code](specify_from_code/README.md)
 - Down: [implementations/python/esoi/structure/intent_registry/template_sync](template_sync/README.md)
 - Repository: [top README](../../../../../README.md)
+
+*Generated from the CSV files in this folder by `esoi readmes`. Edit the CSV files, not this page.*

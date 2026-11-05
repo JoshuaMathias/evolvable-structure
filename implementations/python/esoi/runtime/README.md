@@ -1,8 +1,8 @@
 # ESOI Inside Other People's Running Code
 
-Projects continuously use the best implementations without having to change what depends on them.
+**Vision statement:** Projects continuously use the best implementations without having to change what depends on them.
 
-*ESOI records of this intent (evolvable structure that optimizes intent), generated from the CSV files beside this page by `esoi readmes`. Edit the CSV files, not this page.*
+Breadcrumb: [Top](../../../../esoi/README.md) > ESOI Inside Other People's Running Code
 
 This sub-intent arises as the implementation `esoi-runtime:composition` of its parent intent [`esoi`](../../../../esoi/README.md). Opportunities: The Python package can become a runtime dependency inside other people's production code, not only a tool run on a repository: selection at run time, graceful declarations of alternatives (decorators, for example) and embedding without forking. That is a creative space beyond selecting an implementation from a table in one repository.
 
@@ -22,6 +22,14 @@ flowchart LR
     s2 -->|"The chosen implementation's class and its configuration type"| s0
     s2 -->|"The chosen implementation's class and its configuration type"| s1
 ```
+
+## One level below
+
+This intent is implemented by the sub-intents and solutions below it; each shows whether it goes deeper.
+
+- [Assemble Parts by Name](assemble_by_name/README.md) (solution with implementations): Build a program's parts from validated names in dependency order, so each part depends on a solution and never on one implementation, and check what each needs from its environment.
+- [Consumer Check](consumer_check/README.md) (solution with implementations): Let a system built on the library show which library solution each part serves, score its parts on the library's cases by building on the library's metric, and see how far its pins trail.
+- [Implementation Selection](implementation_selection/README.md) (solution with implementations): Choose which implementation serves a call, by a per-call name, an override, the environment, the lock or the recorded default, and refuse an unknown name by listing the valid choices.
 
 ## Solutions at a glance
 
@@ -96,3 +104,6 @@ flowchart LR
 - Assembly by name cases (`metric-assemble-by-name`): `esoi run assemble_by_name --impl live_assembler`
 - Consumer soundness (`metric-consumer-soundness`): `esoi run check_a_consumer --impl live_consumer_check`
 - Resolution correctness (`metric-resolution-correctness`): `esoi run select_an_implementation --impl live_selector`
+
+
+*Generated from the CSV files beside this page by `esoi readmes`. Edit the CSV files, not this page.*

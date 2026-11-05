@@ -1,8 +1,8 @@
 # Implementations Chosen on Evidence
 
-Solution implementations continuously improve through a pragmatic balance of measurement and efficient iteration.
+**Vision statement:** Solution implementations continuously improve through a pragmatic balance of measurement and efficient iteration.
 
-*ESOI records of this intent (evolvable structure that optimizes intent), generated from the CSV files beside this page by `esoi readmes`. Edit the CSV files, not this page.*
+Breadcrumb: [Top](../../../../esoi/README.md) > Implementations Chosen on Evidence
 
 This sub-intent arises as the implementation `esoi-optimization:composition` of its parent intent [`esoi`](../../../../esoi/README.md). Opportunities: An evidence engine for any project's evaluations: public evidence before paying, selection per circumstance, replayed model calls, ranking by probability. This creative space goes beyond picking one arm in one repository.
 
@@ -32,6 +32,16 @@ flowchart LR
     s5 -->|"Stale or current for the row, the reason naming the changed file and its owner, and the files that were ignored with their owners"| s3
     s6 -->|"Dict(Tuple(str, str), Estimate)"| s3
 ```
+
+## One level below
+
+This intent is implemented by the sub-intents and solutions below it; each shows whether it goes deeper.
+
+- [Keep a Metric Record](keep_metric_record/README.md) (solution with implementations): Keep the relevant metric's value before and after each piece of work, so the change can be judged later.
+- [Implementation Leaderboard](leaderboard/README.md) (solution with implementations): Decide from recorded results which implementation is best, or whether they tie.
+- [Measurement Harness](measurement_harness/README.md) (solution with implementations and parts below it): Run each implementation against its solution's cases through the shipped code, and record each result with its provenance.
+- [Promote the Winner](promote_the_winner/README.md) (solution with implementations): Switch the selection to the rival that clearly wins on the solution's own metric, with the evidence recorded, or propose it when a person must approve.
+- [When Metrics Are Run](when_metrics_are_run/README.md) (solution with implementations and parts below it): Decide when each metric is run, in what stages, with what limit, who approves the spend, and when its result stops counting.
 
 ## Solutions at a glance
 
@@ -148,3 +158,6 @@ flowchart LR
 - Case discrimination (`metric-case-discrimination`): `none`
 - Staleness precision (`metric-staleness-precision`): `esoi run staleness_precision --impl repo_wide; esoi run staleness_precision --impl component_paths; esoi run staleness_precision --impl import_closure`
 - Public evidence graded (`metric-public-evidence`): `esoi run public_evidence --impl graded`
+
+
+*Generated from the CSV files beside this page by `esoi readmes`. Edit the CSV files, not this page.*

@@ -3,17 +3,16 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import List, Optional
-from esoi.understanding.readable_records import diagram, readme_adopted
+from esoi.understanding.readable_records import diagram, readme_adopted, readme_trail
 from esoi.structure.intent_registry.intents import Intent
 from esoi.structure.intent_registry.registry import Registry
-from esoi.understanding.readable_records.readme_view import DIVIDER, FILE, FIRST_LINE, LIST_LIMIT, NOTE, RECORD_FILES, View, entry_call, first_sentence, impl_label, leader, link, list_item, metric_names, mine, named, one_line
+from esoi.understanding.readable_records.readme_view import DIVIDER, FILE, LIST_LIMIT, NOTE, RECORD_FILES, View, entry_call, first_sentence, impl_label, leader, link, list_item, metric_names, mine, named, one_line, vision_lines
 
-def heading(intent: Intent) -> List[str]:
+def heading(intent: Intent, view: View) -> List[str]:
+    """The title, the vision statement under it, and the breadcrumb line to this page."""
     name = one_line(intent.row.get("name", "")) or intent.intent_id
-    out = [f"# {name}", ""]
-    if intent.row.get("vision_statement", "").strip():
-        out += [one_line(intent.row["vision_statement"]), ""]
-    return out
+    return [f"# {name}", ""] + vision_lines(intent.row.get("vision_statement", "")) + \
+        [readme_trail.breadcrumb(intent.folder, readme_trail.intent_steps(view, intent)), ""]
 
 
 def arises(view: View, intent: Intent) -> str:
@@ -32,9 +31,7 @@ def navigation(view: View, registry: Registry, intent: Intent) -> List[str]:
     children = [i for i in view.intents if i.parent == intent.intent_id]
     for child in children:
         name = one_line(child.row.get("name", "")) or child.intent_id
-        vision = first_sentence(child.row.get("vision_statement", ""))
-        out.append(f"- Sub-intent: [{name}]({link(intent.folder, child.folder / FILE)}) ({vision})" if vision
-                   else f"- Sub-intent: [{name}]({link(intent.folder, child.folder / FILE)})")
+        out.append(f"- Sub-intent: [{name}]({link(intent.folder, child.folder / FILE)})")
     parent = view.intent(intent.parent) if intent.parent else None
     if parent is not None:
         out.append(f"- Parent intent: [{one_line(parent.row.get('name', '')) or parent.intent_id}]({link(intent.folder, parent.folder / FILE)})")
@@ -52,6 +49,35 @@ def navigation(view: View, registry: Registry, intent: Intent) -> List[str]:
     if diagram.block(registry, intent):
         out.append("- Diagram page: [diagram.md](diagram.md)")
     return out
+
+
+def one_level_below(view: View, registry: Registry, intent: Intent) -> List[str]:
+    """The section naming what lies one level below the intent, each child with its kind so a reader sees before clicking whether it goes
+    deeper: a sub-intent with its vision statement, a solution with its own page (a solution with implementations) with its purpose, and a
+    solution with no page of its own with its purpose and where its implementations are. A sub-intent is the implementation of one solution
+    (``implements`` names ``solution:implementation``), so that solution is shown by the sub-intent."""
+    children = [i for i in view.intents if i.parent == intent.intent_id]
+    refined = {i.row.get("implements", "").partition(":")[0].strip() for i in children}
+    held = readme_trail.solution_folders(view)
+    lines: List[str] = []
+    for child in children:
+        name = one_line(child.row.get("name", "")) or child.intent_id
+        vision = one_line(child.row.get("vision_statement", ""))
+        lines.append(f"- [{name}]({link(intent.folder, child.folder / FILE)}) (sub-intent)" + (f": {vision}" if vision else ""))
+    for r in mine(registry.every_solution(), intent.intent_id):
+        sid = r.get("solution_id", "")
+        folder = held.get(sid)
+        if sid in refined or (folder is not None and readme_trail.has_page_above(view, intent, folder)):
+            continue   # shown by its sub-intent, or listed on the page of the solution folder above it
+        purpose = one_line(r.get("purpose", "")) or one_line(r.get("description", ""))
+        name = one_line(r.get("name", "")) or sid
+        if folder is not None:
+            lines.append(f"- [{name}]({link(intent.folder, folder / FILE)}) ({readme_trail.kind_of(view, registry, folder)})" + (f": {purpose}" if purpose else ""))
+        else:
+            lines.append(f"- {name} (solution with no page of its own, its implementations are in this intent's records)" + (f": {purpose}" if purpose else ""))
+    if not lines:
+        return []
+    return ["## One level below", "", "This intent is implemented by the sub-intents and solutions below it; each shows whether it goes deeper.", ""] + lines + [""]
 
 
 def solutions_table(view: View, registry: Registry, intent: Intent) -> List[str]:
@@ -139,19 +165,19 @@ def record_tables(registry: Registry, intent: Intent, level: str = "##", view: O
 
 def render_full(registry: Registry, intent: Intent, view: View) -> str:
     """The record tables only (the page as it was before the at-a-glance standard)."""
-    lines = [FIRST_LINE.format(subject="this project" if intent.is_top else "this sub-intent"), ""] + heading(intent)
+    lines = heading(intent, view)
     if not intent.is_top:
         lines += [f"This sub-intent arises as the implementation `{intent.row.get('implements', '')}` of its parent "
                   f"intent `{intent.parent}`. Opportunities: {one_line(intent.row.get('opportunities', ''))}", ""]
     if intent.row.get("solution_coherence", "").strip():
         lines += ["## How the solutions fit together", "", one_line(intent.row["solution_coherence"]), ""]
     lines += readme_adopted.lines(view, registry, intent)
-    return "\n".join(lines + record_tables(registry, intent, "##", view)).rstrip() + "\n"
+    return "\n".join(lines + record_tables(registry, intent, "##", view) + [NOTE]).rstrip() + "\n"
 
 
 def render_glance(registry: Registry, intent: Intent, view: View) -> str:
     """The at-a-glance page: the summary a reader needs first, a divider, then the full record."""
-    lines = heading(intent) + [NOTE, ""]
+    lines = heading(intent, view)
     opportunities = one_line(intent.row.get("opportunities", ""))
     if not intent.is_top:
         lines += [arises(view, intent) + (f" Opportunities: {opportunities}" if opportunities else ""), ""]
@@ -163,6 +189,7 @@ def render_glance(registry: Registry, intent: Intent, view: View) -> str:
     if picture:
         lines += ["## Diagram", "", "An arrow runs from the solution that provides to the solution that builds on it; its label is what "
                   "the provider outputs.", ""] + picture + [""]
+    lines += one_level_below(view, registry, intent)
     table = solutions_table(view, registry, intent)
     if table:
         lines += ["## Solutions at a glance", ""] + table + [""]
@@ -177,12 +204,12 @@ def render_glance(registry: Registry, intent: Intent, view: View) -> str:
     if nav:
         lines += ["## Where to go next", ""] + nav + [""]
     lines += [DIVIDER, "", "## The full record", ""]
-    return "\n".join(lines + record_tables(registry, intent, "###", view)).rstrip() + "\n"
+    return "\n".join(lines + record_tables(registry, intent, "###", view) + ["", NOTE]).rstrip() + "\n"
 
 
 def render_links(registry: Registry, intent: Intent, view: View) -> str:
     """A compact page: name, vision statement and links to everything else."""
-    lines = heading(intent) + [NOTE, ""]
+    lines = heading(intent, view)
     if not intent.is_top:
         lines += [arises(view, intent), ""]
     counts = []
@@ -190,5 +217,5 @@ def render_links(registry: Registry, intent: Intent, view: View) -> str:
         n = len(mine(registry.every_solution() if key == "solutions" else getattr(registry, key), intent.intent_id))
         counts.append(f"[{key} ({n})]({name})" if (intent.folder / name).is_file() else f"{key} ({n})")
     nav = navigation(view, registry, intent)
-    lines += ["## Go to", ""] + [line for line in nav if not line.startswith("- Records")] + ["- Records: " + ", ".join(counts), ""]
+    lines += ["## Go to", ""] + [line for line in nav if not line.startswith("- Records")] + ["- Records: " + ", ".join(counts), "", NOTE]
     return "\n".join(lines).rstrip() + "\n"

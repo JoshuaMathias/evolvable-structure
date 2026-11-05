@@ -135,10 +135,13 @@ as more than one link apart. Python only: the imports are read from the syntax t
 
 | Part | What it holds |
 |---|---|
-| Title | The name of the solution when the folder holds one, else the folder's name, and a note that the page is generated from the CSV files in the folder |
+| Title | The name of the solution when the folder holds one, else the folder's name. A solution folder is not an intent, so it shows no vision statement and never one of an ancestor |
+| Purpose, breadcrumb, parent | `**Purpose:** <the solution's purpose>`, the breadcrumb line to every ancestor's README, and `Part of <immediate parent>` linking to the page directly above (the owning intent, or the solution folder that holds this one) |
 | One section per solution | Its name and id, the first sentence of its purpose, its one-line entry call, its selected implementation, its metrics |
+| One level below | Only when the solution has children: each sub-intent that implements it (with its vision statement) and each solution folder directly below it (with its kind and purpose), each linked. A leaf solution has no such section: it is recognised by having none |
 | Diagram | The Mermaid diagram of the solutions in this folder and the folders below it, when one builds on another |
-| Implementations | A table of the implementations this folder holds: id, name, a link to its code, and whether it is the selected one |
+| Implementations | A table of the implementations this folder holds: name, id, purpose, a link to its code, and whether it is the selected one |
+| Generated note | The last line of the page, not the first: generated from the CSV files in the folder by `esoi readmes`; edit the CSV files, not the page |
 | Metrics | Each metric of the folder with the implementation that leads it in the results log |
 | Problems and ideals | One line each |
 | Implemented by | Under each solution, the files that implement it, linked, generated from the records, the declarations and the ownership map |

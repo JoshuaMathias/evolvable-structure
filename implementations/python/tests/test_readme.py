@@ -19,7 +19,7 @@ def page(cfg, layout=None, which=0):
 def test_the_glance_page_opens_with_name_vision_coherence_and_the_diagram_and_keeps_the_full_record_below_a_divider(cfg):
     text = page(cfg)
     top, _, record = text.partition("\n---\n")
-    assert top.startswith("# Consistent greetings\n\nEvery person is greeted by their own name.")
+    assert top.startswith("# Consistent greetings\n\n**Vision statement:** Every person is greeted by their own name.")
     for part in ("## How the solutions fit together", "## Diagram", "```mermaid", "## Solutions at a glance", "## Problems and ideals",
                  "## Metrics and their leaders", "## Where to go next"):
         assert part in top
@@ -160,3 +160,29 @@ def test_the_components_page_leads_with_the_name_and_shows_the_id_as_a_handle():
                                             {"component_id": "bare", "layer": "core", "role": "No name.", "solutions": "recall"}], "esoi")
     assert "| Component | Handle | Layer | Role | Serves |" in text
     assert "| Recall | `hub-recall` | core |" in text and "| bare | `bare` | core |" in text
+
+
+def test_the_vision_statement_is_labelled_in_bold_under_the_title_in_every_layout(cfg):
+    for layout in readme_view.LAYOUTS:
+        assert page(cfg, layout).startswith("# Consistent greetings\n\n**Vision statement:** Every person is greeted by their own name.\n"), layout
+
+
+def test_the_page_shows_one_level_below_with_each_sub_intent_vision_and_each_solution_without_a_sub_intent_with_its_purpose(cfg):
+    add_sub_intent(cfg)
+    text = page(cfg, which=0)
+    below = text.split("## One level below\n", 1)[1].split("\n## ", 1)[0]
+    assert "- [Greeting voices](voices/README.md) (sub-intent): Every greeting is spoken warmly." in below
+    purposes = [r["purpose"] for r in registry.load(cfg).every_solution() if r["solution_id"] != "greet-a-person" and r.get("purpose")]
+    assert all(" ".join(p.split()) in below for p in purposes)
+    assert "- Greet a person" not in below   # the solution that has a sub-intent is shown by that sub-intent
+    assert text.index("```mermaid") < text.index("## One level below") < text.index("## Solutions at a glance")
+
+
+def test_a_generated_page_ends_with_the_generated_note_and_never_opens_with_it(cfg):
+    add_sub_intent(cfg)
+    for layout in readme_view.LAYOUTS:
+        for index in (0, 1):
+            text = page(cfg, layout, index)
+            assert text.rstrip().endswith(readme_view.NOTE), (layout, index)
+            assert "generated from" not in text.rstrip()[: -len(readme_view.NOTE)].lower().replace("generated from the records", ""), (layout, index)
+            assert not text.startswith(("*", "These are ESOI records")), (layout, index)

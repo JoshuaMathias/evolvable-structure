@@ -1,8 +1,8 @@
 # A Project's Records and Code as One Structure
 
-A project's structure enables the continuous evolution of interdependent parts to optimize its intent.
+**Vision statement:** A project's structure enables the continuous evolution of interdependent parts to optimize its intent.
 
-*ESOI records of this intent (evolvable structure that optimizes intent), generated from the CSV files beside this page by `esoi readmes`. Edit the CSV files, not this page.*
+Breadcrumb: [Top](../../../../esoi/README.md) > A Project's Records and Code as One Structure
 
 This sub-intent arises as the implementation `esoi-structure:composition` of its parent intent [`esoi`](../../../../esoi/README.md). Opportunities: The structure can keep itself in any language (records beside the code, rules that prune themselves, a template refinement that reaches every record), so adopting ESOI costs a repository less each year it is used. This creative space goes beyond one repository's layout and is what the ideal Self-evolving structure names.
 
@@ -30,6 +30,16 @@ flowchart LR
     s6 -->|"A committed field list per type"| s0
     s6 -->|"A committed field list per type"| s4
 ```
+
+## One level below
+
+This intent is implemented by the sub-intents and solutions below it; each shows whether it goes deeper.
+
+- [Intent Registry](intent_registry/README.md) (solution with implementations and parts below it): Record every problem, solution, implementation, ideal and metric of a project as linked records that people and checks both read.
+- [Library Adoption](library_adoption/README.md) (solution with implementations): Let a repository refer to a solution that another library's records define, and tell the adopted, the specialized and its own solutions apart, so no job is described twice.
+- [Ownership Map](ownership_map/README.md) (solution with implementations): Assign every file to exactly one component and every component to the solutions it serves, so code with no purpose cannot hide.
+- [Structure Budget](structure_budget/README.md) (solution with implementations): Keep the structure's own cost in view: admit a rule, record or sub-intent only with what it prevents, and prune what stops paying.
+- [Structure Check](structure_check/README.md) (solution with implementations): Run every structural rule on each change and report each finding by rule and path with its next action, quickly enough that nobody skips it.
 
 ## Solutions at a glance
 
@@ -155,3 +165,6 @@ flowchart LR
 - Check dependability (`metric-check-dependability`): `esoi run check_the_structure --impl live_checker`
 - Declaration sync (`metric-declaration-sync`): `esoi run specify_from_code --impl live_declarations`
 - Template agreement (`metric-template-agreement`): `esoi run sync_the_template --impl live_parser`
+
+
+*Generated from the CSV files beside this page by `esoi readmes`. Edit the CSV files, not this page.*

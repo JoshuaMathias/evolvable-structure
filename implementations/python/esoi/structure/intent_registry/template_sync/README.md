@@ -1,40 +1,14 @@
 # Template Sync
 
-*ESOI records kept beside the code in `implementations/python/esoi/structure/intent_registry/template_sync`, generated from the CSV files in this folder by `esoi readmes`. Edit the CSV files, not this page.*
+**Purpose:** Derive the registry's fields from the intent template in the skill so the author's wording stays the single definition.
 
-A project's structure enables the continuous evolution of interdependent parts to optimize its intent.
+Breadcrumb: [Top](../../../../../../esoi/README.md) > [A Project's Records and Code as One Structure](../../README.md) > [Intent Registry](../README.md) > Template Sync
 
-These are the solutions of [A Project's Records and Code as One Structure](../../README.md).
-
-## How the solutions fit together
-
-Structure keeps a project's records and code one true and lean whole. The Intent Registry holds every problem, solution, implementation, ideal and metric as linked records beside the code they describe. It takes its fields from the author's template through Template Sync and fills the rows the code already declares through Specify from the Code, leaving a person's words untouched. The Ownership Map ties every file to the solution it serves, so code that serves nothing has nowhere to hide. Structure Check runs every rule on each change, reading the files the Ownership Map assigns and the fields Template Sync reads from the template, and reports each finding by rule and path with the next action. Library Adoption lets a repository refer to a solution another library's records define instead of copying them, resolving each reference through the Intent Registry's records so no job is described twice. Structure Budget weighs what the rules that Structure Check runs cost each change against the real mistakes they catch, admits a new rule only with the mistake that justifies it, and prunes what stops paying.
-
-## Overview diagram
-
-An arrow runs from the solution that provides to the solution that builds on it; its label is what the provider outputs.
-
-```mermaid
-flowchart LR
-    s0["Intent Registry<br/><i>intent-registry</i>"]
-    s1["Library Adoption<br/><i>library-adoption</i>"]
-    s2["Ownership Map<br/><i>ownership-map</i>"]
-    s3["Structure Budget<br/><i>structure-budget</i>"]
-    s4["Structure Check<br/><i>structure-check</i>"]
-    s5["Specify from the Code<br/><i>specify-from-code</i>"]
-    s6["Template Sync<br/><i>template-sync</i>"]
-    s0 -->|"A linked intent network that the check, the tracker and the selection read"| s1
-    s2 -->|"File-to-solution links and the generated component index"| s4
-    s4 -->|"A list of violations, each led by its rule id, and an exit code"| s3
-    s5 -->|"Findings (rule S30), the rows written, and for a new solution the records, a code skeleton and an evaluation folder"| s0
-    s6 -->|"A committed field list per type"| s0
-    s6 -->|"A committed field list per type"| s4
-```
+Part of [Intent Registry](../README.md)
 
 ## Template Sync (`template-sync`)
 
-Derive the registry's fields from the intent template in the skill so the author's wording stays the single definition.
-
+- Out of scope: Interpreting or extending the template.
 - Entry call: `esoi.run("template-sync", '.')`
 - Selected implementation: Template parser (`template-parser`)
 - Metric: Template agreement
@@ -42,10 +16,10 @@ Derive the registry's fields from the intent template in the skill so the author
 
 ## Implementations
 
-| Implementation | Handle | Code | Selected |
-|---|---|---|---|
-| Template parser | `template-sync:template-parser` | [`implementations/python/esoi/structure/intent_registry/template_sync/interface.py`](interface.py) | selected |
-| Hand-kept field list | `template-sync:hand-kept-field-list` | no code yet |  |
+| Implementation | Handle | Purpose | Code | Selected |
+|---|---|---|---|---|
+| Template parser | `template-sync:template-parser` | A script reads the intent template's sections and fields from `SKILL.md` and writes the committed field list. | [`implementations/python/esoi/structure/intent_registry/template_sync/interface.py`](interface.py) | selected |
+| Hand-kept field list | `template-sync:hand-kept-field-list` | Someone copies the template's fields into a schema when the template changes. | no code yet |  |
 
 ## Metrics
 
@@ -64,3 +38,5 @@ Derive the registry's fields from the intent template in the skill so the author
 - Up: [implementations/python/esoi/structure/intent_registry](../README.md)
 - Intent: [A Project's Records and Code as One Structure](../../README.md)
 - Repository: [top README](../../../../../../README.md)
+
+*Generated from the CSV files in this folder by `esoi readmes`. Edit the CSV files, not this page.*

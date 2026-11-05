@@ -1,32 +1,15 @@
 # Implementation Selection
 
-*ESOI records kept beside the code in `implementations/python/esoi/runtime/implementation_selection`, generated from the CSV files in this folder by `esoi readmes`. Edit the CSV files, not this page.*
+**Purpose:** Choose which implementation serves a call, by a per-call name, an override, the environment, the lock or the recorded default, and refuse an unknown name by listing the valid choices.
 
-Projects continuously use the best implementations without having to change what depends on them.
+Breadcrumb: [Top](../../../../../esoi/README.md) > [ESOI Inside Other People's Running Code](../README.md) > Implementation Selection
 
-These are the solutions of [ESOI Inside Other People's Running Code](../README.md).
-
-## How the solutions fit together
-
-Runtime carries ESOI into other people's running programs. Implementation Selection serves each call with the declared implementation chosen by a per-call name, an override, the environment, the lock or the recorded default, and refuses an unknown name by listing the valid choices. Assemble Parts by Name builds whole programs from named parts in dependency order, choosing each part through Implementation Selection and checking what each part needs from its environment before it runs. Consumer Check lets a system built on the library show which library solution each of its parts serves and scores those parts with the library's cases, and it reads the pins that Implementation Selection keeps to show how far they trail the library.
-
-## Overview diagram
-
-An arrow runs from the solution that provides to the solution that builds on it; its label is what the provider outputs.
-
-```mermaid
-flowchart LR
-    s0["Assemble Parts by Name<br/><i>assemble-by-name</i>"]
-    s1["Consumer Check<br/><i>consumer-check</i>"]
-    s2["Implementation Selection<br/><i>implementation-selection</i>"]
-    s2 -->|"The chosen implementation's class and its configuration type"| s0
-    s2 -->|"The chosen implementation's class and its configuration type"| s1
-```
+Part of [ESOI Inside Other People's Running Code](../README.md)
 
 ## Implementation Selection (`implementation-selection`)
 
-Choose which implementation serves a call, by a per-call name, an override, the environment, the lock or the recorded default, and refuse an unknown name by listing the valid choices.
-
+- Out of scope: Deciding which is best; branching at every call site.
+- Delegates to: leaderboard, promote-the-winner
 - Entry call: `esoi.run("implementation-selection", 'structure-check')`
 - Selected implementation: Declarations in code (`declarations`)
 - Metric: Resolution correctness
@@ -34,11 +17,11 @@ Choose which implementation serves a call, by a per-call name, an override, the 
 
 ## Implementations
 
-| Implementation | Handle | Code | Selected |
-|---|---|---|---|
-| Declarations in code | `implementation-selection:declarations` | [`implementations/python/esoi/runtime/implementation_selection/interface.py`](interface.py) | selected |
-| Entry-point plugins | `implementation-selection:entry-point-plugins` | no code yet |  |
-| Selector class and table | `implementation-selection:select` | [`implementations/python/esoi/runtime/implementation_selection/select.py`](select.py) |  |
+| Implementation | Handle | Purpose | Code | Selected |
+|---|---|---|---|---|
+| Declarations in code | `implementation-selection:declarations` | Each implementation is declared where its code is (`@implementation`, or `register` for an object that cannot carry a decorator), and the records list the same implementations with the path of their module, so there is no second list to keep. A call runs the implementation one cascade chooses (per call, context, environment, deployment, then the solution's selected cell in the records), importing it lazily. A selection table written by hand still works underneath. The Runtime container grows from this arm. | [`implementations/python/esoi/runtime/implementation_selection/interface.py`](interface.py) | selected |
+| Entry-point plugins | `implementation-selection:entry-point-plugins` | Implementations register through Python package entry points. | no code yet |  |
+| Selector class and table | `implementation-selection:select` | The selector class in `esoi/runtime/implementation_selection/select.py`: a pure-data table lists each solution's implementations and default, and a resolver turns a name, an override or the default into the class, importing it lazily. | [`implementations/python/esoi/runtime/implementation_selection/select.py`](select.py) |  |
 
 ## Metrics
 
@@ -53,3 +36,5 @@ Choose which implementation serves a call, by a per-call name, an override, the 
 - Up: [implementations/python/esoi](../../README.md)
 - Intent: [ESOI Inside Other People's Running Code](../README.md)
 - Repository: [top README](../../../../../README.md)
+
+*Generated from the CSV files in this folder by `esoi readmes`. Edit the CSV files, not this page.*
