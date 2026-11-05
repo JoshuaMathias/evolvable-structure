@@ -28,6 +28,7 @@ Steps for a task you already know you want to do.
 - [Use public evidence](how-to/use-public-evidence.md)
 - [Declare a solution's interface and call it with one function](how-to/declare-a-solutions-interface.md): kind, entry, example, `run(id, input)`, the outcomes, the opt-in checks.
 - [Assemble the parts of a program by name](how-to/assemble-by-name.md): resolve, build in dependency order, fail early.
+- [Adopt a solution from a library](how-to/adopt-a-solution-from-a-library.md): refer to a library's solution instead of copying its records (rule S53).
 - [Declare what an implementation needs from its environment](how-to/declare-environment-needs.md): variables, API keys, packages, binaries, services; generate the `.env` template and install script.
 - [Install only what your solutions need](how-to/install-only-what-you-need.md): the closure, the plan, the resolution ladder, coherence in CI.
 - [Build on another package's defaults and say why you differ](how-to/hierarchical-defaults.md): a parent's defaults, one `explain`, reasons for each override, rule S35.
@@ -73,6 +74,7 @@ Why it is built this way. Start with the idea, then the pieces.
 - [Depend on other solutions by name](explanation/cross-dependency-by-name.md): why one solution needs another by name, not by import.
 - [Declare environment needs beside the arm](explanation/environment-needs.md): why an arm states its variables, API keys and packages, and how assembly reports them.
 - [Override only what differs, and say why](explanation/override-only-what-differs.md): why defaults are hierarchical and an override cites its own records.
+- [Adopting solutions from a library](explanation/adopting-solutions-from-a-library.md): adopted, specialized and own solutions, and why an application refers to a library's jobs instead of copying them.
 - [What belongs in the library and what stays in an application](explanation/what-belongs-where.md): the test, with a table.
 - [Versioning](explanation/versioning.md): the package version, the skill and template stamp, and the template version a repository records (rule S34).
 - [Where each part of esoi lives](explanation/layout-of-esoi.md): the four containers, the rule for a solution folder, and where each old module went.

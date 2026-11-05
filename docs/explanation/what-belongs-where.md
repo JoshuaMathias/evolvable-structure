@@ -37,6 +37,11 @@ Its records (`esoi/intent.csv` and the record files beside its code), its Protoc
 library to its package (for example, one `Assembler` object and the public names it exports). A thin binding is a few lines.
 If an application module grows a function that would read the same with the domain words removed, it has drifted: move it.
 
+## Solutions the library already defines
+
+The same line holds for records. A job the library's records define is referenced from the application, never copied; only the application's own
+jobs are written in full (`docs/explanation/adopting-solutions-from-a-library.md`).
+
 ## When unsure
 
 Do not decide alone, and do not build it in the application "for now": for now becomes permanent. Describe the capability and
