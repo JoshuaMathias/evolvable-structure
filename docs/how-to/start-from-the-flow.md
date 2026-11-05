@@ -10,6 +10,9 @@ flow can be updated as needed based on learnings from implementation."
 
 ## The order
 
+This is the part of [the order of building with structure](../explanation/the-order-of-building.md) that starts once the hierarchy, the
+vision statements, the interfaces and the paragraph are written together.
+
 1. **Read the paragraph.** The intent's solution coherence paragraph says, in names, how its solutions fit together ("The Mind asks
    Science for evidence ..."). That is the flow.
 2. **Write the flow, in the medium the implementation will be.** In code, entry-point calls from each solution to the ones it uses.

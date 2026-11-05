@@ -53,6 +53,7 @@ Why it is built this way. Start with the idea, then the pieces.
 - [What ESOI is](explanation/what-is-esoi.md): the idea in five minutes.
 - [The ESOI steps](../skill/evolvable-structure/steps.md): what to do, in order, from your purpose to choosing by a
   measurement.
+- [The order of building with structure](explanation/the-order-of-building.md): hierarchy and visions, then interfaces with the paragraph, diagram, metrics, which implementations to build, implementing, running metrics, and the loop of improvement.
 - [Intents and the five specification types](explanation/intent-types.md): an intent as the container; problems, ideals,
   solutions, implementations and metrics.
 - [How the records connect](explanation/how-they-connect.md)
