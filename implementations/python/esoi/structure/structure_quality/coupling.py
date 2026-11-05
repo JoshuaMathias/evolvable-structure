@@ -243,46 +243,59 @@ def names_consumer(project: Project, unit: str, consumers: Tuple[str, ...]) -> L
     return hits
 
 
-def measure(project: Project, budgets: Budgets, cochange: Optional[Dict[str, object]] = None) -> Dimension:
-    verdicts, entries, kernel = classified(project, budgets)
-    edges = [e for e, _ in verdicts]
-    through = [e for e, verdict in verdicts if verdict in ("entry", "kernel")]
-    reach_in: Dict[Tuple[str, str], int] = defaultdict(int)
+def offending_imports(project: Project, verdicts, entries: Set[str]) -> List[str]:
+    """One line per file pair that reaches into another unit, then one per file that takes a name from the shared kernel that only its unit uses."""
+    reach_in = sorted({(e[2], e[3]) for e, verdict in verdicts if verdict == "reach_in"})
     one_unit: Dict[Tuple[str, str], Set[str]] = defaultdict(set)
     for e, verdict in verdicts:
-        if verdict == "reach_in":
-            reach_in[(e[2], e[3])] += 1
-        elif verdict == "kernel_one_unit":
+        if verdict == "kernel_one_unit":
             one_unit[(e[2], e[3])] |= set(e[4])
-    units = {m.unit for m in project.modules.values()}
+    lines = [f"{a} imports {b} inside another unit; its entry point is {entry_point_of(project, project.modules[b].unit, entries)}" for a, b in reach_in[:200]]
+    return lines + [f"{a} takes {', '.join(sorted(n))} from the shared kernel module {b}, and no other unit uses it: move it into the unit that does"
+                    for (a, b), n in sorted(one_unit.items())[:100]]
+
+
+def unit_cycles(units: Set[str], edges, kernel: Set[str]) -> List[List[str]]:
+    """Import cycles between units, with imports of the shared kernel left out (a kernel imports only kernels, so no file-level cycle passes through it)."""
     graph: Dict[str, Set[str]] = {u: set() for u in units}
     for e in edges:
         if e[3] not in kernel:
             graph[e[0]].add(e[1])
-    cycles = components(graph)
-    cyclic = {u for group in cycles for u in group}
-    named: List[str] = []
-    named_units: Set[str] = set()
-    if budgets.consumers:
-        for unit in sorted(units):
-            found = names_consumer(project, unit, budgets.consumers)
-            if found:
-                named_units.add(unit)
-                named += found
-    parts = {"cross_calls_through_entries_or_kernel": share(len(through), len(edges)), "units_outside_cycles": share(len(units) - len(cyclic), len(units)),
-             "units_not_naming_consumers": share(len(units) - len(named_units), len(units)) if budgets.consumers else None}
-    offenders = [f"{a} imports {b} inside another unit; its entry point is {entry_point_of(project, project.modules[b].unit, entries)}"
-                 for (a, b), _ in sorted(reach_in.items())[:200]]
-    offenders += [f"{a} takes {', '.join(sorted(n))} from the shared kernel module {b}, and no other unit uses it: move it into the unit that does"
-                  for (a, b), n in sorted(one_unit.items())[:100]]
-    offenders += [f"cycle between units: {', '.join(g)}" for g in cycles]
-    offenders += [f"a library names its consumer: {line}" for line in named]
-    landed = defaultdict(int)
+    return components(graph)
+
+
+def consumer_mentions(project: Project, units: Set[str], consumers: Tuple[str, ...]) -> Dict[str, List[str]]:
+    """Per unit that names a consumer the project declares, the lines that do."""
+    found = {unit: names_consumer(project, unit, consumers) for unit in sorted(units)} if consumers else {}
+    return {unit: lines for unit, lines in found.items() if lines}
+
+
+def kernel_note(kernel: Set[str], edges, budgets: Budgets) -> str:
+    """The shared kernel named for the reader, the most imported modules first, so what was counted as clean is visible."""
+    if not kernel:
+        return ""
+    landed: Dict[str, int] = defaultdict(int)
     for e in edges:
         landed[e[3]] += 1
     shared = sorted(kernel, key=lambda path: (-landed[path], path))
-    note = (f"shared kernel: {len(kernel)} modules imported by {budgets.min_kernel_importers} or more units that depend on no solution "
-            f"({', '.join(PurePosixPath(p).name for p in shared[:5])}{', ...' if len(shared) > 5 else ''})") if kernel else ""
+    return (f"shared kernel: {len(kernel)} modules imported by {budgets.min_kernel_importers} or more units that depend on no solution "
+            f"({', '.join(PurePosixPath(p).name for p in shared[:5])}{', ...' if len(shared) > 5 else ''})")
+
+
+def measure(project: Project, budgets: Budgets, cochange: Optional[Dict[str, object]] = None) -> Dimension:
+    verdicts, entries, kernel = classified(project, budgets)
+    edges = [e for e, _ in verdicts]
+    through = [e for e, verdict in verdicts if verdict in ("entry", "kernel")]
+    units = {m.unit for m in project.modules.values()}
+    cycles = unit_cycles(units, edges, kernel)
+    cyclic = {u for group in cycles for u in group}
+    named = consumer_mentions(project, units, budgets.consumers)
+    parts = {"cross_calls_through_entries_or_kernel": share(len(through), len(edges)), "units_outside_cycles": share(len(units) - len(cyclic), len(units)),
+             "units_not_naming_consumers": share(len(units) - len(named), len(units)) if budgets.consumers else None}
+    offenders = offending_imports(project, verdicts, entries)
+    offenders += [f"cycle between units: {', '.join(g)}" for g in cycles]
+    offenders += [f"a library names its consumer: {line}" for lines in named.values() for line in lines]
+    note = kernel_note(kernel, edges, budgets)
     if cochange is not None:
         parts["changes_explained_by_imports"] = cochange.get("explained_share")
         offenders += [f"changes together without an import: {a} and {b} ({n} commits)" for a, b, n in cochange.get("hidden", [])]

@@ -17,7 +17,7 @@ from __future__ import annotations
 import ast
 from collections import defaultdict
 from pathlib import PurePosixPath
-from typing import Dict, Set
+from typing import Dict, Optional, Set
 
 from esoi.structure.intent_registry.parsed_source import nodes_of
 from esoi.structure.structure_quality.conformance import decorator_id, is_protocol, protocol_members
@@ -26,28 +26,39 @@ from esoi.structure.structure_quality.coupling import cross_edges
 from esoi.structure.structure_quality.project import Project
 
 
+def declared_all(module) -> Optional[Set[str]]:
+    """The names a module lists in ``__all__``, or None when it has none."""
+    listed = None
+    for node in module.tree.body:
+        if isinstance(node, ast.Assign) and any(getattr(t, "id", "") == "__all__" for t in node.targets) and isinstance(node.value, (ast.List, ast.Tuple)):
+            listed = {e.value for e in node.value.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)}
+    return listed
+
+
+def named_re_exports(project: Project, module) -> Set[str]:
+    """The names an ``__init__.py`` imports by name from its own unit's modules: what it re-exports without ``__all__`` (PEP 8: the package's interface)."""
+    names: Set[str] = set()
+    for base, taken in module.imports:
+        origin = project.index.get(base)
+        if origin in project.modules and project.modules[origin].unit == module.unit and origin != module.path:
+            names |= {n for n in taken if n != "*"}
+    return names
+
+
 def exported(project: Project) -> Dict[str, Set[str]]:
     out: Dict[str, Set[str]] = defaultdict(set)
     for module in project.modules.values():
         name = PurePosixPath(module.path).name
         if module.tree is None or name not in ("interface.py", "__init__.py"):
             continue
-        listed = None
-        for node in module.tree.body:
-            if isinstance(node, ast.Assign) and any(getattr(t, "id", "") == "__all__" for t in node.targets) and isinstance(node.value, (ast.List, ast.Tuple)):
-                listed = {e.value for e in node.value.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)}
+        listed = declared_all(module)
         if listed is not None:
             out[module.unit] |= listed
         elif name == "__init__.py":
-            # without __all__, the names an __init__ imports from its own unit's modules are what it re-exports (PEP 8: the package's interface)
-            for base, taken in module.imports:
-                origin = project.index.get(base)
-                if origin in project.modules and project.modules[origin].unit == module.unit and origin != module.path:
-                    out[module.unit] |= {n for n in taken if n != "*"}
-        elif name == "interface.py":
-            for node in module.tree.body:
-                if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) and not node.name.startswith("_"):
-                    out[module.unit].add(node.name)
+            out[module.unit] |= named_re_exports(project, module)
+        else:
+            out[module.unit] |= {node.name for node in module.tree.body
+                                 if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) and not node.name.startswith("_")}
     return out
 
 
@@ -61,14 +72,20 @@ def called_ids(project: Project) -> Dict[str, Set[str]]:
     return out
 
 
-def served_names(project: Project) -> Dict[str, Set[str]]:
-    """Per unit, the names it exports that another unit uses through the front door: by the solution id in a call, or by the Protocol name mentioned
-    without an import (a type annotation or ``isinstance``)."""
-    ids = called_ids(project)
+def mentions_by_unit(project: Project) -> Dict[str, Set[str]]:
+    """Per identifier or attribute name, the units whose code mentions it."""
     mentions: Dict[str, Set[str]] = defaultdict(set)
     for module in project.modules.values():
         for name in module.names:
             mentions[name].add(module.unit)
+    return mentions
+
+
+def served_names(project: Project) -> Dict[str, Set[str]]:
+    """Per unit, the names it exports that another unit uses through the front door: by the solution id in a call, or by the Protocol name mentioned
+    without an import (a type annotation or ``isinstance``)."""
+    ids = called_ids(project)
+    mentions = mentions_by_unit(project)
     out: Dict[str, Set[str]] = defaultdict(set)
     for module in project.modules.values():
         if module.tree is None or PurePosixPath(module.path).name != "interface.py":
@@ -93,10 +110,7 @@ def entry_member(node: ast.ClassDef) -> str:
 
 def members_used(project: Project, used: Dict[str, Set[str]]) -> Dict[str, tuple]:
     """Per Protocol that another unit uses: ``(members, members another unit mentions or the front door calls)``."""
-    mentions: Dict[str, Set[str]] = defaultdict(set)
-    for module in project.modules.values():
-        for name in module.names:
-            mentions[name].add(module.unit)
+    mentions = mentions_by_unit(project)
     out: Dict[str, tuple] = {}
     for module in project.modules.values():
         for node in nodes_of(module.tree) if module.tree is not None else ():
