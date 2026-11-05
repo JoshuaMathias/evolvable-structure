@@ -862,7 +862,7 @@ know_stale_results,live_checker,ce157693,,,STL-015,,1,0,0,0,0.0,,
 score_structure_quality,balanced_static,78c6a6bc,,,SQ-001,,1,0,0,0,0.0,,1.0
 score_structure_quality,balanced_static,78c6a6bc,,,SQ-002,,1,0,0,0,0.0,,1.0
 score_structure_quality,balanced_static,78c6a6bc,,,SQ-003,,1,0,0,0,0.5,,0.9925
-score_structure_quality,balanced_static,78c6a6bc,,,SQ-004,,1,0,0,0,0.7,,0.9895
+score_structure_quality,balanced_static,78c6a6bc,,,SQ-004,,1,0,0,0,0.8,,0.988
 score_structure_quality,balanced_static,78c6a6bc,,,SQ-005,,1,0,0,0,0.0,,1.0
 score_structure_quality,balanced_static,78c6a6bc,,,SQ-006,,1,0,0,0,0.0,,1.0
 score_structure_quality,balanced_static,78c6a6bc,,,SQ-007,,1,0,0,0,0.0,,1.0
@@ -872,7 +872,7 @@ score_structure_quality,balanced_static,78c6a6bc,,,SQ-010,,1,0,0,0,0.0,,1.0
 score_structure_quality,balanced_static,78c6a6bc,,,SQ-011,,1,0,0,0,0.1,,0.9985
 score_structure_quality,balanced_static,78c6a6bc,,,SQ-012,,1,0,0,0,0.1,,0.9985
 score_structure_quality,balanced_static,78c6a6bc,,,SQ-013,,1,0,0,0,0.1,,0.9985
-score_structure_quality,balanced_static,78c6a6bc,,,SQ-014,,1,0,0,0,0.4,,0.994
+score_structure_quality,balanced_static,78c6a6bc,,,SQ-014,,1,0,0,0,0.5,,0.9925
 score_structure_quality,balanced_static,78c6a6bc,,,SQ-015,,1,0,0,0,0.1,,0.9985
 score_structure_quality,balanced_static,78c6a6bc,,,SQ-016,,1,0,0,0,0.1,,0.9985
 score_structure_quality,balanced_static,78c6a6bc,,,SQ-017,,1,0,0,0,0.1,,0.9985

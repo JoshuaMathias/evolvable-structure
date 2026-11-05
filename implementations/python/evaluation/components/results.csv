@@ -829,3 +829,5 @@ date,component,impl,cases,passed,dev,heldout,model_calls,tokens_in,tokens_out,co
 2026-11-03,staleness_precision,import_closure,55,46,46/55,0/0,0,0,0,0.0,0.4,0381dc0,f25e39ca,none,false_fresh=0; false_stale=9; decisions=55 | forced past unsolved failures: the decisions an arm gets wrong are what this metric measures; its failures are the result,,
 2026-11-05,score_structure_quality,balanced_static,18,18,18/18,0/0,0,0,0,0.0,2.5,e1fce5a,78c6a6bc,none,"assess 12/12, compare 6/6",,0.9979
 2026-11-05,score_structure_quality,file_size_only,18,6,6/18,0/0,0,0,0,0.0,2.5,e1fce5a,78c6a6bc,none,"assess 5/12, compare 1/6 | forced past unsolved failures: the Goodhart bound: a size-only scorer is expected to fail the cases about scope, coupling, reuse, surface and behavior",,0.5312
+2026-11-05,score_structure_quality,balanced_static,18,18,18/18,0/0,0,0,0,0.0,2.6,93cb2a3,78c6a6bc,none,"assess 12/12, compare 6/6",,0.9978
+2026-11-05,score_structure_quality,file_size_only,18,6,6/18,0/0,0,0,0,0.0,2.5,93cb2a3,78c6a6bc,none,"assess 5/12, compare 1/6",,0.5312

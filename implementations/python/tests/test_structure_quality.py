@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT / "evaluation" / "components"))
 
 import structure_fixture
 from esoi.structure.structure_check.rules import structure_quality_rules
-from esoi.structure.structure_quality import assess, balance, expert_review, interface, overlap, project
+from esoi.structure.structure_quality import assess, balance, expert_review, interface, overlap, project, scope
 from esoi.structure.structure_quality.balance import Budgets
 
 
@@ -163,3 +163,13 @@ def test_the_command_prints_the_number_and_always_exits_zero(capsys):
 def test_the_solution_is_declared_with_its_three_arms():
     assert isinstance(interface.BalancedStatic(), interface.StructureQualityAssessing)
     assert interface.StructureQualityAssessing.assess
+
+
+def test_an_arm_takes_the_methods_of_its_base_class_into_account(tmp_path):
+    (tmp_path / "unit").mkdir()
+    (tmp_path / "unit" / "interface.py").write_text(
+        "from typing import Protocol\n\n@solution('s', kind='x', entry='run')\nclass S(Protocol):\n    def run(self): ...\n\n"
+        "class Base:\n    def run(self):\n        return 1\n\n@implementation('s', 'a')\nclass A(Base):\n    pass\n\n"
+        "@implementation('s', 'b')\nclass B:\n    pass\n")
+    rows = {name: missing for _, name, _, missing in scope.arms_on_interface(project.load(tmp_path))}
+    assert rows["A"] == [] and rows["B"] == ["run"]

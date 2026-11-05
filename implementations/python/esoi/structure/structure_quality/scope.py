@@ -45,10 +45,21 @@ def classes(project: Project):
                 yield module, node
 
 
+def inherited(node: ast.ClassDef, index: Dict[str, ast.ClassDef], seen: Set[str]) -> Set[str]:
+    """The public methods of a class and of every base class the project defines by name (an arm may take its methods from a base)."""
+    found = methods(node)
+    for base in node.bases:
+        name = getattr(base, "id", getattr(base, "attr", ""))
+        if name in index and name not in seen and name != "Protocol":
+            found |= inherited(index[name], index, seen | {name})
+    return found
+
+
 def arms_on_interface(project: Project):
     """Each arm with the Protocol methods it lacks: ``(path, class, solution id, missing)``; the share of arms that lack none."""
     declared: Dict[str, Set[str]] = {}
     arms = []
+    index = {node.name: node for _, node in classes(project)}
     for module, node in classes(project):
         sid = decorator_id(node, "solution")
         if sid and is_protocol(node):
@@ -58,7 +69,7 @@ def arms_on_interface(project: Project):
             arms.append((module.path, node, arm))
     rows = []
     for path, node, sid in arms:
-        have = methods(node)
+        have = inherited(node, index, {node.name})
         missing = sorted(declared[sid] - have) if sid in declared else ["its solution declares no Protocol"]
         rows.append((path, node.name, sid, missing))
     return rows
