@@ -1,4 +1,4 @@
-# ESOI inside other people's running code
+# ESOI Inside Other People's Running Code
 
 The esoi package is a dependency of other people's production code, which declares its alternatives gracefully and selects the best implementation while it runs.
 
@@ -8,7 +8,7 @@ This sub-intent arises as the implementation `implementation-selection:declarati
 
 ## How the solutions fit together
 
-Inside a running program, Implementation selection hands each call to Select an implementation while the program runs, which picks the declared implementation of a solution by name, override, environment or default and refuses an unknown name with the valid choices, and to Assemble parts by name, which builds whole assemblies of named implementations and their needs. Assemble parts by name makes each of its choices through Select an implementation while the program runs, with a parent's defaults beneath a child's own.
+Inside a running program, Implementation Selection hands each call to Selection at Run Time, which picks the declared implementation of a solution by name, override, environment or default and refuses an unknown name with the valid choices, and to Assemble Parts by Name, which builds whole assemblies of named implementations and their needs. Assemble Parts by Name makes each of its choices through Selection at Run Time, with a parent's defaults beneath a child's own.
 
 ## Diagram
 
@@ -16,8 +16,8 @@ An arrow runs from the solution that provides to the solution that builds on it;
 
 ```mermaid
 flowchart LR
-    s0["Select an implementation while the program runs<br/><i>runtime-selection</i>"]
-    s1["Assemble parts by name<br/><i>assemble-by-name</i>"]
+    s0["Selection at Run Time<br/><i>runtime-selection</i>"]
+    s1["Assemble Parts by Name<br/><i>assemble-by-name</i>"]
     s0 -->|"The chosen implementation, and for a table its config class"| s1
 ```
 
@@ -25,15 +25,15 @@ flowchart LR
 
 | Solution | Handle | Entry call | Selected implementation | Metric |
 |---|---|---|---|---|
-| Select an implementation while the program runs | `runtime-selection` | `esoi.run("runtime-selection", 'structure-check')` | Declarations in code with one cascade (`declarations-and-cascade`) | Python selector cases |
-| Assemble parts by name | `assemble-by-name` | `esoi.run("assemble-by-name", 'structure-check')` | Dependency-ordered assembler (`assembler`) | Assembly by name cases |
+| Selection at Run Time | `runtime-selection` | `esoi.run("runtime-selection", 'structure-check')` | Declarations in code with one cascade (`declarations-and-cascade`) | Python selector cases |
+| Assemble Parts by Name | `assemble-by-name` | `esoi.run("assemble-by-name", 'structure-check')` | Dependency-ordered assembler (`assembler`) | Assembly by name cases |
 
 ## Problems and ideals
 
 **Problems**
 
 - Selection default kept twice (`prob-selection-default-kept-twice`): The default implementation of a solution is written in the selection table and again in the records, and only a check holds the two equal.
-- Swappable needs ceremony (`prob-swappable-needs-ceremony`): Making a part swappable takes a port class, a table entry with an import path for every alternative, a wrapper file to measure each one, and edits wherever the choice is made, so most parts are never made swappable.
+- Swappable needs ceremony (`prob-swappable-needs-ceremony`): Making a part swappable takes a port class, a table entry with an import path for every alternative, a wrapper file to measure each one, and edits wherever the choice is made, so many parts are left fixed.
 
 ## Metrics and their leaders
 
@@ -42,7 +42,7 @@ flowchart LR
 
 ## Where to go next
 
-- Parent intent: [Evolvable structure that optimizes intent (ESOI)](../../../../esoi/README.md)
+- Parent intent: [Evolvable Structure that Optimizes Intent (ESOI)](../../../../esoi/README.md)
 - Repository: [top README](../../../../README.md)
 - Records: [intent.csv](intent.csv), [problems.csv](problems.csv), [solutions.csv](solutions.csv), [implementations.csv](implementations.csv), [metrics.csv](metrics.csv)
 - Diagram page: [diagram.md](diagram.md)
@@ -54,14 +54,14 @@ flowchart LR
 ### Problems
 
 - Selection default kept twice (`prob-selection-default-kept-twice`): The default implementation of a solution is written in the selection table and again in the records, and only a check holds the two equal.
-- Swappable needs ceremony (`prob-swappable-needs-ceremony`): Making a part swappable takes a port class, a table entry with an import path for every alternative, a wrapper file to measure each one, and edits wherever the choice is made, so most parts are never made swappable.
+- Swappable needs ceremony (`prob-swappable-needs-ceremony`): Making a part swappable takes a port class, a table entry with an import path for every alternative, a wrapper file to measure each one, and edits wherever the choice is made, so many parts are left fixed.
 
 ### Solutions
 
 | Solution | Handle | Selected | Metric |
 |---|---|---|---|
-| Select an implementation while the program runs | `runtime-selection` | Declarations in code with one cascade (`declarations-and-cascade`) | Python selector cases |
-| Assemble parts by name | `assemble-by-name` | Dependency-ordered assembler (`assembler`) | Assembly by name cases |
+| Selection at Run Time | `runtime-selection` | Declarations in code with one cascade (`declarations-and-cascade`) | Python selector cases |
+| Assemble Parts by Name | `assemble-by-name` | Dependency-ordered assembler (`assembler`) | Assembly by name cases |
 
 ### Implementations
 

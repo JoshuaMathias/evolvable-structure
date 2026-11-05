@@ -8,5 +8,5 @@
 
 ## Where to go next
 
-- Owning intent: [Evolvable structure that optimizes intent (ESOI)](../../../../../../esoi/README.md)
+- Owning intent: [Evolvable Structure that Optimizes Intent (ESOI)](../../../../esoi/README.md)
 - Repository: [top README](../../../../../../README.md)

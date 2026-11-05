@@ -581,9 +581,9 @@ class WhenMetricsAreRun(Protocol):
     def describe(self, project: str) -> Dict[str, int]: ...
 
 
-@implementation("when-metrics-are-run", "on-every-change")
-class OnEveryChange:
-    """The policy page beside the records."""
+@implementation("when-metrics-are-run", "on-a-decision")
+class OnADecision:
+    """The policy page beside the records: a changed file informs, and a metric runs when a decision needs its result."""
 
     def describe(self, project: str) -> Dict[str, int]:
         cfg, found = loaded(project)

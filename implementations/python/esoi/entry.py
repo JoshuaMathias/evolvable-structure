@@ -433,7 +433,7 @@ def own_runner() -> Runner:
     from .assemble import Assembler
     package = Path(__file__).resolve().parent
     root = package.parents[2] if (package.parents[2] / "esoi.toml").is_file() else None
-    return runner(Assembler("esoi", package, modules=("esoi.interfaces", "esoi.spec_index", "esoi.spec_search", "esoi.evidence"), records=root))
+    return runner(Assembler("esoi", package, modules=("esoi.interfaces", "esoi.spec_index", "esoi.spec_search", "esoi.evidence", "esoi.staleness"), records=root))
 
 
 # The first-stage check of the one line (rule S37) and of the README's example: offline, no model.

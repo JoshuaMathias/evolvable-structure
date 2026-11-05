@@ -348,14 +348,14 @@
   }
  },
  "when-metrics-are-run": {
-  "default": "on-every-change",
+  "default": "on-a-decision",
   "evidence": {
    "detail": "no rival implementation was measured on the same cases",
    "p": null,
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "on-every-change": "esoi.interfaces"
+   "on-a-decision": "esoi.interfaces"
   }
  }
 }

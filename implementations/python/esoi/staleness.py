@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 from .config import Config, DEFAULT_STALENESS_RULE, STALENESS_RULES
+from .runtime import implementation, solution
 
 RULES = STALENESS_RULES
 DEFAULT_RULE = DEFAULT_STALENESS_RULE
@@ -620,6 +621,35 @@ def count_stale(config: Config, rule: str) -> Dict[str, str]:
         return found
     finally:
         config.staleness_rule = saved
+
+
+@solution("know-what-a-result-measures", kind="evaluate", example=".")
+def stale_results(project: str) -> Dict[str, str]:
+    """The latest whole-run results of the project at ``project`` that no longer describe the code they measure, as ``{component/impl:
+    the changed file and the component that owns it}``; empty when every result is current."""
+
+
+def stale_by(rule: str, project: str) -> Dict[str, str]:
+    from . import config as config_module
+    return count_stale(config_module.load(Path(project)), rule)
+
+
+@implementation("know-what-a-result-measures", "repo_wide")
+def repo_wide(project: str) -> Dict[str, str]:
+    """Stale when any measured file of the repository changed since the result's commit."""
+    return stale_by("repo_wide", project)
+
+
+@implementation("know-what-a-result-measures", "component_paths")
+def component_paths(project: str) -> Dict[str, str]:
+    """Stale when a file the ownership map assigns to the arm's solutions and implementation changed."""
+    return stale_by("component_paths", project)
+
+
+@implementation("know-what-a-result-measures", "import_closure")
+def import_closure(project: str) -> Dict[str, str]:
+    """Stale when a file the arm's own module imports changed (its own code: never test files, shared fixtures or another arm's code)."""
+    return stale_by("import_closure", project)
 
 
 def explain_cli(config: Config, component: str, say=print, rule: str = "") -> int:
