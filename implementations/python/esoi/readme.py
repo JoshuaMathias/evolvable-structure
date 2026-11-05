@@ -450,6 +450,19 @@ def render_folder(registry: Registry, view: View, owner: str, folder: Path) -> s
     lines = [f"# {heading_text or folder.name}", "",
              f"*ESOI records kept beside the code in `{where}`, generated from the CSV files in this folder by `esoi readmes`. "
              "Edit the CSV files, not this page.*", ""]
+    parent = view.intent(owner)
+    if parent is not None and parent.folder.resolve() != folder.resolve() and solutions:
+        # The folder holds the solutions of an intent whose own page is elsewhere: open with that intent's purpose and how its solutions fit.
+        vision = one_line(parent.row.get("vision_statement", ""))
+        if vision:
+            lines += [vision, ""]
+        lines += [f"These are the solutions of [{one_line(parent.row.get('name', '')) or parent.intent_id}]({link(folder, parent.folder / FILE)}).", ""]
+        if parent.row.get("solution_coherence", "").strip():
+            lines += ["## How the solutions fit together", "", one_line(parent.row["solution_coherence"]), ""]
+        picture = diagram.block(registry, parent)
+        if picture:
+            lines += ["## Overview diagram", "", "An arrow runs from the solution that provides to the solution that builds on it; its label is "
+                      "what the provider outputs.", ""] + picture + [""]
     for r in solutions:
         sid = r.get("solution_id", "")
         lines += [f"## {one_line(r.get('name', '')) or sid} (`{sid}`)", ""]
