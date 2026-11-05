@@ -25,7 +25,7 @@ Part of [A Project's Records and Code as One Structure](../README.md)
 
 ## Metrics
 
-- Structure quality agreement (`metric-structure-quality-agreement`): leader `balanced_static`, 18 of 18 cases
+- Structure quality agreement (`metric-structure-quality-agreement`): leader `balanced_static`, 41 of 41 cases
 
 ## Problems
 
