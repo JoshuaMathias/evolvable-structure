@@ -125,7 +125,7 @@ records.template_version = {version}
 
 # Opt-in rules (advisory: `esoi check --findings` lists what they find, nothing here ever fails a check). Turn each on when you
 # want it: S36 the project's overall solution network, S37 the one-line entry and the README example, S38 solution coherence,
-# S39 the trend of waivers and floors since a base commit.
+# S39 the trend of waivers and floors since a base commit, S50 the flow the coherence paragraph describes is written before what it reaches.
 # [rules.S36]
 # enabled = true
 '''

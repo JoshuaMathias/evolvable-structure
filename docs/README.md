@@ -86,7 +86,7 @@ Facts to look up.
 - [The lock: file, API, command line and exit codes](reference/lock.md): `esoi lock`, `esoi.lock`, the status plan.
 - [Scope the role of a solution](how-to/scope-the-role-of-a-solution.md): purpose, exclusions and who owns them, delegation, the change driver of a container; rules S48 and S49.
 - [A solution holds alternatives of one job](explanation/a-solution-holds-alternatives-of-one-job.md): read the implementation list for purpose and specificity; split by purpose.
-- [Implement the flow first](how-to/implement-flow-first.md): code the flow the coherence paragraph describes from its entry points, then what it calls; rule S47.
+- [Start from the flow](how-to/start-from-the-flow.md): write the flow the coherence paragraph describes, in the medium of the implementation, then what it reaches; rule S50.
 - [Names and ids](reference/names-and-ids.md): the name leads every generated output, the id is the handle; rule S46.
 - [`esoi attest`](reference/attest.md): a recorded, reasoned attestation that an arm's changed code did not move its result.
 - [Component documents](reference/component-documents.md): the `documents` column of components.csv, whose document a file is, rule S1 for it.

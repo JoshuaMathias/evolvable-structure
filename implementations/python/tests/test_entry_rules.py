@@ -249,33 +249,33 @@ def test_the_installed_stage_runs_the_readme_from_a_wheel_in_a_temporary_venv(pr
     assert json.loads(done.stdout.strip().splitlines()[-1]) == {"problems": [], "pending": []}, done.stderr
 
 
-# ---- S47 flow first: a stated flow with no call chain in the code is informed -----------------------------------------------
+# ---- S50 flow first: a stated flow with no call chain in the code is informed -----------------------------------------------
 
 def test_a_solution_with_an_implementation_but_no_caller_in_the_flow_is_informed():
     from esoi.rules import entry_rules
     report = {"intents": [{"intent": "demo", "verdicts": {"mind->science": "E3", "mind->body": "", "body->world": "", "mind->world": "E1"}}]}
     lines = entry_rules.flow_lines(report)
-    assert any(line.startswith("S47 body:") and "no caller shows in the flow of demo" in line and "mind" in line and "next:" in line for line in lines)
-    assert not any(line.startswith("S47 science") or line.startswith("S47 world:") for line in lines)     # both have a caller
+    assert any(line.startswith("S50 body:") and "no caller shows in the flow of demo" in line and "mind" in line and "next:" in line for line in lines)
+    assert not any(line.startswith("S50 science") or line.startswith("S50 world:") for line in lines)     # both have a caller
 
 
 def test_a_stated_edge_nothing_calls_is_informed_when_the_used_solution_has_another_caller():
     from esoi.rules import entry_rules
     report = {"intents": [{"intent": "demo", "verdicts": {"mind->world": "E1", "body->world": "", "mind->body": "E2"}}]}
     lines = entry_rules.flow_lines(report)
-    assert len(lines) == 1 and lines[0].startswith("S47 demo:") and "body->world" in lines[0] and "write the flow first" in lines[0]
+    assert len(lines) == 1 and lines[0].startswith("S50 demo:") and "body->world" in lines[0] and "write the flow first" in lines[0]
 
 
 def test_an_edge_with_an_end_that_has_no_code_is_not_a_flow_finding_and_a_waiver_excuses_one_key():
     from esoi.rules import entry_rules
     report = {"intents": [{"intent": "demo", "verdicts": {"mind->doc": "n/a", "mind->body": ""}}]}
     assert entry_rules.flow_lines(report, lambda key: key == "body") == []                  # waived as the solution id
-    assert [line for line in entry_rules.flow_lines(report) if line.startswith("S47 body")]
-    assert not [line for line in entry_rules.flow_lines(report) if line.startswith("S47 doc")]
+    assert [line for line in entry_rules.flow_lines(report) if line.startswith("S50 body")]
+    assert not [line for line in entry_rules.flow_lines(report) if line.startswith("S50 doc")]
 
 
 def test_s47_is_listed_and_runs_only_where_the_repository_enables_it(repo):
     from esoi import check, config, rules
-    assert "S47" in rules.summaries(config.load(repo))
+    assert "S50" in rules.summaries(config.load(repo))
     problems, advisory = check.check_all(config.load(repo))
-    assert not [line for line in advisory if line.startswith("S47")] and not [p for p in problems if p.startswith("S47")]
+    assert not [line for line in advisory if line.startswith("S50")] and not [p for p in problems if p.startswith("S50")]
