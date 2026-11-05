@@ -1,10 +1,10 @@
-# esoi: choose each implementation by measurement, and keep the reason
+# ESOI: Evolvable Structure that Optimizes Intent
 
-esoi is a small Python library, with no dependencies in its core, for code that has more than one way to do a job. You declare an
-interface, register implementations beside their code, run them on shared cases, and esoi records pass rate, cost and latency per
-case, labels the leader significant (an exact two-sided paired test) or a best guess, and makes it the default. A lockfile pins the
-defaults for production. The same records (problem, ideal, solution, implementation, metric) work without code, for a course or a
-team process: [the guide](docs/README.md). Terms: [glossary](docs/explanation/glossary.md).
+ESOI is a framework that ensure every aspect of your ideas or code can measurably improve over time, while maintaining "evolvable structure." You declare a solution interface, implement alternatives, run them on metrics, and the esoi library ensures the best implementation is what's used at any given time.
+
+The same records (problems, ideals, solutions, implementations, metrics) work for code, business, and life.
+
+# Quick Start
 
 ```bash
 pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git@v0.3.0#subdirectory=implementations/python"
@@ -37,20 +37,16 @@ esoi lock                                       # pin it
 []
 ```
 
-`esoi.run(id, input)` reaches any solution or intent the same way, and `esoi.run(Interface)` returns a typed handle. Your package gets
-the same function with one line, `run = esoi.runtime.assemble_by_name.entry.runner(<your Assembler>)`: a user picks one of your parts by id, overrides one
-implementation (`arms=`), changes its parameters (`arm@option=value`) or registers their own, and every other part keeps its measured
-default. How to declare an interface: [declare a solution's interface](docs/how-to/declare-a-solutions-interface.md). How esoi
-compares with DSPy, MLflow's model registry, promptfoo, Inspect and fitness functions: [related work](docs/explanation/related-work.md).
+`esoi.run(id, input)` reaches any solution or intent the same way, and `esoi.run(Interface)` returns a typed handle. Your package gets the same function with one line, `run = esoi.runtime.assemble_by_name.entry.runner(<your Assembler>)`: a user picks one of your parts by id, overrides one implementation (`arms=`), changes its parameters (`arm@option=value`) or registers their own, and every other part keeps its measured default. 
 
 ## Start here
 
-1. **[What ESOI is](https://github.com/JoshuaMathias/evolvable-structure/wiki/What-ESOI-is)**: the idea in five minutes.
-2. **[The ESOI steps](https://github.com/JoshuaMathias/evolvable-structure/wiki/The-ESOI-steps)**: what to do, in order,
+1. **[What ESOI is](https://github.com/JoshuaMathias/evolvable-structure/wiki/What-ESOI-is)**: The idea in five minutes.
+2. **[The ESOI steps](https://github.com/JoshuaMathias/evolvable-structure/wiki/The-ESOI-steps)**: What to do, in order,
    from your purpose to choosing by a measurement.
-3. **[Apply ESOI by hand](https://github.com/JoshuaMathias/evolvable-structure/wiki/Apply-ESOI-by-hand)**: a first pass
+3. **[Apply ESOI by hand](https://github.com/JoshuaMathias/evolvable-structure/wiki/Apply-ESOI-by-hand)**: A first pass
    in about an hour, with fill-in templates and no tools.
-4. **[The order of building with structure](https://github.com/JoshuaMathias/evolvable-structure/wiki/The-order-of-building-with-structure)**: the whole
+4. **[The order of building with structure](https://github.com/JoshuaMathias/evolvable-structure/wiki/The-order-of-building-with-structure)**: The whole
    sequence from the hierarchy and vision statements to the loop of continual improvement.
 5. **[Code quality is structure quality](https://github.com/JoshuaMathias/evolvable-structure/wiki/Code-quality-is-structure-quality)**: one balanced
    number for how well a project divides its work, and `esoi structure-quality` to read it.
@@ -63,7 +59,7 @@ The author's `evolvable-structure` skill carries the principles and the steps fo
 [Install the skill](https://github.com/JoshuaMathias/evolvable-structure/wiki/Install-the-skill) as a plugin, a folder
 download or with `esoi`.
 
-## Check, measure and select with Python (optional)
+## Check, measure and select with Python
 
 ```bash
 pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git#subdirectory=implementations/python"
