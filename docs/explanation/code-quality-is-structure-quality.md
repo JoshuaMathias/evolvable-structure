@@ -23,7 +23,7 @@ Line and file limits catch the first two. None of them sees the rest, because th
 | Dimension | Weight | What it reads |
 |---|---|---|
 | Scope | 0.20 | every arm implements every member of its solution's Protocol with matching parameters under a solution id that exists (Protocols and base classes of adopted libraries and installed packages count); a folder declares few Protocols; the arms of one solution share one purpose (the word-overlap measure of rules S48 and S49) |
-| Coupling | 0.20 | the share of cross-solution imports that land on a declared entry point; import cycles; a library that names a consumer the project declares; at stage two, files that change together without an import |
+| Coupling | 0.20 | the share of cross-solution imports that land on a declared entry point (the rule is in "What counts as an entry point" below); import cycles; a library that names a consumer the project declares; at stage two, files that change together without an import |
 | Size and cohesion | 0.15 | functions, modules, files per folder, solutions per intent and depth inside their budgets |
 | Reuse and duplication | 0.15 | the share of code copied between files, by token windows, scored on the graded curve (1 - copied) cubed and reported as boilerplate shared by four or more files (a table-driven helper removes it) and accidental clones |
 | Behavior preserved | 0.15 | a contract test or shared case set that runs every arm of a solution with several |
@@ -92,9 +92,33 @@ adopted solutions were called off their interface; and a Protocol reached only t
 The rows can be reproduced from git references with `esoi structure-quality --compare <before> <after>`; the library's own row is a case of the
 scorer's metric (`SQ-025`), checked out from this repository's history.
 
-Where the number cannot be trusted: coupling scored 0.20 to 0.56 on all three kept structures because most imports of another solution land on a module inside
-it, not on its `interface.py` or `__init__.py`; that is the library's own style as much as a fault, so treat the coupling offenders as a to-do list and the
-dimension as a way to compare two structures of one repository, not two repositories. The reference line (0.68) is the lowest of the three kept structures.
+Where the number cannot be trusted: coupling scores 0.09 to 0.56 on the repositories measured because most imports of another unit land on a module inside
+it, not on its `interface.py` or `__init__.py`. Front doors are not the cause: leaving the package `__init__.py`, `api.py` and `__main__.py` out of the count
+(see "What counts as an entry point") moved coupling by less than 0.02 on each of four repositories, so the offenders are real reach-ins by the declared rule (a
+library's habit of importing the module that holds a shared type, or an application layer importing a storage module, is still an import of a non-entry). Treat
+the coupling offenders as a to-do list, and the dimension as a way to compare two structures of one repository, not two repositories. Where a project's layers
+are folders with no `interface.py` or `solutions.csv`, the first two folders count as the unit, so ordinary layering shows as many cross-unit imports. The
+reference line (0.68) is the lowest of the three kept structures.
+
+## What counts as an entry point
+
+Coupling reads imports between units (a unit is the folder of a solution's `interface.py` or `solutions.csv`). An import that crosses from one unit into
+another is clean when it lands on that unit's declared entry, and an offense when it reaches into a module that is not one. The evidence of an entry is
+what the project already declares:
+
+- the unit's `interface.py` (a Protocol is the declared entry of a solution) and the unit's own `__init__.py`;
+- the module an `implementations.csv` record names in `filepath` (the entry call's code), and a module that declares a `@solution` or `@implementation`;
+- a name that a project's front door re-exports **only when the name resolves to one of the above**.
+
+A project's front door is its public API module: a file called `api.py`, or the top package's `__init__.py`. It exists to expose the parts, so it is not
+a unit that reaches into others: what it imports is not counted as a cross-solution call and does not enter the cycle graph. The other side of that
+rule keeps the number honest: a unit that imports a name from a front door is followed through the re-export to the module that defines it, and if that
+module is not an entry the import is a reach-in, so moving every import behind a re-export changes nothing. A `run("<id>")` call is not an import and
+is never an offense.
+
+Still offenders: an import that reaches into another unit's non-entry module (whether directly or through a front door), import cycles between units, and a
+library that names or imports its consumer. The share reported as `cross_calls_through_entry_points` is computed on this definition, and each offender
+reads "imports X inside another unit; its entry point is Y".
 
 ## Where it enters the work
 

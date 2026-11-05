@@ -60,9 +60,9 @@ def coupling_by_unit(path: Path) -> Dict[str, float]:
     entries = coupling.declared_entries(project)
     total: Dict[str, int] = defaultdict(int)
     through: Dict[str, int] = defaultdict(int)
-    for unit, _, _, target, _ in coupling.cross_edges(project):
+    for unit, _, _, target, _ in coupling.entry_edges(project):
         total[unit] += 1
-        if Path(target).name in coupling.ENTRY_NAMES or target in entries:
+        if coupling.is_entry(project, target, entries):
             through[unit] += 1
     return {u: round(through[u] / n, 4) for u, n in total.items()}
 

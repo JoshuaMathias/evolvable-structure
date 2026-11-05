@@ -384,5 +384,51 @@
   "expect": {
    "better_scores_higher": true
   }
+ },
+ {
+  "id": "SQ-026",
+  "kind": "assess",
+  "area": "a package front door, a unit's own re-export, a declared arm file and a name taken from the front door that is an entry are clean",
+  "description": "a package front door, a unit's own re-export, a declared arm file and a name taken from the front door that is an entry are clean",
+  "source": "incident shape: a front door counted as coupling",
+  "args": {
+   "shape": "front_door_and_entries",
+   "stage": 1
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "SQ-027",
+  "kind": "assess",
+  "area": "a unit importing another unit's engine module instead of its entry point flags coupling",
+  "description": "a unit importing another unit's engine module instead of its entry point flags coupling",
+  "source": "incident shape: a reach into another unit's internals",
+  "args": {
+   "shape": "reach_into_internals",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "coupling"
+   ]
+  }
+ },
+ {
+  "id": "SQ-028",
+  "kind": "assess",
+  "area": "a reach-in moved behind a re-export in the front door still flags coupling",
+  "description": "a reach-in moved behind a re-export in the front door still flags coupling",
+  "source": "Goodhart check: hiding a reach-in behind a front door",
+  "args": {
+   "shape": "reach_in_behind_the_front_door",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "coupling"
+   ]
+  }
  }
 ]

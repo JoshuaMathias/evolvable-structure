@@ -50,6 +50,32 @@ def test_the_offenders_name_the_worst_parts():
     assert "lacks run" in " ".join(report("stripped_interfaces")["dimensions"]["scope"]["offenders"])
 
 
+def coupling_of(shape):
+    return report(shape)["dimensions"]["coupling"]
+
+
+def test_front_doors_and_declared_entries_are_clean_coupling():
+    found = coupling_of("front_door_and_entries")
+    assert found["offenders"] == [] and found["score"] == 1.0
+    assert found["parts"]["cross_calls_through_entry_points"] == 1.0
+
+
+def test_a_reach_into_another_units_internals_is_an_offender_and_names_the_entry_point():
+    found = coupling_of("reach_into_internals")
+    assert any("app/ledger/use.py imports app/planner/engine.py inside another unit; its entry point is app/planner/interface.py" == line for line in found["offenders"])
+    assert found["parts"]["cross_calls_through_entry_points"] < 1.0
+
+
+def test_moving_an_import_behind_a_front_door_re_export_does_not_hide_the_reach_in():
+    hidden = coupling_of("reach_in_behind_the_front_door")
+    assert any("app/planner/engine.py inside another unit" in line for line in hidden["offenders"])
+    assert hidden["score"] < 1.0
+
+
+def test_a_cycle_between_units_is_still_an_offender():
+    assert any(line.startswith("cycle between units") for line in coupling_of("import_cycle")["offenders"])
+
+
 def test_splitting_everything_into_tiny_files_scores_worse_than_the_balanced_real_structure():
     real, tiny = report("real_structure"), report("tiny_split")
     assert tiny["score"] < real["score"]

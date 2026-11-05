@@ -1,12 +1,17 @@
 """Dimension 3, coupling: solutions connect through declared entry points, in one direction, without cycles.
 
-Parts: the share of cross-unit imports that land on a unit's declared entry point (its ``interface.py``, its ``__init__.py`` or a file an
-``implementations.csv`` names); the share of units outside an import cycle; the share of units that never name a consumer the project declares
-(a library never names or imports its consumers); and, at stage 2, the share of files that change together across units with an import
-edge to explain it (see ``cochange``). Co-change is the history's evidence of the same thing the imports show.
+Parts: the share of cross-unit imports that land on a unit's declared entry (its ``interface.py``, its ``__init__.py``, a file an
+``implementations.csv`` names or one that declares a ``@solution`` or ``@implementation``); the share of units outside an import cycle; the share of
+units that never name a consumer the project declares (a library never names or imports its consumers); and, at stage 2, the share of files that
+change together across units with an import edge to explain it (see ``cochange``). Co-change is the history's evidence of the same thing the imports show.
+
+A project's front door (``api.py``, the top package's ``__init__.py``) exists to expose the parts: what it imports is not a cross-solution call and is
+left out of the cycle graph. A name another unit takes from a front door counts as an entry only when it resolves, through the re-exports, to a declared
+entry; otherwise it is a reach-in on the module that defines it, so moving imports behind a re-export hides nothing.
 """
 from __future__ import annotations
 
+import ast
 import csv
 from collections import defaultdict
 from pathlib import PurePosixPath
@@ -16,11 +21,24 @@ from esoi.structure.structure_quality.balance import Budgets, Dimension, combine
 from esoi.structure.structure_quality.project import Project
 
 ENTRY_NAMES = {"interface.py", "__init__.py"}
+FRONT_DOOR_NAMES = {"api.py", "__main__.py"}
+DECLARING = {"solution", "implementation"}
+RE_EXPORT_DEPTH = 6
+
+
+def declares_entry(tree: object) -> bool:
+    """Whether a module decorates a function or class with ``solution`` or ``implementation``: the declaration of an entry in code."""
+    for node in ast.walk(tree) if tree is not None else ():
+        for decorator in getattr(node, "decorator_list", ()):
+            call = decorator.func if isinstance(decorator, ast.Call) else decorator
+            if (call.id if isinstance(call, ast.Name) else getattr(call, "attr", "")) in DECLARING:
+                return True
+    return False
 
 
 def declared_entries(project: Project) -> Set[str]:
-    """The files that implementations.csv records name as the code of an arm: a unit's declared way in."""
-    found: Set[str] = set()
+    """The files that name a unit's declared way in: those implementations.csv records name as the code of an arm, and those that declare one in code."""
+    found: Set[str] = {path for path, module in project.modules.items() if declares_entry(module.tree)}
     for relative in project.named["implementations.csv"]:
         with (project.root / relative).open(newline="", encoding="utf-8") as handle:
             for row in csv.DictReader(handle):
@@ -48,6 +66,61 @@ def cross_edges(project: Project) -> List[Tuple[str, str, str, str, Tuple[str, .
                 if other is not None and other.unit != module.unit:
                     edges.append((module.unit, other.unit, module.path, target, names))
     return edges
+
+
+def is_front_door(project: Project, path: str) -> bool:
+    """A project's front door: an ``api.py`` (its public API), a ``__main__.py`` (its command line), or the ``__init__.py`` of a top package (one whose parent folder is not itself a package)."""
+    pure = PurePosixPath(path)
+    if pure.name in FRONT_DOOR_NAMES:
+        return True
+    return pure.name == "__init__.py" and str(pure.parent.parent / "__init__.py") not in project.modules
+
+
+def is_entry(project: Project, path: str, entries: Set[str]) -> bool:
+    return PurePosixPath(path).name in ENTRY_NAMES or path in entries or is_front_door(project, path)
+
+
+def through_front_door(project: Project, door: str, names: Tuple[str, ...], depth: int = RE_EXPORT_DEPTH) -> List[str]:
+    """The files the names taken from a front door come from: each name followed through the door's own imports, else the door itself (it defines the name)."""
+    if not names or depth == 0:
+        return [door]
+    found: List[str] = []
+    for name in names:
+        origin = [door]
+        for base, taken in project.modules[door].imports:
+            if name in taken:
+                hits = targets(project, base, (name,))
+                origin = []
+                for hit in hits:
+                    origin += through_front_door(project, hit, (name,), depth - 1) if is_front_door(project, hit) and hit != door else [hit]
+                break
+        found += origin or [door]
+    return found
+
+
+def entry_edges(project: Project) -> List[Tuple[str, str, str, str, Tuple[str, ...]]]:
+    """``cross_edges`` as coupling reads them: a front door is not a source, and a name taken from a front door lands on the file that defines it."""
+    edges = []
+    for module in project.modules.values():
+        if is_front_door(project, module.path):
+            continue
+        for base, names in module.imports:
+            for target in targets(project, base, names):
+                landed = through_front_door(project, target, names) if is_front_door(project, target) else [target]
+                for final in landed:
+                    other = project.modules.get(final)
+                    if other is not None and other.unit != module.unit:
+                        edges.append((module.unit, other.unit, module.path, final, names))
+    return edges
+
+
+def entry_point_of(project: Project, unit: str, entries: Set[str]) -> str:
+    """The unit's declared way in, named for an offender: its ``interface.py``, else its ``__init__.py``, else a declared file inside it."""
+    for name in ("interface.py", "__init__.py"):
+        if f"{unit}/{name}" in project.modules:
+            return f"{unit}/{name}"
+    inside = sorted(p for p in entries if p in project.modules and project.modules[p].unit == unit)
+    return inside[0] if inside else "none declared (add an interface.py)"
 
 
 def components(graph: Dict[str, Set[str]]) -> List[List[str]]:
@@ -110,9 +183,9 @@ def names_consumer(project: Project, unit: str, consumers: Tuple[str, ...]) -> L
 
 
 def measure(project: Project, budgets: Budgets, cochange: Optional[Dict[str, object]] = None) -> Dimension:
-    edges = cross_edges(project)
+    edges = entry_edges(project)
     entries = declared_entries(project)
-    through = [e for e in edges if PurePosixPath(e[3]).name in ENTRY_NAMES or e[3] in entries]
+    through = [e for e in edges if is_entry(project, e[3], entries)]
     reach_in: Dict[Tuple[str, str], int] = defaultdict(int)
     allowed = set(through)
     for e in edges:
@@ -134,7 +207,8 @@ def measure(project: Project, budgets: Budgets, cochange: Optional[Dict[str, obj
                 named += found
     parts = {"cross_calls_through_entry_points": share(len(through), len(edges)), "units_outside_cycles": share(len(units) - len(cyclic), len(units)),
              "units_not_naming_consumers": share(len(units) - len(named_units), len(units)) if budgets.consumers else None}
-    offenders = [f"{a} imports {b}, inside another unit and not its entry point" for (a, b), _ in sorted(reach_in.items())[:200]]
+    offenders = [f"{a} imports {b} inside another unit; its entry point is {entry_point_of(project, project.modules[b].unit, entries)}"
+                 for (a, b), _ in sorted(reach_in.items())[:200]]
     offenders += [f"cycle between units: {', '.join(g)}" for g in cycles]
     offenders += [f"a library names its consumer: {line}" for line in named]
     note = ""

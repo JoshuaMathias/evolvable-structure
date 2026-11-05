@@ -242,6 +242,36 @@ def cochange_hidden() -> Dict[str, str]:
     return files
 
 
+def front_door_and_entries() -> Dict[str, str]:
+    """Every way to reach another unit that is declared: the package's front door (``__init__.py`` and ``api.py``) importing entries and a helper,
+    a unit's own ``__init__.py`` re-export, a module that declares an ``@implementation``, a name taken from the front door that is an entry, and a ``run`` call."""
+    files = exemplar(False)
+    files["app/__init__.py"] = "from app.ledger.interface import LedgerDoing\nfrom app.planner.interface import PlannerDoing\n"
+    files["app/api.py"] = ('"""The public API."""\nfrom app.catalog.engine import tally\nfrom app.mailer.interface import MailerDoing\n'
+                           'from app.planner.interface import PlannerDoing\n\n__all__ = ["MailerDoing", "PlannerDoing", "tally"]\n')
+    files["app/catalog/__init__.py"] = "from app.catalog.engine import tally\n"
+    files["app/mailer/arms.py"] = ('"""A declared arm in its own file."""\nfrom esoi.runtime.implementation_selection.declare import implementation\n\n\n'
+                                   '@implementation("mailer", "terse")\nclass Terse:\n    """The terse way."""\n\n    def run(self, data, extra_0, extra_1):\n        return data\n')
+    files["app/ledger/use.py"] = ('"""Ledger reads through declared entries only."""\nfrom app.api import PlannerDoing\nfrom app.catalog import tally\n'
+                                  'from app.mailer.arms import Terse\n\n\ndef ask(planner: PlannerDoing):\n    return planner.run([1], 2), tally([1], 2, 3), Terse().run(1, 2, 3), run("mailer")\n')
+    return files
+
+
+def reach_into_internals() -> Dict[str, str]:
+    """A unit imports an engine module of another unit, which is not its entry."""
+    files = exemplar(False)
+    files["app/ledger/use.py"] = '"""Ledger reaches into the planner engine."""\nfrom app.planner.engine import pick\n\n\ndef ask(rows):\n    return pick(rows)\n'
+    return files
+
+
+def reach_in_behind_the_front_door() -> Dict[str, str]:
+    """The same reach-in with the import moved behind a re-export in the front door: the exported name is not a declared entry, so it still counts."""
+    files = exemplar(False)
+    files["app/api.py"] = '"""The public API."""\nfrom app.planner.engine import pick\n\n__all__ = ["pick"]\n'
+    files["app/ledger/use.py"] = '"""Ledger reads the planner through the front door."""\nfrom app.api import pick\n\n\ndef ask(rows):\n    return pick(rows)\n'
+    return files
+
+
 SHAPES = {
     "clean_exemplar": (exemplar, {}),
     "real_structure": (lambda: exemplar(True), {}),
@@ -255,6 +285,9 @@ SHAPES = {
     "library_names_consumer": (library_names_consumer, {"consumers": ("shopfront",)}),
     "due_arithmetic_copied": (due_arithmetic_copied, {}),
     "import_cycle": (import_cycle, {}),
+    "front_door_and_entries": (front_door_and_entries, {}),
+    "reach_into_internals": (reach_into_internals, {}),
+    "reach_in_behind_the_front_door": (reach_in_behind_the_front_door, {}),
     "no_contract": (no_contract, {}),
     "unused_exports": (unused_exports, {}),
     "cochange_hidden": (cochange_hidden, {"history": "hidden"}),
