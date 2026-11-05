@@ -5,13 +5,13 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 
 | Component | Handle | Layer | Role | Serves |
 |---|---|---|---|---|
-| Documentation | `documentation` | docs | Explanation, guides and non-code templates (the main feature of the repository). | docs-and-templates, follow-the-steps |
+| Documentation | `documentation` | docs | Explanation, guides and non-code templates (the main feature of the repository). | docs-and-templates, the-steps |
 | Examples | `examples` | docs | Adopters as short examples and testimonials. | docs-and-templates |
 | Structure registry | `structure-registry` | docs | This repository's own overall network and detailed records. | intent-registry |
 | Project files | `project-files` | project | Files at the repository root: readme, configuration, contributing, licence. | docs-and-templates |
 | Wiki | `wiki` | scripts | A thin wrapper that generates this repository's GitHub wiki from docs/ through esoi docs wiki. | docs-and-templates |
 | Docs standard | `docs-standard` | tools | Checking the four-category docs standard and generating a wiki from docs/, so the docs stay the one source. | docs-and-templates |
-| Public skill | `public-skill` | docs | The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package. | skill-distribution, behave-by-esoi, follow-the-steps |
+| Public skill | `public-skill` | docs | The generated public copy of the author's skill, its plugin manifest and the copy bundled in the package. | skill-distribution, esoi-for-ai, the-steps |
 | Records core | `records-core` | core | Loading the configuration and the CSV records, and checking the intent records against the template. | intent-registry |
 | Template reader | `template-reader` | core | Reading the intent template from its source and keeping the parsed copy. | template-sync |
 | Expectations | `expectations` | core | The declarative check that case-driven evaluations share. | measurement-harness |
@@ -45,7 +45,7 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | Eval review tracker | `eval-review-tracker` | evaluation | Cases for the tracker. | review-tracker |
 | Eval check a consumer | `eval-check-a-consumer` | evaluation | Mutation cases for the consumer check. | consumer-check |
 | Eval know stale results | `eval-know-stale-results` | evaluation | Cases for telling a stale result from a current one. | when-metrics-are-run |
-| Eval shared | `eval-shared` | evaluation | Fixtures shared by the evaluations, the results log and the per-case log. | structure-check, measurement-harness, consumer-check, when-metrics-are-run, behave-by-esoi, judge-esoi-behaviour, specify-from-code, readable-records, promote-the-winner |
+| Eval shared | `eval-shared` | evaluation | Fixtures shared by the evaluations, the results log and the per-case log. | structure-check, measurement-harness, consumer-check, when-metrics-are-run, esoi-for-ai, esoi-behaviour-judge, specify-from-code, readable-records, promote-the-winner |
 | Python project | `python-project` | project | Packaging, the implementation's readme and its reference documents. | structure-check |
 | Ci | `ci` | project | The continuous integration workflow. | when-metrics-are-run |
 | Skill distribution | `skill-distribution` | tools | Generating, checking and installing the public copy of the author's skill. | skill-distribution |
@@ -55,9 +55,9 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | Rules intents | `rules-intents` | tools | The rules about intents as containers: the sub-intent link, the opportunity and ids across the tree. | structure-rules |
 | Local index | `local-index` | tools | The local ESOI index: projects, their relations and where to look. | local-application-index |
 | Eval index projects | `eval-index-projects` | evaluation | Lookup cases over a small world of projects, the live index and the arms it is compared with. | local-application-index |
-| Behaviour | `behaviour` | tools | Grading an AI agent's reply against a behaviour case: the pattern check, the judge prompt and verdict, and a command provider. | behave-by-esoi, judge-esoi-behaviour |
-| Eval behave by esoi | `eval-behave-by-esoi` | evaluation | Cases, recorded replies and the arms for whether an agent acts by the principles. | behave-by-esoi |
-| Eval judge esoi behaviour | `eval-judge-esoi-behaviour` | evaluation | Labelled replies and the arms for how far a judge agrees with them. | judge-esoi-behaviour |
+| Behaviour | `behaviour` | tools | Grading an AI agent's reply against a behaviour case: the pattern check, the judge prompt and verdict, and a command provider. | esoi-for-ai, esoi-behaviour-judge |
+| Eval behave by esoi | `eval-behave-by-esoi` | evaluation | Cases, recorded replies and the arms for whether an agent acts by the principles. | esoi-for-ai |
+| Eval judge esoi behaviour | `eval-judge-esoi-behaviour` | evaluation | Labelled replies and the arms for how far a judge agrees with them. | esoi-behaviour-judge |
 | Declarations | `declarations` | tools | Reading the declarations in the code, the drift rule S30 and the sync of the records. | specify-from-code |
 | Admit | `admit` | tools | Taking a newly found technology into the structure as an implementation with no arm yet, and recording a justified change to the specification. | specify-from-code, leaderboard |
 | New solution | `new-solution` | tools | Creating a whole solution with one command. | specify-from-code |

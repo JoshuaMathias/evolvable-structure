@@ -429,38 +429,6 @@ def skill_file(project: str, name: str) -> Path:
     return cfg.root / skill.settings_from(cfg).dir / name
 
 
-@solution("behave-by-esoi", kind="event", entry="describe", example=".")
-@runtime_checkable
-class BehavingByEsoi(Protocol):
-    """The cases an agent's replies are measured on to see whether they act by the principles."""
-
-    def describe(self, project: str) -> Dict[str, int]: ...
-
-
-@implementation("behave-by-esoi", "standing-instructions")
-class StandingInstructions:
-    """The skill given as standing instructions, measured case by case."""
-
-    def describe(self, project: str) -> Dict[str, int]:
-        return count_cases(project, "behave_by_esoi")
-
-
-@solution("judge-esoi-behaviour", kind="event", entry="describe", example=".")
-@runtime_checkable
-class JudgingEsoiBehaviour(Protocol):
-    """The labelled cases the grading of a reply is scored against."""
-
-    def describe(self, project: str) -> Dict[str, int]: ...
-
-
-@implementation("judge-esoi-behaviour", "model-judge")
-class ModelJudge:
-    """A model that grades one reply against one case; its agreement with the labels is the metric."""
-
-    def describe(self, project: str) -> Dict[str, int]:
-        return count_cases(project, "judge_esoi_behaviour")
-
-
 @solution("esoi-behaviour-judge", kind="event", entry="describe", example=".")
 @runtime_checkable
 class EsoiBehaviourJudging(Protocol):
@@ -471,14 +439,10 @@ class EsoiBehaviourJudging(Protocol):
 
 @implementation("esoi-behaviour-judge", "model-judge-on-the-rubric")
 class ModelJudgeOnTheRubric:
-    """The judge graded against the labelled cases of its component: the cases the model judge it is built on (``judge-esoi-behaviour``)
-    is scored against."""
-
-    def __init__(self, judge: JudgingEsoiBehaviour):
-        self.judge = judge
+    """The model judge, graded against the labelled replies of its component."""
 
     def describe(self, project: str) -> Dict[str, int]:
-        return self.judge.describe(project)
+        return count_cases(project, "judge_esoi_behaviour")
 
 
 @solution("local-application-index", kind="event", entry="describe", example=".")
@@ -500,50 +464,42 @@ class LiveIndex:
 @solution("esoi-for-ai", kind="event", entry="describe", example=".")
 @runtime_checkable
 class EsoiForAi(Protocol):
-    """The standing instructions an AI agent is given: the length of the skill that carries them."""
+    """The standing instructions an AI agent is given and what they are measured on: the length of the skill that carries them, the
+    behaviour cases its replies are scored on, and the labelled replies the judge of those replies is scored on."""
 
     def describe(self, project: str) -> Dict[str, int]: ...
 
 
 @implementation("esoi-for-ai", "skill-as-standing-instructions")
 class SkillAsStandingInstructions:
-    """The public skill, loaded as standing instructions."""
+    """The public skill, loaded as standing instructions; the replies a pattern cannot settle are graded by the behaviour judge."""
+
+    def __init__(self, judge: EsoiBehaviourJudging):
+        self.judge = judge
 
     def describe(self, project: str) -> Dict[str, int]:
-        return {"skill_lines": len(read_lines(skill_file(project, "SKILL.md")))}
+        return {"skill_lines": len(read_lines(skill_file(project, "SKILL.md"))),
+                "behaviour_cases": count_cases(project, "behave_by_esoi")["cases"],
+                "judge_cases": self.judge.describe(project)["cases"]}
 
 
 @solution("the-steps", kind="event", entry="describe", example=".")
 @runtime_checkable
 class TheSteps(Protocol):
-    """The title of the written order in which to define and apply ESOI."""
+    """The written order in which to define and apply ESOI: its title and how many numbered steps it has."""
 
-    def describe(self, project: str) -> Dict[str, str]: ...
+    def describe(self, project: str) -> Dict[str, Any]: ...
 
 
 @implementation("the-steps", "esoi-steps")
 class EsoiSteps:
     """The steps file of the public skill."""
 
-    def describe(self, project: str) -> Dict[str, str]:
-        return {"title": next((line.lstrip("# ").strip() for line in read_lines(skill_file(project, "steps.md")) if line.startswith("#")), "")}
-
-
-@solution("follow-the-steps", kind="event", entry="describe", example=".")
-@runtime_checkable
-class FollowingTheSteps(Protocol):
-    """How many numbered steps the written order has."""
-
-    def describe(self, project: str) -> Dict[str, int]: ...
-
-
-@implementation("follow-the-steps", "steps")
-class Steps:
-    """The numbered lines of the steps file."""
-
-    def describe(self, project: str) -> Dict[str, int]:
+    def describe(self, project: str) -> Dict[str, Any]:
         import re
-        return {"numbered_lines": sum(1 for line in read_lines(skill_file(project, "steps.md")) if re.match(r"\s*\d+[.)]\s", line))}
+        lines = read_lines(skill_file(project, "steps.md"))
+        return {"title": next((line.lstrip("# ").strip() for line in lines if line.startswith("#")), ""),
+                "numbered_steps": sum(1 for line in lines if re.match(r"\d+[.)]\s", line))}
 
 
 @solution("the-standard", kind="event", entry="describe", example=".")

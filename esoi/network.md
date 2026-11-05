@@ -36,15 +36,16 @@ feedback loop. It has a single top solution, `apply-esoi`, with two implementati
 
 Everything else that does not earn a folder stays a solution here: the registry, the template sync, the ownership map,
 selection, measurement, the leaderboard, the structure check, the review tracker, the consumer check, the standard, the
-structure budget, when metrics are run, skill distribution, the steps, guiding agents (`esoi-for-ai`, whose metric is
-carried out by `behave-by-esoi`, calibrated by `esoi-behaviour-judge`) and the local index (`local-application-index`).
+structure budget, when metrics are run, skill distribution, the steps, guiding agents (`esoi-for-ai`, whose metric runs the
+behaviour cases and whose replies are graded by `esoi-behaviour-judge`) and the local index (`local-application-index`).
 The local index is a solution, not a sub-intent: its implementations are alternatives compared by one metric and it
 brings no opportunity beyond the solution it implements.
 
-How specifications relate to code (decided by Joshua): they are kept separate, in this structure folder, and esoi helps keep
-them in step with the code (the ownership map ties every file to a solution and the check names what drifted). Recording
-intents as folders is the selected implementation of the `intent-registry` solution; its rival,
-`records-beside-the-code`, stays listed.
+How specifications relate to code: each solution's records sit beside the code that implements it
+(`implementations/python/esoi/*.csv`), the top intent and the alternatives with no code yet stay in this folder, and esoi keeps
+them in step with the code (the ownership map ties every file to a solution and the check names what drifted). Records beside the
+code is the selected implementation of the `intent-registry` solution, chosen by the navigable-records measurement over
+`esoi_folder`, which stays listed.
 
 ### Sub-intent `esoi-runtime` (folder `implementations/python/esoi/esoi-runtime/`)
 
@@ -54,8 +55,16 @@ intents as folders is the selected implementation of the `intent-registry` solut
   declarations of alternatives (decorators, for example) and embedding without forking. That is a creative space beyond
   selecting an implementation by a table in one repository, and it does not emerge from the parent intent (applying ESOI to a
   project) or from the solution it implements (switching which implementation serves a solution).
-- **Holds:** one solution, `runtime-selection` (the selector in `esoi/select.py`, with its cases), which
-  `implementation-selection:declarations` builds on. It also carries the scope of a declaration (two projects may share a solution id) and the older environment variables a project may keep reading.
+- **Holds:** two solutions that `implementation-selection:declarations` builds on: `runtime-selection` (the declarations and
+  the cascade that picks an implementation per call, with the selector in `esoi/select.py` as its rival) and `assemble-by-name`
+  (building whole assemblies of named implementations and their needs, choosing each through `runtime-selection`). It also carries the scope of a declaration (two projects may share a solution id) and the older environment variables a project may keep reading.
+
+### Merged in 2026-11
+
+- **`behave-by-esoi`, `judge-esoi-behaviour` and `follow-the-steps`** were merged into `esoi-for-ai`, `esoi-behaviour-judge` and
+  `the-steps`. Each held the same alternatives as the solution it was merged into (the same three ways of giving an agent the
+  principles; the same model and pattern judges; the same steps file and one-hour guide), so it compared nothing new: measuring
+  the arms is the surviving solution's metric. Their cases, arms and run policy are unchanged.
 
 ### Retired in 2026-10
 

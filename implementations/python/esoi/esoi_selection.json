@@ -13,17 +13,15 @@
   "scopes": {
    "apply-esoi": "esoi",
    "assemble-by-name": "esoi",
-   "behave-by-esoi": "esoi",
    "consumer-check": "esoi",
    "discriminating-cases": "esoi",
    "docs-and-templates": "esoi",
    "esoi-behaviour-judge": "esoi",
    "esoi-for-ai": "esoi",
-   "follow-the-steps": "esoi",
    "implementation-selection": "esoi",
    "intent-registry": "esoi",
-   "judge-esoi-behaviour": "esoi",
    "keep-metric-record": "esoi",
+   "know-what-a-result-measures": "esoi",
    "leaderboard": "esoi",
    "local-application-index": "esoi",
    "measurement-harness": "esoi",
@@ -63,17 +61,6 @@
    "assembler": "esoi.interfaces"
   }
  },
- "behave-by-esoi": {
-  "default": "standing-instructions",
-  "evidence": {
-   "detail": "the selected implementation has no recorded row; no arm has a result",
-   "p": null,
-   "verdict": "UNMEASURED"
-  },
-  "modules": {
-   "standing-instructions": "esoi.interfaces"
-  }
- },
  "consumer-check": {
   "default": "consumer-command",
   "evidence": {
@@ -99,20 +86,24 @@
  },
  "esoi-behaviour-judge": {
   "default": "model-judge-on-the-rubric",
+  "evidence": {
+   "detail": "the selected implementation has no recorded row; no arm has a result",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
   "modules": {
    "model-judge-on-the-rubric": "esoi.interfaces"
   }
  },
  "esoi-for-ai": {
   "default": "skill-as-standing-instructions",
+  "evidence": {
+   "detail": "the selected implementation has no recorded row; no arm has a result",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
   "modules": {
    "skill-as-standing-instructions": "esoi.interfaces"
-  }
- },
- "follow-the-steps": {
-  "default": "steps",
-  "modules": {
-   "steps": "esoi.interfaces"
   }
  },
  "implementation-selection": {
@@ -124,24 +115,13 @@
  "intent-registry": {
   "default": "beside_code",
   "evidence": {
-   "detail": "beside_code is better than esoi_folder (two-sided exact McNemar test, Holm-adjusted p=1.42e-14, 47 of 53 cases disagree)",
+   "detail": "beside_code is better than esoi_folder (two-sided exact McNemar test, Holm-adjusted p=3.73e-09, 29 of 53 cases disagree)",
    "p": 0.0,
    "verdict": "WIN"
   },
   "modules": {
    "beside_code": "esoi.interfaces",
    "esoi_folder": "esoi.interfaces"
-  }
- },
- "judge-esoi-behaviour": {
-  "default": "model-judge",
-  "evidence": {
-   "detail": "the selected implementation has no recorded row; no arm has a result",
-   "p": null,
-   "verdict": "UNMEASURED"
-  },
-  "modules": {
-   "model-judge": "esoi.interfaces"
   }
  },
  "keep-metric-record": {
@@ -153,6 +133,19 @@
   },
   "modules": {
    "library-modules": "esoi.interfaces"
+  }
+ },
+ "know-what-a-result-measures": {
+  "default": "import_closure",
+  "evidence": {
+   "detail": "import_closure is better than component_paths (two-sided exact McNemar test, Holm-adjusted p=0.000244, 13 of 55 cases disagree); import_closure is better than repo_wide (two-sided exact McNemar test, Holm-adjusted p=1.86e-09, 31 of 55 cases disagree)",
+   "p": 0.0,
+   "verdict": "WIN"
+  },
+  "modules": {
+   "component_paths": "esoi.staleness",
+   "import_closure": "esoi.staleness",
+   "repo_wide": "esoi.staleness"
   }
  },
  "leaderboard": {
@@ -224,8 +217,8 @@
  "readable-records": {
   "default": "at_a_glance",
   "evidence": {
-   "detail": "at_a_glance leads full_page (full_page 0 against at_a_glance 1; best guess, not yet significant, two-sided exact McNemar test, Holm-adjusted p=0.25, 4 of 4 cases disagree); at_a_glance leads links_page (links_page 0 against at_a_glance 1; best guess, not yet significant, two-sided exact McNemar test, Holm-adjusted p=0.25, 4 of 4 cases disagree)",
-   "p": 0.25,
+   "detail": "at_a_glance leads full_page (full_page 0 against at_a_glance 0.25; best guess, not yet significant, two-sided exact McNemar test, Holm-adjusted p=1, 1 of 4 cases disagree); at_a_glance leads links_page (links_page 0 against at_a_glance 0.25; best guess, not yet significant, two-sided exact McNemar test, Holm-adjusted p=1, 1 of 4 cases disagree)",
+   "p": 1.0,
    "verdict": "WIN"
   },
   "modules": {
@@ -271,8 +264,8 @@
  "spec-index": {
   "default": "weighted-tfidf",
   "evidence": {
-   "detail": "weighted_tfidf leads term_overlap (term_overlap 0.771 against weighted_tfidf 0.857; best guess, not yet significant, two-sided exact McNemar test, Holm-adjusted p=0.375, 5 of 35 cases disagree)",
-   "p": 0.375,
+   "detail": "weighted_tfidf leads term_overlap (term_overlap 0.743 against weighted_tfidf 0.886; best guess, not yet significant, two-sided exact McNemar test, Holm-adjusted p=0.0625, 5 of 35 cases disagree)",
+   "p": 0.0625,
    "verdict": "WIN"
   },
   "modules": {

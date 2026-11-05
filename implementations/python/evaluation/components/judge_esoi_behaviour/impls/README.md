@@ -4,7 +4,7 @@
 
 | Implementation | Handle | Code | Selected |
 |---|---|---|---|
-| Regex only | `judge-esoi-behaviour:regex-only` | [`implementations/python/evaluation/components/judge_esoi_behaviour/impls/regex_only.py`](regex_only.py) |  |
+| Regex checks only | `esoi-behaviour-judge:regex-checks-only` | [`implementations/python/evaluation/components/judge_esoi_behaviour/impls/regex_only.py`](regex_only.py) |  |
 
 ## Where to go next
 

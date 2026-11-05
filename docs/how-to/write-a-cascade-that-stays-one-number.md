@@ -13,8 +13,10 @@ Why: [a cascade runs one criterion](../explanation/a-cascade-runs-one-criterion.
    free [sample=full | real=no | gate=all-pass] > sample [sample=sample:30 | real=yes | gate=competitive] > whole [sample=full | real=yes]
    ```
    Do not give a stage its own component, its own cases or a "must not regress" gate on a different measure.
-4. **Mark the floors.** Open the docstring of an arm that only shows a floor with `BASELINE:` or `FLOOR:`.
+4. **Let the metric judge every arm.** No arm is excluded by a mark. If a trivial arm (one that does nothing, or returns a fixed answer)
+   scores best, the metric is missing a factor the solution cares about: add it to the balanced score, and declare the diagnostics that
+   show a degenerate arm so S45 can point at it.
 5. **Name one authoritative metric.** If the solution has other metrics, set `authoritative_metric_id` and feed the others in as case sources.
-6. **Check.** `esoi check --findings` lists S41 to S44 with the next action. `esoi cascade` shows each stage's number and the chosen arm.
+6. **Check.** `esoi check --findings` lists S41, S42, S44 and S45 with the next action. `esoi cascade` shows each stage's number and the chosen arm.
 
 Change the weights later only by re-recording the arms (`esoi run --stale --plan`), and say why in a comment beside the table.

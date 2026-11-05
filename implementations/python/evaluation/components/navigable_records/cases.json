@@ -190,16 +190,6 @@
   }
  },
  {
-  "id": "NAV-020",
-  "kind": "layout",
-  "area": "the solution follow-the-steps of this can be navigated from its spec to its code",
-  "description": "the solution follow-the-steps of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
-  "args": {
-   "repo": "this",
-   "solution": "follow-the-steps"
-  }
- },
- {
   "id": "NAV-021",
   "kind": "layout",
   "area": "the solution local-application-index of this can be navigated from its spec to its code",
@@ -217,26 +207,6 @@
   "args": {
    "repo": "this",
    "solution": "esoi-behaviour-judge"
-  }
- },
- {
-  "id": "NAV-023",
-  "kind": "layout",
-  "area": "the solution behave-by-esoi of this can be navigated from its spec to its code",
-  "description": "the solution behave-by-esoi of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
-  "args": {
-   "repo": "this",
-   "solution": "behave-by-esoi"
-  }
- },
- {
-  "id": "NAV-024",
-  "kind": "layout",
-  "area": "the solution judge-esoi-behaviour of this can be navigated from its spec to its code",
-  "description": "the solution judge-esoi-behaviour of this repository: its spec and code are near, it is reachable from the top README, its records are kept once, its code folders have a README",
-  "args": {
-   "repo": "this",
-   "solution": "judge-esoi-behaviour"
   }
  },
  {

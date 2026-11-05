@@ -4,8 +4,8 @@
 
 | Implementation | Handle | Code | Selected |
 |---|---|---|---|
-| No skill | `behave-by-esoi:no-skill` | [`implementations/python/evaluation/components/behave_by_esoi/impls/no_skill.py`](no_skill.py) |  |
-| Skill on request | `behave-by-esoi:skill-on-request` | [`implementations/python/evaluation/components/behave_by_esoi/impls/skill_on_request.py`](skill_on_request.py) |  |
+| No skill | `esoi-for-ai:no-skill` | [`implementations/python/evaluation/components/behave_by_esoi/impls/no_skill.py`](no_skill.py) |  |
+| Skill on request | `esoi-for-ai:skill-on-request` | [`implementations/python/evaluation/components/behave_by_esoi/impls/skill_on_request.py`](skill_on_request.py) |  |
 
 ## Where to go next
 

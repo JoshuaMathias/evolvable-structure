@@ -2,9 +2,11 @@
 
 The author's skill says it is not only for code: its description names "general improvements to how AI behaves, builds,
 and implements business offerings to reflect Joshua's principles". Applying ESOI to an AI agent's behaviour is therefore an
-part of ESOI's own intent, with the same five record types: a solution for guiding agents (`esoi-for-ai`), the solution
-whose cases and arms its metric uses (`behave-by-esoi`), and the judge that grades replies (`esoi-behaviour-judge` and
-`judge-esoi-behaviour`). This page says how each part maps; the records are in [esoi/](../../esoi/). It was once a
+part of ESOI's own intent, with the same five record types: a solution for guiding agents (`esoi-for-ai`), whose metric
+runs the behaviour cases once per way of giving an agent the principles, and the judge that grades the replies a pattern cannot
+settle (`esoi-behaviour-judge`). This page says how each part maps; the records are beside the package code
+([implementations/python/esoi/](../../implementations/python/esoi/README.md)), with the alternatives not built yet in
+[esoi/](../../esoi/). It was once a
 sub-intent of its own; it is not, because its opportunity repeated the goals and metric of `esoi-for-ai` (an uncertainty,
 which a metric handles), and version history keeps the earlier records.
 
@@ -17,9 +19,10 @@ principles in its own work, including holding back where structure costs more th
 
 ## The skill is an implementation
 
-The solution `esoi-for-ai` has the implementations below, and its metric, behaviour adherence, is carried out by the
-solution `behave-by-esoi`: the same cases run once per implementation (its arms), and the solution `esoi-behaviour-judge`
-says how far the grading of those runs can be trusted.
+The solution `esoi-for-ai` has the implementations below, and its metric, behaviour adherence, runs the same cases once per
+implementation (its arms, in `evaluation/components/behave_by_esoi`); the solution `esoi-behaviour-judge` says how far the
+grading of those runs can be trusted. Measuring the arms is the metric's job, not a solution of its own: a solution whose
+alternatives were the same three ways of giving the principles would only repeat this one.
 
 The skill is not the solution, it is one way of giving an agent the principles. Others are to load it only when the task
 looks like design or reuse, to give the agent nothing, or to have it check a draft against named perspectives. Each is an
