@@ -42,7 +42,6 @@ FIRST_SCREEN_LINES = 100  # the vision, the solution coherence and the diagram a
 DIAGRAM_LINES = 20        # a Mermaid block renders as a picture about this tall, whatever its source length
 WRAP = 110                # characters of prose per rendered line
 SUMMARY_LINES = 320       # the part of a page above its divider stays within this many rendered lines
-SENTENCE_CHARS = 200
 LIST_LIMIT = 10           # a short list in the summary shows this many entries; the full record below holds them all
 
 FIRST_LINE = ("These are ESOI records (evolvable structure that optimizes intent): why {subject} exists, and its problems, "
@@ -105,14 +104,12 @@ def metric_names(cell: str) -> str:
     return ", ".join(n for n in (one_line(part) for part in (cell or "").split(";")) if n) or "none yet"
 
 
-def first_sentence(text: str, limit: int = SENTENCE_CHARS) -> str:
-    """The first sentence of a cell, cut at a word with an ellipsis when it is longer than ``limit``."""
+def first_sentence(text: str, limit: int = 0) -> str:
+    """The first sentence of a cell, whole: a reader gets the complete sentence, never one cut at a character count (``limit`` is kept
+    only so callers that pass one still work, and is ignored)."""
     clean = one_line(text)
     found = re.search(r"(?<=[.!?])\s", clean)
-    sentence = clean[:found.start()] if found else clean
-    if len(sentence) > limit:
-        sentence = sentence[:limit].rsplit(" ", 1)[0].rstrip(".,;:") + "..."
-    return sentence
+    return clean[:found.start()] if found else clean
 
 
 def mine(rows: List[Dict[str, str]], intent_id: str) -> List[Dict[str, str]]:

@@ -22,17 +22,14 @@ from .registry import Registry
 from .tables import ids, written
 
 FILE = "diagram.md"
-LABEL_CHARS = 60
 HEADER = ("These are ESOI records rendered as a diagram (evolvable structure that optimizes intent). This page is generated from the "
           "solutions' outputs and the implementations' `uses_solution_ids` by `esoi diagram`; edit those records, not this page.")
 
 
-def clip(text: str, limit: int = LABEL_CHARS) -> str:
-    """One line of a cell, without characters Mermaid reads as syntax, cut at a word."""
+def clip(text: str, limit: int = 0) -> str:
+    """One line of a cell, without characters Mermaid reads as syntax. Never cut: the whole text is the label (``limit`` is ignored)."""
     clean = " ".join(written(text).replace('"', "'").replace("|", "/").replace("[", "(").replace("]", ")").split())
-    if len(clean) <= limit:
-        return clean.rstrip(".")
-    return clean[:limit].rsplit(" ", 1)[0].rstrip(".,;:") + "..."
+    return clean.rstrip(".")
 
 
 def edges(registry: Registry, intent_id: str) -> Dict[Tuple[str, str], str]:
