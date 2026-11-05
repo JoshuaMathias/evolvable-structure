@@ -118,7 +118,7 @@ def test_s37_names_a_solution_whose_interface_is_not_declared(project):
     path.write_text(path.read_text().replace('@solution("greet-a-person", kind="event", example="Ada")', "@solution(\"greet-a-person\", example=\"Ada\")"))
     path.write_text(path.read_text())
     problems, advisory = findings(project, "S37")
-    assert not problems
+    assert not [line for line in problems if line.startswith("S37")]   # S37 informs and never fails; the edit also stales the README (S8)
     assert advisory == [] or any("greet-a-person" in line for line in advisory)
 
 
