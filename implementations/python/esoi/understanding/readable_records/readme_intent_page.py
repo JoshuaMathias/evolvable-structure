@@ -154,13 +154,22 @@ def record_tables(registry: Registry, intent: Intent, level: str = "##", view: O
     if implementations:
         lines += [f"{level} Implementations", "", "| Implementation | Handle | Where | Sub-intent |", "|---|---|---|---|"]
         lines += [f"| {one_line(r.get('name', '')) or r.get('implementation_id', '')} | `{r.get('implementation_id', '')}` | {where_cell(view, intent.folder, r.get('filepath', ''))} | "
-                  f"{('[' + r['sub_intent'] + '](' + r['sub_intent'] + '/README.md)') if r.get('sub_intent') else ''} |"
+                  f"{sub_intent_cell(view, intent, r.get('sub_intent', ''))} |"
                   for r in implementations] + [""]
     metrics = mine(registry.metrics, iid)
     if metrics:
         lines += [f"{level} Metrics", ""] + [f"- {named(r, 'metric_id')}: "
                                             f"`{one_line(r.get('command', '')) or 'none'}`" for r in metrics] + [""]
     return lines
+
+
+def sub_intent_cell(view: View, intent: Intent, sub_intent: str) -> str:
+    """The Sub-intent cell of an implementation row: a link to the sub-intent's own page wherever its folder is (beside its code
+    it is not under this intent's folder), the handle alone when no intent of that id exists, empty when the row names none."""
+    child = view.intent(sub_intent) if sub_intent else None
+    if child is None:
+        return sub_intent
+    return f"[{sub_intent}]({link(intent.folder, child.folder / FILE)})"
 
 
 def render_full(registry: Registry, intent: Intent, view: View) -> str:

@@ -941,8 +941,10 @@
   },
   "expect": {
    "rule": "S20",
-   "contains": "other cases"
-  }
+   "contains": "other cases",
+   "advice": true
+  },
+  "note": "A changed file or a missing row informs: it is advice and never fails the check."
  },
  {
   "id": "CTS-042",
@@ -1467,7 +1469,7 @@
     },
     {
      "op": "append",
-     "path": "demo/greet.py",
+     "path": "evaluation/components/greet_a_person/impls/live.py",
      "content": "\n# changed after the result was recorded\n"
     }
    ],

@@ -484,4 +484,22 @@
    }
   }
  }
+,
+ {
+  "id": "MSR-029",
+  "kind": "run",
+  "area": "run",
+  "description": "an unrecorded run without --keep-going stops at the first failing case, so the implementation can be improved at once",
+  "args": {
+   "impl": "bad",
+   "stop_at_first_failure": true
+  },
+  "expect": {
+   "eq": {
+    "cases": 1,
+    "passed": 0,
+    "error": null
+   }
+  }
+ }
 ]

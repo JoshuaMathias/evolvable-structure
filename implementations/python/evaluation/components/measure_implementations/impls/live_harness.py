@@ -38,7 +38,8 @@ def record(args):
 
 def run(args):
     with harness_fixture.mini_component() as (config, name):
-        argv = ["--impl", args["impl"]] + list(args.get("argv", []))
+        keep_going = [] if args.get("stop_at_first_failure") else ["--keep-going"]   # an unrecorded run otherwise stops at the first failure
+        argv = ["--impl", args["impl"]] + keep_going + list(args.get("argv", []))
         score = importlib.import_module(f"{name}.score")
         try:
             with contextlib.redirect_stdout(io.StringIO()):

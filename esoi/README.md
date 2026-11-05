@@ -117,10 +117,10 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 |---|---|---|---|
 | Documents only, applied by hand | `apply-esoi:documents-only` | [implementations/python/esoi/apply_esoi.py::DocumentsOnly](../implementations/python/esoi/apply_esoi.py) |  |
 | Through the four containers | `apply-esoi:through-the-four-containers` | [implementations/python/esoi/apply_esoi.py::ThroughTheFourContainers](../implementations/python/esoi/apply_esoi.py) |  |
-| Calls each part in the order the work happens | `esoi-understanding:composition` | [implementations/python/esoi/understanding/flow.py::UnderstandingFlow](../implementations/python/esoi/understanding/flow.py) | [understanding](understanding/README.md) |
-| Calls each part in the order the work happens | `esoi-structure:composition` | [implementations/python/esoi/structure/flow.py::StructureFlow](../implementations/python/esoi/structure/flow.py) | [structure](structure/README.md) |
-| Calls each part in the order the work happens | `esoi-optimization:composition` | [implementations/python/esoi/optimization/flow.py::OptimizationFlow](../implementations/python/esoi/optimization/flow.py) | [optimization](optimization/README.md) |
-| Calls each part in the order the work happens | `esoi-runtime:composition` | [implementations/python/esoi/runtime/flow.py::RuntimeFlow](../implementations/python/esoi/runtime/flow.py) | [runtime](runtime/README.md) |
+| Calls each part in the order the work happens | `esoi-understanding:composition` | [implementations/python/esoi/understanding/flow.py::UnderstandingFlow](../implementations/python/esoi/understanding/flow.py) | [understanding](../implementations/python/esoi/understanding/README.md) |
+| Calls each part in the order the work happens | `esoi-structure:composition` | [implementations/python/esoi/structure/flow.py::StructureFlow](../implementations/python/esoi/structure/flow.py) | [structure](../implementations/python/esoi/structure/README.md) |
+| Calls each part in the order the work happens | `esoi-optimization:composition` | [implementations/python/esoi/optimization/flow.py::OptimizationFlow](../implementations/python/esoi/optimization/flow.py) | [optimization](../implementations/python/esoi/optimization/README.md) |
+| Calls each part in the order the work happens | `esoi-runtime:composition` | [implementations/python/esoi/runtime/flow.py::RuntimeFlow](../implementations/python/esoi/runtime/flow.py) | [runtime](../implementations/python/esoi/runtime/README.md) |
 
 ### Metrics
 

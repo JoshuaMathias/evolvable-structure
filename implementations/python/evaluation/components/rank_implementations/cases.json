@@ -965,7 +965,7 @@
  {
   "id": "RNK-029",
   "kind": "verdict",
-  "area": "a baseline is tagged and is a rival",
+  "area": "no arm is excluded or tagged by a mark: a BASELINE docstring marker is no longer one, so the arm is a rival like any other",
   "args": {
    "rows": [
     {
@@ -993,7 +993,7 @@
     "verdict": "TIE",
     "arms": {
      "main_arm": "",
-     "floor_arm": "baseline"
+     "floor_arm": ""
     }
    }
   }

@@ -12,11 +12,11 @@
  {
   "id": "GLN-002",
   "kind": "page",
-  "area": "the sub-intent folder esoi-runtime of this repository reads at a glance",
-  "description": "the sub-intent folder esoi-runtime of this repository reads at a glance",
+  "area": "the sub-intent folder runtime of this repository reads at a glance",
+  "description": "the sub-intent folder runtime of this repository reads at a glance",
   "args": {
    "repo": "this",
-   "intent": "esoi-runtime"
+   "intent": "runtime"
   }
  },
  {

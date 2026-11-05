@@ -134,8 +134,10 @@
   },
   "expect": {
    "rule": "S20",
-   "contains": "other cases"
-  }
+   "contains": "other cases",
+   "advice": true
+  },
+  "note": "A changed file or a missing row informs: it is advice and never fails the check."
  },
  {
   "id": "STL-005",
@@ -218,7 +220,7 @@
     },
     {
      "op": "append",
-     "path": "demo/greet.py",
+     "path": "evaluation/components/greet_a_person/impls/live.py",
      "content": "\n# changed after the result was recorded\n"
     }
    ],
@@ -299,7 +301,7 @@
   "id": "STL-012",
   "area": "staleness",
   "kind": "repo",
-  "description": "strict mode reports a verdict resting on a rival recorded before code both arms import changed",
+  "description": "strict mode reports a verdict resting on a rival recorded before the rival's own code changed",
   "args": {
    "edits": [
     {
@@ -307,8 +309,8 @@
     },
     {
      "op": "append",
-     "path": "evaluation/components/greet_a_person/score.py",
-     "content": "\n# changed after the rival was recorded (the scorer both arms import)\n"
+     "path": "evaluation/components/greet_a_person/impls/shout.py",
+     "content": "\n# changed after the rival was recorded (the rival's own code)\n"
     },
     {
      "op": "git_commit"
@@ -343,7 +345,7 @@
     },
     {
      "op": "append",
-     "path": "demo/greet.py",
+     "path": "evaluation/components/greet_a_person/impls/shout.py",
      "content": "\n# changed after the rival was recorded\n"
     },
     {
@@ -385,7 +387,12 @@
     },
     {
      "op": "append",
-     "path": "demo/greet.py",
+     "path": "evaluation/components/greet_a_person/impls/live.py",
+     "content": "\n# changed\n"
+    },
+    {
+     "op": "append",
+     "path": "evaluation/components/greet_a_person/impls/shout.py",
      "content": "\n# changed\n"
     },
     {
