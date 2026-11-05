@@ -25,8 +25,8 @@ A problem must be true today. An ideal must be the state you want, not a way of 
    right? "Anyone deciding sees which option is best and by how much."
 2. **Absolutes are welcome.** An ideal is the limit case. "Every part earns its place in the whole" gives the direction; the metric
    measures the distance.
-3. **Remove the means.** If the ideal names a tool, a component, a mechanism or a role ("use", "build", "have a", "via", "by using"),
-   it is a solution. Move that into a solution record and write the state it is for.
+3. **Remove the means.** If the ideal names a tool, a component, a mechanism, a method or a role ("use", "build", "one intake",
+   "by configuration", "is chosen by"), it is a solution. Move that into a solution record and write the state it is for.
 4. **Test it with two solutions.** Could two quite different solutions both reach this ideal? If only one could, it is still a
    solution in disguise.
 

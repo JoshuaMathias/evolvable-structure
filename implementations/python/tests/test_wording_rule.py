@@ -63,3 +63,10 @@ def test_an_ideal_written_as_a_state_is_not_informed(repo):
     edit_first(path, lambda row: row.update(principle="Every request reaches a model that is up and within its budget."))
     problems, advisory = check.check_all(config.load(repo))
     assert not [line for line in advisory if line.startswith("S52 ")]
+
+
+def test_a_declarative_ideal_that_names_its_mechanism_is_informed(repo):
+    path = config.load(repo).structure / "ideals.csv"
+    edit_first(path, lambda row: row.update(principle="Any part can be replaced by configuration when another measures better."))
+    problems, advisory = check.check_all(config.load(repo))
+    assert any(line.startswith("S52 ") and "by configuration" in line for line in advisory)

@@ -22,9 +22,9 @@ SUMMARIES = {
            "true and, if not, what is missing, for whom, how often and at what cost; ideals are not read, since an ideal states the "
            "limit state (waive as the problem id, or problem_id:field when the absolute is true).",
     "S52": "Advisory: an ideal states the state that is wanted, not a solution. Ideal text that opens with an instruction to build or "
-           "use something (use, build, add, implement, provide, create, store, cache, route, deploy, have a, keep a, make a) or that "
-           "names a means (by using, via, through a, with a) is informed, asking what is true for the people or system affected when "
-           "the ideal is reached (waive as the ideal id, or ideal_id:field).",
+           "use something (use, build, add, implement, have a, keep a) or that names the means (a method such as 'by comparing' or 'is "
+           "chosen', one component such as 'one intake' or 'one engine', or a mechanism such as configuration or adapters) is informed, "
+           "asking what is true for the people or system affected when the ideal is reached (waive as the ideal id, or ideal_id:field).",
 }
 
 #: The problem fields a reader takes as a description of today; the ids and links are not prose.
@@ -39,8 +39,20 @@ ABSOLUTES = re.compile(
 )
 INSTRUCTION = re.compile(r"^(use|using|build|add|implement|provide|create|store|cache|route|deploy|install|integrate|adopt|run|call|"
                          r"have an?|keep an?|make an?|introduce|wrap|expose)\b", re.I)
-MEANS = re.compile(r"\b(by using|by means of|via an?|via the|through an? (?:single |central |shared )?(?:router|tool|service|component|"
-                   r"module|layer|api|pipeline|library|framework|registry|agent|model|database|index|cache|queue|script))\b", re.I)
+#: Phrases that name the means rather than the state: a method ("by comparing", "is chosen"), a single component ("one intake", "one
+#: engine"), or a mechanism noun ("configuration", "adapters", "case set"). Written from 30 solution-shaped ideals found by reading
+#: three repositories' records, so it is a finder of candidates for a person to read, never a verdict.
+MEANS = re.compile(
+    r"\b(?:by using|by means of|via an?|via the|"
+    r"by (?:configuration|data|measurement|comparing|running|looking at|declaring|rule)|"
+    r"through (?:an?|one|adapters|its own|the [\w-]+ (?:seat|tool|path|router|registry|engine|search))|"
+    r"(?:is|are) (?:chosen|implemented|recorded as|kept as|planned|tested|judged against|wired|written once|routed|derived from)|"
+    r"(?:implemented|written) once|"
+    r"one (?:[\w-]+ ){0,2}(?:intake|engine|search|signal|router|path|catalog|registry|pipeline|index|harness)|"
+    r"(?:has|have|holds?) (?:an?|one) (?:[\w-]+ ){0,2}(?:intake|metric|engine|index|router|catalog|registry|profile|interface|adapter)s?|"
+    r"configuration|adapters?|catalog entry|case set|held-out|lockfile|a change of data)\b",
+    re.I,
+)
 
 
 def around(text: str, start: int, end: int, width: int = 40) -> str:

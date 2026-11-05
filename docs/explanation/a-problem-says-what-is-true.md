@@ -65,6 +65,9 @@ Two advisory rules inform and never fail the check:
   absolutes (never, nobody, no one, always, everyone, none, nothing, impossible, the only way, every time), asking whether each is
   literally true. Ideals are not read. A true absolute is waived as `problem_id:field` with the reason.
 - **S52** reads an ideal's name, principle and state description and points at text that opens with an instruction to build or use
-  something, or that names the means ("by using", "via a"), asking what state it wants instead.
+  something, or that names the means: a method ("by comparing", "is chosen"), one component ("one intake", "one engine") or a
+  mechanism ("configuration", "adapters"), asking what state it wants instead. Its phrases were written from 30 solution-shaped ideals
+  found by reading three repositories' records; on those same 135 ideals it finds 24 of the 30 and points at 6 others, so it finds
+  candidates and a person decides.
 
 How to write and rewrite them: [Write problems and ideals that hold up](../how-to/write-problems-and-ideals-that-hold-up.md).
