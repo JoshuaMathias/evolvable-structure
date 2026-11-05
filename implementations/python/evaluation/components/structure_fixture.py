@@ -150,10 +150,10 @@ def long_solution_list() -> Dict[str, str]:
     return files
 
 
-def stripped_interfaces() -> Dict[str, str]:
-    """A merge that left every arm with no method: the arms keep their decorator and name only."""
+def stripped_interfaces(count: int = 4) -> Dict[str, str]:
+    """A merge that left every arm of the first ``count`` solutions with no method: the arms keep their decorator and name only."""
     files = exemplar(False)
-    for n, unit in enumerate(UNITS):
+    for n, unit in enumerate(UNITS[:count]):
         cls = unit.capitalize()
         text = interface(unit, n)
         for arm, marker in (("Plain", "        return data\n"), ("Careful", "        return list(data)\n")):
@@ -162,6 +162,24 @@ def stripped_interfaces() -> Dict[str, str]:
             decorator_end = text.index(":\n", start) + 2
             text = text[:decorator_end] + f'    """The {arm.lower()} way."""\n    pass\n' + text[end:]
         files[f"app/{unit}/interface.py"] = text
+    return files
+
+
+def protocol_folder(layered: bool) -> Dict[str, str]:
+    """``exemplar`` plus one folder, ``app/stack``, that declares three Protocols, each with one arm. ``layered``: the store's arm takes the cache
+    as a constructor need and the cache's arm takes the backend (one job in layers); otherwise the three arms need nothing of each other (three jobs)."""
+    files = exemplar(False)
+    layers = [("store", "cache", "put"), ("cache", "backend", "keep"), ("backend", "", "write")]
+    parts = ['"""One folder, three Protocols."""\nimport typing\n\nfrom esoi.runtime.implementation_selection import declare\n\n\n']
+    for k, (name, below, verb) in enumerate(layers):
+        cls, lower = name.capitalize(), below.capitalize()
+        parts.append(f'@declare.solution("{name}", kind="evaluate", entry="{verb}")\nclass {cls}Doing(typing.Protocol):\n    """What the {name} does."""\n\n    def {verb}(self, item): ...\n\n\n')
+        init = f"    def __init__(self, below: {lower}Doing):\n        self.below = below\n\n" if layered and below else ""
+        work = f"        item = item + {k + 7}\n        return self.below.{layers[k + 1][2]}(item)\n" if layered and below else f"        item = item * {k + 3}\n        return item - {k + 11}\n"
+        parts.append(f'@declare.implementation("{name}", "own")\nclass {cls}Own:\n    """The {name}\'s own way."""\n\n{init}    def {verb}(self, item):\n{work}\n\n')
+    files["app/stack/__init__.py"] = ""
+    files["app/stack/interface.py"] = "".join(parts).rstrip("\n") + "\n"
+    files["app/stack/solutions.csv"] = "solution_id,name\nstore,Store\ncache,Cache\nbackend,Backend\n"
     return files
 
 
@@ -389,6 +407,11 @@ SHAPES = {
     "flat_tree": (flat_tree, {}),
     "long_solution_list": (long_solution_list, {}),
     "stripped_interfaces": (stripped_interfaces, {}),
+    "one_solution_off_its_interface": (lambda: stripped_interfaces(1), {}),
+    "two_solutions_off_their_interfaces": (lambda: stripped_interfaces(2), {}),
+    "three_solutions_off_their_interfaces": (lambda: stripped_interfaces(3), {}),
+    "layered_protocols": (lambda: protocol_folder(True), {}),
+    "unrelated_protocols": (lambda: protocol_folder(False), {}),
     "stripped_members": (stripped_members, {}),
     "mismatched_parameters": (mismatched_parameters, {}),
     "arms_of_no_solution": (arms_of_no_solution, {}),
@@ -437,10 +460,22 @@ def history_checkout(ref: str) -> Path:
     found = subprocess.run(["git", "-C", str(repo), "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"], capture_output=True, text=True)
     if found.returncode != 0:
         raise ValueError(f"commit {ref} is not in this clone (a git-history case needs the full history)")
-    folder = Path(tempfile.mkdtemp(prefix="esoi_sq_history_")) / "tree"
+    folder = scratch_root() / f"history_{len(CACHE)}" / "tree"
+    folder.parent.mkdir()
     subprocess.run(["git", "-C", str(repo), "worktree", "add", "--detach", str(folder), found.stdout.strip()], capture_output=True, text=True, check=True)
-    atexit.register(lambda: subprocess.run(["git", "-C", str(repo), "worktree", "remove", "--force", str(folder)], capture_output=True, text=True))
+    atexit.register(lambda: (subprocess.run(["git", "-C", str(repo), "worktree", "remove", "--force", str(folder)], capture_output=True, text=True),
+                             subprocess.run(["git", "-C", str(repo), "worktree", "prune"], capture_output=True, text=True)))
     return folder
+
+
+SCRATCH: List[tempfile.TemporaryDirectory] = []
+
+
+def scratch_root() -> Path:
+    """The one temporary folder of this process, where every shape and checkout is written; it is deleted when the process ends (also after an error)."""
+    if not SCRATCH:
+        SCRATCH.append(tempfile.TemporaryDirectory(prefix="esoi_sq_"))
+    return Path(SCRATCH[0].name)
 
 
 def project(name: str) -> Path:
@@ -449,7 +484,8 @@ def project(name: str) -> Path:
         CACHE[name] = history_checkout(name[4:])
     if name not in CACHE:
         build, extra = SHAPES[name]
-        root = Path(tempfile.mkdtemp(prefix=f"esoi_sq_{name}_"))
+        root = scratch_root() / name
+        root.mkdir()
         for rel, text in build().items():
             path = root / rel
             path.parent.mkdir(parents=True, exist_ok=True)

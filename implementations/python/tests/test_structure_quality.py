@@ -208,7 +208,7 @@ def test_an_arm_takes_the_methods_of_its_base_class_into_account(tmp_path):
 def test_an_arm_must_implement_every_member_with_matching_parameters_under_a_real_solution(shape, offender):
     found = report(shape)
     assert offender in " ".join(found["dimensions"]["scope"]["offenders"])
-    assert found["dimensions"]["scope"]["parts"]["arms_on_interface"] == 0.0
+    assert found["dimensions"]["scope"]["parts"]["arms_on_interface"] <= scope.interface_score(0.5)   # stripped_members lacks one of two members; the others lack all
     assert found["score"] < report("clean_exemplar")["score"]
 
 
@@ -444,3 +444,80 @@ def test_cyclomatic_complexity_counts_the_functions_own_branches():
 def test_a_static_score_cannot_see_deleted_behavior():
     # the limit stated in the explanation: deleting the long routine raises the number, and only running the contract tests can tell
     assert report("deleted_hard_code")["score"] >= report("real_structure")["score"]
+
+
+def test_a_layered_stack_of_protocols_in_one_folder_stays_clean_and_unrelated_jobs_in_one_folder_are_flagged():
+    layered = report("layered_protocols")["dimensions"]["scope"]
+    assert layered["offenders"] == [] and layered["parts"]["protocols_within_budget"] == 1.0
+    unrelated = report("unrelated_protocols")["dimensions"]["scope"]
+    assert unrelated["parts"]["protocols_within_budget"] < 1.0
+    assert "app/stack: 3 Protocols (BackendDoing, CacheDoing, StoreDoing) signal more than one job" in unrelated["offenders"]
+
+
+def test_protocols_the_same_arms_implement_and_layers_that_wrap_one_another_are_one_job_and_a_composition_root_joins_none():
+    import ast
+    from esoi.structure.structure_quality import protocol_groups
+    layer = ast.parse("class Layer:\n    def __init__(self, below: 'BelowDoing'):\n        pass\n").body[0]
+    root = ast.parse("class Root:\n    def __init__(self, a: Optional[ADoing], b: BDoing, c: CDoing):\n        pass\n").body[0]
+    protocols = {"UpperDoing": ("a.py", "upper"), "BelowDoing": ("a.py", "below"), "ADoing": ("a.py", "a"), "BDoing": ("a.py", "b"), "CDoing": ("a.py", "c"),
+                 "FaceOne": ("a.py", "twin"), "FaceTwo": ("a.py", "twin"), "LoneDoing": ("a.py", "lone")}
+    arms = [("a.py", layer, "upper"), ("a.py", root, "root-job"), ("a.py", ast.parse("class Twin:\n    pass\n").body[0], "twin")]
+    groups = protocol_groups.group_protocols(protocols, arms)
+    assert sorted(sorted(g) for g in groups) == [["ADoing"], ["BDoing"], ["BelowDoing", "UpperDoing"], ["CDoing"], ["FaceOne", "FaceTwo"], ["LoneDoing"]]
+
+
+def test_the_share_of_arms_on_their_interface_is_scored_by_severity_not_linearly():
+    parts = [report(shape)["dimensions"]["scope"]["parts"]["arms_on_interface"] for shape in
+             ("clean_exemplar", "one_solution_off_its_interface", "two_solutions_off_their_interfaces", "three_solutions_off_their_interfaces", "stripped_interfaces")]
+    assert parts == sorted(parts, reverse=True) and len(set(parts)) == len(parts) and parts[0] == 1.0 and parts[-1] == 0.0
+    assert parts[1] == scope.interface_score(0.75) < 0.75   # one of four solutions has two arms of eight off the interface
+    assert scope.interface_score(0.9) == 0.729 and scope.interface_score(None) is None
+    assert balance.WEIGHTS == {"scope": 0.20, "size": 0.15, "coupling": 0.20, "reuse": 0.15, "flow": 0.10, "surface": 0.05, "behavior": 0.15}
+
+
+def test_an_arm_off_its_interface_is_as_severe_as_the_share_of_members_it_lacks(tmp_path):
+    write(tmp_path, {"unit/solutions.csv": "id,name\ns,S\n",
+                     "unit/interface.py": "from typing import Protocol\n\n@solution('s', kind='x', entry='a')\nclass S(Protocol):\n    def a(self): ...\n    def b(self): ...\n    def c(self): ...\n    def d(self): ...\n\n"
+                                          "@implementation('s', 'most')\nclass Most:\n    def a(self):\n        return 1\n    def b(self):\n        return 2\n    def c(self):\n        return 3\n\n"
+                                          "@implementation('s', 'none')\nclass Nothing:\n    pass\n"})
+    rows = {row[1]: scope.arm_severity(row) for row in scope.arm_rows(project.load(tmp_path))}
+    assert rows == {"Most": 0.25, "Nothing": 1.0}
+
+
+def test_a_protocol_that_only_extends_another_counts_the_members_it_inherits_and_a_demoted_plain_protocol_beside_the_arm_is_named(tmp_path):
+    write(tmp_path, {"unit/solutions.csv": "id,name\ns,S\n",
+                     "unit/interface.py": "from typing import Protocol\n\nclass Base(Protocol):\n    def put(self, key): ...\n\n@solution('s', kind='x', entry='put')\nclass S(Base, Protocol):\n    pass\n\n"
+                                          "class Cache(Protocol):\n    def load_listing(self): ...\n\n"
+                                          "@implementation('s', 'cache')\nclass FileCache:\n    def load_listing(self):\n        return [1]\n"})
+    rows = {name: problems for _, name, _, problems in scope.arms_on_interface(project.load(tmp_path))}
+    assert rows["FileCache"][0] == "put"
+    assert any("implements Cache beside it, a plain Protocol without the solution declaration" in line for line in rows["FileCache"])
+
+
+def checkouts_left():
+    import tempfile
+    return sorted(p.name for p in Path(tempfile.gettempdir()).glob("esoi-sq-*"))
+
+
+def test_a_compare_leaves_no_temporary_checkout_behind_also_when_scoring_raises_or_the_reference_is_bad(tmp_path):
+    def git(*args):
+        subprocess.run(["git", "-C", str(tmp_path), "-c", "user.name=t", "-c", "user.email=t@example.org", *args], check=True, capture_output=True)
+    git("init", "-q")
+    (tmp_path / "a.py").write_text("x = 1\n")
+    git("add", "a.py")
+    git("commit", "-q", "-m", "one")
+    before = checkouts_left()
+    with compare.checked_out("HEAD", tmp_path) as folder:
+        assert (folder / "a.py").is_file()
+    assert checkouts_left() == before
+
+    def raising(folder, stage):
+        raise RuntimeError("scoring failed")
+    with pytest.raises(RuntimeError):
+        compare.compare("HEAD", "HEAD", raising, str(tmp_path))
+    assert checkouts_left() == before
+    with pytest.raises(ValueError):
+        compare.compare("no-such-ref", "HEAD", raising, str(tmp_path))
+    assert checkouts_left() == before
+    listed = subprocess.run(["git", "-C", str(tmp_path), "worktree", "list"], capture_output=True, text=True, check=True).stdout.strip().splitlines()
+    assert len(listed) == 1

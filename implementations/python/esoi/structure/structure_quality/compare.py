@@ -34,24 +34,22 @@ def same_offender(text: str) -> str:
 
 @contextmanager
 def checked_out(side: str, repo: Path) -> Iterator[Path]:
-    """The folder of one side: the folder itself, or a temporary worktree of the git reference in ``repo``, removed on the way out."""
+    """The folder of one side: the folder itself, or a temporary worktree of the git reference in ``repo``. The worktree is removed and pruned and its
+    directory deleted on the way out, also when the add fails, the scoring raises or the run is interrupted."""
     if Path(side).is_dir():
         yield Path(side).resolve()
         return
     found = subprocess.run(["git", "-C", str(repo), "rev-parse", "--verify", "--quiet", f"{side}^{{commit}}"], capture_output=True, text=True)
     if found.returncode != 0:
         raise ValueError(f"{side!r} is neither a folder nor a git reference of {repo}")
-    parent = Path(tempfile.mkdtemp(prefix="esoi-sq-"))
-    folder = parent / "tree"
-    subprocess.run(["git", "-C", str(repo), "worktree", "add", "--detach", str(folder), found.stdout.strip()], capture_output=True, text=True, check=True)
-    try:
-        yield folder
-    finally:
-        subprocess.run(["git", "-C", str(repo), "worktree", "remove", "--force", str(folder)], capture_output=True, text=True)
+    with tempfile.TemporaryDirectory(prefix="esoi-sq-") as parent:
+        folder = Path(parent) / "tree"
         try:
-            parent.rmdir()
-        except OSError:
-            pass
+            subprocess.run(["git", "-C", str(repo), "worktree", "add", "--detach", str(folder), found.stdout.strip()], capture_output=True, text=True, check=True)
+            yield folder
+        finally:
+            subprocess.run(["git", "-C", str(repo), "worktree", "remove", "--force", str(folder)], capture_output=True, text=True)
+            subprocess.run(["git", "-C", str(repo), "worktree", "prune"], capture_output=True, text=True)
 
 
 def coupling_by_unit(path: Path) -> Dict[str, float]:

@@ -631,5 +631,126 @@
   "expect": {
    "better_scores_higher": true
   }
+ },
+ {
+  "id": "SQ-42",
+  "kind": "assess",
+  "area": "three Protocols in one folder that stack (each wraps the next as a constructor need) are one job and flag nothing",
+  "description": "three Protocols in one folder that stack (each wraps the next as a constructor need) are one job and flag nothing",
+  "source": "layered solution: a store wrapping a cache wrapping a backend, one Protocol each in one folder",
+  "args": {
+   "shape": "layered_protocols",
+   "stage": 1
+  },
+  "expect": {
+   "clean": true
+  }
+ },
+ {
+  "id": "SQ-43",
+  "kind": "assess",
+  "area": "three Protocols in one folder that different arms implement with no arm needing another flag scope",
+  "description": "three Protocols in one folder that different arms implement with no arm needing another flag scope",
+  "source": "unrelated jobs: three Protocols in one folder with nothing joining their arms",
+  "args": {
+   "shape": "unrelated_protocols",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "scope"
+   ]
+  }
+ },
+ {
+  "id": "SQ-44",
+  "kind": "compare",
+  "area": "the layered folder scores above the same folder holding three unrelated jobs",
+  "description": "the layered folder scores above the same folder holding three unrelated jobs",
+  "source": "layered solution: a store wrapping a cache wrapping a backend, one Protocol each in one folder",
+  "args": {
+   "better": "layered_protocols",
+   "worse": "unrelated_protocols",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ },
+ {
+  "id": "SQ-45",
+  "kind": "assess",
+  "area": "one of four solutions whose arms lost their interface flags scope",
+  "description": "one of four solutions whose arms lost their interface flags scope",
+  "source": "incident shape: a merge that stripped the interfaces from some of the arms, the more the worse",
+  "args": {
+   "shape": "one_solution_off_its_interface",
+   "stage": 1
+  },
+  "expect": {
+   "flags": [
+    "scope"
+   ]
+  }
+ },
+ {
+  "id": "SQ-46",
+  "kind": "compare",
+  "area": "the clean exemplar scores above one solution off its interface",
+  "description": "the clean exemplar scores above one solution off its interface",
+  "source": "incident shape: a merge that stripped the interfaces from some of the arms, the more the worse",
+  "args": {
+   "better": "clean_exemplar",
+   "worse": "one_solution_off_its_interface",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ },
+ {
+  "id": "SQ-47",
+  "kind": "compare",
+  "area": "one solution off its interface scores above two",
+  "description": "one solution off its interface scores above two",
+  "source": "incident shape: a merge that stripped the interfaces from some of the arms, the more the worse",
+  "args": {
+   "better": "one_solution_off_its_interface",
+   "worse": "two_solutions_off_their_interfaces",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ },
+ {
+  "id": "SQ-48",
+  "kind": "compare",
+  "area": "two solutions off their interfaces score above three",
+  "description": "two solutions off their interfaces score above three",
+  "source": "incident shape: a merge that stripped the interfaces from some of the arms, the more the worse",
+  "args": {
+   "better": "two_solutions_off_their_interfaces",
+   "worse": "three_solutions_off_their_interfaces",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
+ },
+ {
+  "id": "SQ-49",
+  "kind": "compare",
+  "area": "three solutions off their interfaces score above all four",
+  "description": "three solutions off their interfaces score above all four",
+  "source": "incident shape: a merge that stripped the interfaces from some of the arms, the more the worse",
+  "args": {
+   "better": "three_solutions_off_their_interfaces",
+   "worse": "stripped_interfaces",
+   "stage": 1
+  },
+  "expect": {
+   "better_scores_higher": true
+  }
  }
 ]
