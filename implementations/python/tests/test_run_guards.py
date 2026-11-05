@@ -4,8 +4,12 @@ import importlib
 
 import pytest
 
-from esoi import harness, run_guards
-from esoi.config import Config
+from esoi.optimization.measurement_harness import component_folder
+from esoi.optimization.measurement_harness import record_result
+from esoi.optimization.measurement_harness import rerun_stale, stale_reasons
+from esoi.optimization.measurement_harness import run_command
+from esoi.optimization.when_metrics_are_run import run_guards
+from esoi.structure.intent_registry.config import Config
 from test_harness import BUILD, git, make
 
 EVIDENCE = ("evidence_id,candidate,dimension,measure,value,unit,better,comparator,source_url,source_kind,run_by_independent,"
@@ -28,18 +32,18 @@ def project(tmp_path, name, balance=None):
     git(tmp_path, "init", "-q")
     git(tmp_path, "add", "-A")
     git(tmp_path, "commit", "-q", "-m", "init")
-    harness.prepare_path(cfg)
+    component_folder.prepare_path(cfg)
     return cfg
 
 
 def record(cfg, name, impl, cost, seconds=1.0, passed=2, sample=""):
-    harness.record_result(dict(component=name, impl=impl, cases=2, passed=passed, model_calls=2, cost_usd=cost, seconds=seconds,
+    record_result.record_result(dict(component=name, impl=impl, cases=2, passed=passed, model_calls=2, cost_usd=cost, seconds=seconds,
                                model="m", sample=sample), cfg, date="2026-10-30")
 
 
 def run(cfg, name, *flags):
     lines = []
-    code = harness.run_cli([name, "--impl", *flags], cfg, lines.append)
+    code = run_command.run_cli([name, "--impl", *flags], cfg, lines.append)
     return code, lines
 
 
@@ -108,7 +112,7 @@ def test_a_stale_perfect_arm_is_no_ceiling(tmp_path):
 
 def test_a_perfect_arm_on_another_sample_is_no_ceiling(tmp_path):
     cfg = project(tmp_path, "c8")
-    harness.record_result(dict(component="c8", impl="cheap", cases=1, passed=1, model_calls=1, cost_usd=0.01, seconds=1, model="m",
+    record_result.record_result(dict(component="c8", impl="cheap", cases=1, passed=1, model_calls=1, cost_usd=0.01, seconds=1, model="m",
                                sample="sample:1"), cfg, date="2026-10-30")
     assert run(cfg, "c8", "big")[0] == 0
     assert run(cfg, "c8", "big", "--sample", "1")[0] == 2
@@ -116,8 +120,8 @@ def test_a_perfect_arm_on_another_sample_is_no_ceiling(tmp_path):
 
 def only_stale(monkeypatch, *arms):
     """Make exactly these ``component/impl`` arms stale and list them as the arms of the run (the toy has no registry)."""
-    monkeypatch.setattr(harness, "stale_arms", lambda config: [tuple(a.split("/")) for a in arms])
-    monkeypatch.setattr(harness, "stale_reason",
+    monkeypatch.setattr(rerun_stale, "stale_arms", lambda config: [tuple(a.split("/")) for a in arms])
+    monkeypatch.setattr(stale_reasons, "stale_reason",
                         lambda config, comp, row, strict=True: "because of a test" if row and f"{comp}/{row['impl']}" in stale else "")
     stale = set(arms)
 
@@ -129,7 +133,7 @@ def test_stale_run_skips_a_capped_arm_and_says_so(tmp_path, monkeypatch):
     cfg.paid_arms = ["c9/cheap", "c9/big"]
     only_stale(monkeypatch, "c9/big")
     lines = []
-    harness.rerun_stale(cfg, lines.append, include_paid=True, run_all=True)
+    rerun_stale.rerun_stale(cfg, lines.append, include_paid=True, run_all=True)
     assert any("c9/big" in line and "SKIPPED, not worth running" in line and "cheap already passed" in line for line in lines)
     assert not any("c9/big: run" in line for line in lines)
 
@@ -187,7 +191,7 @@ def test_the_stale_run_does_not_ask_again_about_a_public_result(tmp_path, monkey
     cfg.paid_arms = ["p5/big"]
     only_stale(monkeypatch, "p5/big")
     lines = []
-    harness.rerun_stale(cfg, lines.append, include=["p5/big"])
+    rerun_stale.rerun_stale(cfg, lines.append, include=["p5/big"])
     assert any("p5/big: run and recorded" in line for line in lines)
 
 

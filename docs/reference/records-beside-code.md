@@ -99,10 +99,10 @@ that declares a solution is missing from the registry that lists its implementat
 
 ## Reading and generating
 
-The library reads the structure folder and every listed folder as one tree (`esoi.intents.folders`), so the rules, the cascade, the
+The library reads the structure folder and every listed folder as one tree (`esoi.structure.intent_registry.intents.folders`), so the rules, the cascade, the
 selection, the assembly and the tracker see the same registry as with one folder. No roll-up file is generated and nothing is copied.
 A person who wants the whole network in one place opens `esoi/README.md`, which lists every solution with its entry call and
-selected implementation and links to every folder; a program that wants one table reads the registry (`esoi.registry.load`) or the
+selected implementation and links to every folder; a program that wants one table reads the registry (`esoi.structure.intent_registry.registry.load`) or the
 spec index (`esoi spec index`), not a CSV file.
 
 `esoi readmes` (also `esoi check --write-docs`) writes `README.md` in the top intent folder, in every sub-intent folder and in every

@@ -1,9 +1,9 @@
 """The evidence table: one row per arm with an interval, cost, seconds, verdict and rule; written between markers."""
 import pytest
 
-from esoi import evidence_table as et
-from esoi.config import Config
-from esoi.registry import Registry
+from esoi.optimization.leaderboard import evidence_table as et
+from esoi.structure.intent_registry.config import Config
+from esoi.structure.intent_registry.registry import Registry
 
 HEAD = "date,component,impl,cases,passed,heldout,model_calls,tokens_in,tokens_out,cost_usd,seconds,cases_sha,sample\n"
 LOG = "component,impl,cases_sha,circumstances_sha,sample,case_id,heldout,ok,calls,tokens_in,tokens_out,seconds,circumstances\n"

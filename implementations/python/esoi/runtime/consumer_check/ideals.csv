@@ -1,0 +1,2 @@
+ideal_id,name,principle,state_description,hints_of_measurement,problem_ids,parent_ideal_ids
+ideal-sound-integration,Sound integration,"A system built on a library meets the same standard as the library, through the library's own checks and cases.","The embedding system knows which library solution each of its parts serves, its own stores pass the library's cases, and it sees at once when its pin falls behind.","The embedding's check passes with no unmapped part, no unscored store and no unexplained lag.",prob-embedding-soundness-unknown,ideal-adoptable-structure

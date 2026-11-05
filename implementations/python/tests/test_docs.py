@@ -1,7 +1,7 @@
-"""esoi.docs: the four-category standard, link checking and the generated wiki."""
+"""esoi.understanding.the_standard.docs: the four-category standard, link checking and the generated wiki."""
 from pathlib import Path
 
-from esoi import docs
+from esoi.understanding.the_standard import docs
 
 ROOT = Path(__file__).resolve().parents[3]
 

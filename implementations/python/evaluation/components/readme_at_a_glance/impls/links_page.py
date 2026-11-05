@@ -1,6 +1,6 @@
-"""ALTERNATIVE: a compact layout of mostly links (the rival `links` layout of ``esoi.readme``). Zero model calls."""
+"""ALTERNATIVE: a compact layout of mostly links (the rival `links` layout of ``esoi.understanding.readable_records.readme``). Zero model calls."""
 import glance_fixture
-from esoi import readme
+from esoi.understanding.readable_records import readme
 
 
 def build(meter):

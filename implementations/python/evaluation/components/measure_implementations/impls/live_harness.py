@@ -1,4 +1,4 @@
-"""CURRENT: the live harness. ``harness.record_result``, ``harness.load_cases`` and ``harness.run_component`` over a
+"""CURRENT: the live harness. ``record_result.record_result``, ``case_loading.load_cases`` and ``run_component.run_component`` over a
 mini component and synthetic tables in a temporary folder with its own git repository. Zero model calls."""
 import contextlib
 import csv
@@ -7,7 +7,11 @@ import importlib
 import io
 
 import harness_fixture
-from esoi import harness
+from esoi.optimization.measurement_harness import case_loading
+from esoi.optimization.when_metrics_are_run import paid_gating
+from esoi.optimization.measurement_harness import record_result
+from esoi.optimization.measurement_harness import run_component
+from esoi.optimization.measurement_harness import stale_reasons
 
 
 def record(args):
@@ -17,7 +21,7 @@ def record(args):
                        tokens_in=0, tokens_out=0, cli_reported_cost_usd=0.0, seconds=0.1)
         if args.get("dirty"):
             (config.root / "mini_pkg" / "live.py").write_text("X = 2\n")
-        harness.record_result(summary, config, date="2026-10-16")
+        record_result.record_result(summary, config, date="2026-10-16")
         rows = list(csv.DictReader(config.results_path.open()))
         first = rows[-1]
         cases_path = config.evaluation / name / ("cases.json" if kind == "json" else "cases.csv")
@@ -25,7 +29,7 @@ def record(args):
         changes = False
         if args.get("edit_cases"):
             cases_path.write_text(cases_path.read_text() + (" " if cases_path.suffix == ".json" else "M9,echo,\n"))
-            harness.record_result(summary, config, date="2026-10-17")
+            record_result.record_result(summary, config, date="2026-10-17")
             changes = list(csv.DictReader(config.results_path.open()))[-1]["cases_sha"] != first["cases_sha"]
         rows = list(csv.DictReader(config.results_path.open()))
     return {"git_sha": bool(first["git_sha"].replace("-dirty", "")), "dirty": first["git_sha"].endswith("-dirty"),
@@ -38,7 +42,7 @@ def run(args):
         score = importlib.import_module(f"{name}.score")
         try:
             with contextlib.redirect_stdout(io.StringIO()):
-                summary, _ = harness.run_component(name, score.score_case, argv, config)
+                summary, _ = run_component.run_component(name, score.score_case, argv, config)
         except Exception as exc:
             return {"cases": 0, "passed": 0, "error": type(exc).__name__}
     return {"cases": summary["cases"], "passed": summary["passed"], "error": None, "model_calls": summary["model_calls"]}
@@ -58,7 +62,7 @@ def cost(args):
                        model_calls=args.get("model_calls", 0), tokens_in=args.get("tokens_in", 0),
                        tokens_out=args.get("tokens_out", 0), cli_reported_cost_usd=args.get("reported", 0.0), seconds=0.1,
                        model=args.get("model"))
-        harness.record_result(summary, config, date="2026-10-16")
+        record_result.record_result(summary, config, date="2026-10-16")
         return {"cost_usd": list(csv.DictReader(config.results_path.open()))[-1]["cost_usd"]}
 
 
@@ -70,7 +74,7 @@ def paid(args):
             impl.write_text("PAID = True\n" + impl.read_text())
         config.paid_arms = [f"{name}/good"] if args.get("listed") else []
         row = {"model_calls": args["row_calls"]} if "row_calls" in args else None
-        reason = harness.paid_reason(config, name, "good", row)
+        reason = paid_gating.paid_reason(config, name, "good", row)
     return {"paid": bool(reason)}
 
 
@@ -95,13 +99,13 @@ def external(args):
         config.code_paths = ["mini_pkg", os.path.relpath(sibling / "lib", config.root)]
         summary = dict(component=name, impl="good", cases=3, passed=3, dev="2/2", heldout="1/1", model_calls=0,
                        tokens_in=0, tokens_out=0, cli_reported_cost_usd=0.0, seconds=0.1)
-        row = harness.record_result(summary, config, date="2026-10-16")
+        row = record_result.record_result(summary, config, date="2026-10-16")
         if args.get("change"):
             (sibling / "lib" / "a.py").write_text("X = 2\n")
         if args.get("commit"):
             git(sibling, "commit", "-q", "-am", "change")
-        return {"recorded": "@" in row["code_shas"], "stale": bool(harness.stale_reason(config, name, row)),
-                "stale_outside_strict": bool(harness.stale_reason(config, name, row, strict=False))}
+        return {"recorded": "@" in row["code_shas"], "stale": bool(stale_reasons.stale_reason(config, name, row)),
+                "stale_outside_strict": bool(stale_reasons.stale_reason(config, name, row, strict=False))}
 
 
 def simulated(args):
@@ -114,10 +118,10 @@ def simulated(args):
         impl.write_text(marks + impl.read_text())
         score = importlib.import_module(f"{name}.score")
         with contextlib.redirect_stdout(io.StringIO()):
-            harness.run_component(name, score.score_case, ["--impl", "spender", "--record"], config)
+            run_component.run_component(name, score.score_case, ["--impl", "spender", "--record"], config)
         row = list(csv.DictReader(config.results_path.open()))[-1]
         return {"model": row["model"], "cost_usd": row["cost_usd"], "model_calls": int(row["model_calls"]),
-                "paid": bool(harness.paid_reason(config, name, "spender", row))}
+                "paid": bool(paid_gating.paid_reason(config, name, "spender", row))}
 
 
 KINDS = {"record": record, "run": run, "validity": validity, "cost": cost, "paid": paid, "external": external, "simulated": simulated}

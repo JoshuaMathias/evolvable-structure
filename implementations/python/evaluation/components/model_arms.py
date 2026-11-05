@@ -2,7 +2,8 @@
 environment so no vendor, key or price is written into the repository. Nothing here runs unless a paid arm is run."""
 import os
 
-from esoi import behaviour
+from esoi.understanding.esoi_for_ai import command_provider
+from esoi.understanding.esoi_for_ai.esoi_behaviour_judge import behaviour_judge
 
 COMMAND_ENV = "ESOI_MODEL_COMMAND"
 MODEL_ENV = "ESOI_MODEL"
@@ -15,7 +16,7 @@ def provider(meter):
     if not command.strip():
         raise ValueError(f"a paid arm needs {COMMAND_ENV}: a command that reads a prompt on standard input and prints a reply "
                          f"(optionally {MODEL_ENV} and {JUDGE_MODEL_ENV} to name the models); nothing was called")
-    return meter.wrap(behaviour.CommandProvider(command))
+    return meter.wrap(command_provider.CommandProvider(command))
 
 
 def model():
@@ -28,4 +29,4 @@ def judge_model():
 
 def judge(meter):
     """``judge(case, reply)`` whose calls are counted by ``meter``."""
-    return behaviour.build_judge(provider(meter), judge_model())
+    return behaviour_judge.build_judge(provider(meter), judge_model())

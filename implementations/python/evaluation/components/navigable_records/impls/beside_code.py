@@ -1,6 +1,6 @@
 """CURRENT: each record in the folder that holds its code, with the READMEs the library generates (``esoi records place``). Zero model calls."""
 import navigable_fixture
-from esoi import besidecode  # noqa: F401  (the layout is made by the library's own placement)
+from esoi.structure.intent_registry import besidecode
 
 
 def build(meter):

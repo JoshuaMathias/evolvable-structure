@@ -27,7 +27,7 @@ Unless the person asking says otherwise, this is the order. It keeps the intent,
 ## What esoi checks
 
 Rule S50 (opt-in, `[rules.S50] enabled = true`, advisory) informs where the flow is not written yet in **code**, from the evidence of
-[`esoi.coherence`](../explanation/why-prose-is-not-code-evidence.md) (E1 to E5): a solution that has an implementation but no caller in
+[`esoi.structure.structure_check.coherence`](../explanation/why-prose-is-not-code-evidence.md) (E1 to E5): a solution that has an implementation but no caller in
 the flow (nothing in the code of any solution the records say uses it imports, types or names it), and stated edges that no call in
 the code shows while the used solution has another caller. Each finding names the next step: write the flow, then what it reaches.
 Only code is read; for documents, processes and organisations the same order is yours to keep, and the paragraph and the records are

@@ -1,0 +1,333 @@
+"""Code evidence of a uses edge (M2, rule S38): the modules, imports, documents and executable tokens that show one solution uses another (E1 to E5, W1 to W3)."""
+from __future__ import annotations
+
+import ast
+import os
+import posixpath
+import re
+import urllib.parse
+from collections import defaultdict
+from pathlib import Path
+from typing import Dict, List, Set, Tuple
+
+from esoi.structure.intent_registry.tables import document_entries, glob_re
+from esoi.structure.structure_check.coherence_paragraph import position
+from esoi.structure.structure_check.coherence_records import ids
+
+DOCUMENT_SUFFIXES = (".md", ".markdown", ".mdx")
+SKIPPED_FOLDERS = {"node_modules", "__pycache__", "venv", "site-packages", "dist", "build"}
+FENCE = re.compile(r"^[ \t]*(```|~~~).*?^[ \t]*\1[^\n]*$|^[ \t]*(```|~~~).*\Z", re.S | re.M)
+HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)
+INLINE_CODE = re.compile(r"(`+)[^`\n]*?\1")
+INLINE_LINK = re.compile(r"!?\[[^\]\n]*\]\(\s*<?([^)\s>]+)")
+REFERENCE_LINK = re.compile(r"^[ \t]{0,3}\[[^\]\n]+\]:[ \t]*<?(\S+?)>?(?:[ \t]+.*)?$", re.M)
+INCLUDE = re.compile(r"\{\{#include\s+([^\s}:]+)[^}]*\}\}|\{%[-\s]*include\s+[\"']?([^\s\"'%]+)|^[ \t]*!include[ \t]+(\S+)", re.M)
+
+
+def executable_tokens(text: str, tree, nodes=None) -> List[str]:
+    """The names and string values the executable code of a Python module holds: identifiers, attributes, imported names,
+    parameter and keyword names, and string literals used as values. Docstrings and any other bare string statement are
+    documentation and left out, and so is every comment (a comment is not in the syntax tree). A module that does not parse
+    falls back to its text with comment lines removed. ``nodes`` limits the walk to those syntax nodes (one solution's classes in
+    a module several solutions share)."""
+    if tree is None:
+        return [line for line in text.splitlines() if not line.lstrip().startswith("#")]
+    walked = [n for top in (nodes if nodes is not None else [tree]) for n in ast.walk(top)]
+    prose = {id(n.value) for n in walked if isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant)
+             and isinstance(n.value.value, str)}
+    out: List[str] = []
+    for node in walked:
+        if isinstance(node, ast.Name):
+            out.append(node.id)
+        elif isinstance(node, ast.Attribute):
+            out.append(node.attr)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            out.append(node.name)
+        elif isinstance(node, ast.arg):
+            out.append(node.arg)
+        elif isinstance(node, ast.keyword) and node.arg:
+            out.append(node.arg)
+        elif isinstance(node, ast.alias):
+            out.append(node.name)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            out.append(node.module)
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in prose:
+            out.append(node.value)
+    return out
+
+
+def document_targets(text: str) -> List[str]:
+    """The relative targets a markdown document links to or includes: inline and reference links, images, and include directives
+    (``{{#include path}}``, ``{% include path %}``, ``!include path``). Fenced code, inline code and HTML comments are not links
+    (they show a link, or hold one out of use), so nothing in them counts; URLs and bare anchors are left out. Targets come back
+    as written, with any ``#fragment`` or ``?query`` removed."""
+    text = HTML_COMMENT.sub(" ", FENCE.sub(" ", text))
+    text = INLINE_CODE.sub(" ", text)
+    found = INLINE_LINK.findall(text) + REFERENCE_LINK.findall(text)
+    found += [x for groups in INCLUDE.findall(text) for x in groups if x]
+    out: List[str] = []
+    for target in found:
+        target = re.split(r"[#?]", target.strip(), maxsplit=1)[0]
+        if target and not re.match(r"^([A-Za-z][A-Za-z0-9+.-]*:|//)", target):
+            out.append(target)
+    return out
+
+
+def declared_owner(node) -> str:
+    """The solution id a class declares through ``@implementation("id", ...)`` or ``@solution("id", ...)``, or ''."""
+    for deco in getattr(node, "decorator_list", []):
+        if isinstance(deco, ast.Call) and deco.args and isinstance(deco.args[0], ast.Constant) and isinstance(deco.args[0].value, str):
+            func = deco.func.attr if isinstance(deco.func, ast.Attribute) else getattr(deco.func, "id", "")
+            if func in ("implementation", "solution"):
+                return deco.args[0].value
+    return ""
+
+
+class Code:
+    """Modules of the package, their imports, and which solutions each module carries."""
+
+    def __init__(self, cfg, solutions: Dict[str, Dict[str, str]], implementations: List[Dict[str, str]],
+                 selected: Dict[str, Dict[str, str]], components: List[Dict[str, str]] = ()):
+        self.root = cfg.root
+        pkg_dir = cfg.root / (cfg.package_dir or cfg.package or "")
+        self.files: Dict[str, Path] = {}
+        if cfg.package and pkg_dir.is_dir():
+            for f in pkg_dir.rglob("*.py"):
+                if "__pycache__" not in f.parts:
+                    parts = [cfg.package] + list(f.relative_to(pkg_dir).with_suffix("").parts)
+                    if parts[-1] == "__init__":
+                        parts = parts[:-1]
+                    self.files[".".join(parts)] = f
+        self.source = {m: f.read_text(encoding="utf-8", errors="replace") for m, f in self.files.items()}
+        self.trees = {}
+        for m, text in self.source.items():
+            try:
+                self.trees[m] = ast.parse(text)
+            except SyntaxError:
+                self.trees[m] = None
+        self.tokens = {m: executable_tokens(text, self.trees[m]) for m, text in self.source.items()}
+        self.imports: Dict[str, Set[str]] = {m: self.imports_of(m) for m in self.files}
+        self.region_nodes: Dict[Tuple[str, str], list] = defaultdict(list)    # (module, solution id) -> the classes it declares there
+        for m, tree in self.trees.items():
+            for node in (tree.body if tree is not None else []):
+                owner = declared_owner(node)
+                if owner:
+                    self.region_nodes[(m, owner)].append(node)
+        self.modules: Dict[str, Set[str]] = defaultdict(set)
+        for row in implementations:
+            module = self.module_of(row.get("filepath", ""))
+            if module:
+                self.modules[row["solution_id"]].add(module)
+        for m, text in self.source.items():
+            for sid in re.findall(r"@implementation\(\s*[\"']([\w.-]+)[\"']", text):
+                if sid in solutions:
+                    self.modules[sid].add(m)
+        self.shared = {m for m in self.files if sum(1 for sid in self.modules if m in self.modules[sid]) > 1}
+        self.region_tokens: Dict[Tuple[str, str], List[str]] = {}
+        self.region_imports: Dict[Tuple[str, str], Set[str]] = {}
+        for (m, sid), nodes in self.region_nodes.items():
+            if m in self.shared:
+                self.region_tokens[(m, sid)] = executable_tokens(self.source[m], self.trees[m], nodes)
+                self.region_imports[(m, sid)] = self.imports_of(m, nodes)
+        self.owned = self.ownership(cfg, components)
+        self.documents = self.document_files(cfg)
+        self.document_owners = self.document_ownership(cfg, components, selected)
+        self.links: Dict[str, Set[str]] = {d: self.links_of(d) for d in self.document_owners}
+        self.selected_module = {sid: self.module_of(r.get("filepath", "")) for sid, r in selected.items() if r}
+        self.interface = {sid: (r.get("interface_name") or "").strip() for sid, r in solutions.items()}
+        self.declared = {sid for text in self.source.values() for sid in re.findall(r"@solution\(\s*[\"']([\w.-]+)[\"']", text)}
+        self.assemblers = {m for m, text in self.source.items() if "Assembler(" in text or "assemble_defaults(" in text}
+
+    def ownership(self, cfg, components) -> Dict[str, Set[str]]:
+        """{module: solutions its components.csv rows list}, by the same path globs the structure check uses. The package's own
+        ``__init__`` is left out: every ``from . import x`` reaches it, so it says nothing about one solution."""
+        out: Dict[str, Set[str]] = defaultdict(set)
+        relative = {m: f.relative_to(self.root).as_posix() for m, f in self.files.items() if m != cfg.package}   # once per file, not once per row and pattern
+        for row in components or ():
+            patterns = [glob_re(p) for p in ids(row.get("path", ""))]
+            owners = set(ids(row.get("solutions", "")))
+            if not owners:
+                continue
+            for m, rel in relative.items():
+                if any(rx.match(rel) for rx in patterns):
+                    out[m] |= owners
+        return out
+
+    def document_files(self, cfg) -> Dict[str, Path]:
+        """{posix path from the root: file} of every markdown document of the project (hidden and vendored folders left out)."""
+        out: Dict[str, Path] = {}
+        for folder, names, files in os.walk(self.root):
+            names[:] = [n for n in names if not n.startswith(".") and n not in SKIPPED_FOLDERS]
+            for name in files:
+                if name.lower().endswith(DOCUMENT_SUFFIXES):
+                    path = Path(folder) / name
+                    out[path.relative_to(self.root).as_posix()] = path
+        return out
+
+    def document_ownership(self, cfg, components, selected) -> Dict[str, Set[str]]:
+        """{document: solutions that own it}. A document is a solution's when a ``components.csv`` row names it in its ``documents``
+        cell (``path=solution-id``: the row's path owns the file, this says whose document it is) or when the solution's selected
+        implementation names it as its ``filepath``: the document is the implementation. A folder a component owns as a whole
+        (``docs/**``) makes no document anyone's. Only documents that exist are counted."""
+        out: Dict[str, Set[str]] = defaultdict(set)
+        for row in components or ():
+            for path, solution in document_entries(row.get("documents", "")):
+                if solution and path in self.documents:
+                    out[path].add(solution)
+        for sid, row in selected.items():
+            rel = ((row or {}).get("filepath") or "").strip().split("::")[0]
+            if rel in self.documents:
+                out[rel].add(sid)
+        return out
+
+    def links_of(self, document: str) -> Set[str]:
+        """The documents ``document`` links to or includes, as paths from the root, from its actual markdown links."""
+        text = self.documents[document].read_text(encoding="utf-8", errors="replace")
+        folder = posixpath.dirname(document)
+        out: Set[str] = set()
+        for target in document_targets(text):
+            target = urllib.parse.unquote(target)
+            path = posixpath.normpath(target.lstrip("/") if target.startswith("/") else posixpath.join(folder, target))
+            if not path.startswith("..") and path != document:
+                out.add(path)
+        return out
+
+    def documents_of(self, solution: str) -> Set[str]:
+        return {d for d, owners in self.document_owners.items() if solution in owners}
+
+    def linked(self, user: str, used: str) -> bool:
+        """A document that only ``user`` owns links to or includes a document that only ``used`` owns. Both ends must be one
+        solution's alone: a document several solutions own (a whole ``docs/**`` folder, say) does not say which of them a link
+        means, so it is no evidence on either side."""
+        mine = {d for d in self.documents_of(user) if self.document_owners[d] == {user}}
+        theirs = {d for d in self.documents_of(used) if self.document_owners[d] == {used}}
+        return any(self.links[d] & theirs for d in mine)
+
+    def owned_by(self, solution: str) -> Set[str]:
+        return {m for m, owners in self.owned.items() if solution in owners}
+
+    def module_of(self, filepath: str) -> str:
+        filepath = (filepath or "").strip().split("::")[0]
+        if not filepath.endswith(".py"):
+            return ""
+        full = (self.root / filepath).resolve()
+        for m, f in self.files.items():
+            if f.resolve() == full:
+                return m
+        return ""
+
+    def own_tokens(self, solution: str, module: str) -> List[str]:
+        """The executable tokens of ``solution`` in ``module``: the whole module, or, in a module several solutions share, only
+        the classes that solution declares there (a module shared by solutions with no class of this one is scored whole)."""
+        return self.region_tokens.get((module, solution), self.tokens[module])
+
+    def own_imports(self, solution: str, module: str) -> Set[str]:
+        return self.region_imports.get((module, solution), self.imports[module])
+
+    def imports_of(self, module: str, nodes=None) -> Set[str]:
+        tree = self.trees.get(module)
+        if tree is None:
+            return set()
+        out: Set[str] = set()
+        is_pkg = self.files[module].name == "__init__.py"
+        for node in (n for top in (nodes if nodes is not None else [tree]) for n in ast.walk(top)):
+            if isinstance(node, ast.Import):
+                out.update(a.name for a in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                base = node.module or ""
+                if node.level:
+                    parts = module.split(".")
+                    if not is_pkg:
+                        parts = parts[:-1]
+                    parts = parts[: len(parts) - (node.level - 1)] if node.level > 1 else parts
+                    base = ".".join(parts + ([base] if base else []))
+                out.add(base)
+                out.update(f"{base}.{a.name}" for a in node.names)
+        return {m for m in out if m in self.files}
+
+    def typed_need(self, user: str, used: str) -> bool:
+        """The user's selected implementation module has a constructor parameter annotated with the used's interface class."""
+        name, module = self.interface.get(used, ""), self.selected_module.get(user, "")
+        tree = self.trees.get(module) if module else None
+        if not name or tree is None:
+            return False
+        own = self.region_nodes.get((module, user)) if module in self.shared else None
+        for node in (n for top in (own or [tree]) for n in ast.walk(top)):
+            if isinstance(node, ast.FunctionDef) and node.name == "__init__":
+                for arg in node.args.args + node.args.kwonlyargs:
+                    if arg.annotation is not None and name in ast.unparse(arg.annotation).replace("'", "").replace('"', "").split("."):
+                        return True
+        return False
+
+    def imported_by(self, user: str, module: str, used: str, used_modules: Set[str]) -> bool:
+        """``user``'s part of ``module`` imports a module of ``used``. A module the used shares with other solutions counts only when
+        the import names a class the used declares there or its interface (importing the shared file says nothing about one arm)."""
+        for target in self.own_imports(user, module) & used_modules:
+            if target not in self.shared:
+                return True
+            wanted = {self.interface.get(used, "")} | {getattr(n, "name", "") for n in self.region_nodes.get((target, used), [])}
+            if self.names_imported(user, module, target) & (wanted - {""}):
+                return True
+        return False
+
+    def names_imported(self, user: str, module: str, target: str) -> Set[str]:
+        """The names ``user``'s part of ``module`` imports from ``target``."""
+        tree = self.trees.get(module)
+        nodes = self.region_nodes.get((module, user)) if module in self.shared else None
+        out: Set[str] = set()
+        for node in (n for top in (nodes or [tree]) for n in (ast.walk(top) if top is not None else [])):
+            if isinstance(node, ast.ImportFrom):
+                base = node.module or ""
+                if node.level:
+                    parts = module.split(".")
+                    if self.files[module].name != "__init__.py":
+                        parts = parts[:-1]
+                    parts = parts[: len(parts) - (node.level - 1)] if node.level > 1 else parts
+                    base = ".".join(parts + ([base] if base else []))
+                if base == target:
+                    out.update(a.name for a in node.names)
+        return out
+
+    def evidence(self, user: str, used: str) -> str:
+        """The strongest evidence that ``user`` uses ``used`` (E1 to E5, then W1, W2, W3), '' for none, 'n/a' when either end
+        has no module."""
+        mu, mc = self.modules.get(user, set()), self.modules.get(used, set())
+        if not (mu or self.documents_of(user)) or not (mc or self.documents_of(used)):
+            return "n/a"
+        if self.linked(user, used):
+            return "E5"
+        if not mu or not mc:
+            return ""
+        if any(self.imported_by(user, m, used, mc) for m in mu):
+            return "E1"
+        iface = self.interface.get(used)
+        for m in mu:
+            if any(position(used, {}, token) >= 0 or (iface and re.search(r"\b" + re.escape(iface) + r"\b", token))
+                   for token in self.own_tokens(user, m)):
+                return "E2"
+        if self.typed_need(user, used):
+            return "E3"
+        if any(self.through_owned(user, m, used, mc) for m in mu):
+            return "E4"
+        if any(self.imports.get(y, set()) & mc for m in mu for y in self.own_imports(user, m)):
+            return "W1"
+        if mu & self.assemblers and used in self.declared:
+            return "W2"
+        for w, imported in self.imports.items():
+            if w not in mu and w not in mc and imported & mu and imported & mc:
+                return "W3"
+        return ""
+
+    def through_owned(self, user: str, module: str, used: str, used_modules: Set[str]) -> bool:
+        """``user``'s part of ``module`` imports a module that only the user's component owns, and that module imports one that only
+        the used's component owns (or one the used implements in a file no other solution shares). components.csv is the record that
+        says whose a module is; a module owned by several solutions, a chain through someone else's module and the package
+        ``__init__`` are not evidence, because there the import does not say which solution is meant."""
+        mine = self.owned_by(user)
+        theirs = {m for m in self.owned_by(used) if self.owned[m] == {used}} | {m for m in used_modules if m not in self.shared}
+        theirs -= self.owned_by(user)
+        return any(self.imports.get(x, set()) & theirs for x in self.own_imports(user, module) if x in mine and x != module)
+
+    def import_edges(self, among: Set[str]) -> Set[Tuple[str, str]]:
+        return {(a, b) for a in among for b in among
+                if a != b and any(self.imports[m] & self.modules.get(b, set()) for m in self.modules.get(a, set()))}

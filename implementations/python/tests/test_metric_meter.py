@@ -1,7 +1,7 @@
 """The meters that read a metric's value, and the budget a reading keeps.
 
 The meters give a slice's metric a number from the program's own side: a recorded row while it is current, or an offline arm run
-now, and never an arm that could spend money. A throwaway repository written by ``esoi.scaffold.init`` stands in for a real
+now, and never an arm that could spend money. A throwaway repository written by ``esoi.understanding.the_standard.scaffold.init`` stands in for a real
 one. Offline: no model, no network.
 """
 import os
@@ -13,11 +13,21 @@ from pathlib import Path
 
 import pytest
 
-from esoi import scaffold
-from esoi.metric_meter import (
-    AFTER, BEFORE, OfflineArmMeter, Reading, RecordedRowMeter, kill_process_group, meters_from_names, read_value,
-    run_bounded, score_from_output, scrubbed_environment)
-from esoi.spec_slice import SpecSlice
+from esoi.understanding.the_standard import scaffold
+from esoi.optimization.keep_metric_record.metric_meter import (
+    AFTER,
+    BEFORE,
+    OfflineArmMeter,
+    Reading,
+    RecordedRowMeter,
+    kill_process_group,
+    meters_from_names,
+    read_value,
+    run_bounded,
+    score_from_output,
+    scrubbed_environment,
+)
+from esoi.optimization.keep_metric_record.spec_slice import SpecSlice
 
 
 @pytest.fixture

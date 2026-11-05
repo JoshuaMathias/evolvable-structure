@@ -1,8 +1,9 @@
 """Claims on held-out cases, two-sided tests, alpha shared across looks, and promotion that never rewrites a metric command."""
 import pytest
 
-from esoi import leaderboard as lb
-from esoi import stats, tables
+from esoi.optimization.leaderboard import arm_selection, rival_decisions, switching_policy
+from esoi.optimization.leaderboard import stats
+from esoi.structure.intent_registry import tables
 from test_cascade import set_cascade
 
 
@@ -45,9 +46,9 @@ def test_in_sample_significant_but_held_out_is_not():
     a, b = concentrated(0.3)
     data = {"a": row("a", a), "b": row("b", b)}
     every = log("a", a) + log("b", b)
-    whole = lb.decisions(data, "a", per_case=every)[0]
+    whole = rival_decisions.decisions(data, "a", per_case=every)[0]
     assert whole.significant and whole.p < 0.05                      # in sample the lead looks real
-    held = lb.decisions(data, "a", per_case=every, policy=lb.Policy(holdout=0.3))[0]
+    held = rival_decisions.decisions(data, "a", per_case=every, policy=switching_policy.Policy(holdout=0.3))[0]
     assert not held.significant and held.p > 0.05 and held.outcome == "rival"
     assert "best guess, not yet significant" in held.text and "1 of " in held.text   # one case of the held-out part disagrees
     assert held.other["part"] == "heldout" and int(held.other["cases"]) < 30
@@ -56,7 +57,7 @@ def test_in_sample_significant_but_held_out_is_not():
 def test_the_claim_is_two_sided_and_holm_adjusted():
     a = [False] * 40
     b = [True] * 5 + [False] * 35
-    found = lb.decisions({"a": row("a", a), "b": row("b", b)}, "a", per_case=log("a", a) + log("b", b))[0]
+    found = rival_decisions.decisions({"a": row("a", a), "b": row("b", b)}, "a", per_case=log("a", a) + log("b", b))[0]
     assert found.p == pytest.approx(2 / 32) and not found.significant   # one-sided it would be 1/32 and pass
 
 
@@ -66,21 +67,22 @@ def test_a_claim_at_one_of_several_looks_spends_a_share_of_alpha():
     history = {"a": [row("a", a[:3], "sample:3"), row("a", a[:10], "sample:10"), row("a", a)],
                "b": [row("b", b[:3], "sample:3"), row("b", b[:10], "sample:10"), row("b", b)]}
     every = log("a", a) + log("b", b)
-    alone = lb.decisions({"a": history["a"][-1], "b": history["b"][-1]}, "a", per_case=every)[0]
+    alone = rival_decisions.decisions({"a": history["a"][-1], "b": history["b"][-1]}, "a", per_case=every)[0]
     assert alone.significant
-    looked = lb.decisions({"a": history["a"][-1], "b": history["b"][-1]}, "a", history=history, per_case=every)[0]
+    looked = rival_decisions.decisions({"a": history["a"][-1], "b": history["b"][-1]}, "a", history=history, per_case=every)[0]
     assert not looked.significant and "one of 3 looks" in looked.text
 
 
 def test_holdout_is_read_from_the_selection_table_and_is_not_a_solution_choice(cfg):
     import dataclasses
     held = dataclasses.replace(cfg, selection={"holdout": 0.3})
-    assert lb.holdout_fraction(held) == 0.3 and held.selection_choices == {}
-    assert lb.holdout_fraction(cfg) == 0.0
+    assert switching_policy.holdout_fraction(held) == 0.3 and held.selection_choices == {}
+    assert switching_policy.holdout_fraction(cfg) == 0.0
 
 
 def test_promotion_changes_selected_and_never_the_metric_command(cfg):
-    from esoi import promote, registry
+    from esoi.optimization.promote_the_winner import promote
+    from esoi.structure.intent_registry import registry
     set_cascade(cfg, "whole [sample=full | real=no]")
     metrics_before = (cfg.structure / "metrics.csv").read_bytes()
     results, header = tables.read_csv(cfg.results_path), tables.read_header(cfg.results_path)
@@ -94,4 +96,4 @@ def test_promotion_changes_selected_and_never_the_metric_command(cfg):
     assert (cfg.structure / "metrics.csv").read_bytes() == metrics_before
     again = registry.load(cfg)
     solution = next(s for s in again.solutions if s["solution_id"] == proposal.solution_id)
-    assert lb.selected_arm(cfg, solution, "", again)[1] == "shout"
+    assert arm_selection.selected_arm(cfg, solution, "", again)[1] == "shout"

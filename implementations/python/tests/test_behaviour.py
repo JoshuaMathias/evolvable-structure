@@ -10,11 +10,17 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "evaluation" / "components"))
 
-from esoi import behaviour, harness, skill  # noqa: E402
-from esoi.config import Config  # noqa: E402
+from esoi.understanding.esoi_for_ai import behaviour
+from esoi.understanding.esoi_for_ai import command_provider
+from esoi.understanding.esoi_for_ai.esoi_behaviour_judge import behaviour_judge
+from esoi.optimization.measurement_harness import call_meter
+from esoi.optimization.measurement_harness import case_loading
+from esoi.optimization.when_metrics_are_run import paid_gating
+from esoi.understanding.the_standard.skill_distribution import skill
+from esoi.structure.intent_registry.config import Config
 
 CONFIG = Config(root=ROOT, package="esoi", evaluation_dir="evaluation/components")
-CASES = harness.load_cases("behave_by_esoi", CONFIG)
+CASES = case_loading.load_cases("behave_by_esoi", CONFIG)
 CASE = {"principle": "P4", "must_have": "metric;still", "must_not": "never", "scenario": "s", "expected_behavior": "e",
         "failure_mode": "f"}
 
@@ -51,12 +57,12 @@ def test_the_headline_counts_per_principle_in_numeric_order():
     (None, False),
 ])
 def test_an_unparseable_verdict_is_a_fail_never_a_pass(text, expected):
-    assert behaviour.parse_verdict(text)[0] is expected
+    assert behaviour_judge.parse_verdict(text)[0] is expected
 
 
 def test_the_judge_prompt_carries_the_rubric_and_never_the_regexes_or_references():
     case = dict(CASE, good_reference="GOODREF", bad_reference="BADREF")
-    prompt = behaviour.judge_prompt(case, "the reply")
+    prompt = behaviour_judge.judge_prompt(case, "the reply")
     assert "EXPECTED BEHAVIOR:\ne" in prompt and "FAILURE MODE" in prompt and "the reply" in prompt
     assert "GOODREF" not in prompt and "BADREF" not in prompt and "metric;still" not in prompt
 
@@ -68,21 +74,21 @@ def test_build_judge_makes_one_provider_call_per_reply():
         def answer(self, messages, model=None, system=None):
             Fake.calls.append((model, system))
             return '{"verdict": "pass", "reason": "fine"}'
-    assert behaviour.build_judge(Fake(), "m")(CASE, "reply") == (True, "fine")
-    assert Fake.calls == [("m", behaviour.JUDGE_SYSTEM)]
+    assert behaviour_judge.build_judge(Fake(), "m")(CASE, "reply") == (True, "fine")
+    assert Fake.calls == [("m", behaviour_judge.JUDGE_SYSTEM)]
 
 
 def test_the_command_provider_pipes_the_prompt_and_counts_an_estimate():
-    provider = behaviour.CommandProvider("cat")
+    provider = command_provider.CommandProvider("cat")
     out = provider.answer([{"role": "user", "content": "hello"}], system="rules")
     assert out == "rules\n\n---\n\nhello" and provider.tokens_in > 0 and provider.tokens_out > 0
 
 
 def test_the_command_provider_refuses_an_empty_command_and_reports_a_failing_one():
     with pytest.raises(ValueError):
-        behaviour.CommandProvider(" ")
+        command_provider.CommandProvider(" ")
     with pytest.raises(RuntimeError):
-        behaviour.CommandProvider("false").answer([{"role": "user", "content": "x"}])
+        command_provider.CommandProvider("false").answer([{"role": "user", "content": "x"}])
 
 
 def test_the_bundled_skill_has_a_description_for_the_on_request_arm():
@@ -109,7 +115,7 @@ def test_the_cases_cover_every_principle_and_the_nuance_rules():
 def test_the_keyword_stuffing_baseline_fails_every_restraint_case():
     import importlib
     build = importlib.import_module("behave_by_esoi.broken.keyword_stuffing").build
-    reply = build(harness.CallMeter())({})
+    reply = build(call_meter.CallMeter())({})
     passed = [c["id"] for c in CASES if c["kind"] == "restraint" and not behaviour.regex_problems(reply, c)]
     assert passed == []
 
@@ -143,8 +149,8 @@ def test_a_human_verdict_overrides_the_authors_label():
     ("behave_by_esoi", "reference_bad", False), ("judge_esoi_behaviour", "model_judge", True),
     ("judge_esoi_behaviour", "regex_only", False)])
 def test_exactly_the_arms_that_call_a_model_declare_themselves_paid(component, impl, paid):
-    assert harness.declares_paid(ROOT / "evaluation" / "components" / component / "impls" / f"{impl}.py") is paid
-    assert bool(harness.paid_reason(CONFIG, component, impl, None)) is paid
+    assert paid_gating.declares_paid(ROOT / "evaluation" / "components" / component / "impls" / f"{impl}.py") is paid
+    assert bool(paid_gating.paid_reason(CONFIG, component, impl, None)) is paid
 
 
 def test_a_paid_arm_without_a_model_command_stops_before_any_call(monkeypatch):
@@ -152,4 +158,4 @@ def test_a_paid_arm_without_a_model_command_stops_before_any_call(monkeypatch):
     monkeypatch.delenv("ESOI_MODEL_COMMAND", raising=False)
     build = importlib.import_module("behave_by_esoi.impls.standing_instructions").build
     with pytest.raises(ValueError, match="ESOI_MODEL_COMMAND"):
-        build(harness.CallMeter())
+        build(call_meter.CallMeter())

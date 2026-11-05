@@ -32,5 +32,5 @@ A child can also build on the parent's metric itself, reusing its cases and resu
 
 No new record field. The parent's selections come from the same places the assembler's parent layer and rule S35 read
 (`[parent]`, a records folder, a snapshot or an Assembler's parent chain); the lock is `esoi.lock.json`; the reasons are
-`overrides.csv`; the judgment is `esoi.leaderboard.decisions`; and staleness is `esoi.staleness`. How to run it:
+`overrides.csv`; the judgment is `esoi.optimization.leaderboard.rival_decisions.decisions`; and staleness is `esoi.optimization.when_metrics_are_run.know_what_a_result_measures.staleness`. How to run it:
 [Follow a parent repository's selections](../how-to/follow-a-parent-repositorys-selections.md).

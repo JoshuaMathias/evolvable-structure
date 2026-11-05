@@ -2,8 +2,8 @@
 import hashlib
 import sys
 
-from esoi import consumer
-from esoi.consumer import Options
+from esoi.runtime.consumer_check import consumer
+from esoi.runtime.consumer_check.consumer import Options
 
 
 def library(tmp_path):
@@ -26,7 +26,7 @@ def test_required_columns_use_the_prefix():
 
 
 def test_options_come_from_the_config_table_or_the_flag(tmp_path):
-    from esoi.config import Config
+    from esoi.structure.intent_registry.config import Config
     cfg = Config(root=tmp_path, consumer={"library": "libx", "column_prefix": "z"})
     assert Options.from_config(cfg).column_prefix == "z"
     assert Options.from_config(Config(root=tmp_path), "other").library == "other"

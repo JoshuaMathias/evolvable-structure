@@ -1,4 +1,4 @@
-"""The world of the metric-record evaluation and its tests: a throwaway repository written by ``esoi.scaffold.init`` (records, a
+"""The world of the metric-record evaluation and its tests: a throwaway repository written by ``esoi.understanding.the_standard.scaffold.init`` (records, a
 recorded run, an evaluation component), the edits a case makes to it, fake meters, and a spy on the processes an arm would start.
 
 ``run_case(kind, args, strategy)`` builds the world a case describes, calls ``strategy.<kind>(world, args)`` and returns its
@@ -18,9 +18,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import esoi
-from esoi import scaffold
-from esoi.metric_meter import AFTER, BEFORE
-from esoi.spec_slice import SpecSlice
+from esoi.understanding.the_standard import scaffold
+from esoi.optimization.keep_metric_record.metric_meter import AFTER, BEFORE
+from esoi.optimization.keep_metric_record.spec_slice import SpecSlice
 
 HANG_SECONDS = 0.8   # a meter that hangs holds its thread this long; cases give the reading far less
 SLICE = SpecSlice(root="none", solution_id="greet-a-person", metric_id="greeting-pass-rate",

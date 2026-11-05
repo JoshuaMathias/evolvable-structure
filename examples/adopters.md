@@ -24,7 +24,7 @@ the library fails a normal test run.
 A repository of AI-intelligence hubs (model call, web search, card store, risk watching) and the code that wires them into one
 program. It had written, for its own use, a name validator, a loader that refused modules outside its package, a registry
 lookup by name, a reader of constructor types, a builder that ordered parts by their needs, and a check that the recorded
-needs matched the code. None of that mentions AI, so it moved into the library as `esoi.assemble`
+needs matched the code. None of that mentions AI, so it moved into the library as `esoi.runtime.assemble_by_name.assemble`
 ([guide](../docs/how-to/assemble-by-name.md)). The repository now constructs one `Assembler` for its package and uses
 `AssemblyConfig` and `AssemblyError` directly, with no aliases of its own. It keeps what is about its domain: its solutions as
 Protocol classes, its arms, its configuration, the rule that picks a model tier, the card store, the risk watcher and the

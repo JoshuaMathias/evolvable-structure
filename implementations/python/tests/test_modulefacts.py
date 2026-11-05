@@ -1,8 +1,8 @@
 """Per-module facts and the cache that makes a second `esoi check` fast."""
 import json
 
-from esoi import tables
-from esoi.rules import modulefacts
+from esoi.structure.intent_registry import tables
+from esoi.structure.structure_check.rules import modulefacts
 
 SOURCE = '''"""A module."""
 import os
@@ -85,7 +85,7 @@ def test_the_cache_folder_is_never_a_repository_file(tmp_path):
 
 
 def test_ctx_memo_is_invalidated_by_a_change_to_a_named_file(cfg):
-    from esoi import check
+    from esoi.structure.structure_check import check
     ctx = check.build_context(cfg)
     calls = []
     first = ctx.memo("n", ["demo/*.py"], lambda: calls.append(1) or ["a"])
@@ -96,7 +96,8 @@ def test_ctx_memo_is_invalidated_by_a_change_to_a_named_file(cfg):
 
 def test_a_plugin_memo_is_dropped_when_a_record_header_or_the_configuration_changes(cfg):
     """A plugin may read a record without naming it in its globs; a changed header must not serve its old answer."""
-    from esoi import check, tables
+    from esoi.structure.structure_check import check
+    from esoi.structure.intent_registry import tables
     calls = []
 
     def count_columns(ctx):

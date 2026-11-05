@@ -17,8 +17,8 @@ from collections import Counter, deque
 from pathlib import Path
 
 import navigable_fixture
-from esoi import besidecode, intents
-from esoi.rules.beside_rules import distance
+from esoi.structure.intent_registry import besidecode, intents
+from esoi.structure.structure_check.rules.beside_rules import distance
 
 CHECKS = ("together", "clicks", "implemented", "unduplicated", "readme", "pure")
 CLICKS = 3

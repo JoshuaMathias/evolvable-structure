@@ -1,11 +1,12 @@
-"""esoi.coherence's paragraph check (rule S39): an edge counts only when one clause names the user before the used with words of
+"""esoi.structure.structure_check.coherence's paragraph check (rule S39): an edge counts only when one clause names the user before the used with words of
 its own; lists of names, used-first wording and one template per edge fail. Runs on the scaffold `esoi init` writes."""
 import csv
 from pathlib import Path
 
 import pytest
 
-from esoi import coherence, scaffold
+from esoi.structure.structure_check import coherence, coherence_code_evidence, coherence_paragraph
+from esoi.understanding.the_standard import scaffold
 
 
 @pytest.fixture()
@@ -69,7 +70,7 @@ def code_for(tmp_path: Path, user_source: str, used_source: str = "class Finder:
     impls = [{"solution_id": "user", "implementation_id": "u1", "filepath": "pk/user.py"},
              {"solution_id": "used", "implementation_id": "c1", "filepath": "pk/used.py"}]
     selected = {"user": dict(impls[0], **(user_row or {})), "used": impls[1]}
-    return coherence.Code(cfg, solutions, impls, selected)
+    return coherence_code_evidence.Code(cfg, solutions, impls, selected)
 
 
 def test_a_docstring_naming_the_used_id_or_interface_is_no_evidence(tmp_path):
@@ -125,7 +126,7 @@ def test_a_module_that_does_not_parse_ignores_comment_lines(tmp_path):
 def test_weak_evidence_is_unchanged_by_docstrings(tmp_path):
     code = code_for(tmp_path, '"""used."""\nfrom pk import hub\n')
     (tmp_path / "pk" / "hub.py").write_text("from pk import used\n", encoding="utf-8")
-    code = coherence.Code(SimpleNamespace(root=tmp_path, package="pk", package_dir="pk"), {
+    code = coherence_code_evidence.Code(SimpleNamespace(root=tmp_path, package="pk", package_dir="pk"), {
         "user": {"solution_id": "user", "interface_name": "Runner"}, "used": {"solution_id": "used", "interface_name": "Finder"}},
         [{"solution_id": "user", "implementation_id": "u1", "filepath": "pk/user.py"},
          {"solution_id": "used", "implementation_id": "c1", "filepath": "pk/used.py"}], {})
@@ -146,7 +147,7 @@ def shared_code(tmp_path: Path, shared_source: str, extra: dict = None):
     cfg = SimpleNamespace(root=tmp_path, package="pk", package_dir="pk")
     solutions = {s: {"solution_id": s, "interface_name": s.upper()} for s in "abc"}
     impls = [{"solution_id": s, "implementation_id": f"{s}1", "filepath": "pk/shared.py"} for s in "abc"]
-    return coherence.Code(cfg, solutions, impls, {s: impls[i] for i, s in enumerate("abc")})
+    return coherence_code_evidence.Code(cfg, solutions, impls, {s: impls[i] for i, s in enumerate("abc")})
 
 
 SHARED = '''
@@ -259,7 +260,7 @@ def test_an_intent_with_no_recorded_edges_reports_lift_as_not_applicable_and_pas
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
-    monkeypatch.setattr(coherence.Code, "evidence", lambda self, a, b: "E2")   # evidence on every pair: base rate above 0
+    monkeypatch.setattr(coherence_code_evidence.Code, "evidence", lambda self, a, b: "E2")   # evidence on every pair: base rate above 0
     intent = coherence.check(project, pairs=True)["intents"][0]
     assert intent["uses_edges"] == 0
     assert intent["code_lift"] is None and intent["code_lift_note"] == "n/a (no recorded edges)"
@@ -269,7 +270,7 @@ def test_an_intent_with_no_recorded_edges_reports_lift_as_not_applicable_and_pas
 def lift_zero_project(project, monkeypatch):
     """The scaffold records edges; evidence fires on pairs that are not edges and never on the recorded edges: precision 0, base rate above 0."""
     recorded = {("project-purpose", "greet-a-person"), ("project-purpose", "project-structure")}
-    monkeypatch.setattr(coherence.Code, "evidence", lambda self, a, b: "" if (a, b) in recorded else "E2")
+    monkeypatch.setattr(coherence_code_evidence.Code, "evidence", lambda self, a, b: "" if (a, b) in recorded else "E2")
     return coherence.check(project, pairs=True)["intents"][0]
 
 
@@ -303,7 +304,7 @@ def owned_code(tmp_path: Path, mid_owners: str = "user", leaf_owners: str = "use
              {"solution_id": "used", "implementation_id": "c1", "filepath": "pk/used.py"}]
     components = [{"component_id": "m", "path": "pk/mid.py", "solutions": mid_owners},
                   {"component_id": "l", "path": "pk/leaf.py", "solutions": leaf_owners}]
-    return coherence.Code(cfg, solutions, impls, {"user": impls[0], "used": impls[1]}, components)
+    return coherence_code_evidence.Code(cfg, solutions, impls, {"user": impls[0], "used": impls[1]}, components)
 
 
 def test_an_import_through_the_users_own_module_to_the_used_ones_is_strong_evidence_e4(tmp_path):
@@ -344,7 +345,7 @@ def documents_code(tmp_path: Path, user_doc: str, used_owners: str = "used", use
     solutions = {"user": {"solution_id": "user"}, "used": {"solution_id": "used"}}
     cell = ";".join([f"docs/user.md={o}" for o in user_owners.split(";") if o] + [f"docs/used.md={o}" for o in used_owners.split(";") if o])
     components = [{"component_id": "d", "path": "docs/**", "solutions": "user;used", "documents": cell}]
-    return coherence.Code(cfg, solutions, [], {}, components)
+    return coherence_code_evidence.Code(cfg, solutions, [], {}, components)
 
 
 def test_a_folder_a_component_owns_as_a_whole_makes_no_document_anyones(tmp_path):
@@ -386,7 +387,7 @@ def test_a_link_outside_the_project_or_to_a_missing_document_is_not_evidence(tmp
 
 
 def test_document_targets_read_only_real_links():
-    from esoi.coherence import document_targets
+    from esoi.structure.structure_check.coherence_code_evidence import document_targets
     assert document_targets("[a](b.md#c) ![i](img/p.png) [r]: x/y.md\n") == ["b.md", "img/p.png"]
     assert document_targets("[r]\n\n[r]: x/y.md\n") == ["x/y.md"]
     assert document_targets("```\n[a](b.md)\n```\n[c](d.md)\n") == ["d.md"]
@@ -413,16 +414,16 @@ def test_a_paragraph_in_display_names_names_every_solution(project):
 
 def test_a_name_inside_a_longer_name_is_read_as_the_longer_one():
     solutions = {"mind": {"solution_id": "mind", "name": "Mind"}, "mind-and-body": {"solution_id": "mind-and-body", "name": "Mind and body"}}
-    coherence.SOLUTION_NAMES.clear()
-    coherence.SOLUTION_NAMES.update({sid: r["name"] for sid, r in solutions.items()})
+    coherence_paragraph.SOLUTION_NAMES.clear()
+    coherence_paragraph.SOLUTION_NAMES.update({sid: r["name"] for sid, r in solutions.items()})
     try:
         text = "The Mind and body work as one."
-        assert coherence.position("mind-and-body", solutions["mind-and-body"], text) == 4
-        assert coherence.position("mind", solutions["mind"], text) == -1        # only inside the longer name
-        assert coherence.position("mind", solutions["mind"], "The Mind asks. Mind and body answer.") == 4
-        assert coherence.position("mind", solutions["mind"], "The Minder works.") == -1   # a whole phrase, not a prefix of a word
+        assert coherence_paragraph.position("mind-and-body", solutions["mind-and-body"], text) == 4
+        assert coherence_paragraph.position("mind", solutions["mind"], text) == -1        # only inside the longer name
+        assert coherence_paragraph.position("mind", solutions["mind"], "The Mind asks. Mind and body answer.") == 4
+        assert coherence_paragraph.position("mind", solutions["mind"], "The Minder works.") == -1   # a whole phrase, not a prefix of a word
     finally:
-        coherence.SOLUTION_NAMES.clear()
+        coherence_paragraph.SOLUTION_NAMES.clear()
 
 
 def test_a_lazy_import_inside_a_function_is_an_import_so_e1(tmp_path):

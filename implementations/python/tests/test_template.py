@@ -1,7 +1,8 @@
 """Reading the intent template from markdown."""
 from pathlib import Path
 
-from esoi import records, template
+from esoi.structure.intent_registry import records
+from esoi.structure.intent_registry.template_sync import template
 
 SAMPLE = """# A skill
 
@@ -96,7 +97,7 @@ def test_stale_against_source_is_none_when_the_source_is_unreachable(cfg):
 
 
 def test_optional_marker_is_read_per_field_and_stripped_from_the_name():
-    from esoi import template
+    from esoi.structure.intent_registry.template_sync import template
     text = ("Intent specification:\n- **Solution**: A way.\n    - Specify:\n        - Name: What is it called?\n"
             "        - Knowledge (optional): What informs it?\n")
     rows, _ = template.parse(text)
@@ -105,7 +106,7 @@ def test_optional_marker_is_read_per_field_and_stripped_from_the_name():
 
 
 def test_optional_marker_may_carry_a_note_after_a_semicolon():
-    from esoi import template
+    from esoi.structure.intent_registry.template_sync import template
     text = ("Intent specification:\n- **Metric**: A measure.\n    - Specify:\n        - Name: What is measured?\n"
             "        - Cascading Conditionals (optional; for any case where the metric is costly): If given, run in order.\n")
     rows, notes = template.parse(text)

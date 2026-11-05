@@ -1,0 +1,2 @@
+metric_id,name,purpose,record,disadvantages,cascading_conditionals,solution_ids,command,parent_metric_ids,run_policy_ids
+metric-consumer-soundness,Consumer soundness,"Unmapped integration points, consumer stores not scored by the library's cases, and commits of pin lag.","The unmapped integration points, the consumer stores not scored by the library's cases, and the commits of pin lag, per consumer check.",,,consumer-check,esoi run check_a_consumer --impl live_consumer_check,metric-adoption-effort,when-metrics-are-run

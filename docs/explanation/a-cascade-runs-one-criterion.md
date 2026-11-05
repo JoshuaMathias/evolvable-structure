@@ -32,7 +32,7 @@ Each stage was run, and each produced its own leaderboard, so the report had thr
 ## The correct shape
 
 - **One metric, one number.** The number is a balanced score across all factors: accuracy, cost, time, size. The weights and budgets
-  are written down (`[balance.<component>]`, see `esoi/balance.py`) before any alternative is scored. Changing them afterwards ranks
+  are written down (`[balance.<component>]`, see `esoi/optimization/measurement_harness/balance.py`) before any alternative is scored. Changing them afterwards ranks
   earlier rows on another criterion, so a change means re-recording the arms.
 - **Stages are fidelity, not topics.** Stage one may be a free proxy or a handful of cases, the last stage the most objective measure,
   and every stage reports the same balanced score. A cheap stage may exclude an alternative only on that number.

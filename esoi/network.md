@@ -12,12 +12,21 @@ prose view.
 
 ```text
 esoi/                            top intent esoi: Evolvable structure that optimizes intent (ESOI); its intent.csv
-implementations/python/esoi/     the package folder: the records of the solutions whose code it holds, and a generated README
-  esoi-runtime/                  sub-intent esoi-runtime, beside the code it arises from, implements implementation-selection:declarations
+implementations/python/esoi/     the package folder: the root solution apply-esoi, the four containers, and a generated README
+  understanding/                 sub-intent understanding, implements esoi-understanding:composition (second level: the-standard, esoi-for-ai, readable-records, review-tracker, spec-search, local-application-index)
+  structure/                     sub-intent structure, implements esoi-structure:composition (intent-registry, ownership-map, structure-check, structure-budget)
+  optimization/                  sub-intent optimization, implements esoi-optimization:composition (measurement-harness, when-metrics-are-run, leaderboard, promote-the-winner, keep-metric-record)
+  runtime/                       sub-intent runtime, implements esoi-runtime:composition (implementation-selection, assemble-by-name, consumer-check)
 ```
 
+Third-level solutions are solutions of their container's sub-intent and sit in the folder of the second-level solution whose
+selected implementation names them in `uses_solution_ids`: the-steps and skill-distribution under the-standard,
+esoi-behaviour-judge under esoi-for-ai, template-sync and specify-from-code under intent-registry, discriminating-cases under
+measurement-harness, know-what-a-result-measures and public-evidence under when-metrics-are-run. The layout is described in
+`docs/explanation/layout-of-esoi.md`.
+
 Hierarchy is only between intents, and a sub-intent is not a direct child of its parent intent: it arises as an
-implementation of a solution in the parent. The one sub-intent here does, and states the opportunity that earns it a folder.
+implementation of a solution in the parent. Each of the four sub-intents here does, and states the opportunity that earns it a folder.
 
 ### Top intent: `esoi`
 
@@ -34,7 +43,7 @@ feedback loop. It has a single top solution, `apply-esoi`, with two implementati
   automatically. Its advantages (no install, quickest start) and disadvantages (records drift, nothing selects) are the
   trade the choice rests on. No recorded trial compares the two, which `apply-esoi` records as a known gap with a review date.
 
-Everything else that does not earn a folder stays a solution here: the registry, the template sync, the ownership map,
+Everything else that does not earn a folder stays a solution inside a container: the registry, the template sync, the ownership map,
 selection, measurement, the leaderboard, the structure check, the review tracker, the consumer check, the standard, the
 structure budget, when metrics are run, skill distribution, the steps, guiding agents (`esoi-for-ai`, whose metric runs the
 behaviour cases and whose replies are graded by `esoi-behaviour-judge`) and the local index (`local-application-index`).
@@ -42,24 +51,38 @@ The local index is a solution, not a sub-intent: its implementations are alterna
 brings no opportunity beyond the solution it implements.
 
 How specifications relate to code: each solution's records sit beside the code that implements it
-(`implementations/python/esoi/*.csv`), the top intent and the alternatives with no code yet stay in this folder, and esoi keeps
+(`implementations/python/esoi/<container>/<solution>/*.csv`), the top intent and the alternatives with no code yet stay in this folder, and esoi keeps
 them in step with the code (the ownership map ties every file to a solution and the check names what drifted). Records beside the
 code is the selected implementation of the `intent-registry` solution, chosen by the navigable-records measurement over
 `esoi_folder`, which stays listed.
 
-### Sub-intent `esoi-runtime` (folder `implementations/python/esoi/esoi-runtime/`)
+### Sub-intent `runtime` (folder `implementations/python/esoi/runtime/`, formerly `esoi-runtime`)
 
-- **Arises as:** the `declarations` implementation of `implementation-selection`.
+- **Arises as:** the `composition` implementation of the container solution `esoi-runtime` (it was the `declarations` implementation of `implementation-selection`).
 - **Opportunity that justifies it:** the Python package can become a runtime
   dependency inside other people's production code, not only a tool run on a repository: selection at run time, graceful
   declarations of alternatives (decorators, for example) and embedding without forking. That is a creative space beyond
-  selecting an implementation by a table in one repository, and it does not emerge from the parent intent (applying ESOI to a
-  project) or from the solution it implements (switching which implementation serves a solution).
-- **Holds:** two solutions that `implementation-selection:declarations` builds on: `runtime-selection` (the declarations and
-  the cascade that picks an implementation per call, with the selector in `esoi/select.py` as its rival) and `assemble-by-name`
-  (building whole assemblies of named implementations and their needs, choosing each through `runtime-selection`). It also carries the scope of a declaration (two projects may share a solution id) and the older environment variables a project may keep reading.
+  selecting an implementation by a table in one repository.
+- **Holds:** `implementation-selection` (which absorbed the former `runtime-selection`: the declarations and the cascade that pick
+  an implementation per call, with the selector in `esoi/runtime/implementation_selection/select.py` as its rival), `assemble-by-name`
+  (building whole assemblies of named implementations and their needs, choosing each through `implementation-selection`) and
+  `consumer-check`.
+
+### Sub-intents `understanding`, `structure` and `optimization`
+
+Each arises as the `composition` implementation of its container solution (`esoi-understanding`, `esoi-structure`,
+`esoi-optimization`) and is a folder beside the code with its own `intent.csv`, vision statement, opportunity and coherence
+paragraph. They group the solutions by the kind of change that moves their scores: alignment with humans or policies
+(Understanding), the system's own data model or code (Structure), ML task accuracy read as the accuracy of gathering and judging
+evidence (Optimization). The container ids carry the `esoi-` prefix because an intent id and a record id may not be the same
+(rule S29).
 
 ### Merged in 2026-11
+
+- **`docs-and-templates`, `structure-rules`, `spec-index` and `runtime-selection`** were merged into `the-standard`,
+  `structure-check` (the rule set; rule admission and pruning went to `structure-budget`), `spec-search` (the index is its first,
+  model-free stage) and `implementation-selection`. Each pair had the same purpose at a different length, so their arms and
+  metrics now sit on the surviving solution. `structure-check` has its Joshua-confirmed name back (it had been renamed Rule Engine).
 
 - **`behave-by-esoi`, `judge-esoi-behaviour` and `follow-the-steps`** were merged into `esoi-for-ai`, `esoi-behaviour-judge` and
   `the-steps`. Each held the same alternatives as the solution it was merged into (the same three ways of giving an agent the
@@ -77,8 +100,8 @@ code is the selected implementation of the `intent-registry` solution, chosen by
   chosen parts built on the tools of the unselected alternative), and its eleven `py-*` solutions mirrored top solutions one
   to one. Each was folded into the top solution it mirrored: that solution's selected implementation points at the code
   path, the component maps to it, and the cases metric is the solution's metric (so those solutions are now measured,
-  where they were unmeasured specifications). The selector is the exception, kept as `runtime-selection` in
-  `esoi-runtime` for the opportunity above. Version history keeps the earlier folder.
+  where they were unmeasured specifications). The selector is the exception, kept as an arm of `implementation-selection` in
+  the Runtime container for the opportunity above. Version history keeps the earlier folder.
 
 No sub-intent was created for risks or uncertainties alone: those are disadvantages of an implementation or the solution's
 metric. The detailed solutions that were once linked up to an overall network with `overall_solution_ids` are now either
@@ -219,11 +242,11 @@ The records below were first written as prose; they are kept as a reading view o
 - **Hints of Measurement:** No file without a component, no component without a solution, no module over the size ceiling.
 - **Opposes:** PR5
 
-### ID6 Self-enforcing structure
-- **Name:** Self-enforcing structure
-- **Principle:** A structural rule is enforced by the structure, at the moment it is broken.
-- **State Description:** An agent who has never read the rules still cannot commit a violation unnoticed, and the report names the rule and the path.
-- **Hints of Measurement:** Every injected violation is caught and a clean tree is never flagged.
+### ID6 Self-evolving structure
+- **Name:** Self-evolving structure
+- **Principle:** The structure notices where it falls short and improves itself at the moment a change makes it worse.
+- **State Description:** An agent who has never read the rules sees each finding as it happens, with the rule, the path and the next step, and rules that stop catching anything fall away.
+- **Hints of Measurement:** The share of injected violations reported by the right rule and path, the share of clean trees never flagged, and how many rules caught nothing over a month.
 - **Opposes:** PR6
 
 ### ID7 Review by metric
@@ -267,6 +290,13 @@ The records below were first written as prose; they are kept as a reading view o
 - **State Description:** Contributors find the structure helps them, small fixes stay small, and parts of the structure that stop paying are removed.
 - **Hints of Measurement:** The effort and time the structure adds to a change stays small next to what it catches.
 - **Opposes:** PR12
+
+### ID13 Best available implementation
+- **Name:** Best available implementation
+- **Principle:** A solution is served by the best implementation anyone can offer for its job, not by the one that was built first or is most familiar.
+- **State Description:** The implementations selected for solutions always reflect the best alternative available across all known resources and methods.
+- **Hints of Measurement:** Each selected implementation is the leader of its solution's leaderboard, the alternatives on that board include the ones outside evidence points to (public results graded before any paid run), and a better alternative that appears is measured and promoted rather than left unread.
+- **Opposes:** PR2
 
 ## Solutions
 

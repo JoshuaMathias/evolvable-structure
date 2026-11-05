@@ -5,7 +5,7 @@
 ``case["scenario"]`` is the message a person sends an AI agent; the function returns the agent's reply and must use only
 ``scenario`` (every other column is the answer key). The scorer then checks the reply against the case's ``must_have``
 regexes (all must match) and ``must_not`` regexes (none may match), case-insensitively. An arm whose function carries a
-``judge`` attribute is graded by that model judge instead, with the regexes as a prefilter (see ``esoi.behaviour``).
+``judge`` attribute is graded by that model judge instead, with the regexes as a prefilter (see ``esoi.understanding.esoi_for_ai.behaviour``).
 
 What this measures: whether an AI agent acts by the evolvable-structure principles in its own work, one primary principle
 per case (``P1`` to ``P13``; ``P0`` is the skill's own purpose and instructions), including cases where adding structure is

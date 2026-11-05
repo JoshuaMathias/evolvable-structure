@@ -13,7 +13,8 @@ from pathlib import Path
 from typing import Dict, Tuple
 
 import glance_fixture
-from esoi import besidecode, config, intents, readme, registry
+from esoi.structure.intent_registry import besidecode, config, intents, registry
+from esoi.understanding.readable_records import readme
 
 CACHE: Dict[Tuple[str, str], Tuple[Path, str]] = {}
 RECORDS: Dict[Tuple[str, str], dict] = {}   # the [records] table each laid-out tree is read with

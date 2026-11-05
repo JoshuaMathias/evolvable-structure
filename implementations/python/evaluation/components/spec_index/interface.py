@@ -3,7 +3,7 @@
     find(kind: str, args: dict) -> dict
 
 Given the records of a repository, a person or system narrows them to the few a new use case or input concerns. The cases
-drive the LIVE ``esoi.spec_index`` over this repository's own records (the real thing, not a stand-in), so a case names
+drive the LIVE ``esoi.understanding.spec_search.spec_index`` over this repository's own records (the real thing, not a stand-in), so a case names
 real record ids. Deterministic and offline; no implementation calls a model.
 
 Kinds and the dict an implementation returns:

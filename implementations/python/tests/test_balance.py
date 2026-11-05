@@ -1,6 +1,6 @@
 import pytest
 
-from esoi import balance
+from esoi.optimization.measurement_harness import balance
 
 TABLE = {"weights": {"accuracy": 0.7, "cost": 0.15, "time": 0.15}, "cost_per_case_usd": 0.01, "seconds_per_case": 10}
 

@@ -8,8 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from esoi import check, config, tables
-from esoi.rules import entry_rules
+from esoi.structure.structure_check import check
+from esoi.structure.intent_registry import config, tables
+from esoi.structure.structure_check.rules import entry_rules
 
 LIBRARY = str(Path(__file__).resolve().parents[1])
 RULES = ("S36", "S37", "S38", "S39")
@@ -158,11 +159,12 @@ def test_s37_runs_the_readme_example_and_waives_it_by_readme_md(project):
 
 
 def test_the_readme_example_that_raises_pending_on_a_key_is_pending_not_a_failure():
-    from esoi.entry import Pending, Reason, run_block
-    block = ">>> from esoi.entry import Pending, Reason\n>>> raise Pending('x', ['set KEY'], [Reason('x', 'a', 'key', 'set KEY')])\n>>> 1 + 1\n3\n"
+    from esoi.runtime.assemble_by_name.entry_types import Pending, Reason
+    from esoi.runtime.assemble_by_name.readme_example import run_block
+    block = ">>> from esoi.runtime.assemble_by_name.entry_types import Pending, Reason\n>>> raise Pending('x', ['set KEY'], [Reason('x', 'a', 'key', 'set KEY')])\n>>> 1 + 1\n3\n"
     found = run_block(block, guard=False)
     assert found["problems"] == [] and len(found["pending"]) == 2
-    option = ">>> from esoi.entry import Pending, Reason\n>>> raise Pending('x', ['pass options'], [Reason('x', 'a', 'option', 'pass options')])\n"
+    option = ">>> from esoi.runtime.assemble_by_name.entry_types import Pending, Reason\n>>> raise Pending('x', ['pass options'], [Reason('x', 'a', 'option', 'pass options')])\n"
     assert run_block(option, guard=False)["problems"]
 
 
@@ -181,7 +183,7 @@ def test_s38_flags_a_paragraph_that_states_what_the_records_do_not_hold(project)
 
 
 def test_s38_floors_are_per_intent_and_the_flat_keys_are_the_default(project):
-    from esoi import coherence
+    from esoi.structure.structure_check import coherence
     cfg = config.load(project)
     assert coherence.limits(cfg, "demo")["code_floor"] == 1.0
     enable(project, extra="\n[rules.S38.floors.demo]\nprecision = 0.4\ncoverage = 0.2\n")
@@ -222,14 +224,15 @@ def test_the_entry_result_is_not_reused_when_a_parent_package_changes(project, t
 
 
 def test_a_package_dir_with_only_its_code_and_snapshot_resolves_the_top_intent(project, tmp_path):
-    from esoi import entry, runtime
+    from esoi.runtime.assemble_by_name.intent_map import snapshot
+    from esoi.runtime.implementation_selection import selection_registry
     cfg = config.load(project)
-    (project / "demo" / runtime.SNAPSHOT_NAME).write_text(json.dumps(entry.snapshot(cfg)))
+    (project / "demo" / selection_registry.SNAPSHOT_NAME).write_text(json.dumps(snapshot(cfg)))
     installed = tmp_path / "site"
     installed.mkdir()
     shutil.copytree(project / "demo", installed / "demo", ignore=shutil.ignore_patterns("__pycache__"))
     code = ("import demo; print(demo.run('demo', 'Ada')); print(demo.run('greet-a-person', 'Bo'))\n"
-            "from esoi.entry import packaged_map; m = packaged_map(demo.run.assembler); print(sorted(m['intents']), m['scopes']['project-purpose'])")
+            "from esoi.runtime.assemble_by_name.intent_map import packaged_map; m = packaged_map(demo.run.assembler); print(sorted(m['intents']), m['scopes']['project-purpose'])")
     done = subprocess.run([sys.executable, "-c", code], cwd=installed, capture_output=True, text=True,
                           env={"PYTHONPATH": f"{installed}:{LIBRARY}", "PATH": os.environ["PATH"], "HOME": str(tmp_path)})
     assert done.returncode == 0, done.stderr
@@ -239,10 +242,11 @@ def test_a_package_dir_with_only_its_code_and_snapshot_resolves_the_top_intent(p
 def test_the_installed_stage_runs_the_readme_from_a_wheel_in_a_temporary_venv(project):
     (project / "pyproject.toml").write_text('[build-system]\nrequires = ["setuptools"]\nbuild-backend = "setuptools.build_meta"\n'
                                             '[project]\nname = "demo"\nversion = "0.1"\n[tool.setuptools]\npackages = ["demo"]\n[tool.setuptools.package-data]\ndemo = ["esoi_selection.json"]\n')
-    from esoi import entry, runtime
-    (project / "demo" / runtime.SNAPSHOT_NAME).write_text(json.dumps(entry.snapshot(config.load(project))))   # what `esoi select --snapshot` ships
+    from esoi.runtime.assemble_by_name.intent_map import snapshot
+    from esoi.runtime.implementation_selection import selection_registry
+    (project / "demo" / selection_registry.SNAPSHOT_NAME).write_text(json.dumps(snapshot(config.load(project))))   # what `esoi select --snapshot` ships
     env = dict(os.environ, PYTHONPATH=LIBRARY)
-    done = subprocess.run([sys.executable, "-m", "esoi.entry", "--readme", "--installed", "--json", str(project)], cwd=project,
+    done = subprocess.run([sys.executable, "-m", "esoi.runtime.assemble_by_name.entry_cli", "--readme", "--installed", "--json", str(project)], cwd=project,
                           env=env, capture_output=True, text=True)
     if "No module named setuptools" in done.stdout + done.stderr or "wheel did not build" in done.stdout:
         pytest.skip("no setuptools here to build a wheel")
@@ -252,7 +256,7 @@ def test_the_installed_stage_runs_the_readme_from_a_wheel_in_a_temporary_venv(pr
 # ---- S50 flow first: a stated flow with no call chain in the code is informed -----------------------------------------------
 
 def test_a_solution_with_an_implementation_but_no_caller_in_the_flow_is_informed():
-    from esoi.rules import entry_rules
+    from esoi.structure.structure_check.rules import entry_rules
     report = {"intents": [{"intent": "demo", "verdicts": {"mind->science": "E3", "mind->body": "", "body->world": "", "mind->world": "E1"}}]}
     lines = entry_rules.flow_lines(report)
     assert any(line.startswith("S50 body:") and "no caller shows in the flow of demo" in line and "mind" in line and "next:" in line for line in lines)
@@ -260,14 +264,14 @@ def test_a_solution_with_an_implementation_but_no_caller_in_the_flow_is_informed
 
 
 def test_a_stated_edge_nothing_calls_is_informed_when_the_used_solution_has_another_caller():
-    from esoi.rules import entry_rules
+    from esoi.structure.structure_check.rules import entry_rules
     report = {"intents": [{"intent": "demo", "verdicts": {"mind->world": "E1", "body->world": "", "mind->body": "E2"}}]}
     lines = entry_rules.flow_lines(report)
     assert len(lines) == 1 and lines[0].startswith("S50 demo:") and "body->world" in lines[0] and "write the flow first" in lines[0]
 
 
 def test_an_edge_with_an_end_that_has_no_code_is_not_a_flow_finding_and_a_waiver_excuses_one_key():
-    from esoi.rules import entry_rules
+    from esoi.structure.structure_check.rules import entry_rules
     report = {"intents": [{"intent": "demo", "verdicts": {"mind->doc": "n/a", "mind->body": ""}}]}
     assert entry_rules.flow_lines(report, lambda key: key == "body") == []                  # waived as the solution id
     assert [line for line in entry_rules.flow_lines(report) if line.startswith("S50 body")]
@@ -275,7 +279,8 @@ def test_an_edge_with_an_end_that_has_no_code_is_not_a_flow_finding_and_a_waiver
 
 
 def test_s47_is_listed_and_runs_only_where_the_repository_enables_it(repo):
-    from esoi import check, config, rules
+    from esoi.structure.structure_check import check, rules
+    from esoi.structure.intent_registry import config
     assert "S50" in rules.summaries(config.load(repo))
     problems, advisory = check.check_all(config.load(repo))
     assert not [line for line in advisory if line.startswith("S50")] and not [p for p in problems if p.startswith("S50")]

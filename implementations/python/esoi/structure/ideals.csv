@@ -1,0 +1,2 @@
+ideal_id,name,principle,state_description,hints_of_measurement,problem_ids,parent_ideal_ids
+ideal-purposeful-code,Purposeful code,"Nothing exists that serves no solution, and every part is small enough to understand in one reading.","The repository holds only what earns its place, each module has one role, and deleting dead code is routine.","No file without a component, no component without a solution, no module over the size ceiling.",prob-purposeless-oversized-code,ideal-explicit-intent

@@ -1,11 +1,12 @@
-"""CURRENT: the live promotion, ``esoi.promote.propose`` and ``esoi.promote.run_cli``, over synthetic results tables and
+"""CURRENT: the live promotion, ``esoi.optimization.promote_the_winner.promote.propose`` and ``esoi.optimization.promote_the_winner.promote.run_cli``, over synthetic results tables and
 records in a temporary folder. Zero model calls."""
 import tempfile
 from pathlib import Path
 
 import harness_fixture
-from esoi import promote, registry as registry_module, tables
-from esoi.config import Config
+from esoi.optimization.promote_the_winner import promote
+from esoi.structure.intent_registry import registry as registry_module, tables
+from esoi.structure.intent_registry.config import Config
 
 SOLUTION = "mini-solution"
 

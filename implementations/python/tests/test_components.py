@@ -10,11 +10,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "evaluation" / "components"))
 
-from esoi import harness  # noqa: E402
-from esoi.config import Config  # noqa: E402
+from esoi.optimization.measurement_harness import arm_loading
+from esoi.optimization.measurement_harness import call_meter
+from esoi.optimization.measurement_harness import case_loading
+from esoi.optimization.measurement_harness import component_folder
+from esoi.structure.intent_registry.config import Config
 
 CONFIG = Config(root=ROOT, package="esoi", evaluation_dir="evaluation/components")
-COMPONENTS = harness.discover_components(CONFIG)
+COMPONENTS = component_folder.discover_components(CONFIG)
 LIVE = {"check_the_structure": "live_checker", "own_every_file": "live_checker", "record_intent": "live_checker",
         "sync_the_template": "live_parser", "select_an_implementation": "live_selector",
         "measure_implementations": "live_harness", "rank_implementations": "live_leaderboard",
@@ -38,8 +41,8 @@ STALENESS = {"staleness_precision": ("import_closure", "repo_wide", "component_p
 
 def score_all(component, spec):
     score = importlib.import_module(f"{component}.score")
-    fn = harness.load_impl(spec, component)(harness.CallMeter())
-    return [score.score_case(fn, case)["ok"] for case in harness.load_cases(component, CONFIG)]
+    fn = arm_loading.load_impl(spec, component)(call_meter.CallMeter())
+    return [score.score_case(fn, case)["ok"] for case in case_loading.load_cases(component, CONFIG)]
 
 
 def test_every_component_has_a_live_implementation_listed_here():
@@ -69,8 +72,8 @@ def test_a_graded_metric_ranks_its_selected_arm_above_the_naive_arm(component):
 
 def score_local(component, spec):
     score = importlib.import_module(f"{component}.score")
-    fn = harness.load_impl(spec, component)(harness.CallMeter())
-    rows = [score.score_case(fn, case) for case in harness.load_cases(component, CONFIG)]
+    fn = arm_loading.load_impl(spec, component)(call_meter.CallMeter())
+    rows = [score.score_case(fn, case) for case in case_loading.load_cases(component, CONFIG)]
     return [r["ok"] for r in rows if r["got"] != "unavailable"]
 
 

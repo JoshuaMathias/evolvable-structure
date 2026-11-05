@@ -1,4 +1,4 @@
-"""esoi.entry: one line for any solution, by its declared kind; nothing here calls a model or the network."""
+"""esoi.runtime.assemble_by_name.entry: one line for any solution, by its declared kind; nothing here calls a model or the network."""
 import os
 import typing
 from pathlib import Path
@@ -6,8 +6,9 @@ from pathlib import Path
 import pytest
 
 from esoi import implementation, solution
-from esoi.assemble import Assembler
-from esoi.entry import EntryError, Pending, call_entry, runner
+from esoi.runtime.assemble_by_name.assemble import Assembler
+from esoi.runtime.assemble_by_name.entry_types import EntryError, Pending
+from esoi.runtime.assemble_by_name.entry import call_entry, runner
 
 
 @solution("notes", scope="entrytest", kind="store", entry="find", example="milk")
@@ -111,8 +112,9 @@ def test_a_mapping_is_passed_as_keywords_only_when_its_keys_are_the_entrys_param
 
 # Strict one-line outcomes: only ok, pending-key and pending-install answer; each pending carries structured reasons.
 
-from esoi import requirements as req  # noqa: E402
-from esoi.entry import ANSWERING, Offline, classify  # noqa: E402
+from esoi.runtime.assemble_by_name.environment_needs import checking, declarations
+from esoi.runtime.assemble_by_name.entry_outcome import ANSWERING, classify
+from esoi.runtime.assemble_by_name.offline_guard import Offline
 
 
 @solution("keyed", scope="entrytest", kind="event", entry="go", example="x")
@@ -131,14 +133,14 @@ class CallsAProgram(typing.Protocol):
 
 
 class NeedsAKey:
-    REQUIRES = (req.env("ENTRYTEST_KEY"),)
+    REQUIRES = (declarations.env("ENTRYTEST_KEY"),)
 
     def go(self, text):
         return text
 
 
 class NeedsAPackage:
-    REQUIRES = (req.python("no_such_module_for_entrytest", "no-such-distribution"),)
+    REQUIRES = (declarations.python("no_such_module_for_entrytest", "no-such-distribution"),)
 
     def go(self, text):
         return text
@@ -148,7 +150,7 @@ STARTED = []
 
 
 class RunsClaude:
-    REQUIRES = (req.binary("claude"),)
+    REQUIRES = (declarations.binary("claude"),)
 
     def __init__(self):
         STARTED.append("built")
@@ -223,7 +225,9 @@ def test_an_interface_class_gives_the_ready_handle_typed_as_that_protocol(tmp_pa
 
 
 def test_a_composite_that_waits_on_a_child_key_is_pending_key_by_its_leaves():
-    from esoi.entry import Pending, Reason, pending_outcome, run_block
+    from esoi.runtime.assemble_by_name.entry_types import Pending, Reason
+    from esoi.runtime.assemble_by_name.entry_outcome import pending_outcome
+    from esoi.runtime.assemble_by_name.readme_example import run_block
     composite = Reason("whole", "arm", "needs", "whole: needs part; see those lines", ("part",))
     key = Reason("part", "arm", "key", "set KEY")
     assert pending_outcome([composite, key]) == "pending-key"
@@ -235,18 +239,18 @@ def test_a_composite_that_waits_on_a_child_key_is_pending_key_by_its_leaves():
     assert pending_outcome([outer, composite, key]) == "pending-key"           # the leaf is found through a chain of composites
     assert pending_outcome([outer, composite]) == "needs-option"
     assert classify(Pending("whole", [composite.need, key.need], [composite, key]))[0] == "pending-key"
-    block = (">>> from esoi.entry import Pending, Reason\n>>> raise Pending('whole', ['w', 'k'], [Reason('whole', 'a', 'needs', 'w', ('part',)), "
+    block = (">>> from esoi.runtime.assemble_by_name.entry_types import Pending, Reason\n>>> raise Pending('whole', ['w', 'k'], [Reason('whole', 'a', 'needs', 'w', ('part',)), "
              "Reason('part', 'a', 'key', 'k')])\n")
     found = run_block(block, guard=False)
     assert found["problems"] == [] and found["pending"]
-    bare = ">>> from esoi.entry import Pending, Reason\n>>> raise Pending('whole', ['w'], [Reason('whole', 'a', 'needs', 'w', ('part',))])\n"
+    bare = ">>> from esoi.runtime.assemble_by_name.entry_types import Pending, Reason\n>>> raise Pending('whole', ['w'], [Reason('whole', 'a', 'needs', 'w', ('part',))])\n"
     assert run_block(bare, guard=False)["problems"]
 
 
 def test_the_entry_check_sets_the_offline_variable_for_providers():
     import subprocess
     import sys
-    code = "import os; from esoi import entry; entry.offline_guard(); print(os.environ.get('ESOI_OFFLINE'))"
+    code = "import os; from esoi.runtime.assemble_by_name.offline_guard import offline_guard; offline_guard(); print(os.environ.get('ESOI_OFFLINE'))"
     done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env={k: v for k, v in os.environ.items() if k != "ESOI_OFFLINE"})
     assert done.stdout.strip() == "1", done.stderr
 
@@ -264,7 +268,7 @@ class LocalOnly(typing.Protocol):
 
 
 class ReachesOut:
-    REQUIRES = (req.network("openalex.org"),)
+    REQUIRES = (declarations.network("openalex.org"),)
     BUILT = []
 
     def __init__(self):
@@ -309,6 +313,6 @@ def test_an_arm_with_no_network_need_is_unchanged_offline(networked, monkeypatch
 
 
 def test_a_network_check_reads_the_variable_from_environ_too():
-    item = req.network()
-    assert req.check([item], {"ESOI_OFFLINE": "1"})[0].status == req.UNMET
-    assert req.check([item], {})[0].status in (req.MET, req.UNMET)   # follows the process variable when environ is silent
+    item = declarations.network()
+    assert checking.check([item], {"ESOI_OFFLINE": "1"})[0].status == checking.UNMET
+    assert checking.check([item], {})[0].status in (checking.MET, checking.UNMET)   # follows the process variable when environ is silent

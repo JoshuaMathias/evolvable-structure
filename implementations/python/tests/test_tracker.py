@@ -1,5 +1,7 @@
 """The review tracker tabs."""
-from esoi import check, registry, tables, tracker
+from esoi.structure.structure_check import check
+from esoi.structure.intent_registry import registry, tables
+from esoi.understanding.review_tracker import tracker
 
 
 def tab(cfg, name):
@@ -56,7 +58,7 @@ def test_a_selection_table_that_cannot_load_does_not_crash_the_build(cfg):
 
 
 def test_one_metric_serving_several_solutions_is_one_tracker_row_and_passes_s18(cfg):
-    from esoi import check
+    from esoi.structure.structure_check import check
     path = cfg.structure / "solutions.csv"
     rows, cols = tables.read_csv(path), tables.read_header(path)
     rows.append(dict(rows[0], solution_id="second-greeting"))

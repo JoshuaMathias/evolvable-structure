@@ -1,6 +1,93 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
+
+- **The package is four containers, one folder per solution, and no module is over 500 lines (Joshua: "why would esoi library have 1000 code files, are we sure we're using high quality coding and modularity").** `esoi/` showed 69 flat modules, 14 of them over 500 lines (`harness.py` 1,338, `assemble.py` 1,068, `requirements.py` 919, `leaderboard.py` 877). It now shows `understanding/`, `structure/`, `optimization/`, `runtime/`, `__init__.py`, `__main__.py`, `apply_esoi.py` (the root's one line) and the records and data. Each container holds a folder per solution, with the solution's records, generated README, `interface.py`, `flow.py` (a container's composition) and the code of its arms beside each other (`docs/explanation/layout-of-esoi.md`). Modules that did two jobs were split by purpose, not by size (standards navigation into showing and checking, the reply grader into pattern check, judge and provider, paid-arm gating out of the harness into When Metrics Are Run), `interfaces.py` became one `interface.py` per solution, and `cli.py` became one `commands.py` per container with `__main__.py` only collecting them. The hierarchy is the one Joshua approved: Understanding, Structure, Optimization and Runtime under Apply ESOI to a Project (31 solutions, 4 merged: Documentation and Templates into The Standard, Structure Rules into Structure Check (named back from Rule Engine), Specification Index into Spec Search, Selection at Run Time into Implementation Selection), with his vision statements and the ideals "Self-evolving structure" (renamed from "Self-enforcing structure") and "Best available implementation".
+- **The public API is `esoi/__init__.py`.** Everything a program that embeds the library imports is named there (`from esoi import Assembler, Lazy, Pending`, and namespaces such as `from esoi import harness, leaderboard, requirements, entry, selection`), listed in `PUBLIC` and `NAMESPACES` with `__all__`, and `tests/test_public_api.py` resolves every name, so a module can move inside the package without breaking a caller. Internal modules are not API. There are no aliases for the old module paths: this release is the one migration (`docs/how-to/migrate-from-0.x.md`). `from esoi import runtime` is now `from esoi import selection`.
+- **The `esoi` command is `esoi.__main__:main`** (it was `esoi.cli:main`); reinstall to regenerate the script. `python -m esoi.coherence`, `python -m esoi.standards_nav` and `python -m esoi.entry` moved with their modules (below).
+
+Where each module went (`python -m esoi.<module>` commands: see the second table):
+
+| Was `esoi.` | Is `esoi.` |
+|---|---|
+| `access` | `optimization.measurement_harness.access` |
+| `admit` | `structure.intent_registry.admit` |
+| `assemble` | `runtime.assemble_by_name.{arm_inspection, arm_ranking, assemble, assembly, assembly_config, assembly_errors, build_parts, cascade_layers, closure, declared_needs, dependency_graph, environ_options, lazy_need, name_check, packaged_records, pending_needs}` |
+| `attest` | `optimization.when_metrics_are_run.know_what_a_result_measures.attest` |
+| `balance` | `optimization.measurement_harness.balance` |
+| `behaviour` | `understanding.esoi_for_ai.{behaviour, command_provider, esoi_behaviour_judge.behaviour_judge}` |
+| `besidecode` | `structure.intent_registry.besidecode` |
+| `cascade` | `optimization.leaderboard.{cascade_report, cascade_stages, stage_standings}` |
+| `cassette` | `optimization.measurement_harness.cassette` |
+| `check` | `structure.structure_check.check` |
+| `circumstances` | `optimization.leaderboard.circumstances` |
+| `coherence` | `structure.structure_check.{coherence, coherence_code_evidence, coherence_paragraph, coherence_records}` |
+| `config` | `structure.intent_registry.config` |
+| `consumer` | `runtime.consumer_check.consumer` |
+| `declarations` | `structure.intent_registry.specify_from_code.declarations` |
+| `diagram` | `understanding.readable_records.diagram` |
+| `docs` | `understanding.the_standard.docs` |
+| `entry` | `runtime.assemble_by_name.{entry, entry_check, entry_cli, entry_outcome, entry_types, intent_map, offline_guard, project_runner, readme_example, seat_blockers, target_lookup}` |
+| `evidence` | `optimization.when_metrics_are_run.public_evidence.{evidence_grading, evidence_ranking, evidence_records, evidence_report, grading_table}` |
+| `evidence_table` | `optimization.leaderboard.evidence_table` |
+| `expect` | `optimization.measurement_harness.expect` |
+| `fields` | `structure.intent_registry.fields` |
+| `follow` | `runtime.consumer_check.follow` |
+| `foundation` | `runtime.consumer_check.foundation` |
+| `harness` | `optimization.measurement_harness.harness` |
+| `hermetic` | `optimization.measurement_harness.hermetic` |
+| `hierarchy` | `runtime.assemble_by_name.hierarchy` |
+| `hygiene` | `structure.structure_check.hygiene` |
+| `implementedby` | `structure.intent_registry.implementedby` |
+| `installer` | `runtime.assemble_by_name.installation.{assembly_plan, command_running, conflicts, execution, install_lock, plan, plan_report, resolution_ladder, resolvers}` |
+| `intents` | `structure.intent_registry.intents` |
+| `iteration` | `optimization.keep_metric_record.iteration` |
+| `leaderboard` | `optimization.leaderboard.{arm_kinds, arm_selection, board_report, case_identity, held_out_parts, ranking, results_log, rival_decisions, rival_pairing, switching_policy, verdict_labels}` |
+| `lock` | `runtime.implementation_selection.lock` |
+| `metric_meter` | `optimization.keep_metric_record.metric_meter` |
+| `metric_results` | `optimization.keep_metric_record.metric_results` |
+| `migrate` | `structure.intent_registry.migrate` |
+| `newsolution` | `structure.intent_registry.specify_from_code.newsolution` |
+| `projects` | `understanding.local_application_index.projects` |
+| `promote` | `optimization.promote_the_winner.promote` |
+| `ratchet` | `structure.structure_budget.ratchet` |
+| `readme` | `understanding.readable_records.{readme, readme_folder_page, readme_intent_page, readme_view}` |
+| `records` | `structure.intent_registry.records` |
+| `registry` | `structure.intent_registry.registry` |
+| `requirements` | `runtime.assemble_by_name.environment_needs.{api_links, checking, closure, declarations, generated_files, python_specs, report, source_location}` |
+| `rules` | `structure.structure_check.rules` (the whole folder) |
+| `run_guards` | `optimization.when_metrics_are_run.run_guards` |
+| `run_log` | `optimization.measurement_harness.run_log` |
+| `runtime` | `runtime.implementation_selection.{declare, selection_cascade, selection_registry}` |
+| `scaffold` | `understanding.the_standard.scaffold` |
+| `select` | `runtime.implementation_selection.select` |
+| `sheets` | `understanding.review_tracker.sheets` |
+| `skill` | `understanding.the_standard.skill_distribution.skill` |
+| `spec_index` | `understanding.spec_search.spec_index` |
+| `spec_search` | `understanding.spec_search.spec_search` |
+| `spec_slice` | `optimization.keep_metric_record.spec_slice` |
+| `staleness` | `optimization.when_metrics_are_run.know_what_a_result_measures.{import_scan, import_world, ownership_index, stale_scope, staleness}` |
+| `standards_measure` | `understanding.spec_search.standards_measure` |
+| `standards_nav` | `{structure.structure_check.standards_check, understanding.spec_search.standards_nav}` |
+| `stats` | `optimization.leaderboard.stats` |
+| `tables` | `structure.intent_registry.tables` |
+| `template` | `structure.intent_registry.template_sync.template` |
+| `templates` | `structure.intent_registry.template_sync.templates` |
+| `tracker` | `understanding.review_tracker.tracker` |
+| `variants` | `runtime.implementation_selection.variants` |
+| `versioning` | `structure.intent_registry.template_sync.versioning` |
+| `interfaces` | one interface.py per solution beside its code (esoi.<container>.<solution>.interface), the root in esoi.apply_esoi |
+| `cli` | esoi.__main__ (main, build_parser) plus esoi.<container>.commands (register) per container |
+
+The commands that changed:
+
+| Was | Is |
+|---|---|
+| `python -m esoi.coherence` | `python -m esoi.structure.structure_check.coherence` |
+| `python -m esoi.standards_nav` | `python -m esoi.understanding.spec_search.standards_nav` |
+| `python -m esoi.entry` | `python -m esoi.runtime.assemble_by_name.entry_cli` |
+| `python -m esoi (the esoi command)` | unchanged |
+
 
 - **Know What a Result Measures declares its interface where it lives.** `esoi.staleness.stale_results(project)` is the solution's one line (rule S37), with the three rules `repo_wide`, `component_paths` and `import_closure` as its implementations; `esoi.run("know-what-a-result-measures", ".")` returns the latest results that no longer describe the code they measure, each with the changed file. esoi's own runner now loads `esoi.staleness`.
 

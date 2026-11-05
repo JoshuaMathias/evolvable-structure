@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from esoi import cli
+from esoi import __main__ as cli
 
 
 def run(repo, *argv):
@@ -143,7 +143,7 @@ def test_select_explains_the_cascade_and_writes_a_snapshot(repo, capsys, monkeyp
 
 
 def test_promote_proposes_or_applies_by_the_solutions_policy(repo, capsys):
-    from esoi import tables
+    from esoi.structure.intent_registry import tables
     results = repo / "evaluation" / "components" / "results.csv"
     rows, cols = tables.read_csv(results), tables.read_header(results)
     for row in rows:   # the baseline now passes every case and the live arm one: a clear loss

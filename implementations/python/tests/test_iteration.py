@@ -8,11 +8,17 @@ import time
 
 import pytest
 
-from esoi import scaffold
-from esoi.iteration import Finished, MetricIteration
-from esoi.metric_meter import AFTER, BEFORE
-from esoi.metric_results import SOURCE_MEASURED, SOURCE_NOT_APPLICABLE, SOURCE_RECORDED, FileMetricLedger, MetricResult
-from esoi.spec_slice import RepoSliceSource
+from esoi.understanding.the_standard import scaffold
+from esoi.optimization.keep_metric_record.iteration import Finished, MetricIteration
+from esoi.optimization.keep_metric_record.metric_meter import AFTER, BEFORE
+from esoi.optimization.keep_metric_record.metric_results import (
+    SOURCE_MEASURED,
+    SOURCE_NOT_APPLICABLE,
+    SOURCE_RECORDED,
+    FileMetricLedger,
+    MetricResult,
+)
+from esoi.optimization.keep_metric_record.spec_slice import RepoSliceSource
 
 GREETING = "make the greeting function greet a person by name in the standard form"
 

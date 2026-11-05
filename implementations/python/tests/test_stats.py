@@ -1,7 +1,7 @@
 """Wilson interval, exact McNemar test, Holm correction and the paired helper, against values worked out by hand."""
 import pytest
 
-from esoi import stats
+from esoi.optimization.leaderboard import stats
 
 
 def test_wilson_interval_for_eight_of_ten():

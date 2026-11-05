@@ -1,7 +1,7 @@
-"""Shared by the arms: rows from a case into ``esoi.evidence.Evidence``, and the output dicts the cases check."""
+"""Shared by the arms: rows from a case into ``esoi.optimization.when_metrics_are_run.public_evidence.evidence_records.Evidence``, and the output dicts the cases check."""
 import datetime
 
-from esoi import evidence
+from esoi.optimization.when_metrics_are_run.public_evidence import evidence_records
 
 DEFAULT = dict(value="0.7", dimension="quality", measure="pass_rate", unit="fraction", better="higher", comparator="bench-1",
                source_kind="independent_benchmark", run_by_independent="yes", method_disclosed="yes", n="500",
@@ -10,7 +10,7 @@ DEFAULT = dict(value="0.7", dimension="quality", measure="pass_rate", unit="frac
 
 def read(rows):
     filled = [dict(DEFAULT, source_url=f"https://example.org/{r['evidence_id']}", **{k: str(v) for k, v in r.items()}) for r in rows]
-    found, problems = evidence.parse_rows(filled)
+    found, problems = evidence_records.parse_rows(filled)
     assert not problems, problems
     return found
 

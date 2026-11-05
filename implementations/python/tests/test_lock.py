@@ -1,4 +1,4 @@
-"""esoi.lock: write, read, the lock layer of the cascade, diff with requirement changes, safe update, and the agent status plan.
+"""esoi.runtime.implementation_selection.lock: write, read, the lock layer of the cascade, diff with requirement changes, safe update, and the agent status plan.
 
 A toy package is written to a temporary folder; its packaged snapshot is rewritten to stand for a newer release."""
 import itertools
@@ -8,14 +8,19 @@ import textwrap
 
 import pytest
 
-from esoi import cli, lock, runtime
-from esoi.assemble import Assembler, AssemblyConfig, LockError
+from esoi import __main__ as cli
+from esoi.runtime.implementation_selection import lock
+from esoi.runtime.implementation_selection import selection_cascade
+from esoi.runtime.implementation_selection import selection_registry
+from esoi.runtime.assemble_by_name.assemble import Assembler
+from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
+from esoi.runtime.assemble_by_name.assembly_errors import LockError
 
 COUNTER = itertools.count()
 ARMS = '''
 from typing import Protocol
 from esoi import solution, implementation
-from esoi.requirements import env, python
+from esoi.runtime.assemble_by_name.environment_needs.declarations import env, python
 
 @solution("seat")
 class Seat(Protocol):
@@ -54,7 +59,7 @@ class Y:
 '''
 INIT = '''
 from pathlib import Path
-from esoi.assemble import Assembler
+from esoi.runtime.assemble_by_name.assemble import Assembler
 def assembler():
     return Assembler(__name__, Path(__file__).parent, modules=(__name__ + ".arms",))
 '''
@@ -78,8 +83,8 @@ def toy(tmp_path, monkeypatch):
     parts = Assembler(scope, tmp_path / scope, modules=(f"{scope}.arms",))
     parts.prepare()
     yield scope, tmp_path, parts
-    for key in [k for k in runtime.REGISTRY if k[0] == scope]:
-        runtime.REGISTRY.pop(key)
+    for key in [k for k in selection_registry.REGISTRY if k[0] == scope]:
+        selection_registry.REGISTRY.pop(key)
     for name in [m for m in sys.modules if m == scope or m.startswith(scope + ".")]:
         sys.modules.pop(name)
     lock.CACHE.clear()
@@ -262,12 +267,12 @@ def test_a_checkout_with_records_records_the_leaderboard_verdict_and_the_snapsho
         data = lock.write(parts, repo / "esoi.lock.json")
         entry = data["solutions"]["greet-a-person"]
         assert entry["verdict"] in ("WIN", "TIE", "LOSS") and entry["evidence"] and "no results recorded" not in entry["evidence"]
-        from esoi import config as config_module
-        shipped = runtime.snapshot(config_module.load(repo / "esoi.toml"))
+        from esoi.structure.intent_registry import config as config_module
+        shipped = selection_cascade.snapshot(config_module.load(repo / "esoi.toml"))
         assert shipped["greet-a-person"]["evidence"]["verdict"] == entry["verdict"]
     finally:
         for name in [m for m in sys.modules if m == "demo" or m.startswith("demo.")]:
             sys.modules.pop(name)
-        for key in [k for k in runtime.REGISTRY if k[0] == "demo"]:
-            runtime.REGISTRY.pop(key)
-        runtime.PROJECTS.clear()
+        for key in [k for k in selection_registry.REGISTRY if k[0] == "demo"]:
+            selection_registry.REGISTRY.pop(key)
+        selection_registry.PROJECTS.clear()

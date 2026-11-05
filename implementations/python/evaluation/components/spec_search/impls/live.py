@@ -1,7 +1,8 @@
 """Shared by the arms: the live views of this repository's own records plus two items of another source, built once."""
 from pathlib import Path
 
-from esoi import config as config_module, spec_index, spec_search
+from esoi.structure.intent_registry import config as config_module
+from esoi.understanding.spec_search import spec_index, spec_search
 
 ROOT = next(p for p in Path(__file__).resolve().parents if (p / "esoi.toml").is_file())
 INDEX = spec_index.build(config_module.load(ROOT))

@@ -3,7 +3,7 @@
     promote(kind: str, args: dict) -> dict
 
 The best implementation of a solution should run without anyone editing three files by hand, but only on evidence that
-counts and only where the solution's policy allows it. The cases drive the LIVE ``esoi.promote`` over synthetic results
+counts and only where the solution's policy allows it. The cases drive the LIVE ``esoi.optimization.promote_the_winner.promote`` over synthetic results
 tables and records in a temporary folder. Deterministic and offline.
 
 Kinds and the dict an implementation returns:

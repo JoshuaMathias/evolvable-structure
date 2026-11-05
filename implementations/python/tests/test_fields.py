@@ -1,7 +1,7 @@
 """Tags with their risk ids, and the mechanical migration of the scoped_purpose records."""
 import pytest
 
-from esoi import fields, tables
+from esoi.structure.intent_registry import fields, tables
 
 
 def test_tags_round_trip_and_read_the_older_form():

@@ -5,7 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from esoi import check, config, hygiene
+from esoi.structure.structure_check import check, hygiene
+from esoi.structure.intent_registry import config
 
 REPO = Path(__file__).resolve().parents[3]
 PACKAGE = REPO / "implementations" / "python"

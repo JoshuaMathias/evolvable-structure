@@ -7,8 +7,9 @@ import sys
 from pathlib import Path
 
 import metric_record_fixture as fixture
-from esoi import config, spec_index
-from esoi.metric_meter import AFTER, BEFORE
+from esoi.structure.intent_registry import config
+from esoi.understanding.spec_search import spec_index
+from esoi.optimization.keep_metric_record.metric_meter import AFTER, BEFORE
 
 
 class Naive:

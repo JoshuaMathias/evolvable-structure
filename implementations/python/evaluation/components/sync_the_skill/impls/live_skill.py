@@ -1,9 +1,9 @@
-"""CURRENT: the live generator and checker, ``esoi.skill`` (``build_copy``, ``sync``, ``check``, ``scan``, ``install``). Zero model calls."""
+"""CURRENT: the live generator and checker, ``esoi.understanding.the_standard.skill_distribution.skill`` (``build_copy``, ``sync``, ``check``, ``scan``, ``install``). Zero model calls."""
 import tempfile
 from pathlib import Path
 
-from esoi import skill
-from esoi.config import Config
+from esoi.understanding.the_standard.skill_distribution import skill
+from esoi.structure.intent_registry.config import Config
 
 
 def write_tree(root, files):

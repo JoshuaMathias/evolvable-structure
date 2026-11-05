@@ -1,10 +1,10 @@
-"""CURRENT: the live reader, ``esoi.template`` (``parse``, ``render_template_csv`` and ``stale_against_source``).
+"""CURRENT: the live reader, ``esoi.structure.intent_registry.template_sync.template`` (``parse``, ``render_template_csv`` and ``stale_against_source``).
 Zero model calls."""
 import tempfile
 from pathlib import Path
 
-from esoi import template
-from esoi.config import Config
+from esoi.structure.intent_registry.template_sync import template
+from esoi.structure.intent_registry.config import Config
 
 
 def keys_of(rows):

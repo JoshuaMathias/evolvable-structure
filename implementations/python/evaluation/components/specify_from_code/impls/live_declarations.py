@@ -1,4 +1,4 @@
-"""CURRENT: the live declarations, ``esoi.declarations.scan``, ``drift`` and ``sync``, and ``esoi.newsolution.create``,
+"""CURRENT: the live declarations, ``esoi.structure.intent_registry.specify_from_code.declarations.scan``, ``drift`` and ``sync``, and ``esoi.structure.intent_registry.specify_from_code.newsolution.create``,
 over throwaway projects. Zero model calls."""
 import json
 import py_compile
@@ -6,8 +6,10 @@ import tempfile
 from pathlib import Path
 
 import repo_fixture
-from esoi import check, config, declarations, newsolution, registry, tables
-from esoi.config import Config
+from esoi.structure.structure_check import check
+from esoi.structure.intent_registry import config, registry, tables
+from esoi.structure.intent_registry.specify_from_code import declarations, newsolution
+from esoi.structure.intent_registry.config import Config
 
 
 def scan(args):

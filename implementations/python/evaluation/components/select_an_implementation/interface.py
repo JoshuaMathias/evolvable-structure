@@ -14,7 +14,7 @@ Kinds and the dict an implementation returns:
             records_default?, deployment?, env?, context?, using?, lazy_module?: {name, source}}
             -> {"resolved": class name, "chosen": name, "layer": "call" | "context" | "environment" | "deployment" |
             "project", "names": [...], "layers": [layers that name one, innermost first]}  or  {"error", "text"}
-            The graceful layer (``esoi.runtime``): an implementation declared in code (the decorator, or a registration
+            The graceful layer (``esoi.runtime.implementation_selection.declare``): an implementation declared in code (the decorator, or a registration
             of another package's class) runs when the interface is called; which one is decided by the cascade, the
             innermost layer winning: per call (``using``), context (``override``), environment (``ESOI_SELECT_<ID>``),
             deployment (``[selection]`` in ``esoi.toml``), then the project default, the solution's ``selected`` in the

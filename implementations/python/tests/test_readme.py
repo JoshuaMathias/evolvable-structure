@@ -3,13 +3,16 @@ import re
 
 import pytest
 from conftest import fill_top_intent  # noqa: F401  (the cfg fixture fills the top intent)
-from esoi import check, config, intents, readme, registry
+from esoi.structure.structure_check import check
+from esoi.structure.intent_registry import config, intents, registry
+from esoi.understanding.readable_records import readme
+from esoi.understanding.readable_records import readme_view
 from test_intents import add_sub_intent, lines, rewrite
 
 
 def page(cfg, layout=None, which=0):
     loaded = registry.load(cfg)
-    view = readme.view_of(cfg, loaded)
+    view = readme_view.view_of(cfg, loaded)
     return readme.render(loaded, view.intents[which], view, layout)
 
 
@@ -43,7 +46,7 @@ def test_the_page_links_the_sub_intent_down_the_parent_up_and_the_repository_rea
 def test_every_relative_link_of_every_layout_resolves(cfg):
     add_sub_intent(cfg)
     (cfg.root / "README.md").write_text("# project\n")
-    for layout in readme.LAYOUTS:
+    for layout in readme_view.LAYOUTS:
         for index, intent in enumerate(intents.discover(cfg)):
             for target in re.findall(r"(?<!!)\[[^\]]*\]\(([^)\s#]+)", page(cfg, layout, index)):
                 if "://" in target:
@@ -84,14 +87,14 @@ def test_a_cell_that_holds_only_an_unconfirmed_marker_is_left_out_of_the_page(cf
 
 
 def test_a_long_short_list_is_capped_and_points_at_the_full_record(cfg):
-    from esoi import tables
+    from esoi.structure.intent_registry import tables
     path = cfg.structure / "problems.csv"
     rows, cols = tables.read_csv(path), tables.read_header(path)
-    for n in range(readme.LIST_LIMIT + 3):
+    for n in range(readme_view.LIST_LIMIT + 3):
         rows.append(dict(rows[0], problem_id=f"extra-{n}", problem=f"Extra problem {n}. More."))
     tables.write_csv(path, cols, rows)
     top = page(cfg).partition("\n---\n")[0]
-    assert "more: all" in top and "(#problems)" in top and top.count("- `extra-") <= readme.LIST_LIMIT
+    assert "more: all" in top and "(#problems)" in top and top.count("- `extra-") <= readme_view.LIST_LIMIT
 
 
 def test_the_full_and_links_layouts_are_rivals_chosen_by_configuration(cfg):
@@ -101,11 +104,11 @@ def test_the_full_and_links_layouts_are_rivals_chosen_by_configuration(cfg):
     cfg.readme = {"layout": "links"}
     assert page(cfg) == compact
     with pytest.raises(ValueError):
-        readme.layout_of(cfg, "nonsense")
+        readme_view.layout_of(cfg, "nonsense")
 
 
 def test_the_diagram_in_the_page_is_the_diagram_page_source(cfg):
-    from esoi import diagram
+    from esoi.understanding.readable_records import diagram
     loaded = registry.load(cfg)
     intent = intents.discover(cfg)[0]
     assert "\n".join(diagram.block(loaded, intent)) in page(cfg) and "\n".join(diagram.block(loaded, intent)) in diagram.render(loaded, intent)
@@ -120,7 +123,7 @@ def test_a_declared_entry_shows_as_the_one_line_call_with_its_example(cfg):
 
 
 def test_the_declarations_of_esois_own_modules_are_read_through_their_relative_import():
-    from esoi import declarations
+    from esoi.structure.intent_registry.specify_from_code import declarations
     seen = declarations.Declared()
     declarations.scan_file("pkg/seat.py", 'from .runtime import solution\n\n\n@solution("one", kind="event", entry="go", example="x")\nclass One:\n    """One."""\n', seen)
     assert seen.solutions["one"].entry == "go" and seen.solutions["one"].example == "x"
@@ -129,28 +132,30 @@ def test_the_declarations_of_esois_own_modules_are_read_through_their_relative_i
 # ---- the name leads: selected implementation, problems and ideals, components -------------------------------------------------
 
 def test_the_selected_implementation_leads_with_its_name_and_the_handle_follows_in_code_font():
-    from esoi import readme
+    from esoi.understanding.readable_records import readme
+    from esoi.understanding.readable_records import readme_view
     registry = readme.Registry(implementations=[{"implementation_id": "s:tier_selector", "solution_id": "s", "name": "Tier selector",
                                                  "filepath": "pkg/tier.py"}])
-    assert readme.impl_label(registry, "s", "tier_selector") == "Tier selector (`tier_selector`)"
-    assert readme.impl_label(registry, "s", "s:tier_selector") == "Tier selector (`s:tier_selector`)"
-    assert readme.impl_label(registry, "s", "pkg/tier.py") == "Tier selector (`pkg/tier.py`)"
-    assert readme.impl_label(registry, "s", "unknown") == "`unknown`" and readme.impl_label(registry, "s", "") == "none selected"
+    assert readme_view.impl_label(registry, "s", "tier_selector") == "Tier selector (`tier_selector`)"
+    assert readme_view.impl_label(registry, "s", "s:tier_selector") == "Tier selector (`s:tier_selector`)"
+    assert readme_view.impl_label(registry, "s", "pkg/tier.py") == "Tier selector (`pkg/tier.py`)"
+    assert readme_view.impl_label(registry, "s", "unknown") == "`unknown`" and readme_view.impl_label(registry, "s", "") == "none selected"
 
 
 def test_a_problem_leads_with_its_name_or_failing_that_its_sentence_never_the_id():
-    from esoi import readme
+    from esoi.understanding.readable_records import readme
+    from esoi.understanding.readable_records import readme_view
     named = {"problem_id": "hprob-1", "name": "Slow lookups", "problem": "Finding a record takes far too long for a person."}
     bare = {"problem_id": "hprob-2", "problem": "Nobody can tell which record is current."}
-    assert readme.list_item(named, "problem_id", "problem") == "- Slow lookups (`hprob-1`): Finding a record takes far too long for a person."
-    assert readme.list_item(bare, "problem_id", "problem") == "- Nobody can tell which record is current. (`hprob-2`)"
-    assert not readme.list_item(bare, "problem_id", "problem").startswith("- `")
+    assert readme_view.list_item(named, "problem_id", "problem") == "- Slow lookups (`hprob-1`): Finding a record takes far too long for a person."
+    assert readme_view.list_item(bare, "problem_id", "problem") == "- Nobody can tell which record is current. (`hprob-2`)"
+    assert not readme_view.list_item(bare, "problem_id", "problem").startswith("- `")
     handle = {"problem_id": "hprob-3", "name": "hprob-3", "problem": "A sentence."}
-    assert readme.list_item(handle, "problem_id", "problem").startswith("- A sentence.")
+    assert readme_view.list_item(handle, "problem_id", "problem").startswith("- A sentence.")
 
 
 def test_the_components_page_leads_with_the_name_and_shows_the_id_as_a_handle():
-    from esoi.rules import generated
+    from esoi.structure.structure_check.rules import generated
     text = generated.render_components_doc([{"component_id": "hub-recall", "name": "Recall", "layer": "core", "role": "Recalls.", "solutions": "recall"},
                                             {"component_id": "bare", "layer": "core", "role": "No name.", "solutions": "recall"}], "esoi")
     assert "| Component | Handle | Layer | Role | Serves |" in text

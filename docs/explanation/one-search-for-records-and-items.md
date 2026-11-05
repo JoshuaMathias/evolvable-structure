@@ -8,7 +8,7 @@ one place only, and are copied by the next product.
 
 ## What is here and what is not
 
-`esoi.spec_search` holds the stages. It holds no embedding, no vector store, no prompt and no model call. The caller injects
+`esoi.understanding.spec_search.spec_search` holds the stages. It holds no embedding, no vector store, no prompt and no model call. The caller injects
 the two things that are its own:
 
 | Injected by the caller | Why it stays out |
@@ -16,7 +16,7 @@ the two things that are its own:
 | `vector_search(text, k)`: view keys best first, or `(key, cosine)` pairs | an embedding model and a store are a dependency every adopter would otherwise carry |
 | `judge(task, lines, limit)`: the keys it chose, as a list or as the reply text `{"ids": [...]}` | the prompt and the model are the product's; the library only offers the candidate lines and reads the answer |
 
-Everything else is the library's: the lexical formula (the one `esoi.spec_index.weighted_tfidf` uses), reciprocal rank
+Everything else is the library's: the lexical formula (the one `esoi.understanding.spec_search.spec_index.weighted_tfidf` uses), reciprocal rank
 fusion, the confidence gate, batching, the rule that a judge which fails keeps the candidates, links and the cue "no solution
 yet".
 
@@ -42,8 +42,8 @@ the cue to define a solution rather than to look for one.
 ## Not the same as choosing an implementation
 
 This module finds records. Choosing among implementations by their measured result is `esoi select`, `esoi cascade` and
-`esoi.runtime`; circumstance slices and `name@key=value` variants belong to that side (`esoi.circumstances`,
-`esoi.variants`). The two meet only in that the strategies here are implementations of the solution `spec-search`, chosen
+`esoi.runtime.implementation_selection.declare`; circumstance slices and `name@key=value` variants belong to that side (`esoi.optimization.leaderboard.circumstances`,
+`esoi.runtime.implementation_selection.variants`). The two meet only in that the strategies here are implementations of the solution `spec-search`, chosen
 the same way as any other.
 
 See [Search records and items together](../how-to/search-specs-and-items.md) to use it, and

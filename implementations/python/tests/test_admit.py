@@ -8,7 +8,8 @@ import sys
 import pytest
 
 from conftest import forget_demo_package
-from esoi import cli, tables
+from esoi import __main__ as cli
+from esoi.structure.intent_registry import tables
 
 BASE = '''"""The memory seats of the example: a model call, a search and a card store, each with one arm."""
 import typing
@@ -57,8 +58,8 @@ class Bm25:
 INIT = '''"""demo: the example package."""
 from pathlib import Path
 
-from esoi.assemble import Assembler
-from esoi.entry import runner
+from esoi.runtime.assemble_by_name.assemble import Assembler
+from esoi.runtime.assemble_by_name.entry import runner
 
 here = Path(__file__).resolve().parent
 ASSEMBLER = Assembler("demo", here, modules=("demo.greet", "demo.memory"), records=here.parent)

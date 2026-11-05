@@ -2,8 +2,11 @@
 import subprocess
 from pathlib import Path
 
-from esoi import check, config, leaderboard, promote, tables
-from esoi.rules import one_criterion
+from esoi.structure.structure_check import check
+from esoi.structure.intent_registry import config, tables
+from esoi.optimization.leaderboard import arm_kinds, rival_decisions
+from esoi.optimization.promote_the_winner import promote
+from esoi.structure.structure_check.rules import one_criterion
 
 
 def context(root):
@@ -97,12 +100,12 @@ def test_the_diagnostic_reads_a_result_column_and_stays_silent_when_the_leader_i
 
 def test_a_marked_arm_is_an_ordinary_competitor_and_promotion_can_pick_it(cfg):
     """BASELINE and FLOOR no longer mark an arm: a docstring opening with either is just prose, and the arm competes."""
-    from esoi import registry
+    from esoi.structure.intent_registry import registry
     from test_cascade import clear_selected, set_cascade
     path = cfg.evaluation / "greet_a_person" / "impls" / "shout.py"
     path.write_text(path.read_text().replace("ALTERNATIVE", "BASELINE", 1))
-    assert leaderboard.arm_kind({"component": "greet_a_person", "impl": "shout"}, cfg.evaluation) == ""
-    assert not hasattr(leaderboard, "FLOOR_KINDS") and not hasattr(promote, "floor_only")
+    assert arm_kinds.arm_kind({"component": "greet_a_person", "impl": "shout"}, cfg.evaluation) == ""
+    assert not hasattr(rival_decisions, "FLOOR_KINDS") and not hasattr(promote, "floor_only")
     set_cascade(cfg, "whole [sample=full | real=no]")
     results, header = tables.read_csv(cfg.results_path), tables.read_header(cfg.results_path)
     for r in results:
@@ -138,8 +141,8 @@ def ctx_for(tmp_path, first_row_day):
 def context_with_toml(tmp_path):
     cfg = config.from_mapping({"package": "demo", "balance": {"files": {"cost_per_case_usd": 0.1, "seconds_per_case": 60}}}, tmp_path,
                               tmp_path / "esoi.toml")
-    from esoi.rules.base import Context
-    from esoi.registry import Registry
+    from esoi.structure.structure_check.rules.base import Context
+    from esoi.structure.intent_registry.registry import Registry
     return Context(cfg, Registry(), [], {}, {})
 
 
@@ -160,5 +163,5 @@ def test_a_weight_table_changed_before_any_row_is_not_advice(tmp_path):
 def test_the_rules_are_listed_and_advisory_on_the_scaffold(repo):
     problems, advisory = check.check_all(config.load(repo))
     assert not [p for p in problems if p[:3] in ("S41", "S42", "S44", "S45")]
-    from esoi import rules
+    from esoi.structure.structure_check import rules
     assert {"S41", "S42", "S44", "S45"} <= set(rules.summaries(config.load(repo)))

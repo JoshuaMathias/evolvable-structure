@@ -11,7 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "evaluation" / "components"))
 
-from esoi import attest, config as config_module, harness, leaderboard  # noqa: E402
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import attest
+from esoi.structure.intent_registry import config as config_module
+from esoi.optimization.measurement_harness import stale_reasons
+from esoi.optimization.leaderboard import board_report
 import staleness_fixture  # noqa: E402
 
 
@@ -32,7 +35,7 @@ def project(tmp_path, step="touch-the-measured-file", component="alpha"):
 
 
 def why(cfg, component, row):
-    return harness.stale_reason(cfg, component, row)
+    return stale_reasons.stale_reason(cfg, component, row)
 
 
 def commit(cfg, message="more"):
@@ -110,5 +113,5 @@ def test_the_leaderboard_shows_current_by_attestation_and_staleness_never_blocks
     cfg, row, comp = project(tmp_path)
     attest.attest(cfg, comp, "live", "refactor that keeps behaviour")
     lines = []
-    leaderboard.board(cfg, __import__("esoi.registry", fromlist=["load"]).load(cfg), say=lines.append, stale=harness.stale_reason, attested=attest.note)
+    board_report.board(cfg, __import__("esoi.structure.intent_registry.registry", fromlist=["load"]).load(cfg), say=lines.append, stale=stale_reasons.stale_reason, attested=attest.note)
     assert any("live: current by attestation (refactor that keeps behaviour)" in line for line in lines)

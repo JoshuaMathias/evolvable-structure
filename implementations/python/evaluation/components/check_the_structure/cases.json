@@ -1358,7 +1358,7 @@
     {
      "op": "write",
      "path": "tools/my_rules.py",
-     "content": "from esoi.rules.base import RuleGroup\n\n\ndef no_todo(ctx):\n    return [f\"X1 {f}: contains TODO\" for f in ctx.files if f.endswith(\".py\") and \"TODO\" in (ctx.root / f).read_text()]\n\n\nRULES = [RuleGroup({\"X1\": \"No TODO.\"}, no_todo)]\n"
+     "content": "from esoi.structure.structure_check.rules.base import RuleGroup\n\n\ndef no_todo(ctx):\n    return [f\"X1 {f}: contains TODO\" for f in ctx.files if f.endswith(\".py\") and \"TODO\" in (ctx.root / f).read_text()]\n\n\nRULES = [RuleGroup({\"X1\": \"No TODO.\"}, no_todo)]\n"
     },
     {
      "op": "write",

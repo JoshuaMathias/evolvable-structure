@@ -22,6 +22,7 @@ Steps for a task you already know you want to do.
 - [Apply ESOI by hand](how-to/apply-by-hand.md): a first pass in about an hour, with no tools.
 - [Apply ESOI with the Python tools](how-to/apply-with-tools.md)
 - [Migrate to intents](how-to/migrate-to-intents.md): from the two-level overall layout.
+- [Migrate from esoi 0.3 to 0.4](how-to/migrate-from-0.x.md): the public API, the commands and where every module went.
 - [Install the skill](how-to/install-the-skill.md): give an AI agent the principles.
 - [Search records and items together](how-to/search-specs-and-items.md)
 - [Use public evidence](how-to/use-public-evidence.md)
@@ -74,6 +75,7 @@ Why it is built this way. Start with the idea, then the pieces.
 - [Override only what differs, and say why](explanation/override-only-what-differs.md): why defaults are hierarchical and an override cites its own records.
 - [What belongs in the library and what stays in an application](explanation/what-belongs-where.md): the test, with a table.
 - [Versioning](explanation/versioning.md): the package version, the skill and template stamp, and the template version a repository records (rule S34).
+- [Where each part of esoi lives](explanation/layout-of-esoi.md): the four containers, the rule for a solution folder, and where each old module went.
 - [Applying ESOI beyond code](explanation/beyond-code.md)
 - [ESOI applied to AI behaviour](explanation/esoi-for-ai.md)
 - [The definitions and principles, in Joshua Mathias's words](explanation/from-the-skill.md)
@@ -85,7 +87,7 @@ Why it is built this way. Start with the idea, then the pieces.
 Facts to look up.
 
 - [Requirements: every kind, its fields, and the commands](reference/requirements.md): includes `esoi install`.
-- [The lock: file, API, command line and exit codes](reference/lock.md): `esoi lock`, `esoi.lock`, the status plan.
+- [The lock: file, API, command line and exit codes](reference/lock.md): `esoi lock`, `esoi.runtime.implementation_selection.lock`, the status plan.
 - [Scope the role of a solution](how-to/scope-the-role-of-a-solution.md): purpose, exclusions and who owns them, delegation, the change driver of a container; rules S48 and S49.
 - [A solution holds alternatives of one job](explanation/a-solution-holds-alternatives-of-one-job.md): read the implementation list for purpose and specificity; split by purpose.
 - [Start from the flow](how-to/start-from-the-flow.md): write the flow the coherence paragraph describes, in the medium of the implementation, then what it reaches; rule S50.

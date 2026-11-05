@@ -1,0 +1,2 @@
+metric_id,name,purpose,record,disadvantages,cascading_conditionals,solution_ids,command,parent_metric_ids,run_policy_ids
+metric-trace-completeness,Trace completeness,Share of files that reach a problem and an ideal through a component and a solution.,"The share of files that reach a problem and an ideal, counted by the ownership cases and noted per review.",,,ownership-map,esoi run own_every_file --impl live_checker,metric-violation-detection,when-metrics-are-run

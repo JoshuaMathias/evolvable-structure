@@ -23,7 +23,7 @@ class Search(typing.Protocol):
 
 ```python
 from esoi import implementation
-from esoi.requirements import api, env, python
+from esoi.runtime.assemble_by_name.environment_needs.declarations import api, env, python
 
 
 @implementation("search", "openalex")
@@ -44,8 +44,10 @@ In the folder above `demo/`, run:
 
 ```python
 from pathlib import Path
-from esoi.assemble import Assembler, AssemblyConfig
-from esoi.requirements import check, report
+from esoi.runtime.assemble_by_name.assemble import Assembler
+from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
+from esoi.runtime.assemble_by_name.environment_needs.checking import check
+from esoi.runtime.assemble_by_name.environment_needs.report import report
 
 parts = Assembler("demo", Path("demo"), modules=("demo.solutions", "demo.arms"))
 config = AssemblyConfig(names={"search": "openalex"})

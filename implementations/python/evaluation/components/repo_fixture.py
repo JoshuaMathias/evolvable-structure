@@ -17,7 +17,9 @@ import tempfile
 from pathlib import Path
 from typing import Dict, List
 
-from esoi import check, config, scaffold
+from esoi.structure.structure_check import check
+from esoi.structure.intent_registry import config
+from esoi.understanding.the_standard import scaffold
 
 PORTS = ('"""The fixture port."""\nfrom typing import Protocol\n\n\nclass Greeter(Protocol):\n'
          '    """Says hello."""\n\n    def greet(self, name: str) -> str: ...\n')
@@ -74,6 +76,8 @@ def baseline_repo(dest: Path) -> Path:
     set_cell(root, "esoi/intent.csv", "intent_id", "demo", "vision_statement", "Every person is greeted by their own name.")
     set_cell(root, "esoi/intent.csv", "intent_id", "demo", "opportunities",
              "Greetings could be spoken, translated and personalised without changing how names are kept.")
+    set_cell(root, "esoi/intent.csv", "intent_id", "demo", "solution_coherence",
+             "Greetings sent (project-purpose) is the purpose, greet-a-person does the greeting, and project-structure records how.")
     # the scaffold also leaves its top solution to the project: write the stand-in project's own
     for column, value in dict(name="Greetings sent", description="Every greeting the project sends is the one it meant to send.",
         purpose="Greet people for this project.", approach="Send each greeting through the one greeting function.",

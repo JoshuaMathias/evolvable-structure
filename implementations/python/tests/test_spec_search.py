@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from esoi import spec_search as ss
+from esoi.understanding.spec_search import spec_search as ss
 
 
 def entry(kind, id_, title, summary="", refs=(), intent="demo"):
@@ -170,7 +170,7 @@ def test_bad_arguments_fail_loudly():
 
 
 def test_the_index_json_round_trips_into_views(cfg):
-    from esoi import spec_index
+    from esoi.understanding.spec_search import spec_index
     built = json.loads(json.dumps(spec_index.build(cfg)))
     found = ss.search("greet", ss.views_from_index(built), expand=0)
     assert isinstance(found, ss.Selection)

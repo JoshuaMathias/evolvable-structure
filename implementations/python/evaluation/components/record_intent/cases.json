@@ -251,7 +251,7 @@
     {
      "op": "write",
      "path": "esoi/voices/intent.csv",
-     "content": "intent_id,name,vision_statement,implements,opportunities\nvoices,Greeting voices,Every greeting is spoken warmly.,greet-a-person:live,Speaking greetings aloud is a creative space the written greeting does not cover.\n"
+     "content": "intent_id,name,vision_statement,implements,opportunities,solution_coherence\nvoices,Greeting voices,Every greeting is spoken warmly.,greet-a-person:live,Speaking greetings aloud is a creative space the written greeting does not cover.,\"Speaking is how this intent greets people, through the greeting solution it implements.\"\n"
     },
     {
      "op": "csv_cell",
@@ -280,7 +280,7 @@
     {
      "op": "write",
      "path": "esoi/voices/intent.csv",
-     "content": "intent_id,name,vision_statement,implements,opportunities\nvoices,Greeting voices,Every greeting is spoken warmly.,greet-a-person:live,\n"
+     "content": "intent_id,name,vision_statement,implements,opportunities,solution_coherence\nvoices,Greeting voices,Every greeting is spoken warmly.,greet-a-person:live,,\"Speaking is how this intent greets people, through the greeting solution it implements.\"\n"
     },
     {
      "op": "csv_cell",
@@ -310,7 +310,7 @@
     {
      "op": "write",
      "path": "esoi/voices/intent.csv",
-     "content": "intent_id,name,vision_statement,implements,opportunities\nvoices,Greeting voices,Every greeting is spoken warmly.,greet-a-person:live,A creative space.\n"
+     "content": "intent_id,name,vision_statement,implements,opportunities,solution_coherence\nvoices,Greeting voices,Every greeting is spoken warmly.,greet-a-person:live,A creative space.,\"Speaking is how this intent greets people, through the greeting solution it implements.\"\n"
     },
     {
      "op": "regen"

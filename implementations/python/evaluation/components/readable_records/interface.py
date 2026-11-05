@@ -3,7 +3,7 @@
     readable(kind: str, args: dict) -> dict
 
 An intent's folder holds five CSV files; a reader should learn what the intent is from a page generated from them, and that
-page must never disagree with them. The cases drive the LIVE ``esoi.readme`` and the check over throwaway projects.
+page must never disagree with them. The cases drive the LIVE ``esoi.understanding.readable_records.readme`` and the check over throwaway projects.
 Deterministic and offline.
 
 Kinds and the dict an implementation returns:

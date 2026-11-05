@@ -1,0 +1,2 @@
+metric_id,name,purpose,record,disadvantages,cascading_conditionals,solution_ids,command,parent_metric_ids,run_policy_ids
+metric-skill-copy-agreement,Skill copy agreement and leaks,"Whether the public copy equals what the source generates, and how many private terms, paths or emails it holds.","Per run of the skill check: whether each copy equals the generated one, and the count of leaks found, with the cases that plant each kind of leak.",,,skill-distribution,esoi run sync_the_skill --impl live_skill,metric-adoption-effort,when-metrics-are-run

@@ -32,7 +32,7 @@ A solution whose parent selection and lock agree, with no override, is not repor
 ## The four verdicts
 
 The parent's arm is compared with the child's current arm (the override, or the locked arm) on the child's own recorded rows, by the
-child's own selection rule (`esoi.leaderboard.decisions`, with the `[switching]` policy of the child), so a child that requires a
+child's own selection rule (`esoi.optimization.leaderboard.rival_decisions.decisions`, with the `[switching]` policy of the child), so a child that requires a
 significant lead keeps its arm until the parent's arm is shown better.
 
 | Verdict | Means | Advice |

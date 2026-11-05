@@ -1,4 +1,4 @@
-"""Hierarchical defaults (esoi.hierarchy, Assembler(parent=...)), explain, reasons, circumstance entries and rule S35.
+"""Hierarchical defaults (esoi.runtime.assemble_by_name.hierarchy, Assembler(parent=...)), explain, reasons, circumstance entries and rule S35.
 
 A throwaway parent package (``esoihub``: two solutions, two store arms, a snapshot with defaults) and a child (``esoichild``:
 one arm of its own for the parent's store solution, a snapshot whose default differs) are written to a temporary folder. Nothing is
@@ -11,10 +11,15 @@ from pathlib import Path
 
 import pytest
 
-from esoi import check, hierarchy, runtime
-from esoi import config as config_module
-from esoi import tables
-from esoi.assemble import Assembler, AssemblyConfig, AssemblyError
+from esoi.structure.structure_check import check
+from esoi.runtime.assemble_by_name import hierarchy
+from esoi.runtime.implementation_selection import selection_cascade
+from esoi.runtime.implementation_selection import selection_registry
+from esoi.structure.intent_registry import config as config_module
+from esoi.structure.intent_registry import tables
+from esoi.runtime.assemble_by_name.assemble import Assembler
+from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
+from esoi.runtime.assemble_by_name.assembly_errors import AssemblyError
 
 STORE, INDEX = "hub-store", "hub-index"
 HUB_SOLUTIONS = '''
@@ -101,8 +106,8 @@ def pair(tmp_path):
     sys.path.remove(str(tmp_path))
     for name in [m for m in sys.modules if m.split(".")[0] in ("esoihub", "esoichild")]:
         sys.modules.pop(name)
-    for key in [k for k in runtime.REGISTRY if k[0] in ("esoihub", "esoichild")]:
-        runtime.REGISTRY.pop(key)
+    for key in [k for k in selection_registry.REGISTRY if k[0] in ("esoihub", "esoichild")]:
+        selection_registry.REGISTRY.pop(key)
 
 
 def test_one_line_builds_the_hubs_defaults_and_a_child_inherits_them(pair):
@@ -117,7 +122,7 @@ def test_one_line_builds_the_hubs_defaults_and_a_child_inherits_them(pair):
 
 def test_the_layer_order_is_explicit_selections_environ_child_default_parent_default(pair):
     hub, child = pair
-    environ = {runtime.env_name(STORE, "esoichild"): "memory"}
+    environ = {selection_cascade.env_name(STORE, "esoichild"): "memory"}
     order = [layer.layer for layer in child.explain(STORE, "cached", AssemblyConfig(
         selections={STORE: "disk"}, selection_environ=environ)).layers]
     assert order == ["explicit name", "consumer selections", "selection environ", "esoichild default", "esoihub default"]
@@ -151,8 +156,8 @@ def test_a_child_default_that_is_not_listed_fails_naming_the_scope(tmp_path):
         sys.path.remove(str(tmp_path))
         for name in [m for m in sys.modules if m.split(".")[0] in ("esoihub", "esoichild")]:
             sys.modules.pop(name)
-        for key in [k for k in runtime.REGISTRY if k[0] in ("esoihub", "esoichild")]:
-            runtime.REGISTRY.pop(key)
+        for key in [k for k in selection_registry.REGISTRY if k[0] in ("esoihub", "esoichild")]:
+            selection_registry.REGISTRY.pop(key)
 
 
 def test_explain_lists_every_layer_across_the_child_and_the_parent_and_names_the_winner(pair):
@@ -217,7 +222,7 @@ def test_a_conditional_value_may_come_from_the_name_or_the_environ_and_a_typo_fa
     _, child = pair
     facts = {"size": "large"}
     assert child.choice(STORE, "cached@size=large", AssemblyConfig(circumstances=facts)).name == "cached"
-    environ = {runtime.env_name(STORE, "esoichild"): "memory@size=large"}
+    environ = {selection_cascade.env_name(STORE, "esoichild"): "memory@size=large"}
     assert child.choice(STORE, config=AssemblyConfig(selection_environ=environ, circumstances=facts)).layer == "selection environ"
     assert child.choice(STORE, config=AssemblyConfig(selection_environ=environ)).name == "disk"
     for bad in ("cached@", "cached@size", "cached@Size=large", "cached@size=large,size=small", "tape@size=large"):
@@ -230,7 +235,7 @@ def test_without_a_parent_nothing_changes_and_explain_still_works(pair):
     explained = hub.explain(STORE, config=AssemblyConfig(selections={STORE: "disk"}))
     assert [l.layer for l in explained.layers] == ["consumer selections", "esoihub default"]
     assert explained.parent_default == "" and not explained.overrides_parent and hub.overrides() == []
-    assert hub.choice(STORE) == runtime.Choice("memory", "esoihub default", "the packaged snapshot")
+    assert hub.choice(STORE) == selection_registry.Choice("memory", "esoihub default", "the packaged snapshot")
 
 
 def test_the_parent_is_prepared_with_the_child_and_a_provided_object_is_checked_against_the_parents_protocol(pair):
@@ -280,7 +285,7 @@ def test_s35_reports_a_parent_that_cannot_be_read_and_can_be_disabled(cfg):
     assert "[parent] in the configuration cannot be read" in s35(cfg)[0]
     cfg.disable.append("S35")
     assert s35(cfg) == []
-    assert "S35" in __import__("esoi.rules", fromlist=["summaries"]).summaries(cfg)
+    assert "S35" in __import__("esoi.structure.structure_check.rules", fromlist=["summaries"]).summaries(cfg)
 
 
 def test_overrides_csv_and_the_parents_defaults_are_read_by_the_hierarchy_module(cfg):

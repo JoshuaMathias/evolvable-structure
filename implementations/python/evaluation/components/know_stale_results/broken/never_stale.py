@@ -1,7 +1,7 @@
 """BASELINE: a freshness check that accepts any result that has a row: it never notices other cases, uncommitted code or
 code that changed since the result was recorded. Zero model calls."""
 import repo_fixture
-from esoi.tables import read_csv
+from esoi.structure.intent_registry.tables import read_csv
 
 
 def build(meter):

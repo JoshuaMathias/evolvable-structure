@@ -1,5 +1,6 @@
 """The check runner, the rules by group, waivers, disabling and plugins."""
-from esoi import check, rules, tables
+from esoi.structure.structure_check import check, rules
+from esoi.structure.intent_registry import tables
 
 
 def edit(cfg, name, key_col, key, col, value):
@@ -92,7 +93,7 @@ def test_a_disabled_rule_is_silent_and_its_waivers_are_not_flagged(cfg):
 
 def test_a_plugin_adds_rules_and_a_docs_hook(cfg):
     (cfg.root / "plug.py").write_text(
-        "from esoi.rules.base import RuleGroup\n\n\ndef rule(ctx):\n    return ['X1 demo: always reports']\n\n\n"
+        "from esoi.structure.structure_check.rules.base import RuleGroup\n\n\ndef rule(ctx):\n    return ['X1 demo: always reports']\n\n\n"
         "def write_docs(ctx):\n    (ctx.root / 'plug.txt').write_text('written')\n\n\nRULES = [RuleGroup({'X1': 'Always.'}, rule)]\n")
     cfg.plugins = ["plug.py"]
     rows = tables.read_csv(cfg.structure / "components.csv")
@@ -242,7 +243,7 @@ def test_a_solutions_file_without_an_interface_name_column_is_a_problem_when_som
 
 
 def test_every_column_the_rules_read_may_be_missing_without_a_crash(cfg):
-    from esoi.registry import RULE_COLUMNS
+    from esoi.structure.intent_registry.registry import RULE_COLUMNS
     tables.write_csv(cfg.structure / "waivers.csv", ["rule", "path", "reason"], [dict(rule="S4", path="demo/greet.py", reason="x")])
     for name, columns in RULE_COLUMNS.items():
         for column in columns:
@@ -345,8 +346,8 @@ def test_s31_a_metric_must_be_meaningfully_real(cfg):
 
 
 def change_cases(cfg):
-    from esoi import leaderboard
-    path = leaderboard.cases_files("greet_a_person", cfg.evaluation)[0]
+    from esoi.optimization.leaderboard import case_identity
+    path = case_identity.cases_files("greet_a_person", cfg.evaluation)[0]
     path.write_text(path.read_text() + "\n")
 
 
@@ -369,10 +370,10 @@ def test_a_row_with_no_git_sha_is_a_malformed_record_and_stays_a_problem(cfg):
 
 
 def test_changed_circumstances_and_a_dirty_row_inform_but_do_not_fail(cfg):
-    from esoi import harness
+    from esoi.optimization.measurement_harness import stale_reasons
     row = {r["impl"]: r for r in tables.read_csv(cfg.results_path)}["live"]
     row["git_sha"] = "abc1234-dirty"
-    assert harness.defect_reason(cfg, "greet_a_person", row) == ""            # dirty is a fact about the tree, not a defect
-    assert "uncommitted" in harness.stale_reason(cfg, "greet_a_person", row, True)
+    assert stale_reasons.defect_reason(cfg, "greet_a_person", row) == ""            # dirty is a fact about the tree, not a defect
+    assert "uncommitted" in stale_reasons.stale_reason(cfg, "greet_a_person", row, True)
     row["git_sha"] = ""
-    assert "no git_sha" in harness.defect_reason(cfg, "greet_a_person", row)  # malformed
+    assert "no git_sha" in stale_reasons.defect_reason(cfg, "greet_a_person", row)  # malformed

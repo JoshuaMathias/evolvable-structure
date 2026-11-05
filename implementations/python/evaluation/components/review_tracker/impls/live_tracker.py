@@ -1,9 +1,10 @@
-"""CURRENT: the live tracker, ``esoi.tracker`` (``stale``, ``write``), over the clean fixture repository.
+"""CURRENT: the live tracker, ``esoi.understanding.review_tracker.tracker`` (``stale``, ``write``), over the clean fixture repository.
 Zero model calls."""
 import csv
 
 import repo_fixture
-from esoi import config, registry, tracker
+from esoi.structure.intent_registry import config, registry
+from esoi.understanding.review_tracker import tracker
 
 
 def build(meter):

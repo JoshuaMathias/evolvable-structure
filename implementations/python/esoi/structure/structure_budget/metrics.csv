@@ -1,0 +1,2 @@
+metric_id,name,purpose,record,disadvantages,cascading_conditionals,solution_ids,command,parent_metric_ids,run_policy_ids
+metric-structure-cost-against-catches,Structure cost against catches,"Time and files the structure adds per change, against real violations it caught. No run measures it yet; the written weighing rule is applied by people.","The time and files the structure adds per change, against the real violations it caught, noted per period.",,,structure-budget,,metric-violation-detection,

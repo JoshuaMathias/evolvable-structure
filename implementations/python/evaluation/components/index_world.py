@@ -1,7 +1,7 @@
 """Build the on-disk world of one case: the project folders. Shared by every arm so they all face the same machine."""
 import repo_fixture
 
-from esoi import tables
+from esoi.structure.intent_registry import tables
 
 
 def make_world(projects):

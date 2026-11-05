@@ -1,6 +1,6 @@
 # Requirements: kinds, fields and commands
 
-Declarations live in `esoi.requirements`. An arm attaches them with a `REQUIRES` tuple (on the class or function, or at module
+Declarations live in `esoi.runtime.assemble_by_name.environment_needs.declarations`; checking is in `esoi.runtime.assemble_by_name.environment_needs.checking`, rendering in `esoi.runtime.assemble_by_name.environment_needs.report` and the generated files in `esoi.runtime.assemble_by_name.environment_needs.generated_files`. An arm attaches them with a `REQUIRES` tuple (on the class or function, or at module
 level in a helper module). `ENVIRON = {option: variable or (variables)}` and `ENVIRON_REQUIRED` keep working and are read as
 env requirements. Every constructor takes keyword arguments after the first.
 
@@ -13,7 +13,7 @@ env requirements. Every constructor takes keyword arguments after the first.
 | `python(module, distribution, extra=None, required=True, alternatives=())` | `distribution` may carry a range and a marker; `alternatives` are other requirement strings providing the module | An importable module and the pip requirement for it. |
 | `binary(name, install_hint="", version_args=None, required=True)` | `version_args` is run only with a probe | An executable on PATH; reports "found but not executable". |
 | `service(name, url_env, default_url=None, health_path=None, required=True)` | | A running service found by a URL variable. Unknown while only the default is assumed. |
-| `network(host="", required=True)` | `host` names where, for the reader | The arm reaches the network. Met normally; unmet while `ESOI_OFFLINE=1`, for `esoi.entry` and for `esoi run` alike (the run prints `pending-network`, records nothing and exits 0), with the remedy "needs network access; not attempted offline", so the arm is pending (outcome `pending-network`) and is never built. |
+| `network(host="", required=True)` | `host` names where, for the reader | The arm reaches the network. Met normally; unmet while `ESOI_OFFLINE=1`, for `esoi.runtime.assemble_by_name.entry` and for `esoi run` alike (the run prints `pending-network`, records nothing and exits 0), with the remedy "needs network access; not attempted offline", so the arm is pending (outcome `pending-network`) and is never built. |
 | `download(name, size_mb=0, cache_hint="")` | | Fetched on first use. Checks free disk space against `size_mb`; informational unless it will not fit. |
 | `resource(note)` | | A CPU, GPU, memory or time note. Informational. |
 | `isolatable(boundary)` | `subprocess`, `cli` or `mcp` | The arm can run out of process, so its python requirements may be installed in an environment of its own. |
@@ -32,7 +32,7 @@ named for its folder. They run in the order install.sh, requirements.txt, instal
 - `Assembly.requirements`: the same for the arms an assembly built.
 - `pending_needs` and `assemble_defaults` treat an unmet required env, api, python, binary or network as pending with its remedy line.
 - `env_template`, `install_script`, `write_env_file`, `report`, `as_json`: the generated outputs.
-- `esoi.installer.make_plan`, `assembly_plan`, `execute`: the install plan, the resolution ladder and the guarded runner.
+- `esoi.runtime.assemble_by_name.installation.resolution_ladder.make_plan`, `esoi.runtime.assemble_by_name.installation.assembly_plan.assembly_plan`, `esoi.runtime.assemble_by_name.installation.execution.execute`: the install plan, the resolution ladder and the guarded runner.
 
 ## Exit codes and JSON
 

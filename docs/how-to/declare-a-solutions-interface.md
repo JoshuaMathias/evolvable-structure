@@ -33,8 +33,8 @@ Bind one function per package, beside the Assembler that lists the modules decla
 
 ```python
 # mylib/__init__.py
-from esoi.assemble import Assembler
-from esoi.entry import runner
+from esoi.runtime.assemble_by_name.assemble import Assembler
+from esoi.runtime.assemble_by_name.entry import runner
 
 run = runner(Assembler("mylib", here, modules=("mylib.seats",), records=checkout_root_or_None))
 ```
@@ -63,7 +63,7 @@ solution, so `mylib.run("mylib", ...)` works there too.
 
 ## Read the outcomes
 
-`python3 -m esoi.entry` runs every id's example with `environ={}` and no network, and gives each id one outcome:
+`python3 -m esoi.runtime.assemble_by_name.entry_cli` runs every id's example with `environ={}` and no network, and gives each id one outcome:
 
 | Outcome | Meaning | Answers? |
 |---|---|---|
@@ -80,7 +80,7 @@ solution, so `mylib.run("mylib", ...)` works there too.
 A requirement may name a program, for example `binary("claude")`. With no PATH in `environ`, the program is not found, the line is
 `pending-install`, and the program is never started.
 
-An arm that reaches the network declares it beside its other needs, `REQUIRES = (network("openalex.org"),)` with `from esoi.requirements import network`. The need is met in an ordinary run and unmet while `ESOI_OFFLINE=1` is set, which the entry check does, so the seat is never built and the arm cannot swallow the refused connection into an error value that looks like an answer. An arm that reaches the network without declaring it is a `live-attempt`, which does not answer.
+An arm that reaches the network declares it beside its other needs, `REQUIRES = (network("openalex.org"),)` with `from esoi.runtime.assemble_by_name.environment_needs.declarations import network`. The need is met in an ordinary run and unmet while `ESOI_OFFLINE=1` is set, which the entry check does, so the seat is never built and the arm cannot swallow the refused connection into an error value that looks like an answer. An arm that reaches the network without declaring it is a `live-attempt`, which does not answer.
 
 `--gate` exits 1 unless every id answers (`ok`, `pending-key`, `pending-install` or `pending-network`). `--json` keeps one row per id with its reasons.
 
@@ -118,13 +118,13 @@ waiver sets grew or shrank and whether a floor rose or fell; set `ESOI_RATCHET_B
 a key left out takes the repository-wide value (`max_names_per_sentence` defaults to the intent's `max_fan_out` plus one).
 Put the reason in a comment beside the key, since S39 reports a per-intent limit that loosens (a lower `min_lift`, a higher
 `max_fan_out` or `max_names_per_sentence`) against the base commit like any other floor that fell. Lift is undefined for an intent
-that records no uses edges (a grouping of independent solutions): `python3 -m esoi.coherence` prints `lift n/a (no recorded
+that records no uses edges (a grouping of independent solutions): `python3 -m esoi.structure.structure_check.coherence` prints `lift n/a (no recorded
 edges)`, the report carries `code_lift_note`, and `min_lift` is not applied. An intent that does record edges is always held to
 `min_lift`: a lift of 0.0 fails.
 
 ## What counts as code evidence that one solution uses another
 
-`python3 -m esoi.coherence` checks each `uses_solution_ids` edge against the code of the user. The strong evidence is an import
+`python3 -m esoi.structure.structure_check.coherence` checks each `uses_solution_ids` edge against the code of the user. The strong evidence is an import
 of the used's module (E1), executable code that names the used's id or interface class (E2), or a constructor parameter typed with
 the used's interface (E3), or a module that `components.csv` gives only to the user importing a module it gives only to the used (E4; the
 ownership map names whose a module is, a module several solutions own never counts), or, for solutions that are documents, a markdown link or include in a document only the user owns (named in the `documents` column of `components.csv`) to a document only the used owns (E5; [why prose is not evidence](../explanation/why-prose-is-not-code-evidence.md)). E2 reads the syntax tree: an identifier, an attribute, an imported name, an annotation, a decorator or

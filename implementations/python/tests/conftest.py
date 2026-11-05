@@ -6,14 +6,15 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from esoi import config, scaffold  # noqa: E402
+from esoi.structure.intent_registry import config
+from esoi.understanding.the_standard import scaffold
 
 TEMPLATE_REPO = {}
 
 
 def fill_top_intent(root):
     """The scaffold leaves the top intent and the top solution to the project; the fixture writes the stand-in project's own."""
-    from esoi import tables
+    from esoi.structure.intent_registry import tables
     folder = Path(root) / "esoi"
 
     def edit(name, change):
@@ -43,7 +44,7 @@ def fill_top_intent(root):
                      "disadvantages": "It is reviewed by hand, so it sees only what the reviewer looks at.",
                      "record": "Reviewed by hand; no run measures it yet.", "solution_ids": "project-purpose"})
     tables.write_csv(path, cols, rows)
-    from esoi import check   # the tracker tabs and the READMEs follow the records
+    from esoi.structure.structure_check import check
     check.write_docs(config.load(root), say=lambda text: None)
 
 
@@ -66,13 +67,13 @@ def forget_demo_package(root):
     """Each copy of the example repository is a package named ``demo`` at a different path. A command run in one (``records sync``)
     imports it and registers its solutions; left behind, the next copy would find this copy's ``demo`` modules and registry entries
     instead of its own, and fail with a missing module."""
-    from esoi import runtime
+    from esoi.runtime.implementation_selection import selection_registry
     for name, module in list(sys.modules.items()):
         if (name == "demo" or name.startswith("demo.")) and str(getattr(module, "__file__", "") or "").startswith(str(root)):
             sys.modules.pop(name)
-    for key in [k for k in runtime.REGISTRY if k[0] == "demo"]:
-        runtime.REGISTRY.pop(key)
-    runtime.PROJECTS.clear()
+    for key in [k for k in selection_registry.REGISTRY if k[0] == "demo"]:
+        selection_registry.REGISTRY.pop(key)
+    selection_registry.PROJECTS.clear()
 
 
 @pytest.fixture

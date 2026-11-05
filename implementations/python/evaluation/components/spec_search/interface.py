@@ -3,7 +3,7 @@
     run(kind: str, args: dict) -> dict
 
 Given a request, the search ranks views of this repository's own records (the live specification index, plus two plain
-items standing for a product's own notes) and returns the keys it chose. The cases drive the LIVE ``esoi.spec_search``
+items standing for a product's own notes) and returns the keys it chose. The cases drive the LIVE ``esoi.understanding.spec_search.spec_search``
 over the live records, so a case names real record ids. Deterministic and offline: no vector search and no judge are
 injected, because a stand-in for either would measure the stand-in. What the vector search and the judge add is measured
 by the adopter that supplies them, on its own records.

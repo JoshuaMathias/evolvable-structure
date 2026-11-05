@@ -1,4 +1,4 @@
-"""esoi.assemble: names only, safe loading, the cascade, needs from typed parameters, build order, startup failures.
+"""esoi.runtime.assemble_by_name.assemble: names only, safe loading, the cascade, needs from typed parameters, build order, startup failures.
 
 The tests run against a small package written to a temporary folder (``esoitoy``: three solutions and one default arm with a
 packaged snapshot) and a consumer module (``esoitoyconsumer``) that registers arms of its own. Nothing is read from this
@@ -16,8 +16,15 @@ from pathlib import Path
 import pytest
 
 import esoi
-from esoi import assemble, runtime
-from esoi.assemble import Assembler, AssemblyConfig, AssemblyError
+from esoi.runtime.assemble_by_name import assemble
+from esoi.runtime.assemble_by_name.dependency_graph import problems
+from esoi.runtime.assemble_by_name.name_check import check_name
+from esoi.runtime.implementation_selection import declare
+from esoi.runtime.implementation_selection import selection_cascade
+from esoi.runtime.implementation_selection import selection_registry
+from esoi.runtime.assemble_by_name.assemble import Assembler
+from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
+from esoi.runtime.assemble_by_name.assembly_errors import AssemblyError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "evaluation" / "components"))
 import assemble_fixture  # noqa: E402
@@ -38,8 +45,8 @@ def toy(tmp_path_factory):
     sys.path.remove(str(site))
     for name in [m for m in sys.modules if m.split(".")[0] in ("esoitoy", "esoitoyconsumer")]:
         sys.modules.pop(name)
-    for key in [k for k in runtime.REGISTRY if k[0] == "esoitoy"]:
-        runtime.REGISTRY.pop(key)
+    for key in [k for k in selection_registry.REGISTRY if k[0] == "esoitoy"]:
+        selection_registry.REGISTRY.pop(key)
 
 
 @pytest.fixture(autouse=True)
@@ -49,12 +56,12 @@ def keep_registry(request):
         yield
         return
     request.getfixturevalue("toy")
-    before = {k: (dict(e.implementations), set(e.replaced), e.interface, e.origin) for k, e in runtime.REGISTRY.items()}
+    before = {k: (dict(e.implementations), set(e.replaced), e.interface, e.origin) for k, e in selection_registry.REGISTRY.items()}
     yield
-    for key in [k for k in runtime.REGISTRY if k not in before]:
-        runtime.REGISTRY.pop(key)
+    for key in [k for k in selection_registry.REGISTRY if k not in before]:
+        selection_registry.REGISTRY.pop(key)
     for key, (impls, replaced, interface, origin) in before.items():
-        entry = runtime.REGISTRY[key]
+        entry = selection_registry.REGISTRY[key]
         entry.implementations, entry.replaced, entry.interface, entry.origin = dict(impls), set(replaced), interface, origin
 
 
@@ -69,10 +76,10 @@ def wire(toy):
 
 def test_name_pattern():
     for good in ("a", "tier_selector", "x-1", "0abc"):
-        assert assemble.check_name(good) == good
+        assert check_name(good) == good
     for bad in ("", "-a", "_a", "a.b", "a:b", "A", "a b", "a\n", "../x", None, 3):
         with pytest.raises(AssemblyError):
-            assemble.check_name(bad)
+            check_name(bad)
 
 
 def test_a_consumer_registers_a_name_it_owns_and_selects_it_on_its_own_config(toy):
@@ -133,8 +140,8 @@ def test_a_config_value_that_is_an_import_path_is_rejected_before_esoi(bad, toy,
 
     def esoi_must_not_see_it(*args, **kwargs):
         raise AssertionError("esoi saw the value")
-    monkeypatch.setattr(runtime, "choose", esoi_must_not_see_it)
-    monkeypatch.setattr(runtime, "resolve", esoi_must_not_see_it)
+    monkeypatch.setattr(selection_cascade, "choose", esoi_must_not_see_it)
+    monkeypatch.setattr(declare, "resolve", esoi_must_not_see_it)
     for config in (AssemblyConfig(names={STORE: bad}), AssemblyConfig(selections={STORE: bad}),
                    AssemblyConfig(selection_environ={"ESOI_SELECT_ESOITOY_TOY_STORE": bad})):
         with pytest.raises(AssemblyError, match="rejected"):
@@ -171,7 +178,8 @@ sys.path[:] = [{site!r}, {esoi_path!r}] + [p for p in sys.path if 'site-packages
 marker, attacker = {marker!r}, {attacker!r}
 {setup}
 from pathlib import Path
-from esoi.assemble import Assembler, AssemblyError
+from esoi.runtime.assemble_by_name.assemble import Assembler
+from esoi.runtime.assemble_by_name.assembly_errors import AssemblyError
 parts = Assembler("esoitoy", Path({site!r}) / "esoitoy", ("esoitoy.solutions",))
 {after}
 try:
@@ -228,8 +236,8 @@ def test_the_process_environment_changes_nothing(toy, monkeypatch, tmp_path):
     parts = toy[0]
     monkeypatch.setenv("ESOI_SELECT_ESOITOY_TOY_STORE", "evil")
     monkeypatch.setenv("ESOI_SELECT_TOY_STORE", "evil")
-    monkeypatch.setenv(runtime.ROOT_ENV, str(tmp_path))
-    monkeypatch.setenv(runtime.SNAPSHOT_ENV, str(tmp_path / "nope.json"))
+    monkeypatch.setenv(selection_registry.ROOT_ENV, str(tmp_path))
+    monkeypatch.setenv(selection_registry.SNAPSHOT_ENV, str(tmp_path / "nope.json"))
     assert parts.choice(STORE).name == "memory" and parts.resolve(STORE).__name__ == "Memory"
 
 
@@ -237,21 +245,26 @@ def test_selection_environ_is_the_only_control(toy):
     parts = toy[0]
     assert parts.choice(STORE, config=AssemblyConfig(selection_environ={"ESOI_SELECT_ESOITOY_TOY_STORE": "memory"})).layer \
         == "selection environ"
-    for bad in ({runtime.ROOT_ENV: "/x"}, {runtime.SNAPSHOT_ENV: "/x"}):
+    for bad in ({selection_registry.ROOT_ENV: "/x"}, {selection_registry.SNAPSHOT_ENV: "/x"}):
         with pytest.raises(AssemblyError, match="may not set"):
             parts.choice(STORE, config=AssemblyConfig(selection_environ=bad))
 
 
-def test_the_module_reads_no_environment_and_imports_no_consumer():
-    tree = ast.parse(Path(assemble.__file__).read_text())
+ASSEMBLY_MODULES = ("arm_inspection", "arm_ranking", "assemble", "assembly", "assembly_config", "assembly_errors", "build_parts", "cascade_layers",
+                    "closure", "declared_needs", "dependency_graph", "environ_options", "lazy_need", "name_check", "packaged_records", "pending_needs")
+
+
+def test_the_modules_read_no_environment_and_import_no_consumer():
     allowed = set(sys.stdlib_module_names) | {"esoi"}
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Attribute):
-            assert node.attr not in ("environ", "getenv", "putenv"), node.lineno
-        if isinstance(node, ast.Import):
-            assert {a.name.split(".")[0] for a in node.names} <= allowed
-        if isinstance(node, ast.ImportFrom) and node.level == 0:
-            assert node.module.split(".")[0] in allowed
+    for name in ASSEMBLY_MODULES:
+        tree = ast.parse((Path(assemble.__file__).parent / f"{name}.py").read_text())
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute):
+                assert node.attr not in ("environ", "getenv", "putenv"), (name, node.lineno)
+            if isinstance(node, ast.Import):
+                assert {a.name.split(".")[0] for a in node.names} <= allowed
+            if isinstance(node, ast.ImportFrom) and node.level == 0:
+                assert node.module.split(".")[0] in allowed
 
 
 # needs and assembly
@@ -401,17 +414,17 @@ def planted(selected="x", tags="", uses="", sid="a", other_sid="b"):
 
 def test_a_planted_mismatch_between_uses_and_parameters_is_reported():
     solutions, impls = planted()
-    bad = assemble.problems(solutions, impls, {"a:x": {"b"}, "b:y": set()})
+    bad = problems(solutions, impls, {"a:x": {"b"}, "b:y": set()})
     assert any("uses_solution_ids is empty but its constructor parameters need ['b']" in line for line in bad)
     solutions, impls = planted(uses="b")
-    assert assemble.problems(solutions, impls, {"a:x": {"b"}, "b:y": set()}) == []
-    assert any("need nothing" in line for line in assemble.problems(solutions, impls, {"a:x": set(), "b:y": set()}))
+    assert problems(solutions, impls, {"a:x": {"b"}, "b:y": set()}) == []
+    assert any("need nothing" in line for line in problems(solutions, impls, {"a:x": set(), "b:y": set()}))
 
 
 def test_a_planted_cycle_is_reported():
     solutions, impls = planted(uses="b")
     impls[1]["uses_solution_ids"] = "a"
-    bad = assemble.problems(solutions, impls, {"a:x": {"b"}, "b:y": {"a"}})
+    bad = problems(solutions, impls, {"a:x": {"b"}, "b:y": {"a"}})
     assert any("default arms form a cycle: a -> b -> a" in line for line in bad)
 
 
@@ -419,18 +432,18 @@ def test_a_need_on_a_solution_with_no_arm_is_reported_unless_consumer_provided()
     needs = {"a:x": {"b"}, "b:y": set()}
     solutions, impls = planted(uses="b")
     solutions[1]["selected"] = ""
-    assert any("has no default arm and is not tagged consumer-provided" in line for line in assemble.problems(solutions, impls, needs))
+    assert any("has no default arm and is not tagged consumer-provided" in line for line in problems(solutions, impls, needs))
     solutions[1]["tags"] = "external;consumer-provided"
-    assert assemble.problems(solutions, impls, needs) == []
+    assert problems(solutions, impls, needs) == []
     solutions[1]["tags"] = '[{"tag": "consumer-provided", "risk_ids": []}]'   # the JSON form of the cell reads the same
-    assert assemble.problems(solutions, impls, needs) == []
+    assert problems(solutions, impls, needs) == []
     solutions[1]["selected"] = "y"
-    assert any("tagged consumer-provided but has a default arm" in line for line in assemble.problems(solutions, impls, needs))
+    assert any("tagged consumer-provided but has a default arm" in line for line in problems(solutions, impls, needs))
 
 
 def test_a_need_on_an_unknown_solution_is_reported():
     solutions, impls = planted(uses="zzz")
-    assert any("zzz, which is no solution" in line for line in assemble.problems(solutions, impls, {"a:x": {"zzz"}, "b:y": set()}))
+    assert any("zzz, which is no solution" in line for line in problems(solutions, impls, {"a:x": {"zzz"}, "b:y": set()}))
 
 
 def test_sync_uses_writes_the_column_from_the_parameters_and_uses_problems_then_finds_none(toy, tmp_path):
@@ -472,7 +485,7 @@ def test_r1_constructing_and_preparing_import_no_arm_and_run_nothing(tmp_path):
     out = fresh(tmp_path, """
         import json, os
         from pathlib import Path
-        from esoi.assemble import Assembler
+        from esoi.runtime.assemble_by_name.assemble import Assembler
         parts = Assembler("esoitoy", Path(SITE) / "esoitoy", ("esoitoy.solutions",))
         built = "esoitoy" in sys.modules
         parts.prepare()
@@ -486,7 +499,8 @@ def test_concurrent_assembles_share_one_import_and_agree(tmp_path):
     out = fresh(tmp_path, """
         import json, threading
         from pathlib import Path
-        from esoi.assemble import Assembler, AssemblyConfig
+        from esoi.runtime.assemble_by_name.assemble import Assembler
+        from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
         parts = Assembler("esoitoy", Path(SITE) / "esoitoy", ("esoitoy.solutions",))
         barrier, kinds, errors = threading.Barrier(12), [], []
         def work():
@@ -517,14 +531,15 @@ def test_r2_r4_a_hostile_parent_esoi_toml_is_never_read_and_sys_path_is_unchange
     out = fresh(tmp_path, """
         import json, os
         from pathlib import Path
-        from esoi import runtime
-        from esoi.assemble import Assembler, AssemblyConfig
+        from esoi import selection as runtime
+        from esoi.runtime.assemble_by_name.assemble import Assembler
+        from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
         parts = Assembler("esoitoy", Path(SITE) / "esoitoy", ("esoitoy.solutions",))
         path = list(sys.path)
         names, chosen = parts.names("toy-store"), parts.choice("toy-store").name
         built = type(parts.assemble(AssemblyConfig())["toy-store"]).__name__
         safe = dict(names=names, chosen=chosen, built=built, ran=os.path.exists(MARKER), path_same=path == sys.path)
-        control = runtime.choose("toy-store", scope="esoitoy").name   # plain esoi.runtime does walk up and obey it
+        control = runtime.choose("toy-store", scope="esoitoy").name   # plain esoi.runtime.implementation_selection.declare does walk up and obey it
         try:
             runtime.resolve("toy-store", scope="esoitoy")
         except runtime.SelectionError:
@@ -539,8 +554,10 @@ def test_r3_nothing_routes_around_shadowing(tmp_path):
     out = fresh(tmp_path, """
         import json
         from pathlib import Path
-        from esoi import runtime
-        from esoi.assemble import Assembler, AssemblyError
+        from esoi import selection as runtime
+        from esoi.runtime.implementation_selection import selection_registry
+        from esoi.runtime.assemble_by_name.assemble import Assembler
+        from esoi.runtime.assemble_by_name.assembly_errors import AssemblyError
         import esoitoy
         class Mine:
             put = get = lambda *a: None
@@ -553,7 +570,7 @@ def test_r3_nothing_routes_around_shadowing(tmp_path):
                 return str(error)
         before = refused(lambda: runtime.register("toy-store", "memory", Mine, scope="esoitoy", replace=True))   # before any import
         replaced_before_import = refused(lambda: parts.resolve("toy-store"))
-        runtime.forget("toy-store", "esoitoy"); parts.sealed.clear(); parts.memo.clear()
+        selection_registry.forget("toy-store", "esoitoy"); parts.sealed.clear(); parts.memo.clear()
         import esoitoy.solutions, esoitoy.arms
         parts.prepare(); parts.seal()
         runtime.register("toy-store", "memory", Mine, scope="esoitoy", replace=True)
@@ -576,8 +593,9 @@ def test_declared_sees_arms_defined_in_the_package_init_and_refuses_to_shadow_or
     out = fresh(tmp_path, """
         import json
         from pathlib import Path
-        from esoi import runtime
-        from esoi.assemble import Assembler, AssemblyError
+        from esoi import selection as runtime
+        from esoi.runtime.assemble_by_name.assemble import Assembler
+        from esoi.runtime.assemble_by_name.assembly_errors import AssemblyError
         import esoitoy
         parts = Assembler("esoitoy", Path(SITE) / "esoitoy")
         found = parts.declared("toy-init")
@@ -602,7 +620,7 @@ def test_declared_sees_arms_defined_in_the_package_init_and_refuses_to_shadow_or
 def test_the_deployment_and_override_layers_are_not_consulted(toy):
     parts, consumer = toy[:2]
     parts.register(STORE, "acme-memory", consumer.Mine)
-    with runtime.override(STORE, "acme-memory", scope="esoitoy"):
+    with declare.override(STORE, "acme-memory", scope="esoitoy"):
         assert parts.choice(STORE).name == "memory"
         assert type(parts.assemble(AssemblyConfig(solutions=(STORE,)))[STORE]).__name__ == "Memory"
 
@@ -694,10 +712,9 @@ def test_an_arm_that_cannot_be_imported_is_a_finding_for_the_records_check_not_a
 
 def test_r13_the_public_api_is_explicit():
     namespace = {}
-    exec("from esoi.assemble import *", namespace)
+    exec("from esoi.runtime.assemble_by_name.assemble import *", namespace)
     exported = {name for name in namespace if name != "__builtins__"}
-    assert exported == set(assemble.__all__) == {"Assembler", "Assembly", "AssemblyConfig", "AssemblyError", "Lazy", "LockError", "CONSUMER_PROVIDED",
-                                                  "NAME_PATTERN", "check_name", "cycle_of", "problems"}
+    assert exported == set(assemble.__all__) == {"Assembler"}
 
 
 def test_r14_a_protocol_that_is_not_runtime_checkable_is_still_checked(toy):
@@ -712,8 +729,8 @@ def test_r14_a_protocol_that_is_not_runtime_checkable_is_still_checked(toy):
 
 def test_a_name_with_a_dot_is_refused_and_the_message_says_why(toy):
     with pytest.raises(AssemblyError, match=r"'\.' and ':' are refused"):
-        assemble.check_name("gpt-4.1")
-    assert assemble.check_name("gpt-4-1") == "gpt-4-1"
+        check_name("gpt-4.1")
+    assert check_name("gpt-4-1") == "gpt-4-1"
 
 
 def test_the_assembly_is_frozen_to_what_assemble_chose(toy):
@@ -836,7 +853,7 @@ def test_any_one_of_a_group_of_required_options_is_enough(toy):
 def lazy_arms(toy, built):
     """A report whose index is ``Lazy`` and an index arm that counts its builds."""
     from esoitoy.solutions import Index, Store
-    from esoi.assemble import Lazy
+    from esoi.runtime.assemble_by_name.lazy_need import Lazy
 
     class LazyReport:
         def __init__(self, store: Store, index: Lazy[Index]):

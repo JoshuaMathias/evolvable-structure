@@ -1,0 +1,193 @@
+"""How each rival stands against the selected arm, by a two-sided exact test or, where no test is possible, a labelled best guess.
+
+The rule is pragmatic and statistical. The authoritative metric is the pass rate, or the balanced score when the component sets
+``[balance.<component>]``. By default the arm with the highest result on it at the latest comparable stage wins, significant or
+not; the verdict states whether the lead is significant (McNemar for pass or fail per case, an exact sign test on paired balanced
+scores, Holm-adjusted across the rivals at ``alpha`` 0.05 divided by the number of looks) or "best guess, not yet significant".
+Without per-case rows, aggregate pass counts on the same cases and sample get Fisher's exact two-sided test. With
+``[selection] holdout = F`` the leader is chosen on the selection part and every claim is computed on the held-out part alone.
+Exactly equal estimates keep the selected arm. A project (``[switching]``) or a solution (``[switching.<solution id>]``) may opt
+into a stricter policy (``esoi.optimization.leaderboard.switching_policy``)."""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+from esoi.optimization.leaderboard import stats
+from esoi.optimization.leaderboard.arm_kinds import is_ablation
+from esoi.optimization.leaderboard.case_identity import comparable, unverified
+from esoi.optimization.leaderboard.held_out_parts import case_numbers, case_outcomes, part_of, part_row
+from esoi.optimization.leaderboard.ranking import estimate, pass_rate, rank, uses_balanced
+from esoi.optimization.leaderboard.results_log import Row, Rows, is_partial
+from esoi.optimization.leaderboard.rival_pairing import looks_between, rival_pairs
+from esoi.optimization.leaderboard.switching_policy import ALPHA, Policy
+
+
+def best_guess(rows: Rows, eval_dir: Optional[Path] = None) -> Tuple[Optional[str], str]:
+    """``(arm, why)``: the arm with the best point estimate among arms scored on the same cases as the largest run, labelled a best
+    guess because no test was possible. Exactly equal leaders are a tie: ``(None, why)``, and nothing is selected."""
+    live = {i: r for i, r in rows.items() if not is_partial(r) and not is_ablation(r, eval_dir)}
+    if not live:
+        return None, "no arm has a result"
+    reference = max(live.values(), key=lambda r: (int(float(r.get("cases") or 0)), r.get("date") or "", r["impl"]))
+    ranked = rank({i: r for i, r in live.items() if comparable(r, reference)})
+    top = [r for r in ranked if estimate(r) == estimate(ranked[0])]
+    shown = ", ".join(f"{r['impl']} {pass_rate(r):.3g}" for r in ranked)
+    if len(top) > 1:
+        return None, f"best guess: a tie on the point estimate ({shown}); nothing is selected"
+    return ranked[0]["impl"], f"best guess on the point estimate ({shown}); no test was possible"
+
+
+@dataclass
+class Decision:
+    """How one rival stands against the selected arm. ``outcome``: ``rival`` (higher on the metric), ``incumbent`` (the selected
+    arm is higher) or ``tie`` (exactly equal, or the policy requires significance and there is none; the selected arm stays).
+    ``basis`` is ``significance`` (a two-sided exact test on shared cases was possible) or ``best guess`` (point estimates only).
+    ``significant`` says whether the test passed. ``switch`` says whether a ``rival`` outcome replaces the selected arm."""
+    rival: str
+    outcome: str
+    basis: str
+    text: str
+    own: Row
+    other: Row
+    p: Optional[float] = None          # Holm-adjusted two-sided p of the pair
+    disagree: int = 0                  # cases where the two differ
+    shared: int = 0
+    switch: bool = False
+    significant: bool = False          # the lead (or deficit) passed the two-sided test at the policy's alpha
+    p_incumbent: Optional[float] = None   # the same two-sided p, read from the selected arm's side
+
+    @property
+    def rule(self) -> str:
+        if self.basis != "significance":
+            return "best guess"
+        return "two-sided exact Fisher test" if "Fisher" in self.text else "two-sided paired test"
+
+
+def disagreements(per_case: Optional[List[Row]], own: Row, rival: Row) -> Optional[Tuple[int, int, int, str]]:
+    """``(cases the rival is ahead on, cases the selected arm is ahead on, shared cases, test name)`` from per-case rows of exactly
+    these two runs, or ``None``. Pass or fail per case uses McNemar's exact test; a balanced-score metric compares the scores of
+    each case with the exact sign test (cases with equal scores are left out)."""
+    if uses_balanced(own, rival):
+        a, b = case_numbers(per_case, own), case_numbers(per_case, rival)
+        if a is None or b is None or a.keys() != b.keys():
+            return None
+        return (sum(round(b[c] - a[c], 9) > 0 for c in a), sum(round(b[c] - a[c], 9) < 0 for c in a), len(a), "exact sign test on per-case balanced scores")
+    a, b = case_outcomes(per_case, own), case_outcomes(per_case, rival)
+    if a is None or b is None or a.keys() != b.keys():
+        return None
+    return (sum(b[c] and not a[c] for c in a), sum(a[c] and not b[c] for c in a), len(a), "exact McNemar test")
+
+
+def aggregate_counts(own: Row, rival: Row) -> Optional[Tuple[int, int, int, int]]:
+    """``(rival passed, rival cases, selected passed, selected cases)`` when both rows are verified runs of the same cases and sample
+    with pass counts and the metric is the pass rate: enough for an unpaired exact test when no per-case rows exist."""
+    if unverified(own) or unverified(rival) or uses_balanced(own, rival) or str(own.get("balanced") or rival.get("balanced") or "").strip():
+        return None
+    try:
+        counts = (int(float(rival["passed"])), int(float(rival["cases"])), int(float(own["passed"])), int(float(own["cases"])))
+    except (KeyError, ValueError):
+        return None
+    return counts if counts[1] > 0 and counts[3] > 0 and 0 <= counts[0] <= counts[1] and 0 <= counts[2] <= counts[3] else None
+
+
+def decisions(rows: Rows, selected: str, eval_dir: Optional[Path] = None, history: Optional[Dict[str, List[Row]]] = None,
+              per_case: Optional[List[Row]] = None, policy: Optional[Policy] = None) -> List[Decision]:
+    """One ``Decision`` per rival scored on the same cases as ``selected``, on the solution's authoritative metric.
+
+    The test is two-sided and exact (the direction is read from the data, so it is not tested one-sided) and says whether a lead is significant: its Holm-adjusted p-value (across the rivals) is below
+    ``policy.alpha`` (default 0.05). With per-case rows for both arms the test is paired (McNemar for pass or fail per case, a
+    sign test on per-case balanced scores). With only aggregate pass counts on the same cases and sample it is Fisher's exact test on
+    the 2 by 2 table of passed and failed cases. Otherwise (a balanced aggregate, a figure with no case count) the point estimates are
+    compared and labelled a best guess. A higher rival replaces the selected arm by default, its text saying whether the lead is
+    significant or "best guess, not yet significant"; with ``policy.require_significance`` only a significant lead replaces it.
+    Exactly equal estimates keep the selected arm."""
+    policy = policy or Policy()
+    pairs = rival_pairs(rows, selected, eval_dir, history)[0]
+    if policy.holdout:   # claims rest on the held-out part alone; a pair with no per-case rows has no held-out part and is a best guess on its whole set
+        pairs = [(a, b) for own, rival in pairs
+                 for a, b in [(part_row(per_case, own, policy.holdout, True), part_row(per_case, rival, policy.holdout, True))]
+                 for a, b in [((a, b) if a is not None and b is not None else (own, rival))]]
+    tested = []   # (own, rival, p rival better, p selected better, cases that differ, shared, test name, how the evidence reads)
+    for own, rival in pairs:
+        name = rival["impl"]
+        found = disagreements(per_case, own, rival) if not policy.holdout or part_of(own) else None
+        if found is not None:
+            ahead, behind, shared, test = found
+            two = stats.mcnemar_exact(ahead, behind)   # two-sided: a direction picked from the data is not tested one-sided
+            tested.append((own, rival, two, two, ahead + behind, shared, test.replace("exact", "two-sided exact"),
+                           f"{ahead + behind} of {shared} cases disagree"))
+            continue
+        agg = aggregate_counts(own, rival) if not policy.holdout else None
+        if agg is not None:
+            xr, nr, xo, no = agg
+            two = stats.fisher_exact_two_sided(xr, nr, xo, no)
+            tested.append((own, rival, two, two, 0, min(nr, no),
+                           "two-sided exact Fisher test on the pass counts (no per-case rows)", f"{name} passed {xr} of {nr}, {selected} {xo} of {no}"))
+        else:
+            tested.append((own, rival, None, None, 0, 0, "", ""))
+    better = iter(stats.holm([t[2] for t in tested if t[2] is not None]))
+    worse = iter(stats.holm([t[3] for t in tested if t[3] is not None]))
+    looked = {}
+    out: List[Decision] = []
+    for own, rival, raw, _, differ, shared, test, counted in tested:
+        name = rival["impl"]
+        mine, theirs = estimate(own), estimate(rival)
+        figures = f"{name} {pass_rate(rival):.3g} against {selected} {pass_rate(own):.3g}"
+        if raw is None:   # no test is possible: the point estimates decide, labelled a best guess
+            note = f"best guess, not yet significant: {figures} on the point estimate; no case counts or per-case rows allow a test"
+            if theirs > mine:
+                if policy.require_significance:
+                    out.append(Decision(name, "rival", "best guess", note + f"; the {policy.source('require_significance')} requires significance, so {selected} stays", own, rival))
+                else:
+                    out.append(Decision(name, "rival", "best guess", note, own, rival, switch=True))
+            elif mine > theirs:
+                out.append(Decision(name, "incumbent", "best guess", note, own, rival))
+            else:
+                out.append(Decision(name, "tie", "best guess", note + f"; exactly equal, so {selected} stays", own, rival))
+            continue
+        p, q = next(better), next(worse)
+        looks = looks_between(history, selected, name, own.get("cases_sha", ""))
+        alpha = stats.bonferroni_alpha(policy.alpha, looks)
+        if looks > 1:
+            counted += f"; one of {looks} looks, alpha {alpha:.3g}"
+        args = (own, rival, p, differ, shared)
+        mark = len(out)
+        enough = shared >= policy.min_cases
+        if theirs > mine and p < alpha and enough:
+            out.append(Decision(name, "rival", "significance", f"{name} is better than {selected} ({test}, Holm-adjusted p={p:.3g}, {counted})",
+                                *args, switch=True, significant=True))
+        elif theirs > mine:
+            lead = f"{name} leads {selected} ({figures}; {test}, Holm-adjusted p={p:.3g}, {counted})"
+            if not policy.require_significance:
+                why = f"; {policy.source('min_cases')} asks for {policy.min_cases} shared cases and there are {shared}" if not enough else ""
+                out.append(Decision(name, "rival", "significance", f"best guess, not yet significant: {lead}; more cases would settle it{why}",
+                                    *args, switch=True))
+            else:
+                if not enough:
+                    reason = f"the {policy.source('min_cases')} requires at least {policy.min_cases} shared cases and there are {shared}"
+                elif p < ALPHA:
+                    reason = f"it is significant at alpha {ALPHA:g} but the {policy.source('alpha')} requires alpha {policy.alpha:g}"
+                else:
+                    reason = f"the {policy.source('require_significance')} requires a significant lead"
+                out.append(Decision(name, "tie", "significance", f"{name} is not shown better than {selected} (p={p:.3g}, {counted}); more cases "
+                                    f"would settle it: {reason}, so {selected} stays", *args))
+        elif q < alpha:
+            out.append(Decision(name, "incumbent", "significance", f"{selected} is better than {name} ({test}, Holm-adjusted p={q:.3g}, {counted})",
+                                *args, significant=True))
+        elif mine > theirs:
+            out.append(Decision(name, "incumbent", "significance", f"{selected} leads {name} ({figures}; best guess, not yet significant, {test}, "
+                                f"Holm-adjusted p={q:.3g}, {counted})", *args))
+        else:
+            out.append(Decision(name, "tie", "significance", f"{name} is exactly equal to {selected} on the metric ({figures}), so {selected} stays", *args))
+        out[mark].p_incumbent = q
+    return out
+
+
+def challengers(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
+                history: Optional[Dict[str, List[Row]]] = None, per_case: Optional[List[Row]] = None,
+                policy: Optional[Policy] = None) -> List[Row]:
+    """Rival rows that should replace the selected arm (see ``decisions``). A rival on other cases is skipped, and an ablation or
+    validity arm is never a challenger."""
+    return [d.other for d in decisions(rows, selected, eval_dir, history, per_case, policy) if d.outcome == "rival" and d.switch]

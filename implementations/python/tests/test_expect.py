@@ -1,7 +1,7 @@
 """The declarative case checks."""
 import pytest
 
-from esoi import expect
+from esoi.optimization.measurement_harness import expect
 
 
 def test_each_check_kind():

@@ -5,7 +5,7 @@
 A solution and its alternatives are declared once, where the code is (``@solution``, ``@implementation``, ``register``),
 and the records follow: the declarations are read without importing the code, what the records lack is reported, the missing
 rows are written with only what the code knows (never over text a person wrote), and one command creates a whole new
-solution. The cases drive the LIVE ``esoi.declarations`` and ``esoi.newsolution`` over throwaway projects. Deterministic
+solution. The cases drive the LIVE ``esoi.structure.intent_registry.specify_from_code.declarations`` and ``esoi.structure.intent_registry.specify_from_code.newsolution`` over throwaway projects. Deterministic
 and offline.
 
 Kinds and the dict an implementation returns:

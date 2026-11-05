@@ -17,12 +17,12 @@ model-call budget.
 
 ## Case-driven components
 
-Most components give each case a `kind`, `args` and a declarative `expect` (see `esoi.expect`): `eq`, `has`, `contains`,
+Most components give each case a `kind`, `args` and a declarative `expect` (see `esoi.optimization.measurement_harness.expect`): `eq`, `has`, `contains`,
 `not_contains`, `max_len`, `min_len`, `approx`. A new case is then data only.
 
 ## Declared implementations
 
-An implementation the code declares (`@implementation` in `esoi.runtime`) needs no `impls/<name>.py`: `esoi run <component>
+An implementation the code declares (`@implementation` in `esoi.runtime.implementation_selection.declare`) needs no `impls/<name>.py`: `esoi run <component>
 --impl <name>` imports the module its record names and calls the implementation with each case's `args` as keyword arguments.
 A `score.py` may define `adapt(implementation, meter) -> fn` to call it another way. A wrapper file stays for a baseline, a
 reference arm, or an implementation that needs the call meter.

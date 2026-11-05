@@ -12,9 +12,21 @@ from concurrent.futures import ProcessPoolExecutor
 
 import pytest
 
-from esoi.metric_results import (
-    MAX_METRICS, NOT_RECORDED_LINE, SOURCE_MEASURED, SOURCE_NOT_APPLICABLE, SOURCE_RECORDED, FileMetricLedger,
-    MetricResult, decimals_written, differs, payload_of, reconcile, render_line, without_line)
+from esoi.optimization.keep_metric_record.metric_results import (
+    MAX_METRICS,
+    NOT_RECORDED_LINE,
+    SOURCE_MEASURED,
+    SOURCE_NOT_APPLICABLE,
+    SOURCE_RECORDED,
+    FileMetricLedger,
+    MetricResult,
+    decimals_written,
+    differs,
+    payload_of,
+    reconcile,
+    render_line,
+    without_line,
+)
 
 PAYLOAD_KEYS = {"solution_id", "metric_id", "name", "milestone", "before", "after", "delta", "source", "reason",
                 "disagrees"}

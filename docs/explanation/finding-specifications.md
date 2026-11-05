@@ -15,7 +15,7 @@ Finding the right few records out of many is a natural-language problem, and a g
 4. **Read in full** only what was chosen.
 
 ESOI does stage 1 and the data model that makes stages 3 and 4 cheap, using the standard library only. The orchestration of
-stages 2 and 3 (fusing the lists, a confidence gate, one judging call, links) is general and is in `esoi.spec_search`; see
+stages 2 and 3 (fusing the lists, a confidence gate, one judging call, links) is general and is in `esoi.understanding.spec_search.spec_search`; see
 [One search for records and items](one-search-for-records-and-items.md). The vector store, the embedding and the model call
 are AI infrastructure and stay with the system built on ESOI (an agent runner that selects context is one), which injects
 them. Putting a vector store here would make every adopter carry one.
@@ -58,9 +58,9 @@ esoi spec show prob-winner-not-adopted --tier 2                   # one record, 
 esoi spec index --out spec_index.json                             # the JSON a consuming system reads
 ```
 
-In code, `esoi.spec_index.build(config)` returns the index and `find_specs(index, text, k, expand)` is a declared solution
-(`spec-index`) with two implementations, so the metric `metric-spec-index-recall` picks between them: field-weighted TF-IDF
-(selected) and plain term overlap (the baseline).
+In code, `esoi.understanding.spec_search.spec_index.build(config)` returns the index and `find_specs(index, text, k, expand)` is the lexical first stage of the solution `spec-search`, whose arms
+`weighted-tfidf` and `term-overlap` the metric `metric-spec-index-recall` compares: field-weighted TF-IDF (the better) and plain
+term overlap (the baseline).
 
 ## What the metric does not show
 

@@ -1,7 +1,7 @@
 """Selection tables and the resolver."""
 import pytest
 
-from esoi.select import Selector, load_table
+from esoi.runtime.implementation_selection.select import Selector, load_table
 
 TABLE = {"pick": {"default": "counter", "implementations": {
     "counter": "collections:Counter", "ordered": {"target": "collections:OrderedDict", "config": "dataclasses:dataclass"},

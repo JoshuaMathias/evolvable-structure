@@ -3,8 +3,8 @@ import json
 
 import pytest
 
-from esoi import sheets
-from esoi.config import Config
+from esoi.understanding.review_tracker import sheets
+from esoi.structure.intent_registry.config import Config
 
 
 def row(i, **kw):

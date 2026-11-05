@@ -1,7 +1,8 @@
 """Shared by the arms: the live index of this repository's own records, built once, and the two kinds of case."""
 from pathlib import Path
 
-from esoi import config as config_module, registry, spec_index
+from esoi.structure.intent_registry import config as config_module, registry
+from esoi.understanding.spec_search import spec_index
 
 ROOT = next(p for p in Path(__file__).resolve().parents if (p / "esoi.toml").is_file())
 CONFIG = config_module.load(ROOT)

@@ -1,11 +1,12 @@
-"""CURRENT: the live assembler, ``esoi.assemble.Assembler``, over a throwaway package in a fresh scope (see
+"""CURRENT: the live assembler, ``esoi.runtime.assemble_by_name.assemble.Assembler``, over a throwaway package in a fresh scope (see
 ``assemble_fixture``). Zero model calls."""
 import contextlib
 import threading
 
 import assemble_fixture as world
-from esoi import runtime
-from esoi.assemble import Assembler, AssemblyConfig
+from esoi.runtime.implementation_selection import declare
+from esoi.runtime.assemble_by_name.assemble import Assembler
+from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
 
 
 def configure(pkg, raw):
@@ -22,13 +23,13 @@ def strategy(pkg, site, consumer, args):
     for solution_id, name, ref, replace in args.get("register", []):
         parts.register(solution_id, name, getattr(consumer, ref.split(":")[1]), replace)
     for solution_id, name, ref in args.get("behind", []):
-        runtime.register(solution_id, name, getattr(consumer, ref.split(":")[1]), scope=pkg, replace=True)
+        declare.register(solution_id, name, getattr(consumer, ref.split(":")[1]), scope=pkg, replace=True)
     provided = {sid: (object() if ref == "object" else getattr(consumer, ref.split(":")[1])())
                 for sid, ref in args.get("provided", {}).items()}
     config = configure(pkg, args.get("config", {}))
     with contextlib.ExitStack() as stack:
         for solution_id, name in args.get("override", {}).items():
-            stack.enter_context(runtime.override(solution_id, name, scope=pkg))
+            stack.enter_context(declare.override(solution_id, name, scope=pkg))
         if args.get("threads"):
             return threaded(parts, config, provided, args["threads"])
         system = parts.assemble(config, provided)

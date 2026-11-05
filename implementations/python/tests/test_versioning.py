@@ -7,8 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from esoi import __version__, check, cli, config, skill, templates, versioning
-from esoi.config import Config
+from esoi import __version__
+from esoi import __main__ as cli
+from esoi.structure.structure_check import check
+from esoi.structure.intent_registry import config
+from esoi.understanding.the_standard.skill_distribution import skill
+from esoi.structure.intent_registry.template_sync import templates, versioning
+from esoi.structure.intent_registry.config import Config
 from test_skill import TABLE
 from test_templates import SKILL, make
 
@@ -119,7 +124,7 @@ def test_skill_sync_writes_the_skill_part_of_the_stamp_and_check_finds_it_stale(
 
 def test_the_shipped_stamp_matches_the_shipped_template_and_the_package_version():
     stamp = versioning.bundled_stamp()
-    from esoi.records import TEMPLATE_DATA
+    from esoi.structure.intent_registry.records import TEMPLATE_DATA
     assert stamp["template"]["sha256"] == versioning.digest(TEMPLATE_DATA.read_text(encoding="utf-8"))[:12]
     assert versioning.template_version(stamp) == stamp["template"]["version"] >= 1
     pyproject = tomllib.loads((Path(__file__).resolve().parents[1] / "pyproject.toml").read_text())
@@ -191,7 +196,7 @@ def test_s34_says_when_the_records_are_ahead_or_the_value_is_not_a_version(repo,
 def test_s34_offers_the_field_migration_when_old_columns_are_present(repo, monkeypatch):
     newer(monkeypatch, 2)
     path = repo / "esoi" / "solutions.csv"
-    from esoi import tables
+    from esoi.structure.intent_registry import tables
     rows, cols = tables.read_csv(path), tables.read_header(path)
     tables.write_csv(path, cols + ["scoped_purpose"], [{**r, "scoped_purpose": "Greet people."} for r in rows])
     cfg = config.load(repo)
@@ -200,7 +205,7 @@ def test_s34_offers_the_field_migration_when_old_columns_are_present(repo, monke
 
 
 def test_the_scaffold_records_the_current_template_version(tmp_path):
-    from esoi import scaffold
+    from esoi.understanding.the_standard import scaffold
     scaffold.init(tmp_path, "versioned_demo", say=lambda text: None)
     cfg = config.load(tmp_path)
     assert versioning.recorded_version(cfg) == (versioning.template_version(versioning.bundled_stamp()), "")

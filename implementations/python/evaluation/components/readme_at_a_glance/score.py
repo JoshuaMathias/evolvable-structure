@@ -1,7 +1,7 @@
 """Score one intent folder: does its README read at a glance? Model-free checks over the text an arm writes for the folder.
 
 A case passes when every check passes; ``aggregate`` reports how many folders passed each check. The checks (budgets are in
-``esoi.readme``): ``vision``, ``coherence`` and ``diagram`` all end inside the first screen; ``solutions`` gives every solution a row
+``esoi.understanding.readable_records.readme``): ``vision``, ``coherence`` and ``diagram`` all end inside the first screen; ``solutions`` gives every solution a row
 with its one-line entry call and its selected implementation; ``links`` resolve, down to each sub-intent, up to the parent and to the
 repository's top README; ``finished`` has no em dash, no unconfirmed marker and no machine path; ``pure`` is the same text when
 generated again from a fresh read of the records (nothing hand-kept, no clock); ``size`` keeps the summary above the divider within
@@ -12,7 +12,7 @@ import re
 from collections import Counter
 
 import glance_fixture
-from esoi import diagram, readme
+from esoi.understanding.readable_records import diagram, readme_view
 
 CHECKS = ("vision", "coherence", "diagram", "solutions", "links", "finished", "pure", "size")
 LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)\)")
@@ -23,11 +23,11 @@ def window(text):
     kept, total, inside = [], 0, False
     for line in text.splitlines():
         if line.startswith("```"):
-            total += 0 if inside else readme.DIAGRAM_LINES
+            total += 0 if inside else readme_view.DIAGRAM_LINES
             inside = not inside
         elif not inside:
-            total += max(1, -(-len(line) // readme.WRAP))
-        if total > readme.FIRST_SCREEN_LINES:
+            total += max(1, -(-len(line) // readme_view.WRAP))
+        if total > readme_view.FIRST_SCREEN_LINES:
             break
         kept.append(line)
     return "\n".join(kept)
@@ -44,12 +44,12 @@ def resolves(view, folder, target):
     full = (folder / path).resolve()
     if full.exists():
         return True
-    return any(i.folder.resolve() / readme.FILE == full for i in view.intents)
+    return any(i.folder.resolve() / readme_view.FILE == full for i in view.intents)
 
 
 def verdicts(text, loaded, view, intent, again):
-    vision = readme.one_line(intent.row.get("vision_statement", ""))
-    coherence = readme.one_line(intent.row.get("solution_coherence", ""))
+    vision = readme_view.one_line(intent.row.get("vision_statement", ""))
+    coherence = readme_view.one_line(intent.row.get("solution_coherence", ""))
     screen = window(text)
     out = {"vision": not vision or vision in screen, "coherence": not coherence or coherence[:80] in screen}
     block = diagram.block(loaded, intent)
@@ -60,23 +60,23 @@ def verdicts(text, loaded, view, intent, again):
     for r in rows:
         sid = r.get("solution_id", "")
         lines = [ln for ln in text.splitlines() if f"`{sid}`" in ln and ln.startswith("|")]
-        call = f'run("{sid}"' if sid in view.declared and (view.declared[sid].entry or view.declared[sid].kind) else (readme.recorded_call(r) or "no entry declared")
-        picked = readme.one_line(r.get("selected", "")) or "none selected"
+        call = f'run("{sid}"' if sid in view.declared and (view.declared[sid].entry or view.declared[sid].kind) else (readme_view.recorded_call(r) or "no entry declared")
+        picked = readme_view.one_line(r.get("selected", "")) or "none selected"
         good = good and any(call in ln and picked in ln for ln in lines)
     out["solutions"] = good
     targets = [t for t in LINK.findall(text)]
-    wanted = [readme.link(intent.folder, c.folder / readme.FILE) for c in view.intents if c.parent == intent.intent_id]
+    wanted = [readme_view.link(intent.folder, c.folder / readme_view.FILE) for c in view.intents if c.parent == intent.intent_id]
     parent = view.intent(intent.parent) if intent.parent else None
     if parent is not None:
-        wanted.append(readme.link(intent.folder, parent.folder / readme.FILE))
-    if (view.config.root / readme.FILE).is_file():
-        wanted.append(readme.link(intent.folder, view.config.root / readme.FILE))
+        wanted.append(readme_view.link(intent.folder, parent.folder / readme_view.FILE))
+    if (view.config.root / readme_view.FILE).is_file():
+        wanted.append(readme_view.link(intent.folder, view.config.root / readme_view.FILE))
     out["links"] = all(resolves(view, intent.folder, t) for t in targets) and all(w in targets for w in wanted)
     out["finished"] = bool(text) and not re.search(r"\u2014|unconfirmed|TODO|TBD|/home/", text, re.I)
     out["pure"] = bool(text) and text == again
     top = summary(text)
     tables = [ln for ln in top.splitlines() if ln.startswith("| Implementation |") or ln.startswith("| Solution | Name |")]
-    out["size"] = bool(text) and readme.screen_lines(top) <= readme.SUMMARY_LINES and not tables
+    out["size"] = bool(text) and readme_view.screen_lines(top) <= readme_view.SUMMARY_LINES and not tables
     return out
 
 

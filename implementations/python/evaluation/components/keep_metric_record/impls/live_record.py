@@ -1,12 +1,12 @@
-"""CURRENT: the library's own metric record: ``esoi.spec_slice``, ``esoi.metric_meter``, ``esoi.metric_results`` and
-``esoi.iteration``, over a throwaway repository (see ``metric_record_fixture``). Zero model calls."""
+"""CURRENT: the library's own metric record: ``esoi.optimization.keep_metric_record.spec_slice``, ``esoi.optimization.keep_metric_record.metric_meter``, ``esoi.optimization.keep_metric_record.metric_results`` and
+``esoi.optimization.keep_metric_record.iteration``, over a throwaway repository (see ``metric_record_fixture``). Zero model calls."""
 import time
 
 import metric_record_fixture as fixture
-from esoi.iteration import MetricIteration
-from esoi.metric_meter import BEFORE, OfflineArmMeter, RecordedRowMeter, read_value
-from esoi.metric_results import FileMetricLedger, MetricResult, reconcile, render_line
-from esoi.spec_slice import Chosen, RepoSliceSource, SpecSlice, lexical_choice, next_milestone, target_of
+from esoi.optimization.keep_metric_record.iteration import MetricIteration
+from esoi.optimization.keep_metric_record.metric_meter import BEFORE, OfflineArmMeter, RecordedRowMeter, read_value
+from esoi.optimization.keep_metric_record.metric_results import FileMetricLedger, MetricResult, reconcile, render_line
+from esoi.optimization.keep_metric_record.spec_slice import Chosen, RepoSliceSource, SpecSlice, lexical_choice, next_milestone, target_of
 
 
 def chooser(name):

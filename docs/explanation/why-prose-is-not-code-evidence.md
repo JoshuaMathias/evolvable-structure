@@ -16,7 +16,7 @@ intent's own `[rules.S38.floors.<intent-id>]` table, so it is visible, reviewed 
 
 ## Whose code a line is, and when an import counts
 
-A module that several solutions share (esoi's `interfaces.py` holds the arms of thirty-three of them) says nothing about one
+A module that several solutions share (esoi's single `interfaces.py` once held the arms of thirty-three of them, and each solution now has its own `interface.py`) says nothing about one
 solution as a whole. The check therefore attributes evidence per solution: only the classes a solution declares with
 `@implementation` or `@solution` count for it, and importing the shared file counts only when the import names the used
 solution's class. Before that, every pair of those thirty-three named each other (881 of 1079 non-edges showed strong evidence,
@@ -55,34 +55,28 @@ is for.
 
 ### What the check still cannot see in esoi, and why
 
-With E4, 22 of esoi's 43 recorded uses edges show strong evidence. The other 21 are not wrong; they are of two kinds, and no
-evidence rule that keeps docstrings out could see them:
+esoi's records name the edges of four containers (Understanding, Structure, Optimization and Runtime) and their second and third
+levels, and the check reads each intent separately. Understanding and the root show strong evidence for every recorded edge,
+because the code that uses a part names it (an arm takes the used solution's interface as a typed need, or imports its module).
+In Structure, Optimization and Runtime the edges below a second-level solution are of two kinds that no evidence rule keeping
+docstrings out could see:
 
-- **Seven are in the code but behind a module several solutions own.** `structure-check` runs the rules through `check.py` and
-  `rules/`, which `readable-records`, `structure-rules` and `ownership-map` also own; `implementation-selection` reaches
-  `runtime-selection` and `assemble-by-name` through `runtime.py`, `lock.py` and `entry.py`; `assemble-by-name` builds on
-  `runtime-selection` in `assemble.py`, while its recorded arm is in `interfaces.py`. `measurement-harness` runs baseline arms as
-  data (`discriminating-cases`) and its stages follow a policy written in `metric-run-policy.md` (`when-metrics-are-run`).
-- **Twelve are a composition of documents, commands and judges.** `apply-esoi` takes up `the-standard`, `esoi-for-ai`,
-  `promote-the-winner`, `keep-metric-record`, `local-application-index`, `consumer-check` and `implementation-selection`;
-  `the-standard` gives `the-steps`, `docs-and-templates` and `skill-distribution`; `structure-rules` keeps rules while
-  `structure-budget` says they pay. The paragraph says what the written documents and commands do; the Python arms in
-  `interfaces.py` are one-fact probes of them (a line count, a number of cases), so they do not call each other. When a probe
-  genuinely depends on another solution it should say so in code with a typed need, as `esoi-for-ai` now does (its arm takes the
-  `esoi-behaviour-judge` it grades with); until then the floor records what is seen.
+- **Edges whose arm is a composition of commands and rules.** `structure-budget` weighs what `structure-check` runs, and
+  `structure-check` reads the files `ownership-map` assigns, but each arm reaches the other through a command or a table of
+  rules, not through an import or a typed need. The records are not wrong, and the floor records what is seen.
+- **Edges behind a module several solutions own.** `intent-registry` composes `template-sync` and `specify-from-code`,
+  `measurement-harness` runs baseline arms as data (`discriminating-cases`) and follows a policy written in
+  `metric-run-policy.md` (`when-metrics-are-run`), and `assemble-by-name` builds on `implementation-selection` through
+  modules the two solutions share.
 
-Document edges are readable when the records say which documents a solution owns. esoi's `components.csv` names, in `documents`,
-the guides and skill files that belong to twelve of its solutions. Seven document edges show a real link in those documents:
-`apply-esoi` to `implementation-selection` and `local-application-index` (links the guide already had), to `the-standard`,
-`esoi-for-ai`, `keep-metric-record` and `consumer-check` (a short paragraph of links added to `apply-with-tools.md`, each pointing a
-reader to the page that explains that part), and `measurement-harness` to `when-metrics-are-run` (the harness's cassette how-to
-already linked the policy; the two pages were not yet recorded as theirs). Eight stay unseen on purpose, each for a stated reason:
+When an arm genuinely depends on another solution it should say so in code with a typed need, as `esoi-for-ai` does (its arm
+takes the `esoi-behaviour-judge` it grades with); each floor then rises.
 
-- `apply-esoi` to `promote-the-winner`, `measurement-harness` to `discriminating-cases`, `structure-rules` to `ownership-map` and
-  `structure-budget`, and `structure-check` to `structure-rules` have no document of their own on the used side: they are
-  compositions of commands and rules whose arms are code, so a link has nothing to point at, and the records are not wrong.
-- `the-standard` to `docs-and-templates`, `skill-distribution` and `the-steps`: the standard document is generated by
-  `esoi template sync` from the author's skill, so it cannot carry a hand-written link.
+Document edges are readable when the records say which documents a solution owns. esoi's `components.csv` names, in
+`documents`, the guides and skill files that belong to several of its solutions, and a link between two of them is strong
+evidence for the edge between the two solutions that own them. `the-standard` to `skill-distribution` and `the-steps` is one
+such edge: the standard document is generated by `esoi template sync` from the author's skill, so it cannot carry a hand-written
+link, and that edge is seen in code instead.
 
-A floor is a measurement. `esoi.toml` holds esoi's at 0.784 and the runtime sub-intent's at 0.0 (with `min_lift = 0.0`, written
-there with its reason), and each rises when a composition is typed in code.
+A floor is a measurement. `esoi.toml` holds one per intent (esoi, understanding, structure, optimization and runtime), each set
+to what `python3 -m esoi.structure.structure_check.coherence` reports, and each rises when a composition is typed in code.

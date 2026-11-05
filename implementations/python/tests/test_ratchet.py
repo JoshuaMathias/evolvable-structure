@@ -4,7 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from esoi import check, config, tables
+from esoi.structure.structure_check import check
+from esoi.structure.intent_registry import config, tables
 from test_entry_rules import RULES, enable, link_up, rewrite
 
 BASELINE = "\n[rules.S38.floors.demo]\nprecision = 0.5\ncoverage = 0.5\n"
@@ -142,7 +143,7 @@ def test_the_base_is_the_merge_base_with_the_default_branch_when_that_is_not_hea
     commit(root, "waiver one")
     set_floor(root, 0.45)
     commit(root, "floor lowered")
-    from esoi import ratchet
+    from esoi.structure.structure_budget import ratchet
     found, note = ratchet.resolve_base(root)
     assert found == base and note == ""
     lines = trend(root)

@@ -5,9 +5,14 @@ import json
 
 import pytest
 
-from esoi import cassette, cli, harness
-from esoi.cassette import Cassette, CassetteMiss
-from esoi.harness import CallMeter, OfflineViolation
+from esoi.optimization.measurement_harness import cassette
+from esoi.optimization.measurement_harness import component_folder
+from esoi.optimization.measurement_harness import run_component
+from esoi.optimization.measurement_harness import run_errors
+from esoi import __main__ as cli
+from esoi.optimization.measurement_harness.cassette import Cassette, CassetteMiss
+from esoi.optimization.measurement_harness.call_meter import CallMeter
+from esoi.optimization.measurement_harness.run_errors import OfflineViolation
 from test_harness import git, make
 
 
@@ -161,25 +166,25 @@ def test_a_run_records_replays_and_reports_the_replayed_cost_apart(tmp_path, mon
     git(tmp_path, "init", "-q")
     git(tmp_path, "add", "-A")
     git(tmp_path, "commit", "-q", "-m", "init")
-    harness.prepare_path(cfg)
+    component_folder.prepare_path(cfg)
     score = importlib.import_module("comp_cass.score")
     cass = str(tmp_path / "cass")
-    first, _ = harness.run_component("comp_cass", score.score_case, ["--impl", "llm", "--max-calls", "10", "--cassette", cass], cfg, lambda t: None)
+    first, _ = run_component.run_component("comp_cass", score.score_case, ["--impl", "llm", "--max-calls", "10", "--cassette", cass], cfg, lambda t: None)
     real = sum(p.real for p in made)
     assert first["model_calls"] == real > 0
-    again, rows = harness.run_component("comp_cass", score.score_case, ["--impl", "llm", "--max-calls", "10", "--cassette", cass, "--fresh"], cfg, lambda t: None)
+    again, rows = run_component.run_component("comp_cass", score.score_case, ["--impl", "llm", "--max-calls", "10", "--cassette", cass, "--fresh"], cfg, lambda t: None)
     assert sum(p.real for p in made) == real and again["model_calls"] == 0 and again["cli_reported_cost_usd"] == 0
     assert "replayed" in again["details"] and rows[0]["calls_replayed"] == 1
-    only, _ = harness.run_component("comp_cass", score.score_case, ["--impl", "llm", "--max-calls", "10", "--cassette", cass, "--cassette-only", "--fresh"], cfg, lambda t: None)
+    only, _ = run_component.run_component("comp_cass", score.score_case, ["--impl", "llm", "--max-calls", "10", "--cassette", cass, "--cassette-only", "--fresh"], cfg, lambda t: None)
     assert only["passed"] == only["cases"]
-    with pytest.raises(harness.RunError):
-        harness.run_component("comp_cass", score.score_case, ["--impl", "llm", "--cassette-only"], cfg, lambda t: None)
+    with pytest.raises(run_errors.RunError):
+        run_component.run_component("comp_cass", score.score_case, ["--impl", "llm", "--cassette-only"], cfg, lambda t: None)
 
 
 def test_the_configuration_can_turn_the_cassette_on_and_the_cli_prints_stats(tmp_path, capsys):
     cfg = make(tmp_path, "comp_cfg")
-    assert harness.cassette_folder(cfg, None) is None
+    assert run_component.cassette_folder(cfg, None) is None
     cfg.harness = {"cassette": "evaluation/cassettes"}
-    assert harness.cassette_folder(cfg, None) == cfg.root / "evaluation" / "cassettes"
-    assert harness.cassette_folder(cfg, "elsewhere").name == "elsewhere"
-    assert "harness" in __import__("esoi.config", fromlist=["KNOWN"]).KNOWN
+    assert run_component.cassette_folder(cfg, None) == cfg.root / "evaluation" / "cassettes"
+    assert run_component.cassette_folder(cfg, "elsewhere").name == "elsewhere"
+    assert "harness" in __import__("esoi.structure.intent_registry.config", fromlist=["KNOWN"]).KNOWN

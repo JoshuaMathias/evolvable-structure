@@ -10,7 +10,7 @@ nothing about which solution it is. The optional `documents` column names the sp
 
 ```
 component_id,layer,path,role,solutions,documents
-documentation,docs,docs/**,Guides.,docs-and-templates;the-steps,docs/how-to/apply-by-hand.md=the-steps;docs/README.md=docs-and-templates
+documentation,docs,docs/**,Guides.,the-standard;the-steps,docs/how-to/apply-by-hand.md=the-steps;docs/README.md=the-standard
 ```
 
 The column is optional; a file without it is read as having no documents named.
@@ -28,7 +28,7 @@ A solution may own many documents. A folder a component owns as a whole makes no
 
 ## Use in the coherence check
 
-Evidence E5 of `python3 -m esoi.coherence` reads this ownership: a markdown link, image, reference definition or include
+Evidence E5 of `python3 -m esoi.structure.structure_check.coherence` reads this ownership: a markdown link, image, reference definition or include
 directive in a document only the user owns, pointing at a document only the used owns, is strong evidence for the recorded
 `uses` edge. A solution's selected implementation that names a document as its `filepath` owns it too. Links inside fenced code,
 inline code or HTML comments, URLs and bare mentions of a path never count. See

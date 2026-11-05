@@ -3,7 +3,8 @@ import datetime
 
 import pytest
 
-from esoi import cascade, evidence
+from esoi.optimization.leaderboard import cascade_report, cascade_stages, stage_standings
+from esoi.optimization.when_metrics_are_run.public_evidence import evidence_grading, evidence_ranking, evidence_records
 
 TODAY = datetime.date(2026, 10, 31)
 
@@ -19,38 +20,38 @@ def ev(id_, candidate="alpha", dimension="quality", value=0.7, unit="fraction", 
 
 
 def rows(*cells):
-    found, problems = evidence.parse_rows(cells)
+    found, problems = evidence_records.parse_rows(cells)
     assert problems == []
     return found
 
 
 def grade(*cells, **kw):
-    return evidence.estimates(rows(*cells), TODAY)[("alpha", "quality")]
+    return evidence_grading.estimates(rows(*cells), TODAY)[("alpha", "quality")]
 
 
 def test_the_record_is_read_and_every_problem_is_named_not_dropped():
     good = ev("E1")
     bad = dict(ev("E2"), dimension="speedy", value="fast", n="-3", source_url="not a link", date_checked="yesterday")
     dup = ev("E1", candidate="beta")
-    found, problems = evidence.parse_rows([good, bad, dup])
+    found, problems = evidence_records.parse_rows([good, bad, dup])
     assert [e.evidence_id for e in found] == ["E1"]
     text = "\n".join(problems)
     for needle in ("dimension", "value", "n is", "source_url", "date_checked", "repeats line 2"):
         assert needle in text
-    with pytest.raises(evidence.EvidenceError) as caught:
-        evidence.parse_text(evidence.header_line() + "\n" + "E9,a,quality\n")
+    with pytest.raises(evidence_records.EvidenceError) as caught:
+        evidence_records.parse_text(evidence_records.header_line() + "\n" + "E9,a,quality\n")
     assert any("empty" in p for p in caught.value.problems)
 
 
 def test_a_header_with_a_missing_or_unknown_column_is_refused_and_a_blank_enum_must_say_unknown():
-    with pytest.raises(evidence.EvidenceError, match="column note is missing"):
-        evidence.parse_text(",".join(c for c in evidence.COLUMNS if c != "note") + "\n")
+    with pytest.raises(evidence_records.EvidenceError, match="column note is missing"):
+        evidence_records.parse_text(",".join(c for c in evidence_records.COLUMNS if c != "note") + "\n")
     blank = dict(ev("E1"), benchmark_status="")
-    assert any("benchmark_status is empty" in p for p in evidence.parse_rows([blank])[1])
+    assert any("benchmark_status is empty" in p for p in evidence_records.parse_rows([blank])[1])
 
 
 def test_two_rows_for_one_measure_cannot_disagree_on_which_direction_is_better():
-    found, problems = evidence.parse_rows([ev("E1"), ev("E2", better="lower")])
+    found, problems = evidence_records.parse_rows([ev("E1"), ev("E2", better="lower")])
     assert any("says higher" in p for p in problems)
 
 
@@ -73,7 +74,7 @@ def test_a_lone_vendor_number_is_grade_d_whatever_it_discloses_and_needs_an_own_
 def test_a_vendor_cannot_rank_above_an_independently_measured_arm():
     data = rows(ev("V1", candidate="vendorco", value=0.95, kind="vendor_reported", by="no"),
                 ev("I1", candidate="steady", value=0.70))
-    ranking = evidence.rank(data, {"quality": 1}, today=TODAY)
+    ranking = evidence_ranking.rank(data, {"quality": 1}, today=TODAY)
     order = [p.candidate for p in ranking.dimensions["quality"].ordered]
     assert order == ["steady", "vendorco"]
     assert "below every candidate with better evidence" in ranking.dimensions["quality"].ordered[1].reason
@@ -103,26 +104,26 @@ def test_a_vendor_outlier_next_to_agreeing_independents_is_ignored_but_said():
 
 
 def test_units_convert_only_through_the_table_and_otherwise_are_flagged():
-    est = evidence.estimates(rows(ev("T1", dimension="speed", value=1.2, unit="s", measure="latency", better="lower", comparator=""),
+    est = evidence_grading.estimates(rows(ev("T1", dimension="speed", value=1.2, unit="s", measure="latency", better="lower", comparator=""),
                                   ev("T2", dimension="speed", value=1200, unit="ms", measure="latency", better="lower", comparator="")),
                              TODAY)[("alpha", "speed")]
     assert est.unit == "s" and est.value == pytest.approx(1.2) and "contradicts" not in est.flags and est.grade == "A"
-    mixed = evidence.estimates(rows(ev("T1", dimension="speed", value=1.2, unit="s", measure="latency", better="lower", comparator=""),
+    mixed = evidence_grading.estimates(rows(ev("T1", dimension="speed", value=1.2, unit="s", measure="latency", better="lower", comparator=""),
                                     ev("T2", dimension="speed", value=900, unit="tokens/s", measure="latency", better="lower",
                                        comparator="")), TODAY)[("alpha", "speed")]
     assert "unit_mismatch" in mixed.flags and mixed.needs_own_run
-    assert evidence.convert(80, "percent") == (pytest.approx(0.8), "fraction")
+    assert evidence_grading.convert(80, "percent") == (pytest.approx(0.8), "fraction")
 
 
 def test_different_measures_or_comparators_are_never_merged():
-    found = evidence.all_estimates(rows(ev("E1"), ev("E2", comparator="bench-2", value=0.4)), TODAY)[("alpha", "quality")]
+    found = evidence_grading.all_estimates(rows(ev("E1"), ev("E2", comparator="bench-2", value=0.4)), TODAY)[("alpha", "quality")]
     assert len(found) == 2 and found[0].other_bases
 
 
 def test_old_evidence_is_stale_and_prices_go_stale_before_quality():
     quality = grade(ev("I1", published="2026-01-15"))                    # 289 days: past half of 365
     assert "stale" not in quality.flags
-    price = evidence.estimates(rows(ev("C1", dimension="cost", measure="price", unit="usd/mtok", better="lower", comparator="",
+    price = evidence_grading.estimates(rows(ev("C1", dimension="cost", measure="price", unit="usd/mtok", better="lower", comparator="",
                                        published="2026-05-01")), TODAY)[("alpha", "cost")]
     assert "stale" in price.flags
     assert grade(ev("I1", published="2024-01-01")).points < grade(ev("I1")).points
@@ -156,23 +157,23 @@ def test_ranking_orders_by_better_direction_notes_ties_and_separates_bases():
                 ev("A3", candidate="same", dimension="speed", value=2.2, unit="s", measure="latency", better="lower", comparator=""),
                 ev("A4", candidate="odd", dimension="speed", value=40, unit="tokens/s", measure="throughput", better="higher",
                    comparator=""))
-    shortlist = evidence.rank(data, {"speed": 1}, today=TODAY).dimensions["speed"]
+    shortlist = evidence_ranking.rank(data, {"speed": 1}, today=TODAY).dimensions["speed"]
     assert [p.candidate for p in shortlist.ordered] == ["fast", "same", "slow"]
     assert shortlist.ordered[1].tied_with == ("fast",)
     assert [name for name, _ in shortlist.not_comparable] == ["odd"]
 
 
 def test_ranking_names_candidates_with_no_evidence_and_rejects_an_unknown_dimension():
-    ranking = evidence.rank(rows(ev("I1")), {"quality": 1}, candidates=["alpha", "ghost"], today=TODAY)
+    ranking = evidence_ranking.rank(rows(ev("I1")), {"quality": 1}, candidates=["alpha", "ghost"], today=TODAY)
     assert ranking.dimensions["quality"].no_evidence == ["ghost"]
     with pytest.raises(ValueError):
-        evidence.rank(rows(ev("I1")), {"vibes": 1})
+        evidence_ranking.rank(rows(ev("I1")), {"vibes": 1})
 
 
 def test_agrees_with_results_reports_agreement_and_conflict_as_information():
     data = rows(ev("I1", candidate="alpha", value=0.80), ev("I2", candidate="alpha", value=0.81, ),
                 ev("I3", candidate="beta", value=0.60), ev("I4", candidate="beta", value=0.61))
-    ranking = evidence.rank(data, {"quality": 1}, today=TODAY)
+    ranking = evidence_ranking.rank(data, {"quality": 1}, today=TODAY)
     assert ranking.agrees_with_results({"alpha": 0.9, "beta": 0.5}).verdict == "agree"
     conflict = ranking.agrees_with_results({"alpha": 0.4, "beta": 0.9})
     assert conflict.verdict == "conflict" and "Information, not an error" in conflict.lines[0]
@@ -182,18 +183,18 @@ def test_agrees_with_results_reports_agreement_and_conflict_as_information():
 
 def test_a_grade_d_candidate_is_left_out_of_the_comparison_with_our_results():
     data = rows(ev("I1", candidate="alpha"), ev("V1", candidate="vendorco", value=0.99, kind="vendor_reported", by="no"))
-    agreement = evidence.rank(data, {"quality": 1}, today=TODAY).agrees_with_results({"alpha": 0.5, "vendorco": 0.9})
+    agreement = evidence_ranking.rank(data, {"quality": 1}, today=TODAY).agrees_with_results({"alpha": 0.5, "vendorco": 0.9})
     assert agreement.verdict == "insufficient" and any("vendorco" in line for line in agreement.excluded)
 
 
 def test_the_cascade_reads_a_public_stage_as_a_stage_that_runs_nothing():
-    stages, errors = cascade.parse("public [real=no | when=others measured it] > offline [sample=full | real=no | gate=all-pass]")
+    stages, errors = cascade_stages.parse("public [real=no | when=others measured it] > offline [sample=full | real=no | gate=all-pass]")
     assert errors == [] and stages[0].public
-    assert cascade.matches(stages[0], dict(sample="", model_calls="0", model="none")) is False
-    assert cascade.parse("public [real=yes]")[1]
-    ok, why = evidence.public_stage_met([grade(ev("I1"), ev("I2", value=0.71))])
+    assert stage_standings.matches(stages[0], dict(sample="", model_calls="0", model="none")) is False
+    assert cascade_stages.parse("public [real=yes]")[1]
+    ok, why = evidence_grading.public_stage_met([grade(ev("I1"), ev("I2", value=0.71))])
     assert ok and "A" in why
-    assert evidence.public_stage_met([])[0] is False
+    assert evidence_grading.public_stage_met([])[0] is False
 
 
 class Stub:
@@ -206,11 +207,11 @@ def test_the_cascade_shows_public_evidence_per_implementation_labelled_and_never
                                      {"solution_id": "s", "implementation_id": "s:other", "name": "Other"},
                                      {"solution_id": "t", "implementation_id": "t:alpha", "name": "Alpha"}])
     config = Stub(evidence={"aliases": {"Vendor-Lex": "other"}})
-    found = evidence.estimates(rows(ev("I1", candidate="lexical_only"), ev("V1", candidate="vendor-lex", kind="vendor_reported", by="no")),
+    found = evidence_grading.estimates(rows(ev("I1", candidate="lexical_only"), ev("V1", candidate="vendor-lex", kind="vendor_reported", by="no")),
                                TODAY)
     out = []
-    stages, _ = cascade.parse("public [real=no | when=others measured it] > offline [sample=full | real=no]")
-    cascade.public_lines(evidence, config, registry, "s", found, stages, out.append)
+    stages, _ = cascade_stages.parse("public [real=no | when=others measured it] > offline [sample=full | real=no]")
+    cascade_report.public_lines(config, registry, "s", found, stages, out.append)
     text = "\n".join(out)
     assert "public evidence for Lexical-Only (others' measurements, not our result)" in text
     assert "public stage satisfied" in text and "public stage not satisfied" in text   # the vendor-only alias reads D

@@ -9,5 +9,5 @@
 
 ## Where to go next
 
-- Owning intent: [Evolvable Structure that Optimizes Intent (ESOI)](../../../../esoi/README.md)
+- Owning intent: [How People and Agents Come to Apply ESOI](../../../../esoi/understanding/local_application_index/README.md)
 - Repository: [top README](../../../../../../README.md)

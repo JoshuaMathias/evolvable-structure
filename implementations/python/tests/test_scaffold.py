@@ -1,7 +1,11 @@
 """`esoi init` writes a repository that passes every rule and runs."""
 import importlib
 
-from esoi import check, config, harness, scaffold, tables
+from esoi.structure.structure_check import check
+from esoi.structure.intent_registry import config, tables
+from esoi.optimization.measurement_harness import component_folder
+from esoi.optimization.measurement_harness import run_component
+from esoi.understanding.the_standard import scaffold
 
 
 def test_init_passes_every_rule_but_the_top_intent_and_solution_and_does_not_overwrite(tmp_path):
@@ -20,10 +24,10 @@ def test_init_passes_every_rule_but_the_top_intent_and_solution_and_does_not_ove
 def test_the_recorded_numbers_are_what_the_harness_measures(tmp_path):
     scaffold.init(tmp_path, "numbers_demo", say=lambda text: None)
     cfg = config.load(tmp_path)
-    harness.prepare_path(cfg)
+    component_folder.prepare_path(cfg)
     score = importlib.import_module("greet_a_person.score")
-    live, _ = harness.run_component("greet_a_person", score.score_case, ["--impl", "live"], cfg, lambda text: None)
-    shout, _ = harness.run_component("greet_a_person", score.score_case, ["--impl", "shout"], cfg, lambda text: None)
+    live, _ = run_component.run_component("greet_a_person", score.score_case, ["--impl", "live"], cfg, lambda text: None)
+    shout, _ = run_component.run_component("greet_a_person", score.score_case, ["--impl", "shout"], cfg, lambda text: None)
     recorded = {r["impl"]: r["passed"] for r in tables.read_csv(cfg.results_path)}
     assert recorded == {"live": str(live["passed"]), "shout": str(shout["passed"])}
 

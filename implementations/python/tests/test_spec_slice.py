@@ -1,7 +1,7 @@
 """The slice of the specification a task serves: found with no model and no guessing.
 
 A clear solution, its next open milestone, the one metric that measures it. A throwaway repository written by
-``esoi.scaffold.init`` stands in for a real one, so the records, the results log and the evaluation component are the real
+``esoi.understanding.the_standard.scaffold.init`` stands in for a real one, so the records, the results log and the evaluation component are the real
 shapes. Offline: no model, no network.
 """
 import csv
@@ -10,10 +10,19 @@ from pathlib import Path
 
 import pytest
 
-from esoi import scaffold, spec_slice
-from esoi.spec_slice import (
-    Chosen, RepoSliceSource, SpecSlice, lexical_choice, next_milestone, next_priority_block, parse_milestones, solutions_of,
-    target_of)
+from esoi.understanding.the_standard import scaffold
+from esoi.optimization.keep_metric_record import spec_slice
+from esoi.optimization.keep_metric_record.spec_slice import (
+    Chosen,
+    RepoSliceSource,
+    SpecSlice,
+    lexical_choice,
+    next_milestone,
+    next_priority_block,
+    parse_milestones,
+    solutions_of,
+    target_of,
+)
 
 GREETING = "make the greeting function greet a person by name in the standard form"
 
@@ -123,7 +132,8 @@ def test_a_cache_folder_keeps_the_index_between_calls(greet_repo, tmp_path):
 
 
 def test_a_chooser_that_is_sure_settles_on_its_best_solution_and_an_unsure_one_needs_a_single_solution(greet_repo):
-    from esoi import config, spec_index
+    from esoi.structure.intent_registry import config
+    from esoi.understanding.spec_search import spec_index
     index = spec_index.build(config.load(greet_repo))
     solutions = [e["id"] for e in index["entries"] if e["kind"] == "solution"]
     assert len(solutions) >= 2

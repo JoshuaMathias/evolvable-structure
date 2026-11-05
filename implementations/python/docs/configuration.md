@@ -37,7 +37,7 @@ plugins = ["tools/my_rules.py"]        # extra rule modules (a file path or an i
 disable = ["S13"]                      # rule ids that do not apply here
 tracker_extra = { solutions = ["area"] }   # extra record columns kept on the tracker tabs, after the key
 
-[selection]                            # instead of the string above: deployment choices (the third layer of the cascade of esoi.runtime)
+[selection]                            # instead of the string above: deployment choices (the third layer of the cascade of esoi.runtime.implementation_selection.declare)
 table = "mylib/selection.py:SELECTION" # optional: the selection table
 greet-a-person = "loud"                # solution_id = "implementation name"; the environment variable ESOI_SELECT_GREET_A_PERSON beats it
 
@@ -69,7 +69,7 @@ exclude = ["tests/fixtures/"]
 [hygiene.patterns]                     # your own secret shapes, reported under these names
 acme-key = "acme_[A-Za-z0-9]{24,}"
 
-[skill]                                # for `esoi skill`: a public copy of a private skill (see esoi/skill.py)
+[skill]                                # for `esoi skill`: a public copy of a private skill (see esoi/understanding/the_standard/skill_distribution/skill.py)
 dir = "skill/myskill"                  # the primary copy; `copies` lists folders that must hold the identical copy
 include = ["SKILL.md", "notes/*.md"]   # the files that ship, relative to the source (ESOI_SKILL_SOURCE or --source)
 [[skill.substitute]]                   # a regular expression that must match once; the reason is required
@@ -93,7 +93,7 @@ ids need not follow any pattern (the default is `solution:file-stem`, `solution:
 A records file carries only the template's fields, technical columns and fields its owner approved. Technical means an id
 or link (any column ending `_id` or `_ids`), a file path (`filepath`), a command a machine runs (`command`),
 `interface_name`, `implementations`, `selected`, `sub_intent`, `implements`, or one of the review tracker's own `tracking_*`
-columns; the list is `TECHNICAL_COLUMNS` in `esoi/records.py`. Any other column is a human-readable or classifying field, and a
+columns; the list is `TECHNICAL_COLUMNS` in `esoi/structure/intent_registry/records.py`. Any other column is a human-readable or classifying field, and a
 tool or an AI never adds one on its own: rule S26 (R7) reports it with the instruction to propose it to the person who owns
 the specification. They add it to the template in `SKILL.md`, or approve it for this project only by listing it in `esoi.toml`:
 

@@ -7,7 +7,15 @@ import sys
 
 import pytest
 
-from esoi import access, cascade, config as config_module, foundation, harness
+from esoi.optimization.measurement_harness import access
+from esoi.optimization.measurement_harness import case_loading
+from esoi.optimization.measurement_harness import component_folder
+from esoi.optimization.measurement_harness import run_component
+from esoi.optimization.measurement_harness import run_errors
+from esoi.optimization.measurement_harness import stale_reasons
+from esoi.optimization.leaderboard import cascade_stages, stage_standings
+from esoi.structure.intent_registry import config as config_module
+from esoi.runtime.consumer_check import foundation
 
 COUNTER = itertools.count()
 GIT = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.org", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@example.org")
@@ -57,10 +65,10 @@ def world(tmp_path, monkeypatch):
     commit(lib)
     lines = []
     fconf = config_module.load(lib)
-    harness.prepare_path(fconf)
+    component_folder.prepare_path(fconf)
     import importlib
     scorer = importlib.import_module(f"{foundation_name}.score").score_case
-    harness.run_component(foundation_name, scorer, ["--impl", "good", "--record"], fconf, lines.append)   # the foundation measures its arm
+    run_component.run_component(foundation_name, scorer, ["--impl", "good", "--record"], fconf, lines.append)   # the foundation measures its arm
     commit(lib)
     mark.unlink()
     (app / "esoi.toml").write_text(toml + f'[balance.{own_name}]\nweights = {{ accuracy = 0.7, cost = 0.15, time = 0.15 }}\ncost_per_case_usd = 1\n'
@@ -73,11 +81,11 @@ def world(tmp_path, monkeypatch):
 
 
 def run(world, impl, *extra):
-    harness.prepare_path(world["aconf"])
+    component_folder.prepare_path(world["aconf"])
     import importlib
     scorer = importlib.import_module(f"{world['own']}.score").score_case
     lines = []
-    summary, _ = harness.run_component(world["own"], scorer, ["--impl", impl, *extra], world["aconf"], lines.append)
+    summary, _ = run_component.run_component(world["own"], scorer, ["--impl", impl, *extra], world["aconf"], lines.append)
     return summary, lines
 
 
@@ -93,11 +101,11 @@ def test_matching_digests_reuse_the_foundations_results_and_run_none_of_its_case
     assert any("reused 4 case(s)" in line and "none run again" in line for line in lines)
     recorded = list(csv.DictReader(world["aconf"].results_path.open()))[-1]
     assert recorded["builds_on"] == summary["builds_on"]
-    assert harness.stale_reason(world["aconf"], world["own"], recorded) == ""
+    assert stale_reasons.stale_reason(world["aconf"], world["own"], recorded) == ""
 
 
 def test_the_foundations_cases_are_not_copied_into_the_consumer(world):
-    ids = [c["id"] for c in harness.load_cases(world["own"], world["aconf"])]
+    ids = [c["id"] for c in case_loading.load_cases(world["own"], world["aconf"])]
     assert ids == ["x1", "x2"]
 
 
@@ -116,7 +124,7 @@ def test_on_stale_report_refuses_instead_of_mixing(world):
     (world["lib"] / "evaluation" / "components" / world["foundation"] / "impls" / "good.py").write_text(ARM + "# changed\n")
     commit(world["lib"])
     world["aconf"] = config_module.load(world["app"])
-    with pytest.raises(harness.RunError, match="cannot be reused"):
+    with pytest.raises(run_errors.RunError, match="cannot be reused"):
         run(world, "good")
     assert marked(world) == []
 
@@ -131,7 +139,7 @@ def test_a_composed_row_goes_stale_when_the_foundation_arms_code_changes(world):
     row = list(csv.DictReader(world["aconf"].results_path.open()))[-1]
     (world["lib"] / "evaluation" / "components" / world["foundation"] / "impls" / "good.py").write_text(ARM + "# better\n")
     commit(world["lib"])
-    assert "foundation core changed" in harness.stale_reason(world["aconf"], world["own"], row)
+    assert "foundation core changed" in stale_reasons.stale_reason(world["aconf"], world["own"], row)
 
 
 def test_a_sampled_run_scores_the_consumers_own_cases_only(world):
@@ -157,16 +165,16 @@ def test_blend_weights_shares_and_renormalises_over_the_parts_present():
 
 
 def test_an_inheriting_stage_needs_the_foundations_stage_and_a_gate_beside_it_only_tightens():
-    stages, errors = cascade.parse("safety [inherits=safety] > whole [sample=full | real=no | gate=all-pass | inherits=quality]")
+    stages, errors = cascade_stages.parse("safety [inherits=safety] > whole [sample=full | real=no | gate=all-pass | inherits=quality]")
     assert errors == [] and stages[0].unrun and not stages[1].unrun
-    stuck = cascade.next_stage(stages, cascade.Standing("a"), inherited=lambda stage: (stage.inherits != "safety", "not run"))
+    stuck = stage_standings.next_stage(stages, stage_standings.Standing("a"), inherited=lambda stage: (stage.inherits != "safety", "not run"))
     assert stuck[0] is None and "foundation's safety stage has not passed" in stuck[1]
-    assert cascade.next_stage(stages, cascade.Standing("a"), inherited=lambda stage: (True, ""))[0] == 1   # now it is the consumer's own stage to run
-    theirs = cascade.parse("q [gate=all-pass | min-pass-rate=0.9] > w")[0][0]
-    assert cascade.loosens(cascade.parse("q [gate=competitive | inherits=q] > w")[0][0], theirs)
-    assert cascade.loosens(cascade.parse("q [min-pass-rate=0.5 | inherits=q] > w")[0][0], theirs)
-    assert cascade.loosens(cascade.parse("q [gate=all-pass | min-pass-rate=0.95 | inherits=q] > w")[0][0], theirs) == ""
-    assert cascade.loosens(cascade.parse("q [inherits=q] > w")[0][0], theirs) == ""
+    assert stage_standings.next_stage(stages, stage_standings.Standing("a"), inherited=lambda stage: (True, ""))[0] == 1   # now it is the consumer's own stage to run
+    theirs = cascade_stages.parse("q [gate=all-pass | min-pass-rate=0.9] > w")[0][0]
+    assert cascade_stages.loosens(cascade_stages.parse("q [gate=competitive | inherits=q] > w")[0][0], theirs)
+    assert cascade_stages.loosens(cascade_stages.parse("q [min-pass-rate=0.5 | inherits=q] > w")[0][0], theirs)
+    assert cascade_stages.loosens(cascade_stages.parse("q [gate=all-pass | min-pass-rate=0.95 | inherits=q] > w")[0][0], theirs) == ""
+    assert cascade_stages.loosens(cascade_stages.parse("q [inherits=q] > w")[0][0], theirs) == ""
 
 
 def test_the_inherited_gate_reads_the_foundations_cascade_and_results(world):
@@ -178,7 +186,7 @@ def test_the_inherited_gate_reads_the_foundations_cascade_and_results(world):
         f'm1,s1,"esoi run {fname} --impl good",offline [sample=full | real=no | gate=all-pass] > whole [sample=full | real=no]\n')
     commit(lib)
     gate = foundation.inherited_gate(world["aconf"], world["own"], "good")
-    stage = cascade.parse("offline [inherits=offline] > mine [sample=full | gate=all-pass]")[0][0]
+    stage = cascade_stages.parse("offline [inherits=offline] > mine [sample=full | gate=all-pass]")[0][0]
     met, why = gate(stage)
     assert not met and "not every case passed" in why      # the recorded foundation arm passes 2 of 4, so its all-pass gate is not met
     other = foundation.inherited_gate(world["aconf"], world["own"], "plain")
@@ -209,10 +217,10 @@ def test_a_request_that_breaks_a_read_gate_fails_and_reads_are_priced(tmp_path):
               'def score_case(fn, case):\n    return dict(ok=bool(fn(case)))\n',
               {"reader": 'def build(meter):\n    def run(case):\n        meter.read(records=case["n"])\n        return True\n    return run\n'})
     cfg = config_module.load(root)
-    harness.prepare_path(cfg)
+    component_folder.prepare_path(cfg)
     import importlib
     scorer = importlib.import_module("reads_comp.score").score_case
-    summary, rows = harness.run_component("reads_comp", scorer, ["--impl", "reader", "--keep-going"], cfg, lambda text: None)
+    summary, rows = run_component.run_component("reads_comp", scorer, ["--impl", "reader", "--keep-going"], cfg, lambda text: None)
     assert rows[0]["ok"] is True
     assert rows[1]["ok"] is False and "over max_records_per_request" in rows[1]["note"]
     assert summary["cli_reported_cost_usd"] == pytest.approx(5.5)   # (2 + 9 records) at 0.5

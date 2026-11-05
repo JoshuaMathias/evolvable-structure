@@ -1,5 +1,5 @@
 """Small shared helpers: cells, globs, CSV round trips, file listing."""
-from esoi import tables
+from esoi.structure.intent_registry import tables
 
 
 def test_ids_splits_strips_and_drops_empties():

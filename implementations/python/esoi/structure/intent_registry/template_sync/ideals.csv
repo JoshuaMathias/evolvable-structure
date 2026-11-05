@@ -1,0 +1,2 @@
+ideal_id,name,principle,state_description,hints_of_measurement,problem_ids,parent_ideal_ids
+ideal-living-template,Living template,"When the template's author refines it, every record and every tool that reads records follows.","Joshua refines a field in the skill, the registry learns of it on the next check, and the missing entries are named.","The registry's fields always match the skill's template, and every record fills every required field.",prob-template-copies-drift,ideal-self-evolving-structure

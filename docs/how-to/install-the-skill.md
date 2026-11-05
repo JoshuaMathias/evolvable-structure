@@ -46,4 +46,4 @@ The skill is plain markdown. An agent that reads a skills folder can use it wher
 The skill is generated from the author's private skill, so there is one source of truth. Do not edit the copy by hand:
 `esoi skill sync` overwrites it and `esoi skill check` fails when it is stale or leaks anything private. To use a different
 source or add your own private terms, set `ESOI_SKILL_SOURCE` and `ESOI_SKILL_DENYLIST`; see
-[implementations/python/esoi/skill.py](../../implementations/python/esoi/skill.py) for the configuration.
+[implementations/python/esoi/understanding/the_standard/skill_distribution/skill.py](../../implementations/python/esoi/understanding/the_standard/skill_distribution/skill.py) for the configuration.

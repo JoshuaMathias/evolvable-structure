@@ -1,6 +1,6 @@
 """The live staleness check under the rule `component_paths`: only the files the arm's solution and implementation own count. Zero model calls."""
 import staleness_fixture
-from esoi import staleness  # noqa: F401  (the live code under test)
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import staleness  # noqa: F401  (the live code under test)
 
 
 def build(meter):

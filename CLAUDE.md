@@ -28,7 +28,7 @@ The main feature is explanation and templates that need no code; Python is one e
 | `docs/reference/templates/`, `docs/explanation/from-the-skill.md` | Generated from Joshua's `SKILL.md`; never hand-edit | the template changes (run `esoi template sync`) |
 | `skill/`, `.claude-plugin/`, `implementations/python/esoi/data/skill/` | Public copy of the author's skill; generated, never hand-edit | the skill changes (run `esoi skill sync` with `ESOI_SKILL_SOURCE`) |
 | `implementations/python/` | The `esoi` package, its tests and evaluation components | changing the tools |
-| `esoi/` | ESOI applied to this repository. It holds the top intent (here ESOI itself, because that is why this repository exists; another project's top intent is its own purpose); the records of each solution are beside its code (`implementations/python/esoi/*.csv`, standard: `docs/reference/records-beside-code.md`), where `esoi-runtime/` is a sub-intent with its own `intent.csv`, its folder named by its intent id | adding or changing a part |
+| `esoi/` | ESOI applied to this repository. It holds the top intent (here ESOI itself, because that is why this repository exists; another project's top intent is its own purpose); the records of each solution are beside its code (`implementations/python/esoi/<container>/<solution>/*.csv`, standard: `docs/reference/records-beside-code.md`), where `understanding/`, `structure/`, `optimization/` and `runtime/` are the four containers, each a sub-intent with its own `intent.csv` (layout: `docs/explanation/layout-of-esoi.md`) | adding or changing a part |
 | `docs/explanation/versioning.md` | How the package, the skill stamp and the template version are numbered, and what a repository records (rule S34) | releasing, syncing the skill or template, or a repository reports S34 |
 | `examples/` | Adopters as short testimonials | an adopter has a paragraph to add |
 | `docs/explanation/what-belongs-where.md` | What belongs in this library and what stays in an adopting application | an application needs a generic capability, or you are unsure where code goes |
@@ -44,7 +44,7 @@ The main feature is explanation and templates that need no code; Python is one e
 - **No em dashes** anywhere, and no underscore-prefixed names in Python (dunders are fine).
 - **ESOI applies here too.** Before committing: `esoi check` from the repository root (it reads `esoi.toml`; `pip install -e implementations/python` first), and
   the tests: `python -m pytest implementations/python/tests` (offline). A new part of the Python package belongs to a
-  component in `esoi/components.csv` and serves a solution in the records (`implementations/python/esoi/solutions.csv`).
+  component in `esoi/components.csv` and serves a solution in the records (`implementations/python/esoi/**/solutions.csv`, beside its code).
 - **Metric runs follow `esoi/metric-run-policy.md`.** Every recorded metric here is offline: run the part you changed, then
   `esoi check`; after committing measured code or cases, `esoi run --stale --plan` shows which recorded results no longer describe the code, and a stale row only informs (a changed case file, changed code, a dirty tree or changed circumstances are advice from `esoi check`, never a problem; only a malformed row, such as one with no `git_sha`, fails): run a metric when what it teaches is worth its cost (`esoi run --stale --for-decision` when a decision depends on it), never from a commit hook or a CI step. The
   paid arms (those that call a model, declared `PAID = True`) need a cost estimate, a staged sample (3, 10, 30), a call budget and
@@ -53,7 +53,7 @@ The main feature is explanation and templates that need no code; Python is one e
   fixed before any alternative is scored) at rising fidelity; kinds of cases are case sources, not stages with their own pass tests or
   separate leaderboards; no arm is excluded by a mark, a trivial arm that wins means the metric lacks a factor (`docs/explanation/a-cascade-runs-one-criterion.md`, rules S41, S42, S44 and S45).
 - **A consumer's metric builds on its library's.** A metric that depends on a library's metric names it (`[builds_on]`), reuses the foundation's recorded per-case results when the digests match, runs only its own cases, and inherits the foundation's gates (it may tighten them, never loosen them); it keeps no copy of the foundation's cases or scorer (`docs/explanation/a-metric-builds-on-its-foundation.md`, rule S47).
-- **Standards by risk tag.** Before writing code run `python -m esoi.standards_nav for-task "<what you will build>"` and,
+- **Standards by risk tag.** Before writing code run `python -m esoi.understanding.spec_search.standards_nav for-task "<what you will build>"` and,
   for each file you will edit, `for-file <path>`; they print only the rules that apply (`esoi/standards/`). A pre-commit
   hook runs `check-staged` (install: `install-hook`); fix a finding or waive it at its line with a reason. How:
   `docs/how-to/navigate-standards-by-risk-tag.md`.

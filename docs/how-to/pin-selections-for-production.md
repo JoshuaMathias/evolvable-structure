@@ -31,7 +31,7 @@ package builds on another), the verdict and p-value of the evidence at that time
 Tell your assembly to use it:
 
 ```python
-from esoi.assemble import AssemblyConfig
+from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
 
 system = parts.assemble(AssemblyConfig(lock="esoi.lock.json"))
 system.explain("store")        # the layer shown for each locked solution is "lock"

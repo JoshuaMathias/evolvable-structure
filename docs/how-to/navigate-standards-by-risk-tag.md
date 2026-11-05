@@ -49,7 +49,7 @@ file, expected standards) so precision and recall can be recorded as the metric 
 
 ## Write the text so it can be used
 
-`python -m esoi.standards_nav lint` checks these, and the commit hook runs it whenever the standards folder changes:
+`python -m esoi.understanding.spec_search.standards_nav lint` checks these, and the commit hook runs it whenever the standards folder changes:
 
 - A **Rule** is one sentence of at most 40 words, ending in a full stop, that states what to do (an imperative, no hedges
   such as "should", "consider", "ideally"). Its job is to be acted on without opening the file.
@@ -60,19 +60,19 @@ file, expected standards) so precision and recall can be recorded as the metric 
 
 ## See the rules while editing
 
-`python -m esoi.standards_nav for-file <path>` prints the rules whose paths match, at most four, as one line each with the
+`python -m esoi.understanding.spec_search.standards_nav for-file <path>` prints the rules whose paths match, at most four, as one line each with the
 file to open for detail. A hook on the agent's edit tool calls it, so an author sees three lines for the file in hand and
 not the index.
 
 ## Check the commit
 
-`python -m esoi.standards_nav check-staged <repo>` runs every `Check:` line over the lines the staged change adds. Old code
+`python -m esoi.understanding.spec_search.standards_nav check-staged <repo>` runs every `Check:` line over the lines the staged change adds. Old code
 is never flagged, so a repository with a long history adopts a standard without a waiver per old violation. It exits 1 on a
 finding; a hook on `git commit` turns that into a block. Three kinds of check exist: `regex:` over added lines,
 `undecorated-def` (a top-level function with no decorator in a module that should hold handlers only), and
 `needs-test:<glob>` (a change under the paths with no staged file matching the glob).
 
-`python -m esoi.standards_nav install-hook [repo]` writes a `pre-commit` hook where git looks for hooks (it honours
+`python -m esoi.understanding.spec_search.standards_nav install-hook [repo]` writes a `pre-commit` hook where git looks for hooks (it honours
 `core.hooksPath` and never overwrites another hook). It blocks on findings and, when there are none, lists the rules for
 the staged files that have no automatic check so the author confirms them by hand. It does nothing when esoi is not
 importable, so a server checkout still commits.
@@ -90,7 +90,7 @@ the one-line rule shown at the edit is enough.
 
 Whether task words pick the right standards is a claim, so measure it on work already done. Build a case file (a JSON list of
 `{id, task, commit, files}`, newest first; one case per past commit, the task being its message or the real task that led to
-it) and run `python -m esoi.standards_nav compare cases.json`. A standard counts as needed for a case when its own `Check:`
+it) and run `python -m esoi.understanding.spec_search.standards_nav compare cases.json`. A standard counts as needed for a case when its own `Check:`
 flags the lines that commit added, so no one labels anything and the label is recomputed as standards change. Each way of
 choosing is scored by F1 on the newest 30 percent of cases, with everything it learns taken from the older 70 percent only,
 next to a baseline that shows the first four standards whatever the task. The table gives a 95 percent bootstrap interval for
@@ -98,7 +98,7 @@ each arm's gain over the baseline; an interval that excludes zero is a significa
 
 What the first measurement taught, and likely holds elsewhere: the words of a task say little about which rule the work will
 break, a matcher that learns words from history memorises it (high on old commits, lower on new), and matching by the files
-being edited does far better. So the task step shows what past work broke most often (`python -m esoi.standards_nav train
+being edited does far better. So the task step shows what past work broke most often (`python -m esoi.understanding.spec_search.standards_nav train
 cases.json --date YYYY-MM-DD` writes `rates.csv` beside the standards) and keeps two of its four slots for standards whose
 tag keywords the task names, so a rule broken rarely but at great cost stays reachable. Pin such a failure with a test that
 asserts the task shows that standard. The score cannot say whether showing a rule prevented the break; only an A/B of agents

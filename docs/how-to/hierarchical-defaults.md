@@ -78,8 +78,8 @@ layer `choice` returns. `system.explain(sid)` does the same for a built assembly
 ## Choose by circumstance
 
 A layer value may be `name@key=value,...`, or a list of them for selections and the explicit name. In an Assembler the parameters are
-conditions on `AssemblyConfig.circumstances`, the caller's mapping (keys and values as in `esoi.variants`, compared as
-`esoi.circumstances` compares: numbers as numbers, text ignoring case). The first entry whose conditions all hold wins; one that does
+conditions on `AssemblyConfig.circumstances`, the caller's mapping (keys and values as in `esoi.runtime.implementation_selection.variants`, compared as
+`esoi.optimization.leaderboard.circumstances` compares: numbers as numbers, text ignoring case). The first entry whose conditions all hold wins; one that does
 not hold stays in `explain`, marked skipped, and a key the caller did not give never matches.
 
 ```python
@@ -87,7 +87,7 @@ config = AssemblyConfig(selections={"store": ["cached@size=large", "memory"]}, c
 child.choice("store", config=config)     # cached; Choice.when == "size=large"
 ```
 
-The condition is not passed to the arm: use `options` for constructor arguments. (`esoi.runtime.choose` still treats `name@k=v` as
+The condition is not passed to the arm: use `options` for constructor arguments. (`esoi.runtime.implementation_selection.declare.choose` still treats `name@k=v` as
 parameters of the arm.) Defaults are not conditional.
 
 ## Check that every override says why: rule S35

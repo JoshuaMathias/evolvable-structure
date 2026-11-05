@@ -1,7 +1,8 @@
 """CallMeter keeps a provider's bound methods bound and reads its counters as numbers, whatever the counters are."""
 import pytest
 
-from esoi.harness import BudgetExceeded, CallMeter
+from esoi.optimization.measurement_harness.call_meter import CallMeter
+from esoi.optimization.when_metrics_are_run.paid_gating import BudgetExceeded
 
 
 class Counter:

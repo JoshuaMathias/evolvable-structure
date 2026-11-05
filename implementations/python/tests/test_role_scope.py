@@ -2,7 +2,7 @@
 overlap of purposes, the change driver of a container) and the review prompt for implementations that may serve different purposes."""
 from types import SimpleNamespace
 
-from esoi.rules import intents as rules
+from esoi.structure.structure_check.rules import intents as rules
 
 
 def ctx(solutions, implementations=(), waivers=()):

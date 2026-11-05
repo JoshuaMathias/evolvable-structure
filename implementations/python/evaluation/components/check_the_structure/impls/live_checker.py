@@ -1,10 +1,11 @@
-"""CURRENT: the live checker, ``esoi.check.check``, run over a synthetic fixture repository. Nothing is
+"""CURRENT: the live checker, ``esoi.structure.structure_check.check.check``, run over a synthetic fixture repository. Nothing is
 reimplemented, only the repository under inspection is fake. A ``scale`` case generates a repository of hundreds of modules
 and reports how long the check takes cold and with a warm cache. Zero model calls."""
 import time
 
 import repo_fixture
-from esoi import check, config
+from esoi.structure.structure_check import check
+from esoi.structure.intent_registry import config
 
 
 def build(meter):

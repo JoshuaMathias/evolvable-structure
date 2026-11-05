@@ -1,7 +1,7 @@
 """A tiny git repository for the staleness evaluations, built in a temp directory from ``staleness_precision/datasets/fixture.json``.
 
 ``decide(rule, step, component)`` builds the repository (once per step), records a result for each component at the first
-commit, applies the step (a commit, an uncommitted edit, a rename) and asks the live ``esoi.harness.stale_reason`` under the
+commit, applies the step (a commit, an uncommitted edit, a rename) and asks the live ``esoi.optimization.measurement_harness.stale_reasons.stale_reason`` under the
 named staleness rule whether that component's result still counts. No model, no network, nothing outside the temp directory.
 """
 from __future__ import annotations
@@ -14,8 +14,9 @@ import tempfile
 from pathlib import Path
 from typing import Dict, Optional
 
-from esoi import config, harness
-from esoi.leaderboard import cases_digest
+from esoi.structure.intent_registry import config
+from esoi.optimization.measurement_harness import stale_reasons
+from esoi.optimization.leaderboard.case_identity import cases_digest
 
 RECIPE = Path(__file__).resolve().parent / "staleness_precision" / "datasets" / "fixture.json"
 BUILT: Dict[str, "Built"] = {}
@@ -76,7 +77,7 @@ def decide(rule: str, step: str, component: str) -> Dict[str, object]:
     built = build(step)
     cfg = config.load(built.root / "esoi.toml")
     cfg.staleness_rule = rule
-    why = harness.stale_reason(cfg, f"{component}_eval", built.rows[component])
+    why = stale_reasons.stale_reason(cfg, f"{component}_eval", built.rows[component])
     return {"stale": bool(why), "why": why}
 
 

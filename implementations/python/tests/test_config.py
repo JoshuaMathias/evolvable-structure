@@ -1,7 +1,7 @@
 """Configuration: file discovery, the pyproject table, unknown keys, nested layers, module paths."""
 import pytest
 
-from esoi import config
+from esoi.structure.intent_registry import config
 
 
 def test_defaults_follow_the_package_name(tmp_path):

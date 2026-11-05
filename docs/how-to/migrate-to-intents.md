@@ -87,9 +87,9 @@ new version first (`pip install -U` with the same command as before).
    now the solution's `selected` in `solutions.csv`, rule S23 has nothing to compare for that entry (it still compares an entry
    that keeps its `default`, so you can move one entry at a time), and `esoi select --promote` can change it. Where your code builds a
    `Selector` itself, build it with `Selector.from_config(config)`, or `Selector(table, defaults)` with `defaults` from
-   `esoi.select.records_defaults(config)`. A package that is installed without the records cannot read them: keep the `default`
+   `esoi.runtime.implementation_selection.select.records_defaults(config)`. A package that is installed without the records cannot read them: keep the `default`
    in the table (S23 keeps checking it), or write `esoi select --snapshot esoi_selection.json`, ship that file beside the top
-   package and pass `esoi.select.snapshot_defaults(path)` as `defaults`.
+   package and pass `esoi.runtime.implementation_selection.select.snapshot_defaults(path)` as `defaults`.
 3. **Declare alternatives where they are (optional).** Put `from esoi import implementation, solution` in the module, `@solution("id")` on
    the interface function and `@implementation("id", "name")` on each alternative (or `register` for a class of another
    package), run `esoi records sync` to write the rows, and fill the text it leaves empty. Table names and declared names are

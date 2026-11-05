@@ -3,7 +3,7 @@
     record(kind: str, args: dict) -> dict
 
 ``kind`` names what is asked of the record, ``args`` the case, and the dict is what the implementation found. A throwaway
-repository written by ``esoi.scaffold.init`` is the world (``metric_record_fixture``), so the records, the results log and the
+repository written by ``esoi.understanding.the_standard.scaffold.init`` is the world (``metric_record_fixture``), so the records, the results log and the
 evaluation component the metric is read from are the real shapes.
 
 Kinds and what comes back:

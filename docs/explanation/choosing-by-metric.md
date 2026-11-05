@@ -96,7 +96,7 @@ significance, because an add-on must show its marginal value over the baseline.
 `esoi select --promote` follows the same verdict. `esoi evidence-table --file README.md` writes a table of every arm (interval,
 cost per passing case and seconds for information, the verdict and its p-value) between two marker lines
 (`<!-- esoi:evidence-table:begin -->` and `<!-- esoi:evidence-table:end -->`), with what others measured beside it and never
-added to it. The mathematics is in `esoi/stats.py`, standard library only.
+added to it. The mathematics is in `esoi/optimization/leaderboard/stats.py`, standard library only.
 
 Whether a consumer takes a new selection the day it ships is the consumer's choice, not the library's: see
 [pin selections for production and update on your schedule](../how-to/pin-selections-for-production.md).

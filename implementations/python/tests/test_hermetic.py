@@ -1,8 +1,8 @@
 """The environment guard for evaluations."""
 import os
 
-from esoi import hermetic
-from esoi.config import Config
+from esoi.optimization.measurement_harness import hermetic
+from esoi.structure.intent_registry.config import Config
 
 
 def test_matching_variables_are_removed_and_restored(monkeypatch):

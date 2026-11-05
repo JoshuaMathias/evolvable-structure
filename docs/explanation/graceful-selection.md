@@ -118,5 +118,5 @@ is nothing to keep in step; rule S23 compares only a table that still holds its 
 declared in code are one set. Write `[selection]` in `esoi.toml` when the deployment layer is wanted, with `table = "pkg/sel.py:SELECTION"`
 inside it for an existing table.
 
-The Python layer is `esoi.runtime`; the records and the rules behind it are `esoi.declarations` (rule S30), `esoi.promote` and
-`esoi.select`. Moving an existing project: [migrate-to-intents.md](../how-to/migrate-to-intents.md).
+The Python layer is `esoi.runtime.implementation_selection.declare`; the records and the rules behind it are `esoi.structure.intent_registry.specify_from_code.declarations` (rule S30), `esoi.optimization.promote_the_winner.promote` and
+`esoi.runtime.implementation_selection.select`. Moving an existing project: [migrate-to-intents.md](../how-to/migrate-to-intents.md).

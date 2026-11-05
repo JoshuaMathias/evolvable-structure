@@ -1,5 +1,5 @@
-"""CURRENT: field-weighted TF-IDF over the index, ``esoi.spec_index.weighted_tfidf``. Zero model calls."""
-from esoi import spec_index
+"""CURRENT: field-weighted TF-IDF over the index, ``esoi.understanding.spec_search.spec_index.weighted_tfidf``. Zero model calls."""
+from esoi.understanding.spec_search import spec_index
 from . import live
 
 

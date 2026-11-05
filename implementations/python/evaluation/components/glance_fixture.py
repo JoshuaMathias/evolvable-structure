@@ -7,7 +7,8 @@ import os
 from pathlib import Path
 from typing import Dict, Tuple
 
-from esoi import config, intents, readme, registry
+from esoi.structure.intent_registry import config, intents, registry
+from esoi.understanding.readable_records import readme_view
 
 ADOPTERS = "ESOI_GLANCE_ADOPTERS"
 CACHE: Dict[str, Tuple] = {}
@@ -28,7 +29,7 @@ def load(label: str, fresh: bool = False) -> Tuple:
     if fresh or label not in CACHE:
         cfg = config.load(root_of(label))
         loaded = registry.load(cfg)
-        CACHE[label] = (cfg, loaded, readme.view_of(cfg, loaded))
+        CACHE[label] = (cfg, loaded, readme_view.view_of(cfg, loaded))
     return CACHE[label]
 
 

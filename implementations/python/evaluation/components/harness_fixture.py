@@ -11,8 +11,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-from esoi.config import Config
-from esoi.registry import Registry
+from esoi.structure.intent_registry.config import Config
+from esoi.structure.intent_registry.registry import Registry
 
 RESULT_COLUMNS = ["date", "component", "impl", "cases", "passed", "dev", "heldout", "model_calls",
                   "tokens_in", "tokens_out", "cost_usd", "seconds", "git_sha", "cases_sha", "sample", "model"]

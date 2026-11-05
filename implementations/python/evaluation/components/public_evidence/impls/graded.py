@@ -1,7 +1,7 @@
-"""CURRENT: ``esoi.evidence.estimates`` and ``esoi.evidence.rank``. Zero model calls."""
-from esoi import evidence
+"""CURRENT: ``esoi.optimization.when_metrics_are_run.public_evidence.evidence_grading.estimates`` and ``esoi.optimization.when_metrics_are_run.public_evidence.evidence_ranking.rank``. Zero model calls."""
+from esoi.optimization.when_metrics_are_run.public_evidence import evidence_grading, evidence_ranking
 from . import live
 
 
 def build(meter):
-    return live.runner(evidence.estimates, lambda rows, dims, today: evidence.rank(rows, dims, today=today))
+    return live.runner(evidence_grading.estimates, lambda rows, dims, today: evidence_ranking.rank(rows, dims, today=today))

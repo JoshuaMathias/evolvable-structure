@@ -3,7 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from esoi import cli, config, skill
+from esoi import __main__ as cli
+from esoi.structure.intent_registry import config
+from esoi.understanding.the_standard.skill_distribution import skill
 
 FRONT = "---\nname: demo\ndescription: d\n---\n"
 SKILL_TEXT = FRONT + "\n# demo\n\nKeep notes in this skill's folder under /home/user/skills/demo (only here, for ann).\n"

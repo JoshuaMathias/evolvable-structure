@@ -5,7 +5,7 @@
 A repository decides which implementation to run by recorded numbers, so the ranking has to be right: the winner is
 the higher pass rate (equal rate: lower spend), scores on different case files are never compared, a row with no
 provenance is flagged, a tie is not a win, and an ablation or validity arm is no rival. The cases drive the LIVE
-``esoi.leaderboard`` over synthetic results tables. Deterministic and offline.
+``esoi.optimization.leaderboard`` (``ranking``, ``rival_decisions``, ``verdict_labels``) over synthetic results tables. Deterministic and offline.
 
 Kinds and the dict an implementation returns:
   rank      args {rows: [{impl, passed, cases, cost_usd, cases_sha}], selected}

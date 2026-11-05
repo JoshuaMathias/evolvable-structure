@@ -1,7 +1,9 @@
 """The Solution Diagram and Solution Coherence: the diagram is drawn from the records, a coherence paragraph that leaves a solution
 out is a note, and a solution is motivated by a problem of its own intent."""
 from conftest import fill_top_intent
-from esoi import check, diagram, intents, registry, tables
+from esoi.structure.structure_check import check
+from esoi.understanding.readable_records import diagram
+from esoi.structure.intent_registry import intents, registry, tables
 from test_intents import add_solution, add_sub_intent, lines, rewrite
 
 
@@ -61,7 +63,7 @@ def test_a_solution_needs_a_problem_of_its_own_intent_not_only_its_parents(cfg):
 
 
 def test_a_node_leads_with_the_display_name_and_shows_the_id_once_as_a_small_second_line():
-    from esoi import diagram
+    from esoi.understanding.readable_records import diagram
     assert diagram.label_of("mind", "The Mind") == "The Mind<br/><i>mind</i>"
     assert diagram.label_of("mind", "mind") == "mind"                       # a name that is only the id is shown once
     assert diagram.label_of("mind", "mind: the whole") == "the whole<br/><i>mind</i>"   # never "id: name"

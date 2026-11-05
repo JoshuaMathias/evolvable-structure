@@ -3,7 +3,7 @@ import subprocess
 
 import pytest
 
-from esoi import hygiene
+from esoi.structure.structure_check import hygiene
 
 
 def texts(text):

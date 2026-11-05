@@ -1,5 +1,6 @@
 """The intent records check: R1 to R5, over the scaffolded repository."""
-from esoi import records, tables, template
+from esoi.structure.intent_registry import records, tables
+from esoi.structure.intent_registry.template_sync import template
 
 
 def check(cfg, **kw):
@@ -217,13 +218,13 @@ def test_ids_links_paths_commands_and_tracking_columns_are_technical(cfg):
     add_column(cfg, "solutions.csv", "custom_ids", "x")
     add_column(cfg, "solutions.csv", "tracking_note", "x")
     assert not [p for p in check(cfg) if p.startswith("R7")]   # patterns and the library's own list: filepath, command, ...
-    from esoi import records
+    from esoi.structure.intent_registry import records
     assert {"filepath", "command", "interface_name", "implementations", "selected", "sub_intent", "implements"} <= \
         set().union(*records.TECHNICAL_COLUMNS.values())
 
 
 def test_the_owner_lists_approved_fields_in_esoi_toml(tmp_path):
-    from esoi import config
+    from esoi.structure.intent_registry import config
     cfg = config.from_mapping({"records": {"approved_fields": {"solutions": ["area"], "metrics.csv": ["measured_through"]}}}, tmp_path)
     assert cfg.approved_fields == {"solutions.csv": {"area"}, "metrics.csv": {"measured_through"}}
     assert config.from_mapping({}, tmp_path).approved_fields == {}

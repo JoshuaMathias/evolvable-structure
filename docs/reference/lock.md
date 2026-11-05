@@ -20,7 +20,7 @@ Each requirement record has `id`, `kind`, `label` and `required`. No value of a 
 defaults. `Assembler.explain` and the `Choice` report it. No `lock` means the latest selections. A locked arm that no longer exists
 raises `LockError` (a subclass of `AssemblyError`).
 
-## Functions (`esoi.lock`)
+## Functions (`esoi.runtime.implementation_selection.lock`)
 
 | Function | Does |
 |---|---|
@@ -53,7 +53,7 @@ Without a mode it writes the lock. `--scope` is the package's top-level name; th
 
 The other modes exit 0 on success and 2 on error.
 
-## The status plan (`esoi.lock.status/1`)
+## The status plan (`esoi.runtime.implementation_selection.lock.status/1`)
 
 `{schema, lock, state, exit, updates, apply_safe?}` where `state` is `up-to-date`, `safe-updates` or `blocked`. Each update has
 `solution`, `old_arm`, `new_arm`, `verdict`, `p`, `evidence`, `safe`, `blocked`, `requirements_added` (each with `status` and

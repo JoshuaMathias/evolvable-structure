@@ -1,6 +1,6 @@
-"""ALTERNATIVE: the record tables only, the page as it was before the at-a-glance standard (the rival `full` layout of ``esoi.readme``). Zero model calls."""
+"""ALTERNATIVE: the record tables only, the page as it was before the at-a-glance standard (the rival `full` layout of ``esoi.understanding.readable_records.readme``). Zero model calls."""
 import glance_fixture
-from esoi import readme
+from esoi.understanding.readable_records import readme
 
 
 def build(meter):

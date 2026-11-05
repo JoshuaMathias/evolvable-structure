@@ -8,10 +8,10 @@ one is an argument.
 
 | Module | What it gives you |
 |---|---|
-| `esoi.spec_slice` | The solution a request serves, its next open milestone, its authoritative metric and the command that records it |
-| `esoi.metric_meter` | Meters that turn that metric into one number, a bounded and announced reading, and the two moments a reading is taken |
-| `esoi.metric_results` | One row of the record, the ledger that keeps rows per run, and the rules that fold them into what a consumer shows |
-| `esoi.iteration` | `MetricIteration`: the three above, wired for one piece of work |
+| `esoi.optimization.keep_metric_record.spec_slice` | The solution a request serves, its next open milestone, its authoritative metric and the command that records it |
+| `esoi.optimization.keep_metric_record.metric_meter` | Meters that turn that metric into one number, a bounded and announced reading, and the two moments a reading is taken |
+| `esoi.optimization.keep_metric_record.metric_results` | One row of the record, the ledger that keeps rows per run, and the rules that fold them into what a consumer shows |
+| `esoi.optimization.keep_metric_record.iteration` | `MetricIteration`: the three above, wired for one piece of work |
 
 The examples below are run by a test, so they stay true. The first block makes a small repository with records to read.
 
@@ -30,7 +30,7 @@ request = "make the greeting function greet a person by name in the standard for
 ## Find the slice
 
 ```python
-from esoi.spec_slice import RepoSliceSource, next_priority_block
+from esoi.optimization.keep_metric_record.spec_slice import RepoSliceSource, next_priority_block
 
 found = RepoSliceSource().slice_for(request, working_dir=str(root))
 print(found.solution_id, found.metric_id, found.milestone_number, found.target)
@@ -40,18 +40,18 @@ brief = next_priority_block(found, closing="Say what the metric was before and a
 
 `slice_for` returns `None`, never a wrong answer, when the folder is not inside a repository with records, when the request does
 not clearly serve one solution, or when the lookup takes longer than its time limit. The milestone is the first one that is
-neither met (`[met: DATE]`, see `esoi.fields`) nor archived (its text begins `Archived`). A milestone's `target` is the one number
+neither met (`[met: DATE]`, see `esoi.structure.intent_registry.fields`) nor archived (its text begins `Archived`). A milestone's `target` is the one number
 in its text, a percent read as a fraction, and `None` when the text holds none or several.
 
 The choice of records is a `Chooser`, a function from the request and the specification index to `Chosen(ids, sure)`. The default,
-`lexical_choice`, takes the best lexical matches of `esoi.spec_index` and is never sure, so it gives a slice only when the best
+`lexical_choice`, takes the best lexical matches of `esoi.understanding.spec_search.spec_index` and is never sure, so it gives a slice only when the best
 matches belong to one solution. Pass `choose=` to use a stronger search of your own, `find_root=` to say which repository applies to
 a folder, and `cache_dir=` to keep the index between calls.
 
 ## Read the metric
 
 ```python
-from esoi.metric_meter import AFTER, BEFORE, meters_from_names, read_value
+from esoi.optimization.keep_metric_record.metric_meter import AFTER, BEFORE, meters_from_names, read_value
 
 meters = meters_from_names("recorded_row,offline_arm", environ=os.environ)
 before = read_value(meters, found, str(root), when=BEFORE, budget_seconds=30)
@@ -73,8 +73,8 @@ so a person is told about a wait before it starts. A meter that has not answered
 ## Keep it for a piece of work
 
 ```python
-from esoi.iteration import MetricIteration
-from esoi.metric_results import SOURCE_RECORDED, FileMetricLedger, MetricResult, render_line
+from esoi.optimization.keep_metric_record.iteration import MetricIteration
+from esoi.optimization.keep_metric_record.metric_results import SOURCE_RECORDED, FileMetricLedger, MetricResult, render_line
 
 ledger = FileMetricLedger(str(root / "ledger"))
 work = MetricIteration(ledger, "run-1", source=RepoSliceSource(), meters=meters, request=request, working_dir=str(root))

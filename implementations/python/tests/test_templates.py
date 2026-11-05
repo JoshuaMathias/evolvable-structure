@@ -1,6 +1,6 @@
 """The generated non-code templates and excerpts."""
-from esoi import templates
-from esoi.config import Config
+from esoi.structure.intent_registry.template_sync import templates
+from esoi.structure.intent_registry.config import Config
 from test_template import SAMPLE
 
 SKILL = """---
@@ -88,7 +88,7 @@ def test_record_headers_start_with_the_key_and_end_with_the_parent_links():
 
 def test_the_solutions_header_carries_every_column_the_rules_read():
     """Rules S7 and S14 read `interface_name`; a repository that copies the header must not lose it."""
-    from esoi.registry import OPTIONAL_COLUMNS, RULE_COLUMNS
+    from esoi.structure.intent_registry.registry import OPTIONAL_COLUMNS, RULE_COLUMNS
     rows, _ = templates.parse(SAMPLE)
     header = templates.record_headers(rows)["solutions.csv"].strip().split(",")
     assert set(RULE_COLUMNS["solutions.csv"] + OPTIONAL_COLUMNS["solutions.csv"]) <= set(header)
@@ -97,7 +97,7 @@ def test_the_solutions_header_carries_every_column_the_rules_read():
 
 
 def test_the_librarys_own_shipped_copy_follows_the_template_when_it_lives_in_the_synced_repository(tmp_path, monkeypatch):
-    from esoi import records
+    from esoi.structure.intent_registry import records
     shipped = tmp_path / "package" / "data" / "esoi_template.csv"
     shipped.parent.mkdir(parents=True)
     shipped.write_text("stale\n")

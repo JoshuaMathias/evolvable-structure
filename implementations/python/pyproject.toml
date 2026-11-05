@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "esoi"
-version = "0.3.0"
+version = "0.4.0"
 description = "Evolvable Structure that Optimizes Intent: records, checks, measured selection and a leaderboard for any repository."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -29,7 +29,7 @@ sheets = ["google-api-python-client>=2.0", "google-auth>=2.0"]
 dev = ["pytest>=7.0"]
 
 [project.scripts]
-esoi = "esoi.cli:main"
+esoi = "esoi.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/JoshuaMathias/evolvable-structure"

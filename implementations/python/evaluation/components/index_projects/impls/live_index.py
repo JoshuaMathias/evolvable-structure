@@ -1,7 +1,7 @@
-"""CURRENT: the live local index, ``esoi.projects``, kept in a folder of its own (the stand-in for ``~/.esoi``). Zero
+"""CURRENT: the live local index, ``esoi.understanding.local_application_index.projects``, kept in a folder of its own (the stand-in for ``~/.esoi``). Zero
 model calls and no network."""
 import index_world as world
-from esoi import projects
+from esoi.understanding.local_application_index import projects
 
 
 def build(meter):

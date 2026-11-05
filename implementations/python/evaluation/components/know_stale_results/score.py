@@ -3,7 +3,7 @@ injected violation, or stay clean on the clean fixture. ``aggregate`` reports mu
 positives apart. A ``scale`` case instead checks the time the check takes on a large generated
 repository against a ceiling."""
 
-from esoi import expect
+from esoi.optimization.measurement_harness import expect
 
 
 def score_case(fn, case):

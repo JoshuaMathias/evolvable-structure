@@ -2,7 +2,7 @@
 
     run(kind: str, args: dict) -> dict
 
-The cases give evidence rows (the columns of ``esoi.evidence.COLUMNS``, with the sensible ones defaulted by the runner) and a
+The cases give evidence rows (the columns of ``esoi.optimization.when_metrics_are_run.public_evidence.evidence_records.COLUMNS``, with the sensible ones defaulted by the runner) and a
 fixed ``today``, so a result never depends on the clock. Deterministic and offline: no model is called.
 
 Kinds and the dict an implementation returns:

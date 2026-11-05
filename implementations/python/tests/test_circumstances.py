@@ -1,4 +1,4 @@
-"""Variants, circumstances, derived slice rows and the per-case log (esoi.variants, esoi.circumstances, esoi.harness)."""
+"""Variants, circumstances, derived slice rows and the per-case log (esoi.runtime.implementation_selection.variants, esoi.optimization.leaderboard.circumstances, esoi.optimization.measurement_harness.record_slices)."""
 import csv
 import importlib
 import json
@@ -10,9 +10,21 @@ from pathlib import Path
 
 import pytest
 
-from esoi import check, circumstances, harness, leaderboard, runtime, variants
-from esoi import config as config_module
-from esoi.runtime import SelectionError
+from esoi.structure.structure_check import check
+from esoi.optimization.leaderboard import circumstances, results_log, verdict_labels
+from esoi.optimization.measurement_harness import arm_loading
+from esoi.optimization.measurement_harness import call_meter
+from esoi.optimization.measurement_harness import component_folder
+from esoi.optimization.measurement_harness import per_case_log
+from esoi.optimization.measurement_harness import record_result
+from esoi.optimization.measurement_harness import record_slices
+from esoi.optimization.measurement_harness import rerun_stale
+from esoi.optimization.measurement_harness import run_component
+from esoi.optimization.measurement_harness import run_errors
+from esoi.optimization.measurement_harness import stale_reasons
+from esoi.runtime.implementation_selection import declare, selection_cascade, selection_registry, variants
+from esoi.structure.intent_registry import config as config_module
+from esoi.runtime.implementation_selection.selection_registry import SelectionError
 
 GUIDE = Path(__file__).resolve().parents[3] / "docs" / "how-to" / "measure-per-circumstance.md"
 QUIET = lambda text: None
@@ -61,8 +73,8 @@ def write_circumstances(repo, rows):
 
 @pytest.mark.parametrize("bad", ["files/large", "a;b", "Big", "slice:x", ""])
 def test_a_circumstance_id_must_be_a_name_so_it_cannot_be_read_as_a_whole_run(repo, bad):
-    """Hazard: `slice:files/large` is read by leaderboard.is_partial as the slice `large`'s tail, i.e. as a whole run."""
-    assert leaderboard.is_partial({"sample": "slice:files/large"}) is False   # why the id must never carry a '/'
+    """Hazard: `slice:files/large` is read by results_log.is_partial as the slice `large`'s tail, i.e. as a whole run."""
+    assert results_log.is_partial({"sample": "slice:files/large"}) is False   # why the id must never carry a '/'
     cfg = write_circumstances(repo, f'"{bad}",size>5,,greeting-by-hand,greet-a-person\n')
     with pytest.raises(ValueError, match="circumstances.csv row 2"):
         circumstances.load(cfg)
@@ -111,12 +123,12 @@ def scenario(repo, circs=BIG_SMALL):
     if circs:
         (repo / "esoi" / "circumstances.csv").write_text(HEADER + circs)
     cfg = config_module.load(repo)
-    harness.prepare_path(cfg)
+    component_folder.prepare_path(cfg)
     return cfg, importlib.import_module("greet_a_person.score").score_case
 
 
 def record(cfg, score, impl, *flags):
-    return harness.run_component("greet_a_person", score, ["--impl", impl, "--record", *flags], cfg, QUIET)
+    return run_component.run_component("greet_a_person", score, ["--impl", impl, "--record", *flags], cfg, QUIET)
 
 
 def git(root, *args):
@@ -132,15 +144,15 @@ def test_a_recorded_run_adds_a_row_per_circumstance_and_a_per_case_log_and_the_d
     log = [r for r in csv.DictReader(cfg.results_path.open()) if r["impl"] == "alt@cut=5"]
     assert [(r["sample"], r["passed"], r["cases"]) for r in log] == [("", "3", "8"), ("slice:big", "3", "3"), ("slice:small", "0", "5")]
     assert (log[1]["heldout"], log[2]["heldout"]) == ("1/1", "0/1")
-    per_case = harness.read_per_case(cfg)
+    per_case = per_case_log.read_per_case(cfg)
     assert len(per_case) == 16 and {r["impl"] for r in per_case} == {"live", "alt@cut=5"}
     assert next(r for r in per_case if r["impl"] == "live" and r["case_id"] == "c7")["circumstances"] == "big"
-    history = leaderboard.all_results(cfg.results_path)["greet_a_person"]
-    assert all(not leaderboard.slice_id(r) for rows in history.values() for r in rows)   # slices stay out of the default board
-    assert leaderboard.verdict({i: h[-1] for i, h in history.items()}, "live", history=history)[0] == "WIN"   # 5/8 against 3/8: ahead, so live stays selected (a best guess, not yet significant)
+    history = results_log.all_results(cfg.results_path)["greet_a_person"]
+    assert all(not results_log.slice_id(r) for rows in history.values() for r in rows)   # slices stay out of the default board
+    assert verdict_labels.verdict({i: h[-1] for i, h in history.items()}, "live", history=history)[0] == "WIN"   # 5/8 against 3/8: ahead, so live stays selected (a best guess, not yet significant)
     record(cfg, score, "live", "--only", "c6,c7,c8")   # a named-case run records no slice and cannot decide the verdict
-    assert len(harness.read_per_case(cfg)) == 16
-    assert [v[:2] for v in leaderboard.slice_verdicts("greet_a_person", "live", leaderboard.slice_results(cfg.results_path))] == [
+    assert len(per_case_log.read_per_case(cfg)) == 16
+    assert [v[:2] for v in verdict_labels.slice_verdicts("greet_a_person", "live", results_log.slice_results(cfg.results_path))] == [
         ("big", "TIE"), ("small", "WIN")]   # 3 of 3 against 0 of 3 is p = 0.05, not shown: a lead for a person, nothing is selected
 
 
@@ -150,19 +162,19 @@ def test_the_per_case_log_merges_by_key_prunes_old_cases_and_never_leaves_a_temp
     record(cfg, score, "live")
     record(cfg, score, "alt@cut=5")
     record(cfg, score, "alt@cut=5")   # a re-record of the same arm replaces its rows: the file does not grow
-    assert len(harness.read_per_case(cfg, every=True)) == 16
+    assert len(per_case_log.read_per_case(cfg, every=True)) == 16
     other = repo / "evaluation" / "components" / "greet_a_person" / "cases.json"
     other.write_text(other.read_text().replace('"c8"', '"c8b"'))   # other cases: the arm's rows of the old cases are pruned
     record(cfg, score, "alt@cut=5")
-    rows = harness.read_per_case(cfg, every=True)
+    rows = per_case_log.read_per_case(cfg, every=True)
     assert len(rows) == 16 and len({r["cases_sha"] for r in rows if r["impl"] == "alt@cut=5"}) == 1
     assert {r["cases_sha"] for r in rows if r["impl"] == "live"} != {r["cases_sha"] for r in rows if r["impl"] == "alt@cut=5"}
     # another recorder appended while this one worked: its rows survive a later recording by a third arm
     extra = dict(rows[0], impl="other-recorder", case_id="zz")
     with open(path, "a", newline="", encoding="utf-8") as fh:
-        csv.DictWriter(fh, harness.PER_CASE_COLUMNS, lineterminator="\n").writerow(extra)
+        csv.DictWriter(fh, per_case_log.PER_CASE_COLUMNS, lineterminator="\n").writerow(extra)
     record(cfg, score, "live")
-    assert any(r["impl"] == "other-recorder" for r in harness.read_per_case(cfg))
+    assert any(r["impl"] == "other-recorder" for r in per_case_log.read_per_case(cfg))
     assert not list(path.parent.glob("*.tmp")) and path.read_text().count("component,impl") == 1
 
 
@@ -170,7 +182,7 @@ def test_a_slice_id_that_is_not_a_name_is_refused_when_the_row_is_written(repo):
     cfg, score = scenario(repo)
     bad = circumstances.Circumstance("files/large", case_filter="size>5")
     with pytest.raises(ValueError, match="slice id"):
-        harness.record_slices(cfg, "greet_a_person", [bad], dict(component="greet_a_person", impl="live", sample="", tokens_in=0,
+        record_slices.record_slices(cfg, "greet_a_person", [bad], dict(component="greet_a_person", impl="live", sample="", tokens_in=0,
                                                                   tokens_out=0, cli_reported_cost_usd=0.0, model="none"),
                               [{"id": "a", "size": 9}], [dict(ok=True, calls=0, tokens_in=0, tokens_out=0, seconds=0.0)])
 
@@ -182,19 +194,19 @@ def test_editing_circumstances_makes_the_derived_rows_stale_until_the_arm_is_run
     git(repo, "commit", "-q", "-m", "init")
     record(cfg, score, "live")
     record(cfg, score, "shout")
-    latest = leaderboard.latest_results(cfg.results_path, whole=True)["greet_a_person"]
-    assert harness.stale_reason(cfg, "greet_a_person", latest["live"], strict=False) == ""
+    latest = results_log.latest_results(cfg.results_path, whole=True)["greet_a_person"]
+    assert stale_reasons.stale_reason(cfg, "greet_a_person", latest["live"], strict=False) == ""
     (repo / "esoi" / "circumstances.csv").write_text(HEADER + BIG_SMALL.replace("size>5", "size>6"))
-    assert "circumstances.csv" in harness.stale_reason(cfg, "greet_a_person", latest["live"], strict=False)
+    assert "circumstances.csv" in stale_reasons.stale_reason(cfg, "greet_a_person", latest["live"], strict=False)
     lines = []
-    harness.rerun_stale(cfg, lines.append, run_all=True)
+    rerun_stale.rerun_stale(cfg, lines.append, run_all=True)
     assert any("live: stale, its slice rows and per-case log were not derived from the current circumstances.csv" in x for x in lines)
     lines.clear()
-    harness.rerun_stale(cfg, lines.append, run_all=True)
+    rerun_stale.rerun_stale(cfg, lines.append, run_all=True)
     assert lines == ["greet_a_person/live: current", "greet_a_person/shout: current"]
     (repo / "esoi" / "circumstances.csv").write_text(HEADER + "big,size>,,x,y\n")   # unreadable: stale, and the run fails loudly
-    assert "cannot be read" in harness.stale_reason(cfg, "greet_a_person", leaderboard.latest_results(cfg.results_path)["greet_a_person"]["live"])
-    with pytest.raises(harness.RunError, match="not `field op value`"):
+    assert "cannot be read" in stale_reasons.stale_reason(cfg, "greet_a_person", results_log.latest_results(cfg.results_path)["greet_a_person"]["live"])
+    with pytest.raises(run_errors.RunError, match="not `field op value`"):
         record(cfg, score, "live")
 
 
@@ -208,17 +220,17 @@ def test_run_stale_judges_the_newest_whole_run_not_a_recorded_only_row(repo):
     record(cfg, score, "shout")
     record(cfg, score, "live", "--only", "c1,c2")
     size = cfg.results_path.read_text()
-    assert harness.rerun_stale(cfg, QUIET) == 0
+    assert rerun_stale.rerun_stale(cfg, QUIET) == 0
     assert cfg.results_path.read_text() == size   # nothing was re-recorded, least of all the only: row
     lines = []
-    harness.rerun_stale(cfg, lines.append, run_all=True)
+    rerun_stale.rerun_stale(cfg, lines.append, run_all=True)
     assert lines == ["greet_a_person/live: current", "greet_a_person/shout: current"]
     (cfg.evaluation / "greet_a_person" / "cases.json").write_text((cfg.evaluation / "greet_a_person" / "cases.json").read_text() + " ")
     git(repo, "commit", "-q", "-am", "cases changed")
-    harness.rerun_stale(cfg, QUIET, run_all=True)
+    rerun_stale.rerun_stale(cfg, QUIET, run_all=True)
     rows = [r for r in csv.DictReader(cfg.results_path.open()) if r["impl"] == "live"]
     assert rows[-1]["sample"] == "" and rows[-1]["cases"] == "8"   # re-recorded on the whole set, not on c1,c2
-    assert harness.stale_arms(cfg)[0] == ("greet_a_person", "live")
+    assert rerun_stale.stale_arms(cfg)[0] == ("greet_a_person", "live")
 
 
 def test_a_repository_without_circumstances_gets_no_slice_rows_but_does_get_per_case_outcomes(repo):
@@ -230,43 +242,43 @@ def test_a_repository_without_circumstances_gets_no_slice_rows_but_does_get_per_
     per_case = list(csv.DictReader((repo / cfg.per_case).open()))   # the outcomes the leaderboard's paired test reads
     assert per_case and {r["circumstances_sha"] for r in per_case} == {""} and {r["circumstances"] for r in per_case} == {""}
     rows = list(csv.DictReader(cfg.results_path.open()))
-    assert set(rows[0]) <= set(harness.RESULT_COLUMNS)   # no column of the circumstances feature
+    assert set(rows[0]) <= set(record_result.RESULT_COLUMNS)   # no column of the circumstances feature
     assert len(rows) == len(old.splitlines()) + 1 and not any(r["sample"] for r in rows)   # one row per run, no slice rows
-    assert harness.circumstances_stale(cfg, "greet_a_person", rows[-1]) == ""
+    assert stale_reasons.circumstances_stale(cfg, "greet_a_person", rows[-1]) == ""
     assert not [line for line in check.check(cfg) if "circumstance" in line or "per_case" in line]   # esoi check says nothing of it
 
 
 def test_a_variant_key_the_arm_does_not_take_fails_the_arm_once_loudly_not_every_case(repo):
     cfg, score = scenario(repo)
-    with pytest.raises(harness.RunError, match="takes no parameter cut"):
+    with pytest.raises(run_errors.RunError, match="takes no parameter cut"):
         record(cfg, score, "plain@cut=5")   # a wrapper whose build takes no parameters
     (repo / "demo" / "friendly.py").write_text(
         'from esoi import implementation\n\n\n@implementation("greet-a-person", "friendly")\ndef friendly(name, cheer="!"):\n'
         '    """A friendlier greeting."""\n    return f"Hi {name}{cheer}"\n')
-    from esoi import cli
+    from esoi import __main__ as cli
     cwd = os.getcwd()
     os.chdir(repo)
     try:
         assert cli.main(["records", "sync"]) == 0
     finally:
         os.chdir(cwd)
-    build = harness.declared_build(cfg, "greet_a_person", "friendly")
+    build = arm_loading.declared_build(cfg, "greet_a_person", "friendly")
     assert build is not None
-    with pytest.raises(harness.RunError, match="takes no parameter colour"):
-        build(harness.CallMeter(), colour="red")
-    assert callable(build(harness.CallMeter(), cheer="?"))
-    assert not leaderboard.all_results(cfg.results_path).get("greet_a_person", {}).get("plain@cut=5")   # no 0/N row was recorded
+    with pytest.raises(run_errors.RunError, match="takes no parameter colour"):
+        build(call_meter.CallMeter(), colour="red")
+    assert callable(build(call_meter.CallMeter(), cheer="?"))
+    assert not results_log.all_results(cfg.results_path).get("greet_a_person", {}).get("plain@cut=5")   # no 0/N row was recorded
 
 
 def test_the_runtime_calls_a_variant_with_its_parameters_and_a_malformed_name_fails_loudly(repo, monkeypatch):
-    monkeypatch.delenv(runtime.ROOT_ENV, raising=False)
+    monkeypatch.delenv(selection_registry.ROOT_ENV, raising=False)
     monkeypatch.syspath_prepend(str(repo))
-    runtime.PROJECTS.clear()
+    selection_registry.PROJECTS.clear()
     for name in ("demo", "demo.greet"):
         sys.modules.pop(name, None)
     module = importlib.import_module("demo.greet")
     try:
-        runtime.register("greet-a-person", "pad", lambda name, fill="": f"{fill}{name}", scope="demo")
+        declare.register("greet-a-person", "pad", lambda name, fill="": f"{fill}{name}", scope="demo")
         assert module.greet("Ada", using="pad@fill=x") == "xAda"
         assert module.greet.chosen(using="pad@fill=x").name == "pad@fill=x"
         with pytest.raises(SelectionError, match="not key=value"):
@@ -274,8 +286,8 @@ def test_the_runtime_calls_a_variant_with_its_parameters_and_a_malformed_name_fa
         with pytest.raises(SelectionError, match="unknown implementation"):
             module.greet("Ada", using="ghost@fill=x")
     finally:
-        runtime.forget("greet-a-person")
-        runtime.PROJECTS.clear()
+        selection_registry.forget("greet-a-person")
+        selection_registry.PROJECTS.clear()
         for name in ("demo", "demo.greet"):
             sys.modules.pop(name, None)
 
@@ -303,11 +315,11 @@ def test_run_stale_plan_lists_the_decisions_and_runs_nothing(repo):
     git(repo, "commit", "-q", "-am", "cases changed")
     before = cfg.results_path.read_text()
     lines = []
-    assert harness.rerun_stale(cfg, lines.append, plan=True, run_all=True) == 0
+    assert rerun_stale.rerun_stale(cfg, lines.append, plan=True, run_all=True) == 0
     assert cfg.results_path.read_text() == before                      # nothing ran, nothing recorded
     assert any(x.startswith("greet_a_person/live: would run") for x in lines)
     assert any(x.startswith("greet_a_person/shout: would run") for x in lines)
-    harness.rerun_stale(cfg, QUIET, run_all=True)                                       # a real pass records both ...
+    rerun_stale.rerun_stale(cfg, QUIET, run_all=True)                                       # a real pass records both ...
     lines.clear()
-    harness.rerun_stale(cfg, lines.append, plan=True, run_all=True)
+    rerun_stale.rerun_stale(cfg, lines.append, plan=True, run_all=True)
     assert lines == ["greet_a_person/live: current", "greet_a_person/shout: current"]   # ... and a plan then has nothing to do

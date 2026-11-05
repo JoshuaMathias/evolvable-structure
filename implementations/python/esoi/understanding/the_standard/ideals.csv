@@ -1,0 +1,2 @@
+ideal_id,name,principle,state_description,hints_of_measurement,problem_ids,parent_ideal_ids
+ideal-adoptable-structure,Adoptable structure,Another team can apply the same structure to its own code by following one standard and reusing this library's tools.,"A developer reads the standard, adds records and an evaluation folder, runs the same checks, and has measured selection in their own repository.",A new solution or a new repository reaches a passing check by following the standard alone.,prob-others-cannot-adopt,

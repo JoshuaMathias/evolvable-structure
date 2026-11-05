@@ -20,11 +20,11 @@ words and the code still describes something a website, a data pipeline or a cou
 | Reading needs from typed constructor parameters and checking them against `uses_solution_ids` | The arms (implementations) of its solutions and their third-party libraries |
 | Building in dependency order, injecting needs and options, a frozen result with a reason line per solution | Its configuration values: which arm, which options, its prompts, keys and settings |
 | Startup failure on a cycle or an unmet need, naming the chain | Domain logic: scoring, selection of a model tier, risk rules, storage, search |
-| The cascade (explicit name, selections, default) and late binding through `esoi.runtime` | The decision of which arm is best for its domain, as a metric with real cases |
+| The cascade (explicit name, selections, default) and late binding through `esoi.runtime.implementation_selection.declare` | The decision of which arm is best for its domain, as a metric with real cases |
 | Packaging a pruned selection (a snapshot for an installed copy) | Adapters to its own products and services |
 | Reading a repository's records for a task: the solution it serves, its next milestone and its metric; reading a metric's value; keeping the value before and after a piece of work | Which workers, tools and briefs an application hands the work to, and the words it asks of them |
 | Circumstances as conditions on case fields and on a run, derived slice rows, a per-case log and `name@key=value` variants | Which circumstances exist, their thresholds and the case fields that carry them |
-| The stages of searching records and items: lexical scores, rank fusion, a confidence gate, batching a judge, links, the cue that no solution serves a problem (`esoi.spec_search`) | The vector search, the embedding model and the judging prompt and model, passed in as functions |
+| The stages of searching records and items: lexical scores, rank fusion, a confidence gate, batching a judge, links, the cue that no solution serves a problem (`esoi.understanding.spec_search.spec_search`) | The vector search, the embedding model and the judging prompt and model, passed in as functions |
 | Checks over records and declarations that any adopter could run | Checks whose subject is its own domain (for example, vendor names in its core code) |
 
 ## Examples
@@ -47,4 +47,4 @@ owner's prompt changes the library.
 
 Each adopting application can add a small test that fails when one of its modules defines a function the library already
 provides (a name validator, a dependency-graph walk). The library's own records say which part serves which solution: a
-new general part is a component in `esoi/components.csv` that serves a solution in the records beside the code (`implementations/python/esoi/solutions.csv`).
+new general part is a component in `esoi/components.csv` that serves a solution in the records beside the code (`implementations/python/esoi/**/solutions.csv`).

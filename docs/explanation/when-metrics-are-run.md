@@ -57,7 +57,7 @@ the row's details beside the metered calls, and `ESOI_OFFLINE=1` is set for a pr
 that falls back to a binary found on the machine cannot make an offline run spend money.
 
 **Offline means no network either, when you say so.** With `ESOI_OFFLINE=1` already set, `esoi run <component> --impl X` (and
-`esoi run --stale`) first reads the arm's declared requirements, as `esoi.entry` does. An arm that declares `network(...)` is
+`esoi run --stale`) first reads the arm's declared requirements, as `esoi.runtime.assemble_by_name.entry` does. An arm that declares `network(...)` is
 pending: the run prints `pending-network`, starts nothing, builds no provider, records no row and exits 0 (it informs, it does not
 fail). For an arm that declares nothing, the harness's guard also refuses outbound connections for the length of the run:
 `socket.socket.connect`, `connect_ex` and `socket.create_connection` raise an error for any address that is not loopback or a
@@ -75,7 +75,7 @@ The contract for a provider of models, in any package: **`ESOI_OFFLINE=1` in the
 provider that launches a model program (a command-line client, a local server, a subprocess of any kind) checks the variable before it
 launches and refuses with an error that says so; it neither falls back to another binary nor reads a missing variable as permission to
 go on. ESOI sets it for the length of an offline harness run (restoring the earlier value afterwards) and for the whole of
-`esoi.entry`'s offline check, which also blocks sockets and every child program that is not local. The variable is a second guard
+`esoi.runtime.assemble_by_name.entry`'s offline check, which also blocks sockets and every child program that is not local. The variable is a second guard
 beside the harness's own refusal: the first stops the common launch paths, the second lets a provider stop itself.
 
 ### Results are recorded on committed code
@@ -98,7 +98,7 @@ change, or a suspected regression. Do not run it because it is Tuesday. Work up 
 
 ### Do not run what cannot inform a decision
 
-Two cases are known in advance to teach nothing, so the tools refuse them (`esoi.run_guards`), with the remedy in the same line.
+Two cases are known in advance to teach nothing, so the tools refuse them (`esoi.optimization.when_metrics_are_run.run_guards`), with the remedy in the same line.
 
 - **A perfect arm already caps it.** If another arm of the same solution passed every case on the same cases and the same
   sample, and the result is current, an arm that may spend money cannot score higher on accuracy. A metric that is pass or fail

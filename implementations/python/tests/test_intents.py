@@ -2,7 +2,9 @@
 import shutil
 
 from conftest import fill_top_intent
-from esoi import check, config, intents, migrate, registry, tables, tracker
+from esoi.structure.structure_check import check
+from esoi.structure.intent_registry import config, intents, migrate, registry, tables
+from esoi.understanding.review_tracker import tracker
 
 
 def rewrite(path, edit):
@@ -58,7 +60,7 @@ def lines(cfg, rule):
 
 
 def test_the_scaffold_leaves_the_top_intent_and_the_top_solution_to_the_project(tmp_path):
-    from esoi import scaffold
+    from esoi.understanding.the_standard import scaffold
     scaffold.init(tmp_path, "mine", say=lambda text: None)
     problems = check.check(config.load(tmp_path))
     assert any(line.startswith("S28") and "name, vision_statement" in line for line in problems)
@@ -280,7 +282,8 @@ def test_the_old_opportunity_column_gets_a_finding_not_a_crash(cfg):
 
 
 def test_a_name_that_is_a_handle_is_informed_as_s46(repo):
-    from esoi import check, config, tables
+    from esoi.structure.structure_check import check
+    from esoi.structure.intent_registry import config, tables
     cfg = config.load(repo)
     path = cfg.structure / "solutions.csv"
     rows, header = tables.read_csv(path), tables.read_header(path)
@@ -303,13 +306,15 @@ def test_a_name_that_is_a_handle_is_informed_as_s46(repo):
 
 
 def test_a_human_name_is_not_informed(repo):
-    from esoi import check, config
+    from esoi.structure.structure_check import check
+    from esoi.structure.intent_registry import config
     problems, advisory = check.check_all(config.load(repo))
     assert not [line for line in advisory if line.startswith("S46 greet-a-person")]
 
 
 def test_s46_covers_problems_and_components_and_the_scaffold_names_them(repo):
-    from esoi import check, config, tables
+    from esoi.structure.structure_check import check
+    from esoi.structure.intent_registry import config, tables
     cfg = config.load(repo)
     problems = tables.read_csv(cfg.structure / "problems.csv")
     assert all(r["name"] for r in problems)                                   # esoi init scaffolds a name

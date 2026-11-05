@@ -8,5 +8,5 @@
 
 ## Where to go next
 
-- Owning intent: [Evolvable Structure that Optimizes Intent (ESOI)](../../../../esoi/README.md)
+- Owning intent: [How People and Agents Come to Apply ESOI](../../../../esoi/understanding/esoi_for_ai/esoi_behaviour_judge/README.md)
 - Repository: [top README](../../../../../../README.md)

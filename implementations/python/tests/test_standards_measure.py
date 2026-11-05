@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from esoi import standards_measure as sm
+from esoi.understanding.spec_search import standards_measure as sm
 
 STANDARD = """# Thin routes
 
@@ -39,7 +39,7 @@ def test_baseline_is_not_quiet(tmp_path):
 
 
 def test_frequent_rules_never_crowd_out_a_named_one():
-    from esoi import standards_nav as nav
+    from esoi.understanding.spec_search import standards_nav as nav
     frequent = ["a", "b", "c", "d", "e"]
     shown = nav.combine(frequent, ["rare"])[: nav.MAX_SHOWN]
     assert "rare" in shown and shown[0] == "a"
@@ -47,7 +47,7 @@ def test_frequent_rules_never_crowd_out_a_named_one():
 
 
 def test_train_writes_rates_and_for_task_uses_them(tmp_path):
-    from esoi import standards_nav as nav
+    from esoi.understanding.spec_search import standards_nav as nav
     root = world(tmp_path)
     (root / "docs" / "standards" / "rates.csv").write_text("standard,rate,cases,date\nthin,0.5,1,2026-01-01\n")
     assert nav.load_rates(root) == {"thin": 0.5}

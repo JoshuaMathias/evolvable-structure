@@ -1,5 +1,6 @@
 """S51: a problem says what is true. An absolute in a problem's text is informed, never failed; ideals are not read."""
-from esoi import check, config, tables
+from esoi.structure.structure_check import check
+from esoi.structure.intent_registry import config, tables
 
 
 def edit_first(path, change):

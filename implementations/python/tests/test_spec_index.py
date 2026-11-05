@@ -3,7 +3,8 @@ import json
 
 import pytest
 
-from esoi import cli, spec_index
+from esoi import __main__ as cli
+from esoi.understanding.spec_search import spec_index
 
 
 def test_every_record_is_one_entry_with_its_own_id_and_two_way_links(cfg):

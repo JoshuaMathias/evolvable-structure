@@ -4,7 +4,7 @@
 
 The harness that records numbers has to be right: a record carries the commit (suffixed ``-dirty`` when the
 measured code has uncommitted changes) and the case file's hash, a changed case file changes the hash, a run budget
-is enforced, and ``--only`` runs only the named cases. The cases drive the LIVE ``esoi.harness`` over a synthetic
+is enforced, and ``--only`` runs only the named cases. The cases drive the LIVE ``esoi.optimization.measurement_harness.harness`` over a synthetic
 mini component built in a temporary folder with its own throwaway git repository. Deterministic and offline.
 
 Kinds and the dict an implementation returns:

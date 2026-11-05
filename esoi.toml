@@ -47,8 +47,9 @@ allow_mailboxes = ["joshuamonkey"]
 
 [records]
 # This repository keeps each solution's records beside its code (docs/reference/records-beside-code.md): the package folder holds the
-# solutions of the code it holds, and esoi-runtime, a sub-intent, sits there beside the code it arises from.
-beside_code = ["implementations/python/esoi", "implementations/python/esoi/*"]
+# root and the four containers, and each container (understanding, structure, optimization, runtime) is a sub-intent with its own
+# intent.csv whose solutions sit in the folders of their code, up to three levels below the package (container, solution, part of a solution).
+beside_code = ["implementations/python/esoi", "implementations/python/esoi/*", "implementations/python/esoi/*/*", "implementations/python/esoi/*/*/*"]
 # The version of the intent template this repository's own records follow (`esoi version --record`).
 template_version = 4
 
@@ -60,26 +61,35 @@ enabled = true
 enabled = true
 
 # Solution coherence (rule S38): floors per intent, the strong-evidence share of checkable uses edges (precision) and the checkable
-# share of all edges (coverage). A floor is a measurement: each is what `python3 -m esoi.coherence` reports now, and rises when a
-# composition is typed in code; it is never set above a measurement. Earlier floors of 1.0 were measured when every solution in
-# interfaces.py counted as named by every other one (881 of 1079 non-edges showed the same evidence, lift 1.14); evidence is now
-# attributed per solution, so they are lowered to what the code shows: the records state a composition of documents, commands and
-# judges (the-standard, the-steps, structure-budget and the rest) that the one-fact probes in interfaces.py do not call,
-# and 29 of the 37 recorded edges are seen (E5 sees seven document edges through the `documents` column of components.csv) (docs/explanation/why-prose-is-not-code-evidence.md lists the rest and why).
+# share of all edges (coverage). A floor is a measurement: each is what `python3 -m esoi.structure.structure_check.coherence` reports now,
+# and rises when a composition is typed in code; it is never set above a measurement. The root and Understanding reach 1.0 because
+# each edge is named in the code that uses it. In Structure, Optimization and Runtime the edges below a second-level solution (a
+# registry that composes its template sync, a harness that composes its decision of when to run) are recorded in the selected
+# implementation's `uses_solution_ids` while the interface modules do not yet import or type the used solution, so only a third
+# of the evidence is strong there (docs/explanation/why-prose-is-not-code-evidence.md lists the kinds of evidence).
 [rules.S38]
 enabled = true
+min_lift = 1.0
 
 [rules.S38.floors.esoi]
-precision = 0.784
+precision = 1.0
 coverage = 1.0
 
-# The sub-intent's two edges are runtime-selection and assemble-by-name composing in assemble.py, runtime.py and lock.py, while the
-# implementation records name interfaces.py (the declared arm), whose lazy import reaches them only through entry.py, a module
-# several solutions own. No strong evidence is shown, so the lift is 0.0 as well; both stay until the arms import their modules.
-[rules.S38.floors.esoi-runtime]
-precision = 0.0
+[rules.S38.floors.understanding]
+precision = 1.0
 coverage = 1.0
-min_lift = 0.0
+
+[rules.S38.floors.structure]
+precision = 0.429
+coverage = 1.0
+
+[rules.S38.floors.optimization]
+precision = 0.4
+coverage = 1.0
+
+[rules.S38.floors.runtime]
+precision = 0.75
+coverage = 1.0
 
 [rules.S39]
 enabled = true

@@ -55,6 +55,6 @@ compares with the esoi folder on your repository, run the metric: `esoi run navi
 
 ## Programs that read the records
 
-A program reads the registry (`esoi.registry.load(config)`) or the spec index, which merge every folder. A program that read
-`esoi/solutions.csv` and the other record files directly must read the tree instead (`esoi.intents.folders(config)` lists the folders,
-`esoi.intents.read_rows(config, "solutions.csv")` the rows).
+A program reads the registry (`esoi.structure.intent_registry.registry.load(config)`) or the spec index, which merge every folder. A program that read
+`esoi/solutions.csv` and the other record files directly must read the tree instead (`esoi.structure.intent_registry.intents.folders(config)` lists the folders,
+`esoi.structure.intent_registry.intents.read_rows(config, "solutions.csv")` the rows).

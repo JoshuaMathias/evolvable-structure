@@ -22,7 +22,7 @@ The exit code is stable, so a scheduler can branch on it without reading the out
 
 ## 2. Read the plan
 
-The JSON has `schema` `esoi.lock.status/1` (fields are only ever added within a version), a `state`, and one entry in `updates`
+The JSON has `schema` `esoi.runtime.implementation_selection.lock.status/1` (fields are only ever added within a version), a `state`, and one entry in `updates`
 per solution that would change: `old_arm`, `new_arm`, `verdict`, `p`, `evidence`, the `requirements_added` and
 `requirements_removed`, `safe`, `blocked`, the `unmet` requirements, the `steps` in order and `apply`, the one command that applies
 that update. A top-level `apply_safe` applies every safe update at once.

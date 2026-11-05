@@ -3,7 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from esoi import cli, projects, tables
+from esoi import __main__ as cli
+from esoi.understanding.local_application_index import projects
+from esoi.structure.intent_registry import tables
 
 
 @pytest.fixture

@@ -2,7 +2,10 @@
 import re
 
 from conftest import fill_top_intent  # noqa: F401  (the cfg fixture fills the top intent)
-from esoi import besidecode, check, config, implementedby, intents, readme, registry, tables
+from esoi.structure.intent_registry import besidecode, config, implementedby, intents, registry, tables
+from esoi.structure.structure_check import check
+from esoi.understanding.readable_records import readme
+from esoi.understanding.readable_records import readme_view
 from test_intents import add_solution, lines, write_intent
 
 
@@ -243,7 +246,7 @@ def test_a_repository_with_no_python_uses_the_beside_code_layout_from_its_record
 
 def test_the_layout_needs_no_declaration_in_code_and_the_python_scan_finds_nothing(repo):
     cfg = typescript_repo(repo)
-    view = readme.view_of(cfg, registry.load(cfg))
+    view = readme_view.view_of(cfg, registry.load(cfg))
     assert view.declared == {}
 
 

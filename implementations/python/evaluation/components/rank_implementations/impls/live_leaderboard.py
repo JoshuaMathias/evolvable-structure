@@ -6,14 +6,14 @@ import tempfile
 from pathlib import Path
 
 import harness_fixture
-from esoi import leaderboard
+from esoi.optimization.leaderboard import arm_kinds, board_report, case_identity, ranking, rival_decisions, switching_policy, verdict_labels
 
 
 def rank(args):
     rows = {r["impl"]: dict(date="d", **r) for r in args["rows"]}
-    return {"ranked": [r["impl"] for r in leaderboard.rank(rows)],
-            "beats": [r["impl"] for r in leaderboard.challengers(rows, args["selected"], policy=leaderboard.Policy(require_significance=args.get("require_significance", False)))],
-            "unverified": [i for i, r in rows.items() if leaderboard.unverified(r)]}
+    return {"ranked": [r["impl"] for r in ranking.rank(rows)],
+            "beats": [r["impl"] for r in rival_decisions.challengers(rows, args["selected"], policy=switching_policy.Policy(require_significance=args.get("require_significance", False)))],
+            "unverified": [i for i, r in rows.items() if case_identity.unverified(r)]}
 
 
 def verdict(args):
@@ -28,10 +28,10 @@ def verdict(args):
         per_case = [{"component": name, "impl": impl, "cases_sha": rows[impl].get("cases_sha", ""), "sample": rows[impl].get("sample", ""),
                      "case_id": f"k{i}", "ok": "1" if ok else "0"} for impl, found in (args.get("outcomes") or {}).items()
                     for i, ok in enumerate(found)]
-        policy = leaderboard.Policy(alpha=args.get("alpha", leaderboard.ALPHA), require_significance=args.get("require_significance", False))
-        label, detail = leaderboard.verdict(rows, args["selected"], config.evaluation, history, per_case, policy)
+        policy = switching_policy.Policy(alpha=args.get("alpha", switching_policy.ALPHA), require_significance=args.get("require_significance", False))
+        label, detail = verdict_labels.verdict(rows, args["selected"], config.evaluation, history, per_case, policy)
         return {"verdict": label, "text": detail,
-                "arms": {i: leaderboard.arm_kind(r, config.evaluation) for i, r in rows.items()}}
+                "arms": {i: arm_kinds.arm_kind(r, config.evaluation) for i, r in rows.items()}}
 
 
 def board(args):
@@ -40,7 +40,7 @@ def board(args):
         harness_fixture.write_results(config.results_path, args["rows"])
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
-            code = leaderboard.board(config, harness_fixture.registry_selecting(args["selected"]), bool(args.get("strict")))
+            code = board_report.board(config, harness_fixture.registry_selecting(args["selected"]), bool(args.get("strict")))
         text = out.getvalue()
     return {"exit": code, "text": text,
             "beats": [ln.split()[1] for ln in text.splitlines() if ln.strip().startswith("!")],

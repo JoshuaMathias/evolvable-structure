@@ -81,5 +81,5 @@ correction is measured from then on and the instructions can change without losi
 ## Where it is here
 
 The solutions are in the top intent of [esoi/](../../esoi/). The cases and arms are in `implementations/python/evaluation/components/behave_by_esoi/` and `judge_esoi_behaviour/`, the
-grading in `implementations/python/esoi/behaviour.py`. Run the offline arms with
+grading in `implementations/python/esoi/understanding/esoi_for_ai/behaviour.py`. Run the offline arms with
 `esoi run behave_by_esoi --impl reference_good`. Whether the skill changes behaviour is not yet measured.

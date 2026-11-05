@@ -173,8 +173,8 @@ def run_example(tmp_path: Path, source: str, files: Optional[Dict[str, str]] = N
 
 
 def docstring_example() -> str:
-    """The indented example at the top of ``esoi.assemble``'s docstring."""
-    from esoi import assemble
+    """The indented example at the top of ``esoi.runtime.assemble_by_name.assemble``'s docstring."""
+    from esoi.runtime.assemble_by_name import assemble
     lines, found = (assemble.__doc__ or "").splitlines(), []
     start = next(i for i, line in enumerate(lines) if line.startswith("    from pathlib import Path"))
     for line in lines[start:]:
@@ -215,7 +215,7 @@ import os
 import tempfile
 from typing import Any, Callable
 
-from esoi import runtime
+from esoi.runtime.implementation_selection import selection_registry
 
 counter = itertools.count(1)
 
@@ -253,9 +253,9 @@ def package_case(args: Dict[str, Any], strategy: Callable[[str, Path, Any, Dict[
         sys.path[:] = [p for p in sys.path if p != str(site)]
         for name in [m for m in sys.modules if m.split(".")[0] in (pkg, f"{pkg}consumer")]:
             sys.modules.pop(name)
-        for key in [k for k in runtime.REGISTRY if k[0] == pkg]:
-            runtime.REGISTRY.pop(key)
-        runtime.PROJECTS.clear()
+        for key in [k for k in selection_registry.REGISTRY if k[0] == pkg]:
+            selection_registry.REGISTRY.pop(key)
+        selection_registry.PROJECTS.clear()
     return out
 
 

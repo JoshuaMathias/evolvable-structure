@@ -8,7 +8,7 @@ to get them set up automatically. For a first walk-through see [the tutorial](..
 Add a `REQUIRES` tuple to the class (or function) that implements the solution:
 
 ```python
-from esoi.requirements import api, binary, download, env, python, service
+from esoi.runtime.assemble_by_name.environment_needs.declarations import api, binary, download, env, python, service
 
 class WebResearch:
     REQUIRES = (

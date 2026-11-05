@@ -143,9 +143,9 @@
    "verdict": "WIN"
   },
   "modules": {
-   "component_paths": "esoi.staleness",
-   "import_closure": "esoi.staleness",
-   "repo_wide": "esoi.staleness"
+   "component_paths": "esoi.optimization.when_metrics_are_run.know_what_a_result_measures.staleness",
+   "import_closure": "esoi.optimization.when_metrics_are_run.know_what_a_result_measures.staleness",
+   "repo_wide": "esoi.optimization.when_metrics_are_run.know_what_a_result_measures.staleness"
   }
  },
  "leaderboard": {
@@ -211,7 +211,7 @@
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "graded": "esoi.evidence"
+   "graded": "esoi.optimization.when_metrics_are_run.public_evidence.evidence_grading"
   }
  },
  "readable-records": {
@@ -247,7 +247,7 @@
   },
   "modules": {
    "declarations-and-cascade": "esoi.interfaces",
-   "select": "esoi.select"
+   "select": "esoi.runtime.implementation_selection.select"
   }
  },
  "skill-distribution": {
@@ -269,8 +269,8 @@
    "verdict": "WIN"
   },
   "modules": {
-   "term-overlap": "esoi.spec_index",
-   "weighted-tfidf": "esoi.spec_index"
+   "term-overlap": "esoi.understanding.spec_search.spec_index",
+   "weighted-tfidf": "esoi.understanding.spec_search.spec_index"
   }
  },
  "spec-search": {
@@ -281,8 +281,8 @@
    "verdict": "TIE"
   },
   "modules": {
-   "lexical-only": "esoi.spec_search",
-   "lexical-vector-gated": "esoi.spec_search"
+   "lexical-only": "esoi.understanding.spec_search.spec_search",
+   "lexical-vector-gated": "esoi.understanding.spec_search.spec_search"
   }
  },
  "specify-from-code": {
