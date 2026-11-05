@@ -57,4 +57,5 @@ The main feature is explanation and templates that need no code; Python is one e
   for each file you will edit, `for-file <path>`; they print only the rules that apply (`esoi/standards/`). A pre-commit
   hook runs `check-staged` (install: `install-hook`); fix a finding or waive it at its line with a reason. How:
   `docs/how-to/navigate-standards-by-risk-tag.md`.
+- **A restructuring is an alternative structure.** Before a merge, split, adoption, interface change or moved module run `esoi structure-quality`; after it run `esoi structure-quality --compare <before> <after>`, and keep the change only if the balanced number holds or rises, with the reason stated in the commit (`docs/how-to/measure-structure-quality.md`).
 - **Commit by explicit path**, never `git add -A`; do not rewrite pushed history.

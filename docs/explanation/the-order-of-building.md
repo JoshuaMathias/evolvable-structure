@@ -10,6 +10,8 @@ offerings, how an AI behaves); code is one case. Each step says what it settles,
    category: what belongs under which intent, which solutions are containers for which jobs, and what is out of scope. Write each
    intent's vision statement here, one short sentence about the whole concept. Problems and ideals come with it, because they say why
    each solution exists. Merge, split and move solutions until each has one purpose.
+   Every merge, split, adoption or move is an alternative structure: run `esoi structure-quality` before it and `esoi structure-quality --compare <before> <after>`
+   after it, and keep the change only when the balanced number holds or rises, with the reason stated when it does not.
 2. **Write each solution's interface and the intent's coherence paragraph together, and refine them against each other until
    everything is accounted for.** The interface says what the solution takes and returns and who is responsible. The paragraph says,
    in names, how the intent's solutions connect and implement the parent solution. Writing one shows what is missing from the other: a
@@ -19,7 +21,8 @@ offerings, how an AI behaves); code is one case. Each step says what it settles,
    interface do one job, and do all its alternatives serve that job at one level of specificity? Does any call reach past an interface into
    another solution's inside? Does any solution name a consumer, or does the dependency run both ways? Is any step written twice, so that two
    interfaces would hold the same arithmetic? Is there one contract that every alternative must keep? These are the dimensions of
-   [Structure Quality](code-quality-is-structure-quality.md), which measures them on code once there is some.
+   [Structure Quality](code-quality-is-structure-quality.md), which measures them on code once there is some. An interface change is a restructuring too: compare the number before and after it
+   (`esoi structure-quality --compare`), because a Protocol that its arms barely implement passes a name-only check and fails the comparison.
 3. **Create the diagram.** Draw it from the finished paragraph, so that the picture shows the same relationships the words and the flow
    state.
 4. **Define the metrics.** Each solution gets the metric that says what it is for: one balanced number at rising fidelity, with its
@@ -29,7 +32,8 @@ offerings, how an AI behaves); code is one case. Each step says what it settles,
    the idea.
 6. **Implement the ones worth implementing.** Doing so may show that a solution's interface should change; change the interface and the
    paragraph together, and keep the records true to them. A solution's implementations share one purpose, and the flow above them is
-   already written, so each implementation slots into a place that exists.
+   already written, so each implementation slots into a place that exists. A moved module, a merged solution or a changed interface found while
+   implementing is a restructuring: measure it with Structure Quality before and after, and keep it only when the number holds or rises.
 7. **Run the metrics after each implementation and the implementations that depend on it are complete.** Not before: a result on
    half-built code describes nothing. The result decides the selection.
 8. **Loop.** New technologies, new cases, changed circumstances and what implementation teaches feed back into any earlier step: a

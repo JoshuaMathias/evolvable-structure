@@ -2,3 +2,4 @@ tag,mitigates,meaning,keywords
 low-quality-code,prob-structure-rules-decay,Risk of a change that works but breaks the repository's rules because the author did not meet the rule that applied,quality;standards
 naming,prob-structure-rules-decay,Risk of code that hides from the next author because a name breaks the repository's naming rule,helper;function;name;class;private
 public-text,prob-structure-rules-decay,Risk of text in a public repository that breaks the voice rule because an em dash slipped in,doc;docs;readme;text;copy;write
+restructuring,prob-structure-rules-decay,Risk of a merge or split that is kept because it looked tidier when the structure scored lower because nobody compared the number before and after,merge;split;restructure;reorganize;adopt;move;hierarchy;interface

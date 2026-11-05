@@ -14,17 +14,27 @@ Why: [code quality is structure quality](../explanation/code-quality-is-structur
    ```
    Files in different solutions that changed together in at least five of the last 400 commits, and in at least 80 percent of the commits of the
    less often changed of the two, with no import between their solutions, are listed as hidden coupling.
-3. **Read the weak dimensions.** A dimension under 0.6 is named. Fix the worst offenders at their source: make an arm define its Protocol's
-   methods, call another solution through its interface, write copied code once, split a part at a seam of its own job (not into fragments: the
+3. **Compare before and after a restructuring.** Every merge, split, adoption, interface change or moved module is an alternative structure, so measure it
+   as one: run step 1 before, make the change, then
+   ```
+   esoi structure-quality --compare <before> <after> [path-to-the-repository]
+   ```
+   Each side is a folder or a git reference (a commit, branch or tag) of the repository; a reference is checked out into a temporary worktree that is
+   removed afterwards, and files the two sides share are read once. It prints the balanced number and each dimension before and after (and the number over
+   the dimensions measured on both sides, so a dimension that appears or disappears cannot move the comparison), the offenders fixed and introduced, and
+   the per-solution scope and per-unit coupling deltas. Keep the change only if the number holds or rises; when it falls, state in the commit what the
+   number does not see and why the structure is better. From code: `from esoi import compare_structure_quality`. `--fast` leaves the flow dimension
+   unmeasured (it reads the records and takes most of the time on a large project); the report says which dimensions were measured.
+4. **Read the weak dimensions.** A dimension under 0.6 is named. Fix the worst offenders at their source: make an arm implement every member of its Protocol with matching parameters, call another solution through its interface, write copied code once, split a part at a seam of its own job (not into fragments: the
    coupling and reuse dimensions charge for that), add one contract test that runs every arm.
-4. **Turn on the rules** to see the same findings in `esoi check --findings`. In `esoi.toml`:
+5. **Turn on the rules** to see the same findings in `esoi check --findings`. In `esoi.toml`:
    ```
    [rules.S54]
    enabled = true
    ```
    S54 is scope, S55 size and cohesion, S56 coupling, S57 reuse, S58 public surface, S59 behavior preserved (flow fidelity is S38). Each finding
    says its next action; waive one as the path or unit it opens with.
-5. **Tighten, never loosen.** A library names the consumers it must not mention, and a project may tighten a budget, from code:
+6. **Tighten, never loosen.** A library names the consumers it must not mention, and a project may tighten a budget, from code:
    ```python
    from esoi.structure.structure_quality import assess
    from esoi.structure.structure_quality.balance import Budgets
