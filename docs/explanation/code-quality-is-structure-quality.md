@@ -22,7 +22,7 @@ Line and file limits catch the first two. None of them sees the rest, because th
 
 | Dimension | Weight | What it reads |
 |---|---|---|
-| Scope | 0.20 | every arm implements every member of its solution's Protocol with matching parameters and a body that is more than a stub (`pass`, `...`, `raise NotImplementedError`), under a solution id that exists (Protocols and base classes of adopted libraries and installed packages count); every arm does work of its own instead of handing each call on unchanged; a folder declares few Protocols; the arms of one solution share one purpose (the word-overlap measure of rules S48 and S49) |
+| Scope | 0.20 | every arm implements every member of its solution's Protocol (a Protocol counts the members of the Protocols it extends) with matching parameters and a body that is more than a stub (`pass`, `...`, `raise NotImplementedError`), under a solution id that exists (Protocols and base classes of adopted libraries and installed packages count), scored by how many members each arm lacks on a cubic curve; every arm does work of its own instead of handing each call on unchanged; a folder declares few unrelated Protocols (layers that wrap one another count once); the arms of one solution share one purpose (the word-overlap measure of rules S48 and S49) |
 | Coupling | 0.20 | the share of cross-solution imports that land on a declared entry point or on the project's shared kernel (both rules below); import cycles; a library that names a consumer the project declares; at stage two, files that change together without an import |
 | Size and cohesion | 0.15 | function lines, module lines and decision points (McCabe's complexity) inside their budgets, graded by how far over a part goes; files per folder, solutions per intent and depth inside their budgets |
 | Reuse and duplication | 0.15 | the share of code copied between files, by token windows, scored on the graded curve (1 - copied) cubed and reported as boilerplate shared by four or more files (a table-driven helper removes it) and accidental clones |
@@ -96,6 +96,27 @@ with function length at 0.70 to 0.81, and 1.5 to 3.2 percent of functions were o
 complexity 68), so it carries information length does not. Nesting depth (1.0 to 1.7 percent of functions flagged beyond what length flags, and it
 moves with complexity) and parameter count (1.0 to 1.6 percent) were measured and not added: too little beyond the parts already there.
 
+## How the scope part for arms is scored, and which Protocols in one folder count
+
+**An arm off its interface, by how far off.** Each arm is measured against the Protocol of the solution it is registered under (the closest one when the
+project and an adopted library both declare one for the id). Its severity is the share of that Protocol's members it lacks, from 0 (every member
+implemented) to 1 (none, or no Protocol to be measured against, or an arm that only passes every call on); a stub, a missing member and a method whose
+parameters do not match each count as one lacking member. A Protocol that only extends another Protocol counts the inherited members, so it is not read
+as empty (an empty interface would let every arm pass). The mean conformance of the arms is `1 - mean severity`, and the part is
+`conformance ** 3`, the same cubic curve as the reuse dimension (`(1 - copied) ** 3`): a merge that leaves a tenth of an interface missing costs 27 percent
+of the part, a third of the arms 70 percent, where a linear share would cost a tenth and a third. The exponent 3 was chosen to match reuse before any
+history pair was scored; it was not tuned. The seven weights are unchanged: re-weighting after seeing the pairs would fit the metric to a case.
+When an arm is off its solution's interface but implements, in full, a plain Protocol in its own folder (one with no `@solution`), the offender says
+so: the interface was demoted beside the arm, which is what the runner's merge did to 22 Protocols (the arms stayed registered, the declaration did not).
+
+**Which Protocols in a folder are a split signal.** A folder that declares more than two Protocols signals more than one job, unless they are one job
+in layers. Protocols form one group when the same arms implement them (arms of one solution id, or an arm that extends both), or when they stack: an arm
+of one Protocol's solution takes exactly one Protocol of the folder as a constructor need, as a store wraps a cache that wraps a backend. An arm that
+takes several Protocols of the folder is a composition root holding distinct jobs together, not a layer, so it joins none of them. The budget counts
+groups, so a layered stack stays clean and Protocols that different arms implement, with no layer wrapping another, are still reported ("N Protocols
+signal more than one job"). The first version of this rule joined Protocols through any constructor need, which merged 26 Protocols of one flat
+runner folder into 4 groups; it was narrowed to the layer reading above after it flipped the flat-to-containers row of the history table.
+
 ## What was considered and not changed
 
 - **Behavior on repositories with no arms.** Reading which units a test imports was tried as a general stand-in; it reached 35 to 42 percent of files on
@@ -105,7 +126,7 @@ moves with complexity) and parameter count (1.0 to 1.6 percent) were measured an
   the library, so counting token clones across libraries would not have seen it. Duplication stays token windows within the project.
 - **A fold across dimensions that lets one collapsed dimension sink the number.** Before the kernel change coupling sat near 0.1 on every repository;
   a geometric fold would have made that one noisy dimension the number. The weighted mean stays, and the weak list names a collapsed dimension.
-- **The weights.** They are a judgement of which failures cost most, not fitted: nine history pairs cannot fit seven weights. They are unchanged.
+- **The weights.** They are a judgement of which failures cost most, not fitted: nine history pairs cannot fit seven weights. They are unchanged, including when the merge row showed a tie: the fix was to count the arms the merge left off their interfaces and to grade by how far off they are, not to move a weight.
 
 ## A cascade at rising fidelity
 
@@ -134,21 +155,23 @@ Each row is a restructuring whose expected direction a reviewer wrote before loo
 found in the history (`git log -S` located the commit that removed the interfaces the repair restored). Three earlier rows used guessed ranges that
 mixed unrelated work; they are replaced below.
 
-| Restructuring | Commits | Reviewer expects | Previous scorer | This scorer | Agrees |
-|---|---|---|---|---|---|
-| Runner: interfaces written first, one per solution | one commit | up | 0.780 to 0.789 | 0.786 to 0.793 | yes |
-| Runner: 81 solutions merged to 44 | the four commits of the merge | down | 0.789 to 0.788 | 0.793 to 0.792 | too close to call: scope fell 0.108 (arms left off their interfaces) while solutions per intent and flow improved, because the merge also consolidated |
-| Runner: the repair that restored 17 solutions with their interfaces | one commit | up | 0.799 to 0.809 | 0.805 to 0.813 | yes |
-| Runner: a flat layout moved into five containers | one commit | up | 0.750 to 0.774 | 0.767 to 0.780 | yes |
-| Runner: its own due and order arithmetic replaced by calls to a library's solutions | one commit | up | 0.801 to 0.802 | 0.803 to 0.803 | no: flat. The removed code was a parallel implementation that shared no 30-token window with the library, so token windows cannot see it |
-| Runner: an ordering arm composes the library's arm and keeps only its own rules | one commit | up | 0.802 to 0.802 | 0.803 to 0.803 | no: flat, for the same reason |
-| Hub: records moved into five containers, code left in place | one commit | up | 0.650 to 0.603 | 0.691 to 0.622 | no, debatable: only the records moved, so the code the number reads got no better |
-| Hub: all code moved beneath the solution it implements | one commit | up | 0.641 to 0.797 | 0.666 to 0.857 | yes |
-| This library: a flat package moved into four containers | one commit | up | 0.574 to 0.674 | 0.623 to 0.741 | yes (case `SQ-025`) |
+| Restructuring | Commits | Reviewer expects | Previous scorer | Before this change | After this change | Agrees now |
+|---|---|---|---|---|---|---|
+| Runner: interfaces written first, one per solution | one commit | up | 0.780 to 0.789 | 0.786 to 0.793 | 0.762 to 0.782 | yes |
+| Runner: 81 solutions merged to 44 | the four commits of the merge | down | 0.789 to 0.788 | 0.793 to 0.792 | 0.782 to 0.771 | yes: it fell by 0.011 (it was a tie), once the arms the merge left off their interfaces were counted (17 of 87 before, 43 of 87 after) |
+| Runner: the repair that restored 17 solutions with their interfaces | one commit | up | 0.799 to 0.809 | 0.805 to 0.813 | 0.780 to 0.809 | yes |
+| Runner: a flat layout moved into five containers | one commit | up | 0.750 to 0.774 | 0.767 to 0.780 | 0.754 to 0.756 | yes, narrowly: up by 0.002, which is the edge of what counts as flat |
+| Runner: its own due and order arithmetic replaced by calls to a library's solutions | one commit | up | 0.801 to 0.802 | 0.803 to 0.803 | 0.797 to 0.797 | no: flat. The removed code was a parallel implementation that shared no 30-token window with the library, so token windows cannot see it |
+| Runner: an ordering arm composes the library's arm and keeps only its own rules | one commit | up | 0.802 to 0.802 | 0.803 to 0.803 | 0.797 to 0.797 | no: flat, for the same reason |
+| Hub: records moved into five containers, code left in place | one commit | up | 0.650 to 0.603 | 0.691 to 0.622 | 0.680 to 0.619 | no, debatable: only the records moved, so the code the number reads got no better |
+| Hub: all code moved beneath the solution it implements | one commit | up | 0.641 to 0.797 | 0.666 to 0.857 | 0.665 to 0.853 | yes |
+| This library: a flat package moved into four containers | one commit | up | 0.574 to 0.674 | 0.623 to 0.741 | 0.623 to 0.741 | yes (case `SQ-025`) |
 
-Counting a move under 0.002 as flat, both scorers agree with the reviewer on the same five of nine rows, and neither ranks a row the wrong way by more
-than that. This change did not make the history agree better; what it changed is the foundation question and the gaming moves above. The history
-does show what the number misses: two adoptions that removed real duplicated work score flat. The rows can be reproduced from git references with
+Counting a move under 0.002 as flat, the scorer before this change agreed with the reviewer on five of nine rows and the one after agrees on six: the
+merge row, which was a tie, now falls. The expected directions, the severity curve (exponent 3, chosen to match the reuse curve) and the
+weights were fixed before the pairs were re-scored, and nothing was fitted to the merge row; the Protocol grouping rule was narrowed once after the
+flat-to-containers row flipped, for the reason stated above, and the row now agrees by 0.002, so treat it as the least certain of the six. The history
+still shows what the number misses: two adoptions that removed real duplicated work score flat. The rows can be reproduced from git references with
 `esoi structure-quality --compare <before> <after>`.
 
 ## What a reviewer can and cannot believe from the number

@@ -54,6 +54,13 @@ Why: [code quality is structure quality](../explanation/code-quality-is-structur
 - **Each dimension line** gives its score, its weight and its parts. The parts are what moved: `function_lines_within_budget` falls with lines over the
   budget, not with the count of long functions; `cross_calls_through_entries_or_kernel` counts imports of the shared kernel as clean, and the note
   after it names the kernel modules, so read that list: a module there that you would call a solution's inside is a finding about the rule.
+- **`arms_on_interface`** is the mean share of its solution's Protocol members that the arms implement, cubed, so the part falls fast: 0.9 reads
+  0.73. An offender says which members an arm lacks, and when the arm implements a plain Protocol beside it that has lost its `@solution`
+  declaration it says so (restore the declaration, or move the arm to the solution that owns that Protocol). A Protocol that only extends another
+  counts the inherited members.
+- **"N Protocols signal more than one job"** counts groups of Protocols in a folder, not Protocols: layers that wrap one another (an arm takes the
+  Protocol below it as its one constructor need) or that the same arms implement are one group. Several unrelated Protocols implemented by different
+  arms are still reported; split the folder at the job, or make the layer that wraps another take it as a constructor need if it truly wraps it.
 - **The offenders** are the to-do list, worst first. Each opens with the path or unit to fix (the key a waiver takes) and says what is wrong.
 - **What the number cannot tell you**: whether the split fits the domain, whether code was deleted that production needs (only the contract tests,
   run, can say), how many calls a request makes, or whether two solutions with different names do one job in different words. Read the offenders and
