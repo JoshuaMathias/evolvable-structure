@@ -6,9 +6,20 @@ The same records (problems, ideals, solutions, implementations, metrics) work fo
 
 # Quick Start
 
-```bash
-pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git@v0.4.0#subdirectory=implementations/python"
+Install the skill in Claude Code, so your AI agent applies the principles (other ways: [Install the skill](docs/how-to/install-the-skill.md)):
+
+```text
+/plugin marketplace add JoshuaMathias/evolvable-structure
+/plugin install evolvable-structure@esoi
 ```
+
+Install the latest `esoi` Python package:
+
+```bash
+pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git#subdirectory=implementations/python"
+```
+
+Declare a solution and one implementation beside its code:
 
 ```python
 from esoi import implementation, solution
@@ -21,6 +32,8 @@ def plain(name: str) -> str:
     return f"Hello, {name}!"
 ```
 
+Measure, select and pin the best implementation:
+
 ```bash
 esoi run greet_a_person --impl plain --record   # measure each implementation on the same cases
 esoi select --promote                           # make the measured leader the default
@@ -28,6 +41,8 @@ esoi lock                                       # pin it
 ```
 
 ## One call for any solution or intent
+
+Run any solution or intent by its id from a Python session:
 
 ```pycon
 >>> import esoi
@@ -61,13 +76,15 @@ download or with `esoi`.
 
 ## Check, measure and select with Python
 
+Install the package, scaffold a small passing example repository, and check it:
+
 ```bash
 pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git#subdirectory=implementations/python"
 esoi init            # scaffold a small example repository that already passes (its specifications are in esoi/)
 esoi check           # run every structural rule
 ```
 
-The graceful path: declare once where the code is, call, measure, promote.
+The graceful path: declare once where the code is, call, measure, promote. Declare the interface and an alternative, then call it:
 
 ```python
 from esoi import implementation, solution
@@ -82,6 +99,8 @@ def plain(name: str) -> str:
 greet("Ada")                                 # call: runs the project default (the records' "selected")
 greet("Ada", using="plain")                  # or by name for one call; `with override(...)` for a block
 ```
+
+Sync the records, measure the implementation and promote the winner:
 
 ```bash
 esoi records sync                                # the records follow your declaration
