@@ -2,7 +2,7 @@
 from typing import Dict, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
-from esoi.optimization.measurement_harness.case_count import count_cases
+from esoi.optimization.measurement_harness.interface import count_cases
 
 
 @solution("esoi-behaviour-judge", kind="event", entry="describe", example=".")

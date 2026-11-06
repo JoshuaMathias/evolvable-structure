@@ -26,6 +26,11 @@ def read_csv(path: Path) -> List[Dict[str, str]]:
         return [{k: (v or "") for k, v in row.items() if k} for row in csv.DictReader(handle)]
 
 
+def read_lines(path: Path) -> List[str]:
+    """The lines of a text file, or none when the file is not there."""
+    return path.read_text(encoding="utf-8").splitlines() if path.is_file() else []
+
+
 def read_header(path: Path) -> List[str]:
     with Path(path).open(newline="", encoding="utf-8-sig") as handle:
         return next(csv.reader(handle), [])

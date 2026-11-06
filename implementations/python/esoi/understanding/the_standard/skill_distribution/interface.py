@@ -3,6 +3,9 @@ from typing import Dict, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
+from esoi.understanding.the_standard.skill_distribution.skill import skill_file
+
+__all__ = ["SkillDistributing", "GeneratedPublicCopy", "skill_file"]
 
 
 @solution("skill-distribution", kind="evaluate", entry="copies", example=".")

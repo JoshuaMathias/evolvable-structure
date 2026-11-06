@@ -2,9 +2,9 @@
 from typing import Dict, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
-from esoi.understanding.the_standard.skill_distribution.skill import read_lines
-from esoi.understanding.the_standard.skill_distribution.skill import skill_file
-from esoi.optimization.measurement_harness.case_count import count_cases
+from esoi.structure.intent_registry.tables import read_lines
+from esoi.understanding.the_standard.skill_distribution.interface import skill_file
+from esoi.optimization.measurement_harness.interface import count_cases
 from esoi.understanding.esoi_for_ai.esoi_behaviour_judge.interface import EsoiBehaviourJudging
 
 

@@ -2,8 +2,8 @@
 from typing import Any, Dict, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
-from esoi.understanding.the_standard.skill_distribution.skill import read_lines
-from esoi.understanding.the_standard.skill_distribution.skill import skill_file
+from esoi.structure.intent_registry.tables import read_lines
+from esoi.understanding.the_standard.skill_distribution.interface import skill_file
 
 
 @solution("the-steps", kind="event", entry="describe", example=".")

@@ -5,6 +5,7 @@ from esoi.optimization.measurement_harness.access import loosening
 from esoi.optimization.measurement_harness.arm_loading import load_impl
 from esoi.optimization.measurement_harness.balance import balanced
 from esoi.optimization.measurement_harness.case_loading import load_cases, sample_args
+from esoi.optimization.measurement_harness.case_count import count_cases
 from esoi.optimization.measurement_harness.code_provenance import current_sha
 from esoi.optimization.measurement_harness.component_folder import prepare_path
 from esoi.optimization.measurement_harness.run_command import run_cli
@@ -15,7 +16,7 @@ from esoi.structure.intent_registry.registry import load_project
 
 # What a consumer of the harness needs: load and run a component's cases for an arm, fold the result into the balanced number, narrow the
 # source-access limits, and ask whether a recorded row still describes the code (``stale_reason``, ``defect_reason``, ``code_changed_reason``).
-__all__ = ["MeasurementHarnessing", "ComponentHarness", "RunError", "balanced", "code_changed_reason", "current_sha", "defect_reason", "load_cases",
+__all__ = ["MeasurementHarnessing", "ComponentHarness", "RunError", "balanced", "code_changed_reason", "count_cases", "current_sha", "defect_reason", "load_cases",
            "load_impl", "loosening", "prepare_path", "run_cli", "sample_args", "stale_reason"]
 
 

@@ -382,8 +382,3 @@ def skill_file(project: str, name: str) -> Path:
     if not config.skill:       # a project that keeps no copy of the skill has no such file; reading it gives no lines
         return config.root / name
     return config.root / settings_from(config).dir / name
-
-
-def read_lines(path: Path) -> List[str]:
-    """The lines of a text file, or none when the file is not there."""
-    return path.read_text(encoding="utf-8").splitlines() if path.is_file() else []

@@ -3,7 +3,7 @@ from typing import Dict, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
-from esoi.understanding.the_standard.skill_distribution.skill import read_lines
+from esoi.structure.intent_registry.tables import read_lines
 
 
 @solution("the-standard", kind="event", entry="describe", example=".")
