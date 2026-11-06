@@ -95,6 +95,13 @@ def locked_arm(assembler: Assembler, source: Any, solution_id: str) -> Optional[
 
 # evidence
 
+def attach_evidence(config: Any, snapshot: Dict[str, Any]) -> None:
+    """Add to each solution of a snapshot the ``evidence`` (``verdict``, ``detail``, ``p``) the results log gives it, which ``esoi lock`` records beside the arm it locks."""
+    for sid, found in records_evidence(config).items():
+        if sid in snapshot:
+            snapshot[sid]["evidence"] = found
+
+
 def records_evidence(config: Any, loaded: Any = None) -> Dict[str, Dict[str, Any]]:
     """``{solution_id: {"verdict", "detail", "p"}}`` from the records and the results log of ``config`` (an ``esoi.structure.intent_registry.config.Config``):
     the leaderboard's verdict on each evaluated solution's selected arm, and the smallest Holm-adjusted p-value that the selected

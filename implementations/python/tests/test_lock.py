@@ -11,6 +11,7 @@ import pytest
 from esoi import __main__ as cli
 from esoi.runtime.implementation_selection import lock
 from esoi.runtime.implementation_selection import selection_cascade
+from esoi.runtime.assemble_by_name import intent_map
 from esoi.runtime.implementation_selection import selection_registry
 from esoi.runtime.assemble_by_name.assemble import Assembler
 from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
@@ -268,7 +269,7 @@ def test_a_checkout_with_records_records_the_leaderboard_verdict_and_the_snapsho
         entry = data["solutions"]["greet-a-person"]
         assert entry["verdict"] in ("WIN", "TIE", "LOSS") and entry["evidence"] and "no results recorded" not in entry["evidence"]
         from esoi.structure.intent_registry import config as config_module
-        shipped = selection_cascade.snapshot(config_module.load(repo / "esoi.toml"))
+        shipped = intent_map.snapshot(config_module.load(repo / "esoi.toml"))
         assert shipped["greet-a-person"]["evidence"]["verdict"] == entry["verdict"]
     finally:
         for name in [m for m in sys.modules if m == "demo" or m.startswith("demo.")]:

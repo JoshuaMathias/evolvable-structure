@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from esoi.runtime.assemble_by_name.entry_types import EntryError, Target
 from esoi.runtime.implementation_selection import selection_cascade
+from esoi.runtime.implementation_selection.interface import attach_evidence
 from esoi.runtime.implementation_selection import selection_registry
 
 
@@ -84,9 +85,13 @@ def intent_map(root: Path, scope: str) -> Dict[str, Any]:
 
 
 def snapshot(config: Any) -> Dict[str, Any]:
-    """``runtime.snapshot`` plus, under ``"@intents"``, the intent map: what an installed package needs to answer
+    """``runtime.snapshot`` plus each solution's results-log evidence and, under ``"@intents"``, the intent map: what an installed package needs to answer
     ``run("<intent id>")`` without its records. ``esoi select --snapshot`` writes this."""
     out = selection_cascade.snapshot(config)
+    try:
+        attach_evidence(config, out)
+    except Exception:
+        pass   # a snapshot without evidence is still a snapshot
     try:
         if config.intent_mode:
             out[INTENT_KEY] = intent_map(config.root, config.package or "")
