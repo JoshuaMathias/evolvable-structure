@@ -19,6 +19,7 @@ from esoi.understanding.readable_records import readme
 CACHE: Dict[Tuple[str, str], Tuple[Path, str]] = {}
 RECORDS: Dict[Tuple[str, str], dict] = {}   # the [records] table each laid-out tree is read with
 KEPT = ("intent.csv", *intents.RECORD_FILES)
+KEEPERS: list = []   # the temporary folders of the laid-out trees, cleaned at exit by their finalizers
 
 
 def copy_records(cfg, target: Path) -> None:
@@ -50,7 +51,11 @@ def layout(label: str, arm: str, fresh: bool = False) -> Tuple[Path, str]:
     """``(root of the laid-out tree, digest of its READMEs)`` for one repository under one arm: ``beside_code`` or ``esoi_folder``."""
     if fresh or (label, arm) not in CACHE:
         cfg = config.load(glance_fixture.root_of(label))
-        target = Path(tempfile.mkdtemp(prefix="navigable-"))
+        if (label, arm) in CACHE:
+            shutil.rmtree(CACHE[(label, arm)][0], ignore_errors=True)
+        scratch = tempfile.TemporaryDirectory(prefix="navigable-")
+        KEEPERS.append(scratch)   # removed when the process exits, so no laid-out tree is left in the temporary folder
+        target = Path(scratch.name)
         copy_records(cfg, target)
         stand_in_code(cfg, target)
         records = dict(cfg.records) if isinstance(cfg.records, dict) else {}
