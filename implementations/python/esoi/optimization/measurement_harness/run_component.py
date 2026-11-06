@@ -235,6 +235,13 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     say(f"\n{component} / {args.impl}: {passed}/{total} passed (dev {summary['dev']}, held-out "
         f"{summary['heldout']}), {summary['model_calls']} model calls, {summary['tokens_in']} in / {summary['tokens_out']} out tokens, "
         f"cost {'$' + str(cost) if cost != '' else 'unknown (no price for the model in `prices`)'}, {summary['seconds']}s")
+    if parts:   # the composed headline weights each part by its share, so its counts are not the raw ones that dev and held-out add up
+        raw = foundation.sum_ratio([summary["dev"], summary["heldout"]])
+        say(f"note: {passed}/{total} is the share-weighted equivalent (accuracy times cases); the raw counts are {raw} cases passed, "
+            f"dev {summary['dev']} and held-out {summary['heldout']}")
+    if not summary["model_calls"] and cost not in ("", 0, 0.0):
+        say(f"note: no model was called, so the ${cost} is not money spent: it is the charge the arm's meter priced from the configuration "
+            f"(store size, selected context size, source reads), which the balanced score weighs as cost")
     if "balanced" in summary:
         say(f"balanced score {summary['balanced']} = accuracy {summary['accuracy']}, ${summary['cost_per_case']}/case, "
             f"{summary['seconds_per_case']}s/case (weights and budgets: [balance.{component}] in the configuration)")

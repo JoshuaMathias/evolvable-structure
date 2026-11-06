@@ -99,6 +99,7 @@ def test_matching_digests_reuse_the_foundations_results_and_run_none_of_its_case
     assert summary["cases"] == 6 and summary["accuracy"] == 0.7   # 0.6 * (2 of 4) + 0.4 * (2 of 2)
     assert summary["builds_on"].startswith(f"core={world['foundation']}:good@")
     assert any("reused 4 case(s)" in line and "none run again" in line for line in lines)
+    assert any("share-weighted equivalent" in line and "raw counts are 4/6" in line for line in lines)   # the weighted headline says how it differs from dev + held-out
     recorded = list(csv.DictReader(world["aconf"].results_path.open()))[-1]
     assert recorded["builds_on"] == summary["builds_on"]
     assert stale_reasons.stale_reason(world["aconf"], world["own"], recorded) == ""
