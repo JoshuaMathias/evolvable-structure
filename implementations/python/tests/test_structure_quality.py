@@ -329,6 +329,9 @@ def test_an_arm_that_re_declares_a_library_class_of_its_own_name_takes_its_membe
                              "part/arm.py": "from lib.core.interface import Worker as hub\nimport lib.core.interface as hub_module\n\n@implementation('shared', 'mine')\nclass Worker(hub_module.Worker):\n    pass\n"})
     rows = {name: (problems, members) for _, name, _, problems, members in scope.arm_rows(project.load(tmp_path / "app"))}
     assert rows["Worker"] == ([], 1)
+    write(tmp_path / "app", {"part/arm.py": "from lib.core.interface import Worker as HubWorker\n\n@implementation('shared', 'aliased')\nclass Renamed(HubWorker):\n    pass\n"})
+    rows = {name: problems for _, name, _, problems, _ in scope.arm_rows(project.load(tmp_path / "app"))}
+    assert rows["Renamed"] == []
 
 
 def test_a_base_class_from_an_installed_package_supplies_the_members_an_arm_inherits(tmp_path):

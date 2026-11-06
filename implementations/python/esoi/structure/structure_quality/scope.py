@@ -70,7 +70,7 @@ def arm_rows(project: Project) -> List[tuple]:
     rows = []
     for module, node, sid in arms:
         if sid in protocols:
-            arm_index = base_index(node, index, adopted_index)
+            arm_index = base_index(node, module, index, adopted_index)
             problems, members = arm_problems(node, [protocol_members(p, arm_index) for p in protocols[sid]], arm_index)
             if problems:
                 problems = problems + beside_statements(node, plain[module.unit], index)
@@ -80,11 +80,20 @@ def arm_rows(project: Project) -> List[tuple]:
     return rows
 
 
-def base_index(arm: ast.ClassDef, index: Dict[str, object], adopted_index: Dict[str, object]) -> Dict[str, object]:
+def base_index(arm: ast.ClassDef, module, index: Dict[str, object], adopted_index: Dict[str, object]) -> Dict[str, object]:
     """The class index an arm is read against. An arm that extends a library class of its own name (``class Serper(hub.Serper)``, the way an adopter
-    re-declares a library arm under its own solution) takes that base from the library, not from itself."""
-    same = any(getattr(b, "id", getattr(b, "attr", "")) == arm.name for b in arm.bases)
-    return {**index, arm.name: adopted_index[arm.name]} if same and arm.name in adopted_index else index
+    re-declares a library arm under its own solution) takes that base from the library, not from itself; a base imported under another name
+    (``from lib import Store as HubStore``) is read as the class it names."""
+    out = index
+    if any(getattr(b, "id", getattr(b, "attr", "")) == arm.name for b in arm.bases) and arm.name in adopted_index:
+        out = {**out, arm.name: adopted_index[arm.name]}
+    if module.tree is not None:
+        for node in nodes_of(module.tree):
+            if isinstance(node, ast.ImportFrom):
+                for alias in node.names:
+                    if alias.asname and alias.name in adopted_index and alias.asname not in out:
+                        out = {**out, alias.asname: adopted_index[alias.name]}
+    return out
 
 
 def beside_statements(arm: ast.ClassDef, plain: List[ast.ClassDef], index: Dict[str, object]) -> List[str]:
