@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
+import sys
 from pathlib import Path
 from typing import List, Tuple
 
@@ -16,9 +18,27 @@ def cases_files(component: str, eval_dir: Path) -> List[Path]:
     return ([main] if main else []) + sorted((folder / "datasets").glob("*.json"))
 
 
+def publish_case_sources(component: str, eval_dir: Path) -> None:
+    """Let a component with case sources outside the repository (a private dataset named by an environment variable) write
+    their digest into its ``datasets/`` folder before that folder is hashed. The component offers ``case_sources.py`` with a
+    ``publish()``; without the call here only a run (which loads the cases) would publish, so a run recorded with the dataset
+    and a check made without running would hash different cases for the same case set."""
+    hook = Path(eval_dir) / component / "case_sources.py"
+    if not hook.is_file():
+        return
+    entry = str(Path(eval_dir).resolve())
+    if entry not in sys.path:
+        sys.path.insert(0, entry)
+    spec = importlib.util.spec_from_file_location(f"{component}_case_sources_hook", hook)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.publish()
+
+
 def cases_digest(component: str, eval_dir: Path) -> str:
     """Short hash of everything ``cases_files`` names: the ``cases_sha`` a recorded run is pinned to. Line endings
     are normalised first, because a dataset reviewed as a sheet comes back from the sheet with either kind."""
+    publish_case_sources(component, eval_dir)
     files = cases_files(component, eval_dir)
     if not files:
         return ""

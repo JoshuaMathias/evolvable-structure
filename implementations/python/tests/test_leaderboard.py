@@ -65,6 +65,17 @@ def test_cases_digest_ignores_line_endings(tmp_path):
     assert first == case_identity.cases_digest("c", tmp_path) != "" and case_identity.cases_digest("none", tmp_path) == ""
 
 
+def test_cases_digest_publishes_case_sources_first_so_every_caller_agrees(tmp_path):
+    (tmp_path / "c" / "datasets").mkdir(parents=True)
+    (tmp_path / "c" / "cases.json").write_text("[]")
+    sources = tmp_path / "c" / "datasets" / "sources.json"
+    sources.write_text("absent")
+    (tmp_path / "c" / "case_sources.py").write_text(
+        f"from pathlib import Path\n\ndef publish():\n    Path({str(sources)!r}).write_text('present')\n")
+    digest = case_identity.cases_digest("c", tmp_path)
+    assert sources.read_text() == "present" and digest == case_identity.cases_digest("c", tmp_path)
+
+
 def test_latest_results_keeps_the_newest_row(tmp_path):
     path = tmp_path / "results.csv"
     path.write_text("date,component,impl,cases,passed\n2026-01-01,c,a,10,5\n2026-02-01,c,a,10,7\n")
