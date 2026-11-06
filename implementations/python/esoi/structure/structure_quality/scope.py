@@ -49,9 +49,12 @@ def arm_rows(project: Project) -> List[tuple]:
     plain: Dict[str, List[ast.ClassDef]] = defaultdict(list)
     arms = []
     index: Dict[str, object] = {}
+    adopted_index: Dict[str, object] = {}
     for source in [*libraries, project]:
         for module, node in classes(source):
             index[node.name] = node
+            if source is not project:
+                adopted_index[node.name] = node
             sid = decorator_id(node, "solution")
             if is_protocol(node):
                 if sid:
@@ -67,13 +70,21 @@ def arm_rows(project: Project) -> List[tuple]:
     rows = []
     for module, node, sid in arms:
         if sid in protocols:
-            problems, members = arm_problems(node, [protocol_members(p, index) for p in protocols[sid]], index)
+            arm_index = base_index(node, index, adopted_index)
+            problems, members = arm_problems(node, [protocol_members(p, arm_index) for p in protocols[sid]], arm_index)
             if problems:
                 problems = problems + beside_statements(node, plain[module.unit], index)
         else:
             problems, members = ["its solution declares no Protocol" if sid in known else "its solution id names no solution the project declares"], 0
         rows.append((module.path, node.name, sid, problems, members))
     return rows
+
+
+def base_index(arm: ast.ClassDef, index: Dict[str, object], adopted_index: Dict[str, object]) -> Dict[str, object]:
+    """The class index an arm is read against. An arm that extends a library class of its own name (``class Serper(hub.Serper)``, the way an adopter
+    re-declares a library arm under its own solution) takes that base from the library, not from itself."""
+    same = any(getattr(b, "id", getattr(b, "attr", "")) == arm.name for b in arm.bases)
+    return {**index, arm.name: adopted_index[arm.name]} if same and arm.name in adopted_index else index
 
 
 def beside_statements(arm: ast.ClassDef, plain: List[ast.ClassDef], index: Dict[str, object]) -> List[str]:

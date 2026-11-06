@@ -158,11 +158,11 @@ def declared_solutions(projects: List[Project], protocols: Set[str]) -> Set[str]
 
 
 def arm_problems(arm: ast.ClassDef, protocols: List[Dict[str, Optional[ast.AST]]], index: Dict[str, ast.ClassDef]) -> Tuple[List[str], int]:
-    """``(problems, members)``: what one arm lacks of its solution's interface, measured against the Protocol it comes closest to when the project and
+    """``(problems, members)``: what one arm lacks of its solution's interface, measured against the Protocol it comes closest to (the smallest share of members lacking) when the project and
     an adopted library both declare one for the id (a bare name for a missing member, ``name: reason`` for a method whose parameters do not match),
     and how many members that Protocol declares (the whole against which the lack is a share)."""
-    methods, attributes = inherited_members(arm, index, {arm.name})
-    closest = min(protocols, key=lambda protocol: len(protocol_problems(protocol, methods, attributes)))
+    methods, attributes = inherited_members(arm, index, {arm.name} if index.get(arm.name) is arm else set())
+    closest = min(protocols, key=lambda protocol: len(protocol_problems(protocol, methods, attributes)) / max(len(protocol), 1))
     return protocol_problems(closest, methods, attributes), len(closest)
 
 

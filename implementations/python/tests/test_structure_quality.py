@@ -321,6 +321,16 @@ def test_an_arm_of_an_adopted_solution_is_checked_against_the_library_protocol_a
     assert alone["Mine"] == ["its solution id names no solution the project declares"]
 
 
+def test_an_arm_that_re_declares_a_library_class_of_its_own_name_takes_its_members_from_that_class_and_is_graded_on_the_closest_protocol(tmp_path):
+    write(tmp_path / "lib", {"core/interface.py": "from typing import Protocol\n\n@solution('shared', kind='x', entry='go')\nclass Shared(Protocol):\n    def go(self, item): ...\n\n"
+                                                  "@solution('shared', kind='x', entry='run')\nclass Wide(Protocol):\n    def run(self): ...\n    def stop(self): ...\n    def pause(self): ...\n\n"
+                                                  "class Worker:\n    def go(self, item):\n        return item\n"})
+    write(tmp_path / "app", {"esoi.toml": "[adopts.lib]\nrepo = \"../lib\"\n",
+                             "part/arm.py": "from lib.core.interface import Worker as hub\nimport lib.core.interface as hub_module\n\n@implementation('shared', 'mine')\nclass Worker(hub_module.Worker):\n    pass\n"})
+    rows = {name: (problems, members) for _, name, _, problems, members in scope.arm_rows(project.load(tmp_path / "app"))}
+    assert rows["Worker"] == ([], 1)
+
+
 def test_a_base_class_from_an_installed_package_supplies_the_members_an_arm_inherits(tmp_path):
     write(tmp_path, {"part/interface.py": "from json.encoder import JSONEncoder\nfrom typing import Protocol\n\n@solution('enc', kind='x', entry='default')\nclass Enc(Protocol):\n    def default(self, o): ...\n\n"
                                           "@implementation('enc', 'inherits')\nclass Inherits(JSONEncoder):\n    pass\n"})
