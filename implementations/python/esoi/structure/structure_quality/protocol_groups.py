@@ -5,6 +5,7 @@ and the arms of each layer are built on the one below), or several unrelated job
 folder for being layered. So the Protocols of a folder are grouped, and the budget counts groups. Two Protocols are one group when
 
 - the same arms implement them: they are two faces of one object (the arms of the same solution id, or an arm that extends both), or
+- one extends the other: a Protocol that refines another adds members to the same job, or
 - they form a delegation chain: an arm of one Protocol's solution takes exactly one Protocol of the folder as a constructor need, which is how a layer
   wraps the layer it delegates to.
 
@@ -15,7 +16,7 @@ implements has no evidence of being part of anything and is a group of its own. 
 from __future__ import annotations
 
 import ast
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from esoi.structure.structure_quality.conformance import decorator_id, is_protocol
 
@@ -57,11 +58,17 @@ class Groups:
         self.parent[self.find(first)] = self.find(second)
 
 
-def group_protocols(protocols: Dict[str, List[Tuple[str, str]]], arms: List[Tuple[str, ast.ClassDef, str]]) -> List[List[str]]:
+def group_protocols(protocols: Dict[str, List[Tuple[str, str]]], arms: List[Tuple[str, ast.ClassDef, str]],
+                    extends: Optional[Dict[str, Set[str]]] = None) -> List[List[str]]:
     """The groups of Protocol names of one folder. ``protocols`` maps each Protocol name of the folder to its ``(path, solution id)`` and ``arms`` are
-    ``(path, class, solution id)`` for every arm of the project (an arm anywhere may build on a Protocol of this folder)."""
+    ``(path, class, solution id)`` for every arm of the project (an arm anywhere may build on a Protocol of this folder). ``extends`` maps a Protocol
+    name to the base class names it lists: one that extends another Protocol of the folder is in its group."""
     names = sorted(protocols)
     groups = Groups(names)
+    for name in names:
+        for base in (extends or {}).get(name, ()):
+            if base in groups.parent and base != name:
+                groups.join(name, base)
     implementers: Dict[str, Set[str]] = {n: set() for n in names}
     for _, arm, sid in arms:
         extended = {getattr(b, "id", getattr(b, "attr", "")) for b in arm.bases}
@@ -84,14 +91,17 @@ def group_protocols(protocols: Dict[str, List[Tuple[str, str]]], arms: List[Tupl
     return list(found.values())
 
 
-def collect(classes_of_project) -> Tuple[Dict[str, Dict[str, Tuple[str, str]]], List[Tuple[str, ast.ClassDef, str]]]:
-    """From ``(module, class)`` pairs: the Protocols of each unit (name to ``(path, solution id)``) and every arm of the project."""
+def collect(classes_of_project) -> Tuple[Dict[str, Dict[str, Tuple[str, str]]], List[Tuple[str, ast.ClassDef, str]], Dict[str, Set[str]]]:
+    """From ``(module, class)`` pairs: the Protocols of each unit (name to ``(path, solution id)``), every arm of the project, and the base class names
+    each Protocol lists."""
     protocols: Dict[str, Dict[str, Tuple[str, str]]] = {}
     arms: List[Tuple[str, ast.ClassDef, str]] = []
+    extends: Dict[str, Set[str]] = {}
     for module, node in classes_of_project:
         if is_protocol(node):
             protocols.setdefault(module.unit, {})[node.name] = (module.path, decorator_id(node, "solution"))
+            extends.setdefault(node.name, set()).update(getattr(b, "id", getattr(b, "attr", "")) for b in node.bases)
         arm = decorator_id(node, "implementation")
         if arm:
             arms.append((module.path, node, arm))
-    return protocols, arms
+    return protocols, arms, extends

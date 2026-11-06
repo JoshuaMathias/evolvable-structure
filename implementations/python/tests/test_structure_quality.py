@@ -256,6 +256,17 @@ def test_compare_checks_out_git_references_into_a_temporary_worktree_and_removes
         compare.compare("no-such-ref", "HEAD", lambda folder, stage: assess.assess(str(folder), stage), repo=str(tmp_path))
 
 
+def test_a_git_reference_is_read_with_the_libraries_the_project_adopts_from(tmp_path):
+    write(tmp_path / "lib", {"core/interface.py": "from typing import Protocol\n\n@solution('shared', kind='x', entry='go')\nclass Shared(Protocol):\n    def go(self, item): ...\n"})
+    app = tmp_path / "app"
+    write(app, {"esoi.toml": "[adopts.lib]\nrepo = \"../lib\"\n", "part/arm.py": "@implementation('shared', 'mine')\nclass Mine:\n    def go(self, item):\n        return item\n"})
+    for args in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "one"]):
+        subprocess.run(["git", "-C", str(app), "-c", "user.name=t", "-c", "user.email=t@example.com", *args], check=True, capture_output=True)
+    seen = []
+    compare.compare("HEAD", str(app), lambda folder, stage: seen.append(scope.arms_on_interface(project.load(folder))) or assess.assess(str(folder), stage), repo=str(app))
+    assert seen[0] == seen[1] and all(problems == [] for _, _, _, problems in seen[0])
+
+
 def test_the_second_side_of_a_compare_reads_only_the_files_that_changed(tmp_path):
     first = structure_fixture.project("clean_exemplar")
     assess.assess(str(first))
@@ -486,6 +497,8 @@ def test_protocols_the_same_arms_implement_and_layers_that_wrap_one_another_are_
     arms = [("a.py", layer, "upper"), ("a.py", root, "root-job"), ("a.py", ast.parse("class Twin:\n    pass\n").body[0], "twin")]
     groups = protocol_groups.group_protocols(protocols, arms)
     assert sorted(sorted(g) for g in groups) == [["ADoing"], ["BDoing"], ["BelowDoing", "UpperDoing"], ["CDoing"], ["FaceOne", "FaceTwo"], ["LoneDoing"]]
+    refined = protocol_groups.group_protocols(protocols, arms, {"LoneDoing": {"ADoing", "Protocol"}})
+    assert ["ADoing", "LoneDoing"] in sorted(sorted(g) for g in refined)   # a Protocol that extends another adds members to the same job
 
 
 def test_the_share_of_arms_on_their_interface_is_scored_by_severity_not_linearly():

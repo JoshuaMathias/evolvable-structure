@@ -180,9 +180,9 @@ def interface_score(conformance: Optional[float]) -> Optional[float]:
 
 def protocols_per_unit(project: Project) -> Dict[str, List[str]]:
     """Per folder, one name for each group of Protocols that are one job (see ``protocol_groups.py``): layered Protocols used by the same arms or
-    chained by delegation count once, Protocols that different arms implement count apart."""
-    protocols, arms = collect(classes(project))
-    return {unit: [members[0] for members in group_protocols(found, arms)] for unit, found in protocols.items()}
+    chained by delegation or extending one another count once, Protocols that different arms implement count apart."""
+    protocols, arms, extends = collect(classes(project))
+    return {unit: [members[0] for members in group_protocols(found, arms, extends)] for unit, found in protocols.items()}
 
 
 def arm_purposes(project: Project) -> Dict[str, List[str]]:

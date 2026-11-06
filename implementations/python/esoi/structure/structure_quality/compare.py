@@ -12,6 +12,7 @@ from __future__ import annotations
 import re
 import subprocess
 import tempfile
+import tomllib
 from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
@@ -32,6 +33,21 @@ def same_offender(text: str) -> str:
     return PATHS.sub(r"\1", text)
 
 
+def link_adopted_libraries(folder: Path, repo: Path) -> None:
+    """Make the libraries the project adopts from (``[adopts.<library>] repo = "../library"``) reachable from the temporary checkout, as they are from
+    the project: a link beside the checkout to each sibling folder the project names, so a reference is read with the same Protocols as a folder."""
+    config = folder / "esoi.toml"
+    try:
+        adopts = tomllib.loads(config.read_text(encoding="utf-8")).get("adopts", {}) if config.is_file() else {}
+    except (OSError, tomllib.TOMLDecodeError):
+        return
+    for entry in adopts.values() if isinstance(adopts, dict) else []:
+        relative = str(entry.get("repo", "")) if isinstance(entry, dict) else ""
+        real, link = (repo / relative).resolve(), (folder / relative).resolve()
+        if relative and real.is_dir() and link.parent == folder.parent and not link.exists():
+            link.symlink_to(real, target_is_directory=True)
+
+
 @contextmanager
 def checked_out(side: str, repo: Path) -> Iterator[Path]:
     """The folder of one side: the folder itself, or a temporary worktree of the git reference in ``repo``. The worktree is removed and pruned and its
@@ -46,6 +62,7 @@ def checked_out(side: str, repo: Path) -> Iterator[Path]:
         folder = Path(parent) / "tree"
         try:
             subprocess.run(["git", "-C", str(repo), "worktree", "add", "--detach", str(folder), found.stdout.strip()], capture_output=True, text=True, check=True)
+            link_adopted_libraries(folder, repo)
             yield folder
         finally:
             subprocess.run(["git", "-C", str(repo), "worktree", "remove", "--force", str(folder)], capture_output=True, text=True)
