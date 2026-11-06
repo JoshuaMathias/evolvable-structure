@@ -80,7 +80,7 @@ def count_stale(config: Config, rule: str) -> Dict[str, str]:
     """``{component/impl: reason}`` for every latest whole-run row that the rule calls stale because measured code changed (a row
     stale for another reason is left out); how a rule would judge the rows now, whatever the repository configured."""
     from esoi.optimization.leaderboard import results_log
-    from esoi.optimization.measurement_harness.stale_reasons import stale_reason
+    from esoi.optimization.measurement_harness.interface import stale_reason
     saved = config.staleness_rule
     config.staleness_rule = rule
     try:

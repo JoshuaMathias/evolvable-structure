@@ -10,7 +10,7 @@ import subprocess
 import pytest
 
 from esoi import __main__ as cli
-from esoi.optimization.measurement_harness import stale_reasons
+from esoi.optimization.measurement_harness import interface as harness_interface
 from esoi.runtime.consumer_check import follow
 from esoi.structure.intent_registry import tables
 from esoi.structure.intent_registry import config as config_module
@@ -141,7 +141,7 @@ def test_a_malformed_override_is_reported_as_advice_and_never_fails(repo, tmp_pa
 
 def test_a_stale_row_is_marked_with_the_command_that_re_records_it(repo, tmp_path, monkeypatch):
     cfg = child(repo, "live", scores={"live": 2, "shout": 1})
-    monkeypatch.setattr(stale_reasons, "stale_reason", lambda config, comp, row, strict=True: "measured code changed" if row["impl"] == "shout" else "")
+    monkeypatch.setattr(harness_interface, "stale_reason", lambda config, comp, row, strict=True: "measured code changed" if row["impl"] == "shout" else "")
     found = only(follow.follow(cfg, parent(tmp_path, "shout")))
     assert found.verdict == "keep" and "shout: measured code changed" in found.stale
     assert found.steps[0].command == "esoi run greet_a_person --impl shout --record" and found.steps[0].free

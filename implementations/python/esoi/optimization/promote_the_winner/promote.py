@@ -30,7 +30,7 @@ from esoi.optimization.leaderboard import arm_selection, case_identity, held_out
 from esoi.structure.intent_registry import intents
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.specify_from_code.declarations import intent_folder
-from esoi.optimization.measurement_harness.stale_reasons import stale_reason
+from esoi.optimization.measurement_harness.interface import stale_reason
 from esoi.structure.intent_registry.registry import Registry
 from esoi.runtime.implementation_selection.select import load_table
 from esoi.structure.intent_registry.tables import ids, read_csv, read_header, write_csv

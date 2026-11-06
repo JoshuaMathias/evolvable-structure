@@ -26,11 +26,8 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from esoi.runtime.assemble_by_name import hierarchy
-from esoi.optimization.measurement_harness import case_loading
-from esoi.optimization.measurement_harness import component_folder
-from esoi.optimization.when_metrics_are_run import paid_gating
-from esoi.optimization.measurement_harness import run_command
-from esoi.optimization.measurement_harness import stale_reasons
+from esoi.optimization.measurement_harness import interface as harness
+from esoi.optimization.when_metrics_are_run import interface as gating
 from esoi.optimization.leaderboard import arm_selection, case_identity, ranking, results_log, rival_decisions, rival_pairing, switching_policy
 from esoi.runtime.implementation_selection import lock as lock_module, variants
 from esoi.structure.intent_registry import registry as registry_module
@@ -182,9 +179,9 @@ def override_rows(config: Config, loaded: Any, parent: Dict[str, str]) -> Tuple[
 
 def steps_for(config: Config, component: str, impl: str, row: Optional[Dict[str, str]], like: Optional[Dict[str, str]]) -> Step:
     """The command that records ``impl`` on the sample ``like`` was scored on, and whether it is free."""
-    why = paid_gating.paid_reason(config, component, impl, row)
-    paid = bool(why) or paid_gating.declared_live(config, component, impl, None)
-    flags = case_loading.sample_args(config, component, like)
+    why = gating.paid_reason(config, component, impl, row)
+    paid = bool(why) or gating.declared_live(config, component, impl, None)
+    flags = harness.sample_args(config, component, like)
     if paid:
         command = " ".join(["esoi", "run", component, "--impl", impl, *flags, "--max-calls", "<budget>", "--record"])
         return Step(command, f"paid ({why or 'declared live'}): estimate the cost, stage the sample, set the call budget and get approval first; never run here",
@@ -198,7 +195,7 @@ def runnable(config: Config, loaded: Any, row: Dict[str, str], component: str, i
     sid = row.get("solution_id", "")
     listed = {arm for comp, arm in registry_module.harness_arms(config, row.get("metric_command", "")) if comp == component}
     recorded = {r.get("implementation_id", "").partition(":")[2].strip().lower() for r in loaded.implementations if r.get("solution_id") == sid}
-    return paid_gating.impl_path(config, component, impl).is_file() or impl in listed or impl in recorded
+    return gating.impl_path(config, component, impl).is_file() or impl in listed or impl in recorded
 
 
 def judge(config: Config, loaded: Any, row: Optional[Dict[str, str]], sid: str, kind: str, parent_arm: str, child_arm: str) -> Finding:
@@ -214,7 +211,7 @@ def judge(config: Config, loaded: Any, row: Optional[Dict[str, str]], sid: str, 
         child_arm, found.child_arm = measured, measured   # the records name the arm by its file; the metric knows it by its arm name
     mine, theirs = rows.get(child_arm), rows.get(parent_arm)
     for impl, rec in ((child_arm, mine), (parent_arm, theirs)):
-        if rec is not None and (why := stale_reasons.stale_reason(config, comp, rec, True)):
+        if rec is not None and (why := harness.stale_reason(config, comp, rec, True)):
             found.stale += f"{impl}: {why}; "
             found.steps.append(steps_for(config, comp, impl, rec, mine))
     found.stale = found.stale.rstrip("; ")
@@ -328,8 +325,8 @@ def run_free(config: Config, report: Report, say: Callable[[str], None]) -> int:
             if step.free and key not in seen:
                 seen.add(key)
                 say(f"running (free, offline): {step.command}")
-                component_folder.prepare_path(config)
-                run_command.run_cli([step.component, "--impl", step.impl, *step.args], config, say)
+                harness.prepare_path(config)
+                harness.run_cli([step.component, "--impl", step.impl, *step.args], config, say)
                 ran += 1
     return ran
 

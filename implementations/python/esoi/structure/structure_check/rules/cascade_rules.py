@@ -7,7 +7,7 @@ from __future__ import annotations
 import datetime
 
 from esoi.optimization.leaderboard import arm_selection, cascade_stages, stage_standings
-from esoi.optimization.measurement_harness.stale_reasons import defect_reason, stale_reason
+from esoi.optimization.measurement_harness.interface import defect_reason, stale_reason
 from esoi.structure.intent_registry.tables import ids
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
 

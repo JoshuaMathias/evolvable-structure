@@ -48,7 +48,7 @@ def run_cli(config, solution: str = "", strict: bool = False, say: Callable[[str
     implementation the cascade chooses against the selected one, and the next stage worth running. With ``strict`` it
     exits 1 when the chosen implementation is not the selected one."""
     from esoi.optimization.when_metrics_are_run.public_evidence import evidence_grading, evidence_records
-    from esoi.optimization.measurement_harness import stale_reasons
+    from esoi.optimization.measurement_harness import interface as harness
     from esoi.structure.intent_registry import registry as registry_module
     from esoi.structure.intent_registry.tables import ids
     loaded = registry_module.load(config)
@@ -76,7 +76,7 @@ def run_cli(config, solution: str = "", strict: bool = False, say: Callable[[str
         if not stages or not component or component not in history:
             say("  no results yet: every stage is not run" if stages else "  fix the list to read it")
             continue
-        standing = standings(stages, history[component], today, lambda row: stale_reasons.stale_reason(config, component, row, True),
+        standing = standings(stages, history[component], today, lambda row: harness.stale_reason(config, component, row, True),
                              config.evaluation)
         for impl, s in sorted(standing.items()):
             say(f"  {impl}: " + "; ".join(f"{stage.name} {describe(s.rows.get(i))}"

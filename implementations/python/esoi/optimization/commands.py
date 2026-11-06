@@ -7,9 +7,8 @@ from pathlib import Path
 
 
 def run_run(config, args: argparse.Namespace) -> int:
-    from esoi.optimization.measurement_harness import run_command
-    from esoi.optimization.measurement_harness import stale_reasons
-    return run_command.run_cli(args.rest, config)
+    from esoi.optimization.measurement_harness import interface as harness
+    return harness.run_cli(args.rest, config)
 
 
 def run_cassette(config, args: argparse.Namespace) -> int:
@@ -44,13 +43,12 @@ def run_stale(config, args: argparse.Namespace) -> int:
 
 def run_leaderboard(config, args: argparse.Namespace) -> int:
     from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import attest
-    from esoi.optimization.measurement_harness import run_command
-    from esoi.optimization.measurement_harness import stale_reasons
+    from esoi.optimization.measurement_harness import interface as harness
     from esoi.optimization.leaderboard import board_report
     from esoi.structure.intent_registry import registry
     from esoi.structure.intent_registry import intents
     with intents.session():
-        return board_report.board(config, registry.load(config), args.strict, stale=stale_reasons.stale_reason, attested=attest.note)
+        return board_report.board(config, registry.load(config), args.strict, stale=harness.stale_reason, attested=attest.note)
 
 
 def run_cascade(config, args: argparse.Namespace) -> int:

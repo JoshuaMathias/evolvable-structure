@@ -44,7 +44,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from esoi.optimization.measurement_harness import access, balance
 from esoi.optimization.leaderboard import case_identity, results_log, cascade_stages, stage_standings
 from esoi.structure.intent_registry import config as config_module
 from esoi.runtime.implementation_selection import variants
@@ -177,13 +176,7 @@ def parse_identity(cell: str) -> List[Tuple[str, str, str, str, str]]:
 
 def code_reason(fconf: Config, target: str, arm: str, git_sha: str, cases_sha: str) -> str:
     """Why a foundation arm measured at ``git_sha`` on ``cases_sha`` no longer describes the foundation, or an empty string."""
-    from esoi.optimization.measurement_harness import arm_loading
-    from esoi.optimization.measurement_harness import case_loading
-    from esoi.optimization.measurement_harness import code_provenance
-    from esoi.optimization.measurement_harness import component_folder
-    from esoi.optimization.when_metrics_are_run import paid_gating
-    from esoi.optimization.measurement_harness import run_errors
-    from esoi.optimization.measurement_harness import stale_reasons
+    from esoi.optimization.measurement_harness import interface as harness
     now = case_identity.cases_digest(target, fconf.evaluation)
     if cases_sha != now:
         return f"the foundation's cases changed (measured on {cases_sha or 'blank'}, now {now})"
@@ -191,7 +184,7 @@ def code_reason(fconf: Config, target: str, arm: str, git_sha: str, cases_sha: s
         return "the foundation's code has no known commit"
     if git_sha.endswith("-dirty"):
         return "it was measured on uncommitted foundation code"
-    return stale_reasons.code_changed_reason(fconf, target, {"impl": arm, "git_sha": git_sha})
+    return harness.code_changed_reason(fconf, target, {"impl": arm, "git_sha": git_sha})
 
 
 def stale_reason(config: Config, component: str, row: Dict[str, str]) -> str:
@@ -211,19 +204,13 @@ def stale_reason(config: Config, component: str, row: Dict[str, str]) -> str:
 
 def recorded_part(f: Foundation, arm: str) -> Tuple[Optional[Part], str]:
     """The foundation's latest whole-set row for ``arm`` as a part, or ``(None, why it cannot be reused)``."""
-    from esoi.optimization.measurement_harness import arm_loading
-    from esoi.optimization.measurement_harness import case_loading
-    from esoi.optimization.measurement_harness import code_provenance
-    from esoi.optimization.measurement_harness import component_folder
-    from esoi.optimization.when_metrics_are_run import paid_gating
-    from esoi.optimization.measurement_harness import run_errors
-    from esoi.optimization.measurement_harness import stale_reasons
+    from esoi.optimization.measurement_harness import interface as harness
     fconf = load_config(f)
     rows = [r for r in results_log.all_results(fconf.results_path).get(f.target, {}).get(arm, []) if not (r.get("sample") or "").strip()]
     if not rows:
         return None, f"the foundation has no recorded whole-set result for {arm}"
     row = rows[-1]
-    if why := stale_reasons.stale_reason(fconf, f.target, row):
+    if why := harness.stale_reason(fconf, f.target, row):
         return None, why
     per = [dict(r) for r in results_log.per_case_rows(fconf)
            if (r["component"], r["impl"], r["cases_sha"], (r["sample"] or "").strip()) == (f.target, arm, row["cases_sha"], "")]
@@ -239,19 +226,14 @@ def run_part(f: Foundation, arm: str, consumer_fn: Callable, adapter: Optional[C
              reason: str) -> Optional[Part]:
     """Run the foundation's cases through the foundation's own scorer. With a named foundation arm it is the foundation's own build of that arm;
     without one the consumer's ``adapter(name, fn)`` turns the consumer's arm into what the foundation's scorer calls."""
-    from esoi.optimization.measurement_harness import arm_loading
-    from esoi.optimization.measurement_harness import case_loading
-    from esoi.optimization.measurement_harness import code_provenance
-    from esoi.optimization.measurement_harness import component_folder
-    from esoi.optimization.when_metrics_are_run import paid_gating
-    from esoi.optimization.measurement_harness import run_errors
-    from esoi.optimization.measurement_harness import stale_reasons
+    from esoi.optimization.measurement_harness import interface as harness
+    from esoi.optimization.when_metrics_are_run import interface as gating
     fconf = load_config(f)
-    component_folder.prepare_path(fconf)
-    cases = case_loading.load_cases(f.target, fconf)
+    harness.prepare_path(fconf)
+    cases = harness.load_cases(f.target, fconf)
     score = importlib.import_module(f"{f.target}.score")
     if arm:
-        fn = arm_loading.load_impl(arm, f.target, fconf)(meter)
+        fn = harness.load_impl(arm, f.target, fconf)(meter)
     elif adapter is not None and (fn := adapter(f.name, consumer_fn)) is not None:
         pass
     else:
@@ -264,14 +246,14 @@ def run_part(f: Foundation, arm: str, consumer_fn: Callable, adapter: Optional[C
         before, t0, cost0 = meter.calls, time.time(), meter.cost_usd
         try:
             row = score.score_case(fn, case)
-        except paid_gating.BudgetExceeded:
+        except gating.BudgetExceeded:
             raise
         except Exception as exc:   # a case that raises fails; the run goes on
             row = dict(ok=False, note=f"{type(exc).__name__}: {exc}")
         row.update(id=case["id"], calls=meter.calls - before, seconds=round(time.time() - t0, 1), heldout=bool(case.get("heldout")))
         rows.append(row)
     held = [r for r in rows if r["heldout"]]
-    sha = code_provenance.current_sha(fconf, f.target, arm) if arm else code_provenance.current_sha(fconf)
+    sha = harness.current_sha(fconf, f.target, arm) if arm else harness.current_sha(fconf)
     ident = identity(f, arm or "(consumer arm)", sha, case_identity.cases_digest(f.target, fconf.evaluation))
     return Part(f.name, arm or "(consumer arm)", len(rows), float(sum(bool(r["ok"]) for r in rows)), meter.calls - spent["calls"],
                 meter.tokens_in - spent["tin"], meter.tokens_out - spent["tout"], round(meter.cost_usd - spent["cost"], 6),
@@ -283,13 +265,7 @@ def run_part(f: Foundation, arm: str, consumer_fn: Callable, adapter: Optional[C
 def measure(config: Config, component: str, impl: str, consumer_fn: Callable, adapter: Optional[Callable], meter: Any,
             say: Callable[[str], None]) -> List[Part]:
     """The part each foundation contributes for this arm: reuse a current recorded result, else the policy's choice (see the module docstring)."""
-    from esoi.optimization.measurement_harness import arm_loading
-    from esoi.optimization.measurement_harness import case_loading
-    from esoi.optimization.measurement_harness import code_provenance
-    from esoi.optimization.measurement_harness import component_folder
-    from esoi.optimization.when_metrics_are_run import paid_gating
-    from esoi.optimization.measurement_harness import run_errors
-    from esoi.optimization.measurement_harness import stale_reasons
+    from esoi.optimization.measurement_harness import interface as harness
     named, parts = declared_arms(config, component, impl), []
     for f in declared(config, component):
         arm = named.get(f.name, "")
@@ -301,7 +277,7 @@ def measure(config: Config, component: str, impl: str, consumer_fn: Callable, ad
             say(f"{f.name}: reused {found.cases} case(s) of {f.root.name}'s {f.target} for {arm} ({found.identity}); none run again")
             parts.append(found)
         elif f.on_stale == "report":
-            raise run_errors.RunError(f"the foundation {f.name} cannot be reused: {why} (on_stale = report, so nothing is run; "
+            raise harness.RunError(f"the foundation {f.name} cannot be reused: {why} (on_stale = report, so nothing is run; "
                                    f"re-record {arm or 'the foundation arm'} in {f.root.name} and run again)")
         elif (ran := run_part(f, arm, consumer_fn, adapter, meter, say, why)) is not None:
             parts.append(ran)
@@ -314,6 +290,7 @@ def blend(own: Dict[str, Any], own_cost: Any, parts: List[Part], foundations: Li
     """The composed summary fields: parts and the consumer's own cases weighted by share (shares renormalised over the parts present), then
     folded by the consumer's ``[balance.<component>]``. ``own`` is the consumer's own run summary (``cases``, ``passed``, ``seconds`` ...)."""
     weights = {p.name: next(f.share for f in foundations if f.name == p.name) for p in parts}
+    from esoi.optimization.measurement_harness import interface as harness
     own_share = 1.0 - sum(f.share for f in foundations)
     if own["cases"]:
         weights[""] = own_share
@@ -332,7 +309,7 @@ def blend(own: Dict[str, Any], own_cost: Any, parts: List[Part], foundations: Li
                dev=sum_ratio([own["dev"]] + [p.dev for p in parts]), heldout=sum_ratio([own["heldout"]] + [p.heldout for p in parts]),
                builds_on=";".join(p.identity for p in parts))
     if cost_pc is not None:
-        out.update(balance.balanced(accuracy * cases, cases, cost_pc * cases, seconds_pc * cases, table))
+        out.update(harness.balanced(accuracy * cases, cases, cost_pc * cases, seconds_pc * cases, table))
     return out
 
 
@@ -356,13 +333,7 @@ def note_for(part: Part, share: float) -> str:
 def inherited_gate(config: Config, component: str, impl: str) -> Callable[[cascade_stages.Stage], Tuple[bool, str]]:
     """``gate(stage) -> (met, why)``: whether the foundation stage a consumer stage ``inherits`` has passed for the foundation arm this arm names,
     by the foundation's own stage definition (gate, floor, expiry and staleness all the foundation's)."""
-    from esoi.optimization.measurement_harness import arm_loading
-    from esoi.optimization.measurement_harness import case_loading
-    from esoi.optimization.measurement_harness import code_provenance
-    from esoi.optimization.measurement_harness import component_folder
-    from esoi.optimization.when_metrics_are_run import paid_gating
-    from esoi.optimization.measurement_harness import run_errors
-    from esoi.optimization.measurement_harness import stale_reasons
+    from esoi.optimization.measurement_harness import interface as harness
     from esoi.structure.intent_registry import registry as registry_module
     named, foundations = declared_arms(config, component, impl), declared(config, component)
 
@@ -382,7 +353,7 @@ def inherited_gate(config: Config, component: str, impl: str) -> Callable[[casca
                 if theirs is None or errors:
                     continue
                 history = results_log.all_results(fconf.results_path).get(f.target, {}).get(arm, [])
-                standing = stage_standings.standings(stages, {arm: history}, None, lambda row, c=fconf: stale_reasons.stale_reason(c, f.target, row, True),
+                standing = stage_standings.standings(stages, {arm: history}, None, lambda row, c=fconf: harness.stale_reason(c, f.target, row, True),
                                              fconf.evaluation).get(arm)
                 row = standing.rows.get(theirs) if standing else None
                 if row is None:

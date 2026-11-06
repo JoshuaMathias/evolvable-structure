@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import Dict, List
 
 from esoi.optimization.leaderboard import arm_selection, case_identity, held_out_parts, results_log, rival_decisions, rival_pairing, switching_policy
-from esoi.optimization.measurement_harness.stale_reasons import defect_reason, stale_reason
-from esoi.optimization.when_metrics_are_run.paid_gating import declares_simulated
+from esoi.optimization.measurement_harness.interface import defect_reason, stale_reason
+from esoi.optimization.when_metrics_are_run.interface import declares_simulated
 from esoi.structure.intent_registry.records import FILES
 from esoi.structure.intent_registry.registry import adopts
 from esoi.structure.intent_registry.tables import ids
