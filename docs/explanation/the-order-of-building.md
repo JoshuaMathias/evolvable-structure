@@ -9,7 +9,7 @@ offerings, how an AI behaves); code is one case. Each step says what it settles,
 1. **Define and refine the hierarchy of intents and solutions, with vision statements.** The hierarchy decides the scope of each
    category: what belongs under which intent, which solutions are containers for which jobs, and what is out of scope. Write each
    intent's vision statement here, one short sentence about the whole concept. Problems and ideals come with it, because they say why
-   each solution exists. Merge, split and move solutions until each has one purpose.
+   each solution exists. Merge, split and move solutions until each has one purpose. Before adding a solution, extend an existing one if the need fits it ([extend before adding a solution](extend-before-adding-a-solution.md)).
    Every merge, split, adoption or move is an alternative structure: run `esoi structure-quality` before it and `esoi structure-quality --compare <before> <after>`
    after it, and keep the change only when the balanced number holds or rises, with the reason stated when it does not.
 2. **Write each solution's interface and the intent's coherence paragraph together, and refine them against each other until

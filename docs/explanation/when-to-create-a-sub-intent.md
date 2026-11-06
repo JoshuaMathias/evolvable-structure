@@ -187,3 +187,5 @@ metric. Neither is a sub-intent.
 5. Otherwise make it an implementation of the parent's solution, as a sub-intent, linking both ways; give it a metric or
    inherit the solution's, and list the solutions it builds on.
 6. If an intent has grown unwieldy, look for independent clusters in its network and restructure.
+
+Before creating a solution at all, see [extend before adding a solution](extend-before-adding-a-solution.md).

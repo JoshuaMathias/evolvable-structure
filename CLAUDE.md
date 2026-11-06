@@ -37,6 +37,7 @@ The main feature is explanation and templates that need no code; Python is one e
 
 - **`SKILL.md` is Joshua's and the authority.** Never edit it. The intent template and the definitions and principles are
   quoted from it by `esoi template sync`; do not restate them in other words.
+- **Extend before adding a solution.** A new behaviour is first a case, a metric stage, an arm or a flow step of an existing solution; a new solution needs a distinct purpose, competing alternatives and lasting existence (`docs/explanation/extend-before-adding-a-solution.md`).
 - **Adopters are examples only.** Name them in `examples/` and nowhere else, except that the generated `skill/` frames the author's own frameworks as its examples (a test enforces it). No adopter's
   configuration, plugin or migration code lives here.
 - **This repository is public.** No keys, real user or team ids, real people's emails, internal names, or absolute machine

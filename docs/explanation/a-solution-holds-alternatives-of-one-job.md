@@ -32,4 +32,4 @@ specificity before reading anything else. esoi does not check this: grouping arm
 a word-overlap heuristic over names and descriptions would flag solutions whose arms are merely described differently, so there is no
 rule for it, only this page and the review step.
 
-See also [what belongs where](what-belongs-where.md) and [when to create a sub-intent](when-to-create-a-sub-intent.md).
+See also [extend before adding a solution](extend-before-adding-a-solution.md), [what belongs where](what-belongs-where.md) and [when to create a sub-intent](when-to-create-a-sub-intent.md).
