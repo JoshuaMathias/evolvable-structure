@@ -70,7 +70,7 @@ def arm_rows(project: Project) -> List[tuple]:
     rows = []
     for module, node, sid in arms:
         if sid in protocols:
-            arm_index = base_index(node, module, index, adopted_index)
+            arm_index = imported_bases(node, module, project, base_index(node, module, index, adopted_index))
             problems, members = arm_problems(node, [protocol_members(p, arm_index) for p in protocols[sid]], arm_index)
             if problems:
                 problems = problems + beside_statements(node, plain[module.unit], index)
@@ -93,6 +93,26 @@ def base_index(arm: ast.ClassDef, module, index: Dict[str, object], adopted_inde
                 for alias in node.names:
                     if alias.asname and alias.name in adopted_index and alias.asname not in out:
                         out = {**out, alias.asname: adopted_index[alias.name]}
+    return out
+
+
+def imported_bases(arm: ast.ClassDef, module, project: Project, index: Dict[str, object]) -> Dict[str, object]:
+    """The index with each base of the arm that the module imports from another module of the project read as the class of that module, so two
+    classes of one name in different modules (two ``CardsMixin``) are not mixed up."""
+    wanted = {getattr(b, "id", getattr(b, "attr", "")) for b in arm.bases}
+    out = index
+    for node in nodes_of(module.tree) if module.tree is not None else ():
+        if isinstance(node, ast.ImportFrom):
+            resolved = resolve_import(node, module.path)
+            for position, alias in enumerate(node.names):
+                if alias.name not in wanted or (alias.asname or alias.name) not in wanted:
+                    continue
+                base = resolved[0][0] if len(resolved) == 1 else resolved[position][0]
+                target = project.index.get(f"{base}.{alias.name}") or project.index.get(base)
+                if target in project.modules:
+                    for found, node_class in classes(project):
+                        if found.path == project.modules[target].path and node_class.name == alias.name:
+                            out = {**out, alias.asname or alias.name: node_class}
     return out
 
 

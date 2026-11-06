@@ -334,6 +334,15 @@ def test_an_arm_that_re_declares_a_library_class_of_its_own_name_takes_its_membe
     assert rows["Renamed"] == []
 
 
+def test_two_base_classes_of_one_name_in_different_modules_are_told_apart_by_the_import(tmp_path):
+    write(tmp_path, {"part/interface.py": "from typing import Protocol\n\n@solution('s', kind='x', entry='go')\nclass S(Protocol):\n    def go(self): ...\n",
+                     "part/aaa_real.py": "class Mixin:\n    def go(self):\n        return 1\n",
+                     "part/zzz_other.py": "class Mixin:\n    def go(self):\n        raise NotImplementedError\n",
+                     "part/arm.py": "from part.aaa_real import Mixin\n\n@implementation('s', 'mine')\nclass Arm(Mixin):\n    pass\n"})
+    rows = {name: problems for _, name, _, problems, _ in scope.arm_rows(project.load(tmp_path))}
+    assert rows["Arm"] == []
+
+
 def test_a_base_class_from_an_installed_package_supplies_the_members_an_arm_inherits(tmp_path):
     write(tmp_path, {"part/interface.py": "from json.encoder import JSONEncoder\nfrom typing import Protocol\n\n@solution('enc', kind='x', entry='default')\nclass Enc(Protocol):\n    def default(self, o): ...\n\n"
                                           "@implementation('enc', 'inherits')\nclass Inherits(JSONEncoder):\n    pass\n"})
