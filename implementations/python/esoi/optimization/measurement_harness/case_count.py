@@ -10,5 +10,5 @@ def count_cases(project: str, component: str) -> Dict[str, int]:
     config, _ = load_project(project)
     try:
         return {"cases": len(case_loading.load_cases(component, config))}
-    except ImportError:
+    except (ImportError, FileNotFoundError):
         return {"cases": 0}
