@@ -18,7 +18,7 @@ esoi docs wiki --out ../my-repo.wiki
 ```
 
 The pages are written to that folder, replacing the pages there. The repository address is read from the `origin` remote; pass
-`--repo-url` to name it. Add `--extra path/to/page.md` for a page outside `docs/`. Nothing is pushed.
+`--repo-url` to name it. Add `--extra path/to/page.md` for a page outside `docs/`, or list such pages once in `esoi.toml` as `[docs] wiki_extra = ["path/to/page.md"]` (used when `--extra` is not given). Nothing is pushed.
 
 To publish, review the folder, then either commit it in the wiki checkout yourself or pass the wiki's git address:
 

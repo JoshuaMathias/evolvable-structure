@@ -41,6 +41,10 @@ pattern = " under \\S+ \\(it's only in the [^)]*? folder so that this user can a
 replacement = ""
 reason = "The sentence names the absolute folder of the author's private copy. In the installed skill, 'this skill's folder' is the folder it is installed in."
 
+# Pages outside docs/ the generated wiki carries (README.md links the steps page, whose source is the skill's steps.md).
+[docs]
+wiki_extra = ["skill/evolvable-structure/steps.md"]
+
 [hygiene]
 # The author's public commit identity.
 allow_mailboxes = ["joshuamonkey"]

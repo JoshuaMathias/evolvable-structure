@@ -61,5 +61,19 @@ def test_wiki_has_home_grouped_sidebar_and_rewritten_links(tmp_path):
     assert "Generated from [docs/how-to/do-it.md]" in page
 
 
+def test_wiki_carries_the_extra_pages_the_config_names(tmp_path):
+    root = sample(tmp_path)
+    write(root, "skill/steps.md", "# The steps: in order\n\nText.\n")
+    assert docs.configured_extra(root) == ()
+    write(root, "esoi.toml", '[docs]\nwiki_extra = ["skill/steps.md"]\n')
+    assert docs.configured_extra(root) == ("skill/steps.md",)
+    docs.build_wiki(root, tmp_path / "wiki", "https://example.org/r", extra=docs.configured_extra(root))
+    assert (tmp_path / "wiki" / "The-steps.md").exists()
+
+
+def test_this_repository_wiki_has_the_steps_page_the_readme_links():
+    assert "The-ESOI-steps" in docs.collect_pages(ROOT, "docs", docs.configured_extra(ROOT)).values()
+
+
 def test_this_repositorys_docs_follow_the_standard():
     assert docs.check(ROOT) == []

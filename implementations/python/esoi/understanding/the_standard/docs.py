@@ -12,6 +12,7 @@ import posixpath
 import re
 import subprocess
 import tempfile
+import tomllib
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -186,6 +187,15 @@ def push_wiki(out: Path, wiki_url: str, message: str = "Regenerate the wiki from
     return 0
 
 
+def configured_extra(root: Path) -> Tuple[str, ...]:
+    """The pages outside ``docs/`` the repository's ``esoi.toml`` asks the wiki to carry (``[docs] wiki_extra``), else none."""
+    try:
+        data = tomllib.loads((root / "esoi.toml").read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError):
+        return ()
+    return tuple(data.get("docs", {}).get("wiki_extra", ()))
+
+
 def run_cli(args: object, root: Path, say=print) -> int:
     """``esoi docs check`` and ``esoi docs wiki``."""
     docs = getattr(args, "docs_dir", "docs")
@@ -200,7 +210,7 @@ def run_cli(args: object, root: Path, say=print) -> int:
         say("esoi docs wiki: pass --repo-url (no origin remote to read it from)")
         return 2
     try:
-        count, missing = build_wiki(root, Path(args.out), url, args.branch, docs, tuple(args.extra or ()))
+        count, missing = build_wiki(root, Path(args.out), url, args.branch, docs, tuple(args.extra or configured_extra(root)))
     except ValueError as error:
         say(f"esoi docs wiki: {error}")
         return 2
