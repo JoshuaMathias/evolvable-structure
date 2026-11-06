@@ -7,7 +7,7 @@ The same records (problems, ideals, solutions, implementations, metrics) work fo
 # Quick Start
 
 ```bash
-pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git@v0.3.0#subdirectory=implementations/python"
+pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git@v0.4.0#subdirectory=implementations/python"
 ```
 
 ```python
