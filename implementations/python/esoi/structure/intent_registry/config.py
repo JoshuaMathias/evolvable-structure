@@ -91,6 +91,7 @@ class Config:
     consumer: Dict[str, Any] = field(default_factory=dict)
     sheets: Dict[str, Any] = field(default_factory=dict)
     hygiene: Dict[str, Any] = field(default_factory=dict)
+    docs: Dict[str, Any] = field(default_factory=dict)   # [docs] wiki_extra: pages outside docs/ the generated wiki carries
     skill: Dict[str, Any] = field(default_factory=dict)
     parent: Dict[str, Any] = field(default_factory=dict)   # [parent] records = "../hub" or snapshot = "..json": the package this one builds on (rule S35)
     records: Dict[str, Any] = field(default_factory=dict)   # [records] approved_fields: columns the specification's owner approved
