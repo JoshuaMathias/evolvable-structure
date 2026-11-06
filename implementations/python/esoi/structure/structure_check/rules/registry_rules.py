@@ -65,6 +65,32 @@ def missing_columns(ctx: Context, needs_port: bool) -> List[str]:
     return bad
 
 
+def duplicates_and_orphans(ctx: Context) -> List[str]:
+    """S18 ids listed twice, and S19 components that serve no solution."""
+    bad: List[str] = []
+    for sid, n in Counter(s["solution_id"] for s in ctx.solutions).items():
+        if n > 1:
+            bad.append(f"S18 solutions.csv: solution id {sid} appears {n} times")
+    for cid, n in Counter(c["component_id"] for c in ctx.components).items():
+        if n > 1:
+            bad.append(f"S18 components.csv: component id {cid} appears {n} times")
+    for r in ctx.components:
+        for col in ("solutions", "path"):
+            for ident, n in Counter(ids(r[col])).items():
+                if n > 1:
+                    bad.append(f"S18 components.csv {r['component_id']}: `{col}` lists {ident} {n} times")
+    for r in ctx.solutions:
+        for col in ("interface_name", "implementations"):
+            for ident, n in Counter(ids(r[col])).items():
+                if n > 1:
+                    bad.append(f"S18 solutions.csv {r['solution_id']}: `{col}` lists {ident} {n} times")
+    for r in ctx.components:
+        if not ids(r["solutions"]):
+            bad.append(f"S19 {r['component_id']}: serves no solution (name one in the `solutions` column, "
+                       "or remove the code: nothing in this repo exists outside a solution)")
+    return bad
+
+
 def run(ctx: Context) -> List[str]:
     bad: List[str] = []
     config, table = ctx.config, ctx.table or {}
@@ -146,26 +172,7 @@ def run(ctx: Context) -> List[str]:
                     bad.append(f"S14 {sid}: implementation {name!r} lives in {mod_path}, which neither the solution's "
                                "implementations cell nor the path of any of its implementations.csv records lists")
 
-    for sid, n in Counter(s["solution_id"] for s in ctx.solutions).items():
-        if n > 1:
-            bad.append(f"S18 solutions.csv: solution id {sid} appears {n} times")
-    for cid, n in Counter(c["component_id"] for c in ctx.components).items():
-        if n > 1:
-            bad.append(f"S18 components.csv: component id {cid} appears {n} times")
-    for r in ctx.components:
-        for col in ("solutions", "path"):
-            for ident, n in Counter(ids(r[col])).items():
-                if n > 1:
-                    bad.append(f"S18 components.csv {r['component_id']}: `{col}` lists {ident} {n} times")
-    for r in ctx.solutions:
-        for col in ("interface_name", "implementations"):
-            for ident, n in Counter(ids(r[col])).items():
-                if n > 1:
-                    bad.append(f"S18 solutions.csv {r['solution_id']}: `{col}` lists {ident} {n} times")
-    for r in ctx.components:
-        if not ids(r["solutions"]):
-            bad.append(f"S19 {r['component_id']}: serves no solution (name one in the `solutions` column, "
-                       "or remove the code: nothing in this repo exists outside a solution)")
+    bad += duplicates_and_orphans(ctx)
     return bad
 
 
