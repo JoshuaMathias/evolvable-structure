@@ -3,14 +3,14 @@ Zero model calls."""
 from shared_fixtures.interface import repo_fixture
 from shared_fixtures.interface import tracker_fixture
 from esoi.structure.intent_registry import config, registry
-from esoi.understanding.review_tracker.interface import tracker
+from esoi.understanding.review_tracker.interface import tracker_stale, tracker_write
 
 
 def build(meter):
     def track(kind, args):
         root = repo_fixture.fresh_repo(args.get("edits", []))
         cfg = config.load(root)
-        stale = tracker.stale(cfg, registry.load(cfg))
-        tracker.write(cfg, registry.load(cfg), say=lambda text: None)
+        stale = tracker_stale(cfg, registry.load(cfg))
+        tracker_write(cfg, registry.load(cfg), say=lambda text: None)
         return {"stale": stale, **tracker_fixture.tab_summary(cfg, args)}
     return track

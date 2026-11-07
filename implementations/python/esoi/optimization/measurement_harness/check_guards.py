@@ -5,9 +5,9 @@ import argparse
 from typing import Callable, List
 
 from esoi.optimization.leaderboard import results_log
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import stale_reasons
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import stale_reason
 from esoi.optimization.measurement_harness.run_errors import RunError
-from esoi.optimization.when_metrics_are_run.interface import paid_reason, run_guards
+from esoi.optimization.when_metrics_are_run.interface import paid_reason, ceiling_reason, check_differs, force_reason, public_reason, unsolved_reason
 from esoi.runtime.implementation_selection import variants
 from esoi.structure.intent_registry.config import Config
 
@@ -16,16 +16,16 @@ def capped_reason(config: Config, component: str, impl: str, sample: str) -> str
     """Why the run would pass the ceiling on what the arm may spend, or an empty string."""
     latest = results_log.latest_results(config.results_path).get(component, {}).get(impl)
     paid = paid_reason(config, component, variants.base_of(impl), latest)
-    return run_guards.ceiling_reason(config, component, impl, sample, paid, stale_reasons.stale_reason)
+    return ceiling_reason(config, component, impl, sample, paid, stale_reason)
 
 
 def guard_findings(config: Config, component: str, impl: str, sample: str, args: argparse.Namespace) -> tuple:
     """``(forced, differs, ceiling reason, public reason, public lines)``; an unreadable flag is a ``RunError``."""
     try:
-        forced = run_guards.force_reason(args.force)
-        differs = run_guards.check_differs(args.differs) if args.differs is not None else ""
+        forced = force_reason(args.force)
+        differs = check_differs(args.differs) if args.differs is not None else ""
         capped = capped_reason(config, component, impl, sample)
-        public, lines = run_guards.public_reason(config, component, impl)
+        public, lines = public_reason(config, component, impl)
     except ValueError as exc:
         raise RunError(str(exc)) from exc
     return forced, differs, capped, public, lines
@@ -37,7 +37,7 @@ def check_guards(config: Config, component: str, impl: str, sample: str, args: a
     ``details`` are returned. The ceiling guard and the public-first guard are in ``esoi.optimization.when_metrics_are_run.run_guards``."""
     forced, differs, capped, public, lines = guard_findings(config, component, impl, sample, args)
     notes: List[str] = []
-    unsolved = "" if getattr(args, "failed", False) or sample else run_guards.unsolved_reason(config, component, impl)
+    unsolved = "" if getattr(args, "failed", False) or sample else unsolved_reason(config, component, impl)
     settle(unsolved, forced, f"{impl} is not run on the whole set: {unsolved}", f"forced past unsolved failures: {forced}", notes)
     for line in lines:
         say(f"public result: {line}")

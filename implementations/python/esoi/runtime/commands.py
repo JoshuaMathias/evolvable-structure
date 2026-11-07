@@ -11,8 +11,8 @@ from esoi.runtime.implementation_selection.interface import run_lock
 
 
 def run_follow(config, args: argparse.Namespace) -> int:
-    from esoi.runtime.consumer_check.interface import follow
-    return follow.run_cli(config, args.parent, tuple(args.solution or ()), args.plan, args.run_free, args.json, args.lock)
+    from esoi.runtime.consumer_check.interface import run_cli
+    return run_cli(config, args.parent, tuple(args.solution or ()), args.plan, args.run_free, args.json, args.lock)
 
 
 def print_consumer_report(report) -> None:
@@ -26,13 +26,13 @@ def print_consumer_report(report) -> None:
 
 
 def run_consumer(config, args: argparse.Namespace) -> int:
-    from esoi.runtime.consumer_check.interface import consumer
+    from esoi.runtime.consumer_check.interface import Options, check_consumer
     try:
-        options = consumer.Options.from_config(config, args.library)
+        options = Options.from_config(config, args.library)
     except ValueError as exc:
         print(f"esoi: {exc}", file=sys.stderr)
         return 2
-    report = consumer.check_consumer(Path(args.registry), Path(args.root), options,
+    report = check_consumer(Path(args.registry), Path(args.root), options,
                                      Path(args.requirements) if args.requirements else None,
                                      Path(args.solutions) if args.solutions else None,
                                      Path(args.results) if args.results else None)
@@ -58,13 +58,13 @@ def assembly_closure(args: argparse.Namespace, environ):
 def scope_closure(config, args: argparse.Namespace):
     """``(None, members, None)`` for ``--scope``: every declared arm of the scope."""
     import importlib
-    from esoi.runtime.assemble_by_name.interface import closure
+    from esoi.runtime.assemble_by_name.interface import Member
     from esoi.runtime.implementation_selection import selection_registry
     solutions = tuple(getattr(args, "solution", None) or ())
     if config.package:
         importlib.import_module(config.package)
     scope = args.scope or config.package
-    members = [closure.Member(f"{sid}:{name}", target, "declared") for (where, sid), entry in sorted(selection_registry.REGISTRY.items())
+    members = [Member(f"{sid}:{name}", target, "declared") for (where, sid), entry in sorted(selection_registry.REGISTRY.items())
                if where == scope and (not solutions or sid in solutions)
                for name, target in sorted(entry.implementations.items()) if not isinstance(target, str)]
     return None, members, None
@@ -81,48 +81,48 @@ def closure_for(config, args: argparse.Namespace, environ):
 def print_coherence(args: argparse.Namespace, assembler, cfg, environ) -> int:
     """``esoi requirements --coherence``: print whether the selected arms' requirements resolve together."""
     import json
-    from esoi.runtime.assemble_by_name.interface import assembly_plan, plan_report, report, resolvers
+    from esoi.runtime.assemble_by_name.interface import EXIT_MET, EXIT_UNMET, assembly_plan, plan_json, plan_text, venv_resolver
     if assembler is None:
         print("esoi: --coherence needs --package (an assembly to check)", file=sys.stderr)
         return 2
     cleanup = None
     resolver = None
     if args.online and not args.offline:
-        resolver, cleanup = resolvers.venv_resolver()
+        resolver, cleanup = venv_resolver()
     try:
-        chosen, plan_members = assembly_plan.assembly_plan(assembler, cfg, environ, tuple(args.solution or ()), args.all_arms, resolver)
+        chosen, plan_members = assembly_plan(assembler, cfg, environ, tuple(args.solution or ()), args.all_arms, resolver)
     finally:
         if cleanup:
             cleanup()
     if args.json:
-        print(json.dumps(plan_report.plan_json(chosen, plan_members), indent=1))
+        print(json.dumps(plan_json(chosen, plan_members), indent=1))
     else:
         print("coherence: " + ("the selected implementations' requirements resolve together" if not chosen.adjusted else "CONFLICT in the selected implementations"))
-        print(plan_report.plan_text(chosen, plan_members), end="")
-    return report.EXIT_UNMET if chosen.adjusted else report.EXIT_MET
+        print(plan_text(chosen, plan_members), end="")
+    return EXIT_UNMET if chosen.adjusted else EXIT_MET
 
 
 def print_requirements(args: argparse.Namespace, entries, checks, notes) -> None:
     """Print the requirements report as JSON or text, then its notes."""
     import json
-    from esoi.runtime.assemble_by_name.interface import report
+    from esoi.runtime.assemble_by_name.interface import requirements_json, requirements_text
     if args.json:
-        print(json.dumps(report.as_json(entries, checks, notes), indent=1))
+        print(json.dumps(requirements_json(entries, checks, notes), indent=1))
         return
-    print(report.report(entries, checks), end="")
+    print(requirements_text(entries, checks), end="")
     for note in notes:
         print(f"note: {note}")
 
 
 def write_requirement_files(args: argparse.Namespace, entries, environ) -> None:
     """Write the files ``--env-template``, ``--env-file`` and ``--install-script`` ask for."""
-    from esoi.runtime.assemble_by_name.interface import generated_files
+    from esoi.runtime.assemble_by_name.interface import install_script, write_env_file
     if args.env_template:
-        print(generated_files.write_env_file(Path(args.env_template), entries), file=sys.stderr)
+        print(write_env_file(Path(args.env_template), entries), file=sys.stderr)
     if args.env_file:
-        print(generated_files.write_env_file(Path(args.env_file), entries), file=sys.stderr)
+        print(write_env_file(Path(args.env_file), entries), file=sys.stderr)
     if args.install_script:
-        Path(args.install_script).write_text(generated_files.install_script(entries, environ), encoding="utf-8")
+        Path(args.install_script).write_text(install_script(entries, environ), encoding="utf-8")
         print(f"wrote {args.install_script}", file=sys.stderr)
 
 
@@ -130,80 +130,80 @@ def run_requirements(config, args: argparse.Namespace) -> int:
     """``esoi requirements``: report, check and generate files for what the implementations need from their environment.
     Exit codes: 0 all met, 1 something unmet (or, with --coherence, selected arms that conflict), 2 error."""
     import os
-    from esoi.runtime.assemble_by_name.interface import checking, closure, declarations, report
+    from esoi.runtime.assemble_by_name.interface import EXIT_ERROR, EXIT_MET, EXIT_UNMET, check, gather, members_pairs
     environ = dict(os.environ)
     try:
         assembler, members, cfg = closure_for(config, args, environ)
         notes: list = []
-        entries = declarations.gather(closure.members_pairs(members, notes))
+        entries = gather(members_pairs(members, notes))
         if args.coherence:
             return print_coherence(args, assembler, cfg, environ)
     except (ValueError, ImportError, AttributeError, RuntimeError) as exc:
         print(f"esoi: {exc}", file=sys.stderr)
-        return report.EXIT_ERROR
-    checks = checking.check(entries, environ, args.probe, args.offline) if args.check else None
+        return EXIT_ERROR
+    checks = check(entries, environ, args.probe, args.offline) if args.check else None
     print_requirements(args, entries, checks, notes)
     try:
         write_requirement_files(args, entries, environ)
     except (ValueError, OSError) as exc:
         print(f"esoi: {exc}", file=sys.stderr)
-        return report.EXIT_ERROR
-    return report.EXIT_UNMET if checks and any(one.failing for one in checks) else report.EXIT_MET
+        return EXIT_ERROR
+    return EXIT_UNMET if checks and any(one.failing for one in checks) else EXIT_MET
 
 
 def install_plan(config, args: argparse.Namespace, environ):
     """``(plan, members)`` for ``esoi install``: the assembly's plan, or the resolution ladder over the declared closure."""
-    from esoi.runtime.assemble_by_name.interface import assembly_plan, closure, declarations, resolution_ladder
+    from esoi.runtime.assemble_by_name.interface import assembly_plan, gather, make_plan, members_pairs
     assembler, members, cfg = closure_for(config, args, environ)
     notes: list = []
     if assembler is not None:
-        return assembly_plan.assembly_plan(assembler, cfg, environ, tuple(args.solution or ()), args.all_arms, None, project=Path(args.project))
-    entries = declarations.gather(closure.members_pairs(members, notes))
-    return resolution_ladder.make_plan(entries, environ, None, None, Path(args.project), notes), members
+        return assembly_plan(assembler, cfg, environ, tuple(args.solution or ()), args.all_arms, None, project=Path(args.project))
+    entries = gather(members_pairs(members, notes))
+    return make_plan(entries, environ, None, None, Path(args.project), notes), members
 
 
 def print_install_plan(args: argparse.Namespace, chosen, members) -> None:
     """Print the install plan as JSON or text."""
     import json
-    from esoi.runtime.assemble_by_name.interface import plan_report
+    from esoi.runtime.assemble_by_name.interface import plan_json, plan_text
     if args.json:
-        print(json.dumps(plan_report.plan_json(chosen, members), indent=1))
+        print(json.dumps(plan_json(chosen, members), indent=1))
     else:
-        print(plan_report.plan_text(chosen, members), end="")
+        print(plan_text(chosen, members), end="")
 
 
 def dry_run_code(chosen) -> int:
     """The exit code of an install without ``--yes``: unmet when the plan has something to do or something is still missing."""
-    from esoi.runtime.assemble_by_name.interface import report
+    from esoi.runtime.assemble_by_name.interface import EXIT_MET, EXIT_UNMET
     if not chosen.empty or chosen.conflicts:
         print("dry run: nothing was changed; run again with --yes to apply this plan", file=sys.stderr)
-    return report.EXIT_UNMET if (not chosen.empty or chosen.conflicts or chosen.binaries or chosen.missing) else report.EXIT_MET
+    return EXIT_UNMET if (not chosen.empty or chosen.conflicts or chosen.binaries or chosen.missing) else EXIT_MET
 
 
 def apply_install(chosen, members, environ) -> int:
     """Run the plan (``--yes``), print what happened and return the exit code."""
-    from esoi.runtime.assemble_by_name.interface import execution, report
-    done = execution.execute(chosen, execution.package_roots(members), environ)
+    from esoi.runtime.assemble_by_name.interface import EXIT_MET, EXIT_UNMET, execute, package_roots
+    done = execute(chosen, package_roots(members), environ)
     for line in done.warnings:
         print(f"warning: {line}", file=sys.stderr)
     for line in done.reports:
         print(line)
     if chosen.substitutions:
         print("note: install used the substituted arms above; to run them, select them (AssemblyConfig names / esoi select)")
-    return report.EXIT_UNMET if (done.code or chosen.binaries or chosen.missing) else report.EXIT_MET
+    return EXIT_UNMET if (done.code or chosen.binaries or chosen.missing) else EXIT_MET
 
 
 def run_install(config, args: argparse.Namespace) -> int:
     """``esoi install``: the closure of what the solutions use, the plan, and (only with --yes) the install.
     Exit codes: 0 done or nothing to do, 1 something to do (dry run), failed, or still missing, 2 error."""
     import os
-    from esoi.runtime.assemble_by_name.interface import report
+    from esoi.runtime.assemble_by_name.interface import EXIT_ERROR, EXIT_MET, EXIT_UNMET
     environ = dict(os.environ)
     try:
         chosen, members = install_plan(config, args, environ)
     except (ValueError, ImportError, AttributeError, RuntimeError) as exc:
         print(f"esoi: {exc}", file=sys.stderr)
-        return report.EXIT_ERROR
+        return EXIT_ERROR
     print_install_plan(args, chosen, members)
     return apply_install(chosen, members, environ) if args.yes else dry_run_code(chosen)
 

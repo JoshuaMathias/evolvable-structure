@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import esoi
-from esoi.understanding.the_standard.interface import scaffold
+from esoi.understanding.the_standard.interface import init
 from esoi.optimization.keep_metric_record.interface import AFTER, BEFORE
 from esoi.optimization.keep_metric_record.interface import SpecSlice
 
@@ -138,7 +138,7 @@ def run_case(kind: str, args: Dict[str, Any], strategy: Any) -> Dict[str, Any]:
     """Build the world the case describes and ask ``strategy.<kind>``."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp) / "repo"
-        scaffold.init(root, "demo_pkg", say=lambda *_: None)
+        init(root, "demo_pkg", say=lambda *_: None)
         edit_world(root, args.get("setup", {}))
         bare = Path(tmp) / "bare"
         bare.mkdir()

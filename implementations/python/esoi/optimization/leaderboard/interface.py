@@ -3,10 +3,17 @@ from typing import Dict, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
-from esoi.optimization.leaderboard import board_report, cascade_report, evidence_table  # noqa: F401  (re-exported: the command line calls this unit through its interface)
-from esoi.optimization.leaderboard import held_out_parts, lock_evidence, rival_pairing, stage_standings, verdict_labels  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.optimization.leaderboard import held_out_parts, rival_pairing, stage_standings
+from esoi.optimization.leaderboard.board_report import board as board_report_board
+from esoi.optimization.leaderboard.verdict_labels import solution_verdicts, verdict as verdict_labels_verdict
+from esoi.optimization.leaderboard.cascade_report import run_cli as cascade_report_run_cli
+from esoi.optimization.leaderboard.evidence_table import BEGIN, END, run_cli as evidence_table_run_cli
+from esoi.optimization.leaderboard.rival_pairing import incomparable_rivals, rival_pairs, stale_rivals
+from esoi.optimization.leaderboard.lock_evidence import attach_evidence as lock_evidence_attach_evidence, records_evidence as lock_evidence_records_evidence
+from esoi.optimization.leaderboard.stage_standings import decide, standings
+from esoi.optimization.leaderboard.held_out_parts import selection_view
 
-__all__ = ["Leaderboarding", "board_report", "cascade_report", "evidence_table", "held_out_parts", "lock_evidence", "rival_pairing", "stage_standings", "verdict_labels"]
+__all__ = ["BEGIN", "END", "Leaderboarding", "board_report_board", "cascade_report_run_cli", "decide", "evidence_table_run_cli", "held_out_parts", "incomparable_rivals", "lock_evidence_attach_evidence", "lock_evidence_records_evidence", "rival_pairing", "rival_pairs", "selection_view", "solution_verdicts", "stage_standings", "stale_rivals", "standings", "verdict_labels_verdict"]
 
 
 @solution("leaderboard", kind="evaluate", entry="standings", example=".")

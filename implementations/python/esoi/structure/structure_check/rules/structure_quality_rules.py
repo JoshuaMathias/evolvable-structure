@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
 from esoi.structure.structure_quality.interface import assess
 
+
 SHOWN = 10
 DIMENSION_OF = {"S54": "scope", "S55": "size", "S56": "coupling", "S57": "reuse", "S58": "surface", "S59": "behavior"}
 NEXT = {
@@ -47,20 +48,20 @@ def assess_path(path: Path, stage: int = 1, flow: bool = True) -> Dict[str, Any]
         except Exception as exc:   # records that cannot be read leave the flow dimension unmeasured; the report says so by showing no score
             coherence = None
             print(f"esoi structure-quality: the flow dimension is not measured ({exc})")
-    return assess.assess(str(path), stage, coherence=coherence)
+    return assess(str(path), stage, coherence=coherence)
 
 
 def compare_refs(before: str, after: str, repo: str = ".", stage: int = 1, flow: bool = True) -> Dict[str, Any]:
     """The Structure Quality comparison of two structures, each a folder or a git reference of ``repo`` (see ``esoi.structure.structure_quality.compare``)."""
     from esoi.structure.structure_quality.interface import compare
-    return compare.compare(before, after, lambda folder, level: assess_path(folder, level, flow), repo, stage)
+    return compare(before, after, lambda folder, level: assess_path(folder, level, flow), repo, stage)
 
 
 def findings(ctx: Context) -> List[str]:
     wanted = [rule for rule in DIMENSION_OF if ctx.config.enabled(rule)]
     if not wanted:
         return []
-    report = assess.assess(str(ctx.root), 1)
+    report = assess(str(ctx.root), 1)
     out: List[str] = []
     for rule in wanted:
         offenders = [t for t in report["dimensions"][DIMENSION_OF[rule]]["offenders"] if not ctx.waived(rule, t.split(":")[0].split(" ")[0])]

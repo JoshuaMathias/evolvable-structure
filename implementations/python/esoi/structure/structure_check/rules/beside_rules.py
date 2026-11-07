@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 from esoi.structure.intent_registry import besidecode, intents
-from esoi.structure.intent_registry.interface import implementedby
+from esoi.structure.intent_registry.interface import problems
 from esoi.structure.intent_registry.specify_from_code import declarations
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
 
@@ -212,7 +212,7 @@ def reference_findings(ctx: Context) -> List[str]:
         declared = declarations.scan(ctx.config)
     except (OSError, ValueError):
         declared = None
-    return [line for key, line in implementedby.problems(ctx.config, ctx.registry, declared) if not ctx.waived("S40", key)]
+    return [line for key, line in problems(ctx.config, ctx.registry, declared) if not ctx.waived("S40", key)]
 
 
 def run(ctx: Context) -> List[str]:

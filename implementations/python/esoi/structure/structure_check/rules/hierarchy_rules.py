@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import List
 
-from esoi.runtime.assemble_by_name.interface import hierarchy
+from esoi.runtime.assemble_by_name.interface import parent_defaults, read_overrides
 from esoi.runtime.implementation_selection import variants
 from esoi.runtime.implementation_selection.select import default_name
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
@@ -39,8 +39,8 @@ def run(ctx: Context) -> list:
     if not ctx.config.parent:
         return []
     try:
-        parent = hierarchy.parent_defaults(ctx.config)
-        reasons = hierarchy.read_overrides(ctx.config)
+        parent = parent_defaults(ctx.config)
+        reasons = read_overrides(ctx.config)
     except ValueError as error:
         return [f"S35 esoi.toml: {error}"]
     own = {r.get(key, "") for rows, key in ((ctx.registry.problems, "problem_id"), (ctx.registry.ideals, "ideal_id"),

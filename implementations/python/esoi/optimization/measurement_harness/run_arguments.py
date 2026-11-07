@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, List
 
 from esoi.optimization.measurement_harness.case_loading import stratified_sample
 from esoi.optimization.measurement_harness.run_errors import RunError
-from esoi.optimization.when_metrics_are_run.interface import run_guards, run_log
+from esoi.optimization.when_metrics_are_run.interface import unsolved_cases, failed_cases
 from esoi.structure.intent_registry.config import Config
 
 
@@ -51,7 +51,7 @@ def failed_case_names(args: argparse.Namespace, target: Target) -> str:
     """The cases that failed last time, comma-joined, for ``--failed``; raises ``RunError`` when none are logged or other cases were named."""
     if args.only or args.sample is not None:
         raise RunError("--failed already names the cases to run (the ones that failed last); drop --only or --sample")
-    failing = run_log.failed_cases(target.config.root / target.config.runs_log, target.component, target.impl, target.cases_sha)
+    failing = failed_cases(target.config.root / target.config.runs_log, target.component, target.impl, target.cases_sha)
     if not failing:
         raise RunError(f"no failing case is logged for {target.impl} on these cases, so there is nothing to rerun "
                        f"(the log is {target.config.runs_log}); run it without --failed")
@@ -63,7 +63,7 @@ def name_cases_to_run(args: argparse.Namespace, target: Target, say: Callable[[s
     if args.failed:
         args.only = failed_case_names(args, target)
     elif guards and not (args.only or args.sample is not None or args.record or args.force is not None):
-        unsolved = run_guards.unsolved_cases(target.config, target.component, target.impl)
+        unsolved = unsolved_cases(target.config, target.component, target.impl)
         if unsolved:   # the failing cases are rerun by themselves; the whole set waits until they pass
             say(f"{len(unsolved)} case(s) failed in the latest run and have not passed since, so only those run ({', '.join(unsolved[:8])}"
                 f"{' ...' if len(unsolved) > 8 else ''}); pass --force \"reason\" to run the whole set")

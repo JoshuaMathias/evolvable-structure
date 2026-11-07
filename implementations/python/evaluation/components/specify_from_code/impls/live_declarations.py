@@ -6,10 +6,10 @@ import tempfile
 from pathlib import Path
 
 from shared_fixtures.interface import repo_fixture
-from esoi.structure.structure_check.interface import check
+from esoi.structure.structure_check.interface import check_check, write_docs
 from esoi.structure.intent_registry import config, registry, tables
 from esoi.structure.intent_registry.specify_from_code import declarations
-from esoi.structure.intent_registry.specify_from_code.interface import newsolution
+from esoi.structure.intent_registry.specify_from_code.interface import create
 from esoi.structure.intent_registry.config import Config
 
 
@@ -28,7 +28,7 @@ def scan(args):
 
 def s30(root):
     cfg = config.load(root)
-    return [p for p in check.check(cfg) if p.startswith("S30 ")]
+    return [p for p in check_check(cfg) if p.startswith("S30 ")]
 
 
 def sync_once(root, intent=None):
@@ -54,13 +54,13 @@ def sync(args):
 def new(args):
     root = repo_fixture.fresh_repo([])
     cfg = config.load(root)
-    written = newsolution.create(cfg, args["id"], args.get("intent"))
+    written = create(cfg, args["id"], args.get("intent"))
     refused = False
     try:
-        newsolution.create(cfg, args["id"], args.get("intent"))
+        create(cfg, args["id"], args.get("intent"))
     except ValueError:
         refused = True
-    check.write_docs(config.load(root), say=lambda text: None)
+    write_docs(config.load(root), say=lambda text: None)
     problems = repo_fixture.report(root)["problems"]
     module = next(w for w in written if w.endswith(".py") and "/impls/" not in w and not w.endswith("score.py") and "__init__" not in w)
     cases = next(w for w in written if w.endswith("cases.json"))

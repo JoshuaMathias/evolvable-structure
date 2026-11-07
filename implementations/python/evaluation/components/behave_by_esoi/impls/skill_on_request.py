@@ -3,11 +3,11 @@ load it (one call); when it does, the full SKILL.md is the system text of the an
 grades the reply. Two to three model calls per case, which costs money: run only after Joshua has approved the spend
 (structure/metric-run-policy.md). It measures the loading decision as well as the instructions."""
 from shared_fixtures.interface import model_arms
-from esoi.understanding.esoi_for_ai.interface import behaviour
-from esoi.understanding.the_standard.skill_distribution.interface import skill
+from esoi.understanding.esoi_for_ai.interface import skill_description
+from esoi.understanding.the_standard.skill_distribution.interface import BUNDLED, skill_SKILL_FILE
 
 PAID = True
-SKILL_PATH = skill.BUNDLED / "evolvable-structure" / skill.SKILL_FILE
+SKILL_PATH = BUNDLED / "evolvable-structure" / skill_SKILL_FILE
 DECIDE = ("You are a helpful assistant. You may load a skill before answering. The skill is {description}\n\n"
           "Reply with only YES if the skill applies to the message below, otherwise only NO.")
 
@@ -15,7 +15,7 @@ DECIDE = ("You are a helpful assistant. You may load a skill before answering. T
 def build(meter):
     chosen = model_arms.provider(meter)
     text = SKILL_PATH.read_text(encoding="utf-8")
-    decide_system = DECIDE.format(description=behaviour.skill_description(text))
+    decide_system = DECIDE.format(description=skill_description(text))
 
     def respond(case):
         message = [{"role": "user", "content": case["scenario"]}]

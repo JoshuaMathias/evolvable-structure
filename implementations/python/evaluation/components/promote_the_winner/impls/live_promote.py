@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 
 from shared_fixtures.interface import harness_fixture
-from esoi.optimization.promote_the_winner.interface import promote
+from esoi.optimization.promote_the_winner.interface import promote_apply, propose
 from esoi.structure.intent_registry import registry as registry_module, tables
 from esoi.structure.intent_registry.config import Config
 
@@ -42,7 +42,7 @@ def stale_for(args):
 def decide(args):
     with tempfile.TemporaryDirectory(prefix="esoi_promote_") as tmp:
         config, loaded = world(Path(tmp), args)
-        found = promote.propose(config, loaded, today="2026-10-18", stale=stale_for(args))
+        found = propose(config, loaded, today="2026-10-18", stale=stale_for(args))
         command = tables.read_csv(Path(tmp) / "specs" / "metrics.csv")[0]["command"]   # promotion never rewrites it
     if not found:
         return {"count": 0, "status": "none"}
@@ -54,9 +54,9 @@ def decide(args):
 def apply(args):
     with tempfile.TemporaryDirectory(prefix="esoi_promote_") as tmp:
         config, loaded = world(Path(tmp), args)
-        for proposal in promote.propose(config, loaded, today="2026-10-18", stale=stale_for(args)):
+        for proposal in propose(config, loaded, today="2026-10-18", stale=stale_for(args)):
             if proposal.status == "promote":
-                promote.apply(config, loaded, proposal)
+                promote_apply(config, loaded, proposal)
         solution = tables.read_csv(Path(tmp) / "specs" / "solutions.csv")[0]
         command = tables.read_csv(Path(tmp) / "specs" / "metrics.csv")[0]["command"]
     evidence = all(word in solution["selected_by"] for word in ("2026-10-18", "cases_sha x", "abc1234"))

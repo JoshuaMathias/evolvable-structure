@@ -3,10 +3,12 @@ from typing import List, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
-from esoi.understanding.review_tracker import sheets, tracker  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.understanding.review_tracker import tracker
 from esoi.understanding.review_tracker.tracker import TRACKING, columns  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.understanding.review_tracker.tracker import build, extras, stale as tracker_stale, write as tracker_write
+from esoi.understanding.review_tracker.sheets import run_cli
 
-__all__ = ["ReviewTracking", "TRACKING", "columns", "sheets", "tracker"]
+__all__ = ["ReviewTracking", "TRACKING", "build", "columns", "extras", "run_cli", "tracker", "tracker_stale", "tracker_write"]
 
 
 @solution("review-tracker", kind="evaluate", entry="stale", example=".")

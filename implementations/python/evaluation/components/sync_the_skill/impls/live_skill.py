@@ -2,7 +2,7 @@
 import tempfile
 from pathlib import Path
 
-from esoi.understanding.the_standard.skill_distribution.interface import skill
+from esoi.understanding.the_standard.skill_distribution.interface import SkillError, build_copy, install, load_denylist, scan, settings_from, sync
 from esoi.structure.intent_registry.config import Config
 
 
@@ -22,8 +22,8 @@ def run_sync(root, args):
     write_tree(root / "src", args["source"])
     config = config_for(root, args)
     try:
-        wanted = skill.build_copy(root / "src", skill.settings_from(config))
-    except skill.SkillError as exc:
+        wanted = build_copy(root / "src", settings_from(config))
+    except SkillError as exc:
         return {"files": [], "text": str(exc)}
     return {"files": sorted(wanted), "text": wanted.get("SKILL.md", "")}
 
@@ -32,7 +32,7 @@ def run_drift(root, args):
     write_tree(root / "src", args["source"])
     config = config_for(root, args)
     messages = []
-    skill.sync(config, str(root / "src"), say=messages.append)
+    sync(config, str(root / "src"), say=messages.append)
     change, copy = args["change"], root / "copy"
     if change == "source-edited":
         (root / "src" / "SKILL.md").write_text(args["source"]["SKILL.md"] + "\nA new sentence.\n", encoding="utf-8")
@@ -42,15 +42,15 @@ def run_drift(root, args):
         (copy / "extra.md").write_text("not from the source\n", encoding="utf-8")
     elif change == "copy-missing-file":
         next(p for p in sorted(copy.rglob("*.md")) if p.name != "SKILL.md").unlink()
-    return {"stale": skill.sync(config, str(root / "src"), check=True, say=messages.append) == 1}
+    return {"stale": sync(config, str(root / "src"), check=True, say=messages.append) == 1}
 
 
 def run_leak(root, args):
     terms = []
     if args.get("denylist"):
         (root / "deny.txt").write_text("\n".join(args["denylist"]), encoding="utf-8")
-        terms = skill.load_denylist(str(root / "deny.txt"))
-    found = skill.scan(args["files"], terms, args.get("private_dirs", []))
+        terms = load_denylist(str(root / "deny.txt"))
+    found = scan(args["files"], terms, args.get("private_dirs", []))
     return {"kinds": sorted({f.kind for f in found})}
 
 
@@ -63,7 +63,7 @@ def run_install(root, args):
     if args["existing"] != "none":
         write_tree(target, {"SKILL.md": "---\nname: x\n---\nbody\n" if args["existing"] == "same" else "something else\n"})
     messages = []
-    code = skill.install(project=str(project) if args.get("where") == "project" else None,
+    code = install(project=str(project) if args.get("where") == "project" else None,
                          dest=None if args.get("where") == "project" else str(home), source=str(source),
                          force=args.get("force", False), say=messages.append)
     return {"exit": code, "installed": (target / "SKILL.md").read_text(encoding="utf-8").startswith("---"), "text": " ".join(messages)}

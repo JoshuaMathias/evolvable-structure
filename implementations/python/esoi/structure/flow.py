@@ -43,8 +43,8 @@ class StructureFlow:
             problems = self.check.check(project)
             report["structure-check"] = {"problems": len(problems), "by_rule": dict(Counter(line.split(" ", 1)[0] for line in problems))}
             try:
-                from esoi.structure.structure_check.interface import coherence
-                report["coherence_passed"] = coherence.check(Path(project))["summary"]["passed"]
+                from esoi.structure.structure_check.interface import coherence_check
+                report["coherence_passed"] = coherence_check(Path(project))["summary"]["passed"]
             except ImportError:
                 report["coherence_passed"] = None
             return report

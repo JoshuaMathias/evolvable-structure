@@ -11,9 +11,9 @@ from collections import Counter
 from typing import Dict, List
 
 from esoi.structure.intent_registry.template_sync import template as template_module
-from esoi.understanding.review_tracker.interface import tracker
+from esoi.understanding.review_tracker.interface import build, columns, extras, tracker_stale
 from esoi.structure.intent_registry import intents
-from esoi.understanding.readable_records.interface import readme
+from esoi.understanding.readable_records.interface import readme_pages
 from esoi.structure.intent_registry.records import check_headers, check_records, overall_ids, tables_of
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
 
@@ -65,12 +65,12 @@ def generated_page_problems(ctx: Context) -> List[str]:
     if not doc.exists() or doc.read_text(encoding="utf-8") != render_components_doc(ctx.components, config.structure_dir):
         bad.append(f"S8 {config.structure_dir}/COMPONENTS.md: out of date (run `esoi check --write-docs`)")
     if config.intent_mode:
-        for page, text in readme.pages(config, ctx.registry, ctx.results, written_arm_pages_only=True):
+        for page, text in readme_pages(config, ctx.registry, ctx.results, written_arm_pages_only=True):
             if not page.exists() or page.read_text(encoding="utf-8") != text:
                 bad.append(f"S8 {page.relative_to(config.root)}: out of date (run `esoi readmes`)")
-        from esoi.understanding.readable_records.interface import diagram
+        from esoi.understanding.readable_records.interface import stale
         bad.extend(f"S8 {path.relative_to(config.root)}: out of date (run `esoi diagram` or `esoi check --write-docs`)"
-                   for path in diagram.stale(config, ctx.registry))
+                   for path in stale(config, ctx.registry))
     return bad
 
 
@@ -81,13 +81,13 @@ def tracker_problems(ctx: Context) -> List[str]:
         return []
     bad: List[str] = []
     template = ctx.template
-    cols = tracker.columns(template, tracker.extras(config))
-    for tab, rows in tracker.build(config, ctx.registry, template).items():
+    cols = columns(template, extras(config))
+    for tab, rows in build(config, ctx.registry, template).items():
         key = cols[tab][0]
         for ident, n in Counter(r[key] for r in rows).items():
             if n > 1:
                 bad.append(f"S18 tracker {tab}: id {ident} appears {n} times ({TRACKER_DUPLICATE_HINT.get(tab, 'the ids of one tab must be unique')})")
-    for tab in tracker.stale(config, ctx.registry, template):
+    for tab in tracker_stale(config, ctx.registry, template):
         bad.append(f"S17 {config.structure_dir}/tracker/{tab}.csv: out of date (run `esoi tracker build`)")
     return bad
 

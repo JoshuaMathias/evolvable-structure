@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
-from esoi.structure.intent_registry.interface import check_name, circumstances
+from esoi.structure.intent_registry.interface import check_name, Circumstance, case_circumstances, digest, run_context, slices
 from esoi.optimization.leaderboard.case_identity import cases_digest
 from esoi.optimization.measurement_harness import balance
 from esoi.optimization.measurement_harness.per_case_log import write_per_case
@@ -35,22 +35,22 @@ def case_balanced_scores(config: Config, component: str, summary: Dict[str, Any]
     return balance.case_scores([bool(r["ok"]) for r in rows], share, [float(r["seconds"]) for r in rows], table)
 
 
-def record_slices(config: Config, component: str, circs: List[circumstances.Circumstance], summary: Dict[str, Any],
+def record_slices(config: Config, component: str, circs: List[Circumstance], summary: Dict[str, Any],
                   cases: List[dict], rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """The derived rows of a recorded run, one per circumstance it satisfies and has cases in (``slice:<id>``, or
     ``sample:N/slice:<id>``), appended to the results log, and the run's per-case log (written for every recorded run, because
     the leaderboard's paired test needs each case's outcome; a component with no circumstances gets no derived rows). A slice costs no model call: it is a sum over the cases the run already scored."""
     key = dict(component=component, impl=summary["impl"], cases_sha=cases_digest(component, config.evaluation),
-               circumstances_sha=circumstances.digest(circs) if circs else "", sample=summary["sample"])
+               circumstances_sha=digest(circs) if circs else "", sample=summary["sample"])
     scores = case_balanced_scores(config, component, summary, rows)
     write_per_case(config, [dict(key, case_id=str(c["id"]), heldout="yes" if c.get("heldout") else "", ok="1" if r["ok"] else "0",
                                  calls=r["calls"], tokens_in=r["tokens_in"], tokens_out=r["tokens_out"], seconds=r["seconds"],
-                                 circumstances=";".join(circumstances.case_circumstances(circs, c)),
+                                 circumstances=";".join(case_circumstances(circs, c)),
                                  score=scores[i] if scores else "") for i, (c, r) in enumerate(zip(cases, rows))])
     if not circs:
         return []   # no circumstances: no derived slice rows, but the per-case outcomes still support the paired test
     written = []
-    for cid, found in circumstances.slices(circs, cases, circumstances.run_context(summary.get("model"), summary["impl"])).items():
+    for cid, found in slices(circs, cases, run_context(summary.get("model"), summary["impl"])).items():
         check_name(cid, "slice id")   # a '/' or ';' would make the row read as a whole run
         piece = slice_row(config, component, Scored(summary, cases, rows), cid, found)
         record_result(piece, config)

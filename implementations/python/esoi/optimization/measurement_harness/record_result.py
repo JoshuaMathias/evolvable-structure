@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from esoi.optimization.leaderboard.case_identity import cases_digest
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import code_provenance
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import code_shas, current_sha, external_code_paths
 from esoi.optimization.measurement_harness.run_cost import run_cost
 from esoi.structure.intent_registry.config import Config
 
@@ -24,11 +24,11 @@ def record_result(summary: Dict[str, Any], config: Config, date: Optional[str] =
                                      ("unknown" if summary.get("model_calls") else "none"))
     row = dict(summary, date=date or datetime.date.today().isoformat(),
                cost_usd=run_cost(config, summary, model),
-               git_sha=code_provenance.current_sha(config, summary.get("component", ""), summary.get("impl", "")), model=model, cases_sha=cases_digest(comp, config.evaluation))
+               git_sha=current_sha(config, summary.get("component", ""), summary.get("impl", "")), model=model, cases_sha=cases_digest(comp, config.evaluation))
     target = Path(path) if path else config.results_path
-    wanted = bool(code_provenance.external_code_paths(config))
+    wanted = bool(external_code_paths(config))
     if wanted:
-        row["code_shas"] = code_provenance.code_shas(config)
+        row["code_shas"] = code_shas(config)
     append_row(target, row, wanted, ["builds_on"] if row.get("builds_on") else [])
     return row
 

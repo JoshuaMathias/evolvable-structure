@@ -104,11 +104,11 @@ class RecordedRowMeter:
 
     def measure(self, spec_slice: SpecSlice, working_dir: Optional[str] = None) -> Optional[float]:
         try:
-            from esoi.optimization.measurement_harness import interface as harness
+            from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import stale_reason
             from esoi.optimization.leaderboard import ranking
             config, component, arm = repository(spec_slice)
             row = latest_row(config, component, arm) if component else None
-            if row is None or harness.stale_reason(config, component, row, strict=True):
+            if row is None or stale_reason(config, component, row, strict=True):
                 return None
             return float(ranking.pass_rate(row))
         except Exception:  # noqa: BLE001  a meter that cannot read says so with None
@@ -133,14 +133,14 @@ class OfflineArmMeter:
 
     def measure(self, spec_slice: SpecSlice, working_dir: Optional[str] = None) -> Optional[float]:
         try:
-            from esoi.optimization.measurement_harness.interface import case_loading
+            from esoi.optimization.measurement_harness.interface import sample_label_args
             from esoi.optimization.when_metrics_are_run import interface as gating
             config, component, arm = repository(spec_slice)
             row = latest_row(config, component, arm) if component else None
             if row is None or gating.paid_reason(config, component, arm, row):
                 return None   # no proof it spends nothing, or proof it may
             argv = (esoi_command(config.root) + ["run", component, "--impl", arm, "--max-calls", "0"]
-                    + case_loading.sample_label_args(row))
+                    + sample_label_args(row))
             return self.run(argv, config)
         except Exception:  # noqa: BLE001
             log.debug("offline arm not measured", exc_info=True)

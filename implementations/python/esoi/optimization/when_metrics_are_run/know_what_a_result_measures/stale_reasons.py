@@ -5,7 +5,7 @@ import datetime
 import subprocess
 from typing import Dict, Optional
 
-from esoi.structure.intent_registry.interface import circumstances
+from esoi.structure.intent_registry.interface import digest, for_component
 from esoi.optimization.leaderboard.case_identity import cases_digest
 from esoi.optimization.leaderboard.results_log import is_partial, per_case_rows
 from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import builds_on
@@ -37,7 +37,7 @@ def defect_reason(config: Config, component: str, row: Dict[str, str]) -> str:
     if not row.get("git_sha", "").strip():
         return "its latest row has no git_sha"
     try:
-        circumstances.for_component(config, component)
+        for_component(config, component)
     except ValueError as exc:
         return f"circumstances.csv cannot be read: {exc}"
     return ""
@@ -76,14 +76,14 @@ def circumstances_stale(config: Config, component: str, row: Dict[str, str]) -> 
     if is_partial(row):
         return ""
     try:
-        circs = circumstances.for_component(config, component)
+        circs = for_component(config, component)
     except ValueError as exc:
         return f"circumstances.csv cannot be read: {exc}"
     if not circs:
         return ""
     wanted = (component, row.get("impl", ""), row.get("cases_sha", ""), (row.get("sample") or "").strip())
     mine = [r for r in per_case_rows(config) if (r["component"], r["impl"], r["cases_sha"], r["sample"]) == wanted]
-    if not any(r["circumstances_sha"] == circumstances.digest(circs) for r in mine):
+    if not any(r["circumstances_sha"] == digest(circs) for r in mine):
         return "its slice rows and per-case log were not derived from the current circumstances.csv (re-run it to derive them)"
     return ""
 

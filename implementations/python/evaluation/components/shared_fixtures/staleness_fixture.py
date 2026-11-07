@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from esoi.structure.intent_registry import config
-from esoi.optimization.measurement_harness.interface import stale_reasons
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import stale_reason
 from esoi.optimization.leaderboard.case_identity import cases_digest
 
 RECIPE = Path(__file__).resolve().parent.parent / "staleness_precision" / "datasets" / "fixture.json"
@@ -77,7 +77,7 @@ def decide(rule: str, step: str, component: str) -> Dict[str, object]:
     built = build(step)
     cfg = config.load(built.root / "esoi.toml")
     cfg.staleness_rule = rule
-    why = stale_reasons.stale_reason(cfg, f"{component}_eval", built.rows[component])
+    why = stale_reason(cfg, f"{component}_eval", built.rows[component])
     return {"stale": bool(why), "why": why}
 
 

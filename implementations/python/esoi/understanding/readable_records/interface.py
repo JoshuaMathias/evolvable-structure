@@ -3,10 +3,11 @@ from typing import Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
-from esoi.understanding.readable_records import diagram, readme  # noqa: F401  (re-exported: the command line calls this unit through its interface)
-from esoi.understanding.readable_records import readme_view  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.understanding.readable_records.diagram import FILE as diagram_FILE, block as diagram_block, render as diagram_render, run_cli as diagram_run_cli, stale, write as diagram_write
+from esoi.understanding.readable_records.readme_view import DIAGRAM_LINES, FILE as readme_view_FILE, FIRST_SCREEN_LINES, SUMMARY_LINES, WRAP, link, one_line, recorded_call, screen_lines, view_of
+from esoi.understanding.readable_records.readme import pages as readme_pages, render as readme_render, run_cli as readme_run_cli, write as readme_write
 
-__all__ = ["ReadableRecording", "diagram", "readme", "readme_view"]
+__all__ = ["DIAGRAM_LINES", "FIRST_SCREEN_LINES", "ReadableRecording", "SUMMARY_LINES", "WRAP", "diagram_FILE", "diagram_block", "diagram_render", "diagram_run_cli", "diagram_write", "link", "one_line", "readme_pages", "readme_render", "readme_run_cli", "readme_view_FILE", "readme_write", "recorded_call", "screen_lines", "stale", "view_of"]
 
 
 @solution("readable-records", kind="evaluate", entry="page", example=".")

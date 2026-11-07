@@ -25,11 +25,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
-from esoi.runtime.assemble_by_name.interface import hierarchy
+from esoi.runtime.assemble_by_name.interface import OVERRIDES_FILE, UNCONFIRMED, check_reasons, parent_defaults
 from esoi.optimization.measurement_harness import interface as harness
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import stale_reason
 from esoi.optimization.when_metrics_are_run import interface as gating
 from esoi.optimization.leaderboard import arm_selection, case_identity, ranking, results_log, rival_decisions, switching_policy
-from esoi.optimization.leaderboard.interface import rival_pairing
+from esoi.optimization.leaderboard.interface import rival_pairs
 from esoi.runtime.implementation_selection import variants
 from esoi.runtime.implementation_selection.interface import lock as lock_module
 from esoi.structure.intent_registry import registry as registry_module
@@ -105,7 +106,7 @@ def parent_selections(config: Config, parent: str = "") -> Tuple[Dict[str, str],
             return clean(records_defaults(config_module.load(path))), str(parent)
         return from_package(parent, parent), parent
     if config.parent:
-        return hierarchy.parent_defaults(config), "the [parent] table"
+        return parent_defaults(config), "the [parent] table"
     if config.package:
         return from_package(config.package, config.package, own=True), f"the parent chain of {config.package}"
     raise ValueError("no parent: pass --parent PACKAGE_OR_PATH, or give the configuration a [parent] table")
@@ -153,13 +154,13 @@ def override_reasons(sid: str, cell: str, own: set) -> Tuple[Tuple[str, ...], Li
     parts = [p.strip() for p in cell.split(";") if p.strip()]
     for part in parts:
         try:
-            given += hierarchy.check_reasons([part], f"overrides.csv {sid}")
+            given += check_reasons([part], f"overrides.csv {sid}")
         except ValueError as error:
             problems.append(str(error))
     if not given and not parts:
         problems.append(f"overrides.csv {sid}: no reason is recorded (cite a problem, ideal or metric id of this repository)")
     problems += [f"overrides.csv {sid}: {r} is no problem, ideal or metric of this repository"
-                 for r in given if not r.startswith(hierarchy.UNCONFIRMED) and r not in own]
+                 for r in given if not r.startswith(UNCONFIRMED) and r not in own]
     return given, problems
 
 
@@ -169,7 +170,7 @@ def override_rows(config: Config, loaded: Any, parent: Dict[str, str]) -> Tuple[
     reasons: Dict[str, Tuple[str, ...]] = {}
     problems: List[str] = []
     try:
-        rows = read_rows(config, hierarchy.OVERRIDES_FILE)
+        rows = read_rows(config, OVERRIDES_FILE)
     except Exception as error:   # noqa: BLE001, an unreadable file is advice
         return {}, [f"overrides.csv cannot be read ({type(error).__name__}: {error})"]
     for number, row in enumerate(rows, 1):
@@ -221,7 +222,7 @@ def judge(config: Config, loaded: Any, row: Optional[Dict[str, str]], sid: str, 
         child_arm, found.child_arm = measured, measured   # the records name the arm by its file; the metric knows it by its arm name
     mine, theirs = rows.get(child_arm), rows.get(parent_arm)
     add_stale(config, comp, found, ((child_arm, mine), (parent_arm, theirs)), mine)
-    pairs, unmatched = rival_pairing.rival_pairs(rows, child_arm, config.evaluation, history) if mine is not None else ([], [])
+    pairs, unmatched = rival_pairs(rows, child_arm, config.evaluation, history) if mine is not None else ([], [])
     if mine is None or not any(b["impl"] == parent_arm for _, b in pairs):
         found.advice = describe_missing(config, loaded, row, comp, child_arm, parent_arm, mine, theirs, unmatched, found)
         return found
@@ -242,7 +243,7 @@ def decide(config: Config, found: Finding, comp: str, rows: Dict[str, Dict[str, 
 def add_stale(config: Config, comp: str, found: Finding, recorded: Tuple[Tuple[str, Optional[Dict[str, str]]], ...], mine: Optional[Dict[str, str]]) -> None:
     """Note on ``found`` which of the recorded rows are stale, with the step that re-records each."""
     for impl, rec in recorded:
-        if rec is not None and (why := harness.stale_reason(config, comp, rec, True)):
+        if rec is not None and (why := stale_reason(config, comp, rec, True)):
             found.stale += f"{impl}: {why}; "
             found.steps.append(steps_for(config, comp, impl, rec, mine))
     found.stale = found.stale.rstrip("; ")

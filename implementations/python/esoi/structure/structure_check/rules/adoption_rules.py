@@ -17,7 +17,7 @@ from __future__ import annotations
 import ast
 from typing import Dict, List, Optional
 
-from esoi.structure.library_adoption.interface import resolve
+from esoi.structure.library_adoption.interface import Libraries, Reference, references, unresolved
 from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
 from esoi.structure.structure_quality.interface import OVERLAP, OVERLAP_WORDS, content
@@ -47,7 +47,7 @@ def restated(ctx: Context) -> List[str]:
     return out
 
 
-def overlapping(ctx: Context, libraries: resolve.Libraries) -> List[str]:
+def overlapping(ctx: Context, libraries: Libraries) -> List[str]:
     """An own solution whose purpose and description share most of their content words with a library solution."""
     out: List[str] = []
     for lib in libraries.every():
@@ -91,7 +91,7 @@ def declared_for(path_text: str, ctx: Context) -> Optional[set]:
     return found
 
 
-def arms(ctx: Context, refs: Dict[str, resolve.Reference]) -> List[str]:
+def arms(ctx: Context, refs: Dict[str, Reference]) -> List[str]:
     """An arm with code under an adopted solution that does not declare the library's solution id."""
     out: List[str] = []
     for impl in ctx.registry.implementations:
@@ -108,12 +108,12 @@ def arms(ctx: Context, refs: Dict[str, resolve.Reference]) -> List[str]:
 
 
 def run(ctx: Context) -> List[str]:
-    refs, malformed = resolve.references(ctx.config, ctx.registry)
+    refs, malformed = references(ctx.config, ctx.registry)
     if not refs and not malformed and not ctx.config.adopts:
         return []
-    libraries = resolve.Libraries(ctx.config)
+    libraries = Libraries(ctx.config)
     found = [f"S53 {line}; next: write `@library/solution_id`, name the library under `[adopts.<library>]` in the configuration, and "
-             "check the solution id" for line in resolve.unresolved(ctx.config, ctx.registry) if not ctx.waived("S53", line.split(":", 1)[0].split(" ")[0])]
+             "check the solution id" for line in unresolved(ctx.config, ctx.registry) if not ctx.waived("S53", line.split(":", 1)[0].split(" ")[0])]
     found += restated(ctx) + overlapping(ctx, libraries)
     found += arms(ctx, {r.local_id: r for r in refs if r.kind == "adopts"})
     ctx.advisory.extend(found)

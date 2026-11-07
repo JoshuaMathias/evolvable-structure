@@ -141,7 +141,7 @@ def test_a_malformed_override_is_reported_as_advice_and_never_fails(repo, tmp_pa
 
 def test_a_stale_row_is_marked_with_the_command_that_re_records_it(repo, tmp_path, monkeypatch):
     cfg = child(repo, "live", scores={"live": 2, "shout": 1})
-    monkeypatch.setattr(harness_interface, "stale_reason", lambda config, comp, row, strict=True: "measured code changed" if row["impl"] == "shout" else "")
+    monkeypatch.setattr(follow, "stale_reason", lambda config, comp, row, strict=True: "measured code changed" if row["impl"] == "shout" else "")
     found = only(follow.follow(cfg, parent(tmp_path, "shout")))
     assert found.verdict == "keep" and "shout: measured code changed" in found.stale
     assert found.steps[0].command == "esoi run greet_a_person --impl shout --record" and found.steps[0].free

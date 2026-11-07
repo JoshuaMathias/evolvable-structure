@@ -3,7 +3,7 @@ ever called stale. Zero model calls."""
 from shared_fixtures.interface import repo_fixture
 from shared_fixtures.interface import tracker_fixture
 from esoi.structure.intent_registry import config, registry
-from esoi.understanding.review_tracker.interface import tracker
+from esoi.understanding.review_tracker.interface import tracker_write
 
 
 def build(meter):
@@ -12,6 +12,6 @@ def build(meter):
         cfg = config.load(root)
         for tab_file in cfg.tracker_dir.glob("*.csv"):
             tab_file.unlink()
-        tracker.write(cfg, registry.load(cfg), say=lambda text: None)
+        tracker_write(cfg, registry.load(cfg), say=lambda text: None)
         return {"stale": [], **tracker_fixture.tab_summary(cfg, args)}
     return track

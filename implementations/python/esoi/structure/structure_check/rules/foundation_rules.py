@@ -15,9 +15,9 @@ from __future__ import annotations
 
 from typing import List
 
-from esoi.optimization.measurement_harness.interface import access
+from esoi.optimization.measurement_harness.interface import loosening
 from esoi.optimization.leaderboard import cascade_stages
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import builds_on as foundation
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import declared, load_config, problems
 from esoi.structure.intent_registry import registry as registry_module
 from esoi.structure.intent_registry.config import ConfigError
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
@@ -47,13 +47,13 @@ def inherited_gate_problems(ctx: Context, f, theirs: list) -> List[str]:
 
 
 def run(ctx: Context) -> list:
-    bad = [f"S47 builds_on: {line}" for line in foundation.problems(ctx.config)]
-    for f in foundation.declared(ctx.config):
+    bad = [f"S47 builds_on: {line}" for line in problems(ctx.config)]
+    for f in declared(ctx.config):
         if ctx.waived("S47", f.component):
             continue
         try:
-            fconf = foundation.load_config(f)
-            floor = access.loosening(ctx.config.balance.get(f.component), fconf.balance.get(f.target))
+            fconf = load_config(f)
+            floor = loosening(ctx.config.balance.get(f.component), fconf.balance.get(f.target))
             theirs = [s for m in registry_module.load(fconf).metrics
                       if f.target in [c for c, _ in registry_module.harness_arms(fconf, m.get("command", ""))]
                       for s in cascade_stages.load_stages(fconf, m)[0]]

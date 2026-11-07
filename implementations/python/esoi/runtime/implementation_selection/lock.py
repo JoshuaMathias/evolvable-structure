@@ -35,12 +35,12 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
-from esoi.optimization.leaderboard.interface import lock_evidence
-from esoi.runtime.assemble_by_name.interface import Assembler, AssemblyConfig, checking, closure, declarations, lock_file
+from esoi.optimization.leaderboard.interface import lock_evidence_attach_evidence, lock_evidence_records_evidence
+from esoi.runtime.assemble_by_name.interface import Assembler, AssemblyConfig, lock_file_CACHE, lock_file_SCHEMA, lock_file_locked_arm, lock_file_read, MET, check, members_pairs, Entry, gather, identity
 from esoi.structure.intent_registry.interface import LockError
 
-read, locked_arm, CACHE, SCHEMA = lock_file.read, lock_file.locked_arm, lock_file.CACHE, lock_file.SCHEMA
-records_evidence, attach_evidence = lock_evidence.records_evidence, lock_evidence.attach_evidence
+read, locked_arm, CACHE, SCHEMA = lock_file_read, lock_file_locked_arm, lock_file_CACHE, lock_file_SCHEMA
+records_evidence, attach_evidence = lock_evidence_records_evidence, lock_evidence_attach_evidence
 
 __all__ = ["LockError", "Change", "Result", "SCHEMA", "STATUS_SCHEMA", "DEFAULT_FILE", "write", "update", "diff", "status", "read",
            "latest", "locked_arm", "records_evidence", "EXIT_CURRENT", "EXIT_ERROR", "EXIT_SAFE", "EXIT_BLOCKED"]
@@ -57,7 +57,7 @@ EXIT_CURRENT, EXIT_ERROR, EXIT_SAFE, EXIT_BLOCKED = 0, 2, 3, 4   # esoi lock --s
 class Selected:
     """The latest selection of one solution: the record the lock stores, and the requirement entries it came from."""
     record: Dict[str, Any]
-    entries: List[declarations.Entry] = field(default_factory=list)
+    entries: List[Entry] = field(default_factory=list)
 
 
 def neutral(config: Optional[AssemblyConfig]) -> AssemblyConfig:
@@ -65,9 +65,9 @@ def neutral(config: Optional[AssemblyConfig]) -> AssemblyConfig:
     return replace(config or AssemblyConfig(), lock=None, names={}, selections={}, selection_environ={}, reasons={})
 
 
-def requirement_record(entry: declarations.Entry) -> Dict[str, Any]:
+def requirement_record(entry: Entry) -> Dict[str, Any]:
     item = entry.requirement
-    return {"id": ":".join(declarations.identity(item)), "kind": item.kind, "label": item.label, "required": bool(item.required)}
+    return {"id": ":".join(identity(item)), "kind": item.kind, "label": item.label, "required": bool(item.required)}
 
 
 def package_versions(assembler: Assembler) -> Dict[str, str]:
@@ -101,7 +101,7 @@ def selected_from(assembler: Assembler, base: AssemblyConfig, sid: str, winner: 
     """The ``Selected`` record for a solution's winning layer: its arm, evidence and the requirements of its closure."""
     holder = next((one for one in assembler.chain() if one.scope == winner.scope), assembler)
     found = dict(holder.packaged().evidence.get(sid, {}))
-    entries = declarations.gather(closure.members_pairs(assembler.closure(base, None, (sid,))))
+    entries = gather(members_pairs(assembler.closure(base, None, (sid,))))
     return Selected({"arm": winner.name, "scope": winner.scope or assembler.scope, "chain": chain,
                      "verdict": found.get("verdict", ""), "p": found.get("p"),
                      "evidence": found.get("detail") or f"the default of {winner.scope or assembler.scope} ({winner.source}); no results recorded for it",
@@ -138,7 +138,7 @@ def write(assembler: Assembler, path: Any = DEFAULT_FILE, config: Optional[Assem
 
 def added_line(a: Dict[str, Any]) -> str:
     """The report line for one added requirement."""
-    return f"    + {a['label']}{'' if a['required'] else ' (optional)'}: {a['status']}" + (f"; {a['remedy']}" if a.get("remedy") and a["status"] != checking.MET else "")
+    return f"    + {a['label']}{'' if a['required'] else ' (optional)'}: {a['status']}" + (f"; {a['remedy']}" if a.get("remedy") and a["status"] != MET else "")
 
 
 @dataclass
@@ -212,7 +212,7 @@ def requirement_changes(old: Optional[Dict[str, Any]], new: Optional[Selected], 
     known = {r["id"]: r for r in (old or {}).get("requirements", [])}
     entries = new.entries if new else []
     added = []
-    for entry, one in zip(entries, checking.check(entries, env) if new else []):
+    for entry, one in zip(entries, check(entries, env) if new else []):
         rec = requirement_record(entry)
         if rec["id"] not in known:
             added.append({**rec, "status": one.status, "remedy": one.remedy, "failing": one.failing,

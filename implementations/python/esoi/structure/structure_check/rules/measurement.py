@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import Dict, List
 
 from esoi.optimization.leaderboard import arm_selection, case_identity, results_log, rival_decisions, switching_policy
-from esoi.optimization.leaderboard.interface import held_out_parts, rival_pairing
-from esoi.optimization.measurement_harness.interface import defect_reason, stale_reason
+from esoi.optimization.leaderboard.interface import selection_view, incomparable_rivals, stale_rivals
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import defect_reason, stale_reason
 from esoi.optimization.when_metrics_are_run.interface import declares_simulated
 from esoi.structure.intent_registry.records import FILES
 from esoi.structure.intent_registry.registry import adopts
@@ -172,7 +172,7 @@ def rival_problems(ctx: Context, r: Dict[str, str], per_case, chosen) -> List[st
         if not ctx.waived("S10", f"{r['solution_id']}:unmeasured"):   # advice: a measurement is made when it is worth its cost
             ctx.advisory.append(f"S10 {r['solution_id']}: selected {sel} has no row in the results log (run with --record when a decision needs it)")
         return []
-    pick_history, pick_policy = held_out_parts.selection_view(ctx.history.get(comp, {}), per_case, chosen.get(comp) or switching_policy.Policy())
+    pick_history, pick_policy = selection_view(ctx.history.get(comp, {}), per_case, chosen.get(comp) or switching_policy.Policy())
     if sel not in pick_history:
         return []
     better = [x["impl"] for x in rival_decisions.challengers({i: rs[-1] for i, rs in pick_history.items()}, sel, config.evaluation, pick_history, per_case, pick_policy)]
@@ -287,12 +287,12 @@ def empty_solution_fields(ctx: Context, r: Dict[str, str]) -> List[str]:
 def rival_advice(ctx: Context, sid: str, comp: str, sel: str) -> None:
     """Advice (--strict only) on rivals the verdict compares with that are stale or not comparable."""
     results = ctx.results.get(comp, {})
-    for impl, rival_why in rival_pairing.stale_rivals(ctx.config, comp, results, sel, stale_reason, ctx.history.get(comp)):
+    for impl, rival_why in stale_rivals(ctx.config, comp, results, sel, stale_reason, ctx.history.get(comp)):
         waived = ctx.waived("S20", f"{sid}:{impl}")   # in use now, though only --strict reports the finding
         if ctx.strict and not waived:   # information: a changed file never fails the check or blocks a commit
             ctx.advisory.append(f"S20 {sid}: the verdict compares {sel} with rival {impl}, but {rival_why}; "
                                 f"re-run `esoi run {comp} --impl {impl} --record` when a decision depends on the comparison")
-    for impl, rival_why in rival_pairing.incomparable_rivals(results, sel, ctx.config.evaluation, ctx.history.get(comp)):
+    for impl, rival_why in incomparable_rivals(results, sel, ctx.config.evaluation, ctx.history.get(comp)):
         waived = ctx.waived("S20", f"{sid}:{impl}")
         if ctx.strict and not waived:
             ctx.advisory.append(f"S20 {sid}: rival {impl} is not comparable with {sel} ({rival_why}); "

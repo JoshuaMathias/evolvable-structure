@@ -100,7 +100,7 @@ class OfflineGuard:
 def refuse_offline_network(config: Config, component: str, impl: str, environ: Optional[Dict[str, str]] = None) -> None:
     """Raise ``PendingNetwork`` when ``ESOI_OFFLINE=1`` and the arm declares a required ``network`` requirement: the same answer
     ``esoi.runtime.assemble_by_name.entry`` gives (pending-network), before any case runs, any provider is built or any row is recorded."""
-    from esoi.runtime.assemble_by_name.interface import checking, declarations
+    from esoi.runtime.assemble_by_name.interface import check, Network, declared
     environ = os.environ if environ is None else environ
     if environ.get(OFFLINE_ENV) != "1":
         return
@@ -108,8 +108,8 @@ def refuse_offline_network(config: Config, component: str, impl: str, environ: O
     for target in arm_targets(config, component, impl):
         if target is None:
             continue
-        for one in checking.check(declarations.declared(target), environ):
-            if isinstance(one.requirement, declarations.Network) and one.blocking and one.requirement.label not in hosts:
+        for one in check(declared(target), environ):
+            if isinstance(one.requirement, Network) and one.blocking and one.requirement.label not in hosts:
                 hosts.append(one.requirement.label)
     if hosts:
         raise PendingNetwork(f"pending-network: {component}/{impl} needs {', '.join(hosts)} and {OFFLINE_ENV}=1 is set; "

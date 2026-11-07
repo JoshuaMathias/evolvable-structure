@@ -3,13 +3,15 @@ from typing import Any, Callable, Dict, Optional, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.structure_quality.balance import REFERENCE_LINE
-from esoi.structure.structure_quality import compare, report  # noqa: F401  (re-exported: the command line calls this unit through its interface)
-from esoi.structure.structure_quality import assess, expert_review  # noqa: F401  (re-exported: other units call this unit through its interface)
 from esoi.structure.structure_quality.balance import Budgets  # noqa: F401  (re-exported: other units call this unit through its interface)
 from esoi.structure.structure_quality.overlap import ARMS_SHARE_LITTLE, OVERLAP, OVERLAP_WORDS, content, mean_overlap  # noqa: F401  (re-exported: other units call this unit through its interface)
 from esoi.structure.structure_quality.project import load  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.structure.structure_quality.assess import assess
+from esoi.structure.structure_quality.expert_review import review
+from esoi.structure.structure_quality.compare import compare, lines as compare_lines
+from esoi.structure.structure_quality.report import lines as report_lines
 
-__all__ = ["ARMS_SHARE_LITTLE", "Budgets", "OVERLAP", "OVERLAP_WORDS", "REFERENCE_LINE", "assess", "compare", "content", "expert_review", "load", "mean_overlap", "report"]
+__all__ = ["ARMS_SHARE_LITTLE", "Budgets", "OVERLAP", "OVERLAP_WORDS", "REFERENCE_LINE", "assess", "compare", "compare_lines", "content", "load", "mean_overlap", "report_lines", "review"]
 
 
 @solution("structure-quality", kind="evaluate", entry="assess", example="docs")

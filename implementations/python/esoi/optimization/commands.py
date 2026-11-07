@@ -14,58 +14,57 @@ def run_run(config, args: argparse.Namespace) -> int:
 
 
 def run_cassette(config, args: argparse.Namespace) -> int:
-    from esoi.optimization.measurement_harness.interface import cassette
-    return cassette.run_cli(args.rest, str(config.harness.get("cassette", "")), config.root)
+    from esoi.optimization.measurement_harness.interface import cassette_run_cli
+    return cassette_run_cli(args.rest, str(config.harness.get("cassette", "")), config.root)
 
 
 def run_attest(config, args: argparse.Namespace) -> int:
-    from esoi.optimization.when_metrics_are_run.interface import attest
-    return attest.run_cli(config, args.component, args.impl, args.reason, args.through, args.author)
+    from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import attest_run_cli
+    return attest_run_cli(config, args.component, args.impl, args.reason, args.through, args.author)
 
 
 def run_stale(config, args: argparse.Namespace) -> int:
-    from esoi.optimization.when_metrics_are_run.interface import ownership_index, staleness
-    if args.rule and args.rule not in ownership_index.RULES:
-        print(f"esoi stale: --rule must be one of {', '.join(ownership_index.RULES)}")
+    from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import RULES, count_stale, explain_cli
+    if args.rule and args.rule not in RULES:
+        print(f"esoi stale: --rule must be one of {', '.join(RULES)}")
         return 2
     if args.count:
         from esoi.structure.intent_registry import intents
         with intents.session():
-            counts = {rule: staleness.count_stale(config, rule) for rule in ownership_index.RULES}
+            counts = {rule: count_stale(config, rule) for rule in RULES}
         for rule, found in counts.items():
             print(f"{rule}: {len(found)} row(s) stale because measured code changed")
         return 0
     if args.explain:
         from esoi.structure.intent_registry import intents
         with intents.session():
-            return staleness.explain_cli(config, args.explain, print, args.rule)
+            return explain_cli(config, args.explain, print, args.rule)
     print("usage: esoi stale --explain COMPONENT [--rule RULE] | esoi stale --count")
     return 2
 
 
 def run_leaderboard(config, args: argparse.Namespace) -> int:
-    from esoi.optimization.when_metrics_are_run.interface import attest
-    from esoi.optimization.measurement_harness import interface as harness
-    from esoi.optimization.leaderboard.interface import board_report
+    from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import note, stale_reason
+    from esoi.optimization.leaderboard.interface import board_report_board
     from esoi.structure.intent_registry import registry
     from esoi.structure.intent_registry import intents
     with intents.session():
-        return board_report.board(config, registry.load(config), args.strict, stale=harness.stale_reason, attested=attest.note)
+        return board_report_board(config, registry.load(config), args.strict, stale=stale_reason, attested=note)
 
 
 def run_cascade(config, args: argparse.Namespace) -> int:
-    from esoi.optimization.leaderboard.interface import cascade_report
-    return cascade_report.run_cli(config, args.solution, args.strict)
+    from esoi.optimization.leaderboard.interface import cascade_report_run_cli
+    return cascade_report_run_cli(config, args.solution, args.strict)
 
 
 def run_evidence(config, args: argparse.Namespace) -> int:
-    from esoi.optimization.when_metrics_are_run.interface import evidence_report
-    return evidence_report.run_cli(config, args.action, args.candidate, args.dimension, args.weights, args.file)
+    from esoi.optimization.when_metrics_are_run.public_evidence.interface import evidence_report_run_cli
+    return evidence_report_run_cli(config, args.action, args.candidate, args.dimension, args.weights, args.file)
 
 
 def run_evidence_table(config, args: argparse.Namespace) -> int:
-    from esoi.optimization.leaderboard.interface import evidence_table
-    return evidence_table.run_cli(config, args.file, args.begin or evidence_table.BEGIN, args.end or evidence_table.END, args.solution)
+    from esoi.optimization.leaderboard.interface import BEGIN, END, evidence_table_run_cli
+    return evidence_table_run_cli(config, args.file, args.begin or BEGIN, args.end or END, args.solution)
 
 
 def explain_selection(config, args: argparse.Namespace) -> int:
@@ -97,12 +96,12 @@ def explain_selection(config, args: argparse.Namespace) -> int:
 def run_select(config, args: argparse.Namespace) -> int:
     """``esoi select``: explain the cascade for a solution, promote a winner, or write a snapshot."""
     import json
-    from esoi.runtime.assemble_by_name.interface import intent_map
+    from esoi.runtime.assemble_by_name.interface import snapshot
     if args.promote:
-        from esoi.optimization.promote_the_winner.interface import promote
-        return promote.run_cli(config, args.solution or "", args.dry_run, args.apply)
+        from esoi.optimization.promote_the_winner.interface import run_cli
+        return run_cli(config, args.solution or "", args.dry_run, args.apply)
     if args.snapshot:
-        Path(args.snapshot).write_text(json.dumps(intent_map.snapshot(config), indent=1, sort_keys=True) + "\n", encoding="utf-8")
+        Path(args.snapshot).write_text(json.dumps(snapshot(config), indent=1, sort_keys=True) + "\n", encoding="utf-8")
         print(f"wrote {args.snapshot}")
         return 0
     if not args.solution:

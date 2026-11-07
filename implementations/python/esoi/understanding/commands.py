@@ -17,47 +17,47 @@ def run_init(config, args: argparse.Namespace) -> int:
 
 
 def run_skill(config, args: argparse.Namespace) -> int:
-    from esoi.understanding.the_standard.skill_distribution.interface import skill
+    from esoi.understanding.the_standard.skill_distribution.interface import check, install, sync
     if args.action == "install":
-        return skill.install(args.project, args.dest, args.from_dir, args.force)
+        return install(args.project, args.dest, args.from_dir, args.force)
     if args.action == "sync":
-        return skill.sync(config, args.source)
-    return skill.check(config, args.source, args.denylist)
+        return sync(config, args.source)
+    return check(config, args.source, args.denylist)
 
 
 def run_docs(config, args: argparse.Namespace) -> int:
-    from esoi.understanding.the_standard.interface import docs
+    from esoi.understanding.the_standard.interface import run_cli
     if args.action == "wiki" and not args.out:
         print("esoi docs wiki: pass --out DIR", file=sys.stderr)
         return 2
-    return docs.run_cli(args, Path(args.root).resolve())
+    return run_cli(args, Path(args.root).resolve())
 
 
 def run_readmes(config, args: argparse.Namespace) -> int:
-    from esoi.understanding.readable_records.interface import readme
-    return readme.run_cli(config, args.check)
+    from esoi.understanding.readable_records.interface import readme_run_cli
+    return readme_run_cli(config, args.check)
 
 
 def run_diagram(config, args: argparse.Namespace) -> int:
-    from esoi.understanding.readable_records.interface import diagram
-    return diagram.run_cli(config, args.check)
+    from esoi.understanding.readable_records.interface import diagram_run_cli
+    return diagram_run_cli(config, args.check)
 
 
 def run_tracker(config, args: argparse.Namespace) -> int:
     from esoi.structure.intent_registry import registry
-    from esoi.understanding.review_tracker.interface import tracker
+    from esoi.understanding.review_tracker.interface import tracker_stale, tracker_write
     loaded = registry.load(config)
     if args.action == "build":
-        tracker.write(config, loaded)
+        tracker_write(config, loaded)
         return 0
-    bad = tracker.stale(config, loaded)
+    bad = tracker_stale(config, loaded)
     print("tracker out of date: " + ", ".join(bad) if bad else "tracker ok")
     return 1 if bad else 0
 
 
 def run_sheet_sync(config, args: argparse.Namespace) -> int:
-    from esoi.understanding.review_tracker.interface import sheets
-    return sheets.run_cli(config, args.mode, args.dry_run)
+    from esoi.understanding.review_tracker.interface import run_cli
+    return run_cli(config, args.mode, args.dry_run)
 
 
 def spec_index_action(args: argparse.Namespace, index) -> int:

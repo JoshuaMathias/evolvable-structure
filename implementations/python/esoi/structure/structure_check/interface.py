@@ -4,12 +4,13 @@ from typing import List, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
-from esoi.structure.structure_check import check, hygiene  # noqa: F401  (re-exported: the command line calls this unit through its interface)
-from esoi.structure.structure_check.rules import structure_quality_rules  # noqa: F401  (re-exported: the command line calls this unit through its interface)
-from esoi.structure.structure_check import coherence  # noqa: F401  (re-exported: other units call this unit through its interface)
 from esoi.structure.structure_check.rules.beside_rules import distance  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.structure.structure_check.check import check as check_check, check_all, run_cli as check_run_cli, write_docs
+from esoi.structure.structure_check.hygiene import HygieneError, allowances_from, run_cli as hygiene_run_cli
+from esoi.structure.structure_check.check import build_context
+from esoi.structure.structure_check.rules.structure_quality_rules import assess_path, compare_refs
 
-__all__ = ["StructureChecking", "check", "coherence", "distance", "hygiene", "structure_quality_rules"]
+__all__ = ["HygieneError", "StructureChecking", "allowances_from", "assess_path", "build_context", "check_all", "check_check", "check_run_cli", "coherence_check", "compare_refs", "distance", "hygiene_run_cli", "write_docs"]
 
 
 @solution("structure-check", kind="evaluate", entry="check", example=".")

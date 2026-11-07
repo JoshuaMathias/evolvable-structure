@@ -4,9 +4,9 @@ from typing import Dict, Protocol, runtime_checkable
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
 from esoi.understanding.the_standard.skill_distribution.skill import skill_file
-from esoi.understanding.the_standard.skill_distribution import skill  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.understanding.the_standard.skill_distribution.skill import BUNDLED, SKILL_FILE as skill_SKILL_FILE, SkillError, build_copy, check, install, load_denylist, scan, settings_from, sync
 
-__all__ = ["skill", "skill_file"]
+__all__ = ["BUNDLED", "SkillError", "build_copy", "check", "install", "load_denylist", "scan", "settings_from", "skill_SKILL_FILE", "skill_file", "sync"]
 
 
 @solution("skill-distribution", kind="evaluate", entry="copies", example=".")

@@ -4,7 +4,7 @@ and reports how long the check takes cold and with a warm cache. Zero model call
 import time
 
 from shared_fixtures.interface import repo_fixture
-from esoi.structure.structure_check.interface import check
+from esoi.structure.structure_check.interface import check_check
 from esoi.structure.intent_registry import config
 
 
@@ -19,7 +19,7 @@ def build(meter):
             timings = []
             for _ in range(2):
                 started = time.perf_counter()
-                problems = check.check(cfg)
+                problems = check_check(cfg)
                 timings.append(time.perf_counter() - started)
             return {"exit": 1 if problems else 0, "problems": problems, "cold_seconds": round(timings[0], 2),
                     "warm_seconds": round(timings[1], 2)}

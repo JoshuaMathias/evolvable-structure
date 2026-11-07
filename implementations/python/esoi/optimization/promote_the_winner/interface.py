@@ -3,9 +3,9 @@ from typing import List, Protocol, Tuple, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
-from esoi.optimization.promote_the_winner import promote  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.optimization.promote_the_winner.promote import apply as promote_apply, propose, run_cli
 
-__all__ = ["WinnerPromoting", "promote"]
+__all__ = ["WinnerPromoting", "promote_apply", "propose", "run_cli"]
 
 
 @solution("promote-the-winner", kind="evaluate", entry="proposals", example=".")

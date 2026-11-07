@@ -3,12 +3,16 @@ from typing import Dict, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
-from esoi.structure.intent_registry import admit, besidecode, migrate  # noqa: F401  (re-exported: the command line calls this unit through its interface)
-from esoi.structure.intent_registry import circumstances, implementedby  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.structure.intent_registry import circumstances
 from esoi.structure.intent_registry.assembly_errors import AssemblyError, LockError  # noqa: F401  (re-exported: other units call this unit through its interface)
 from esoi.structure.intent_registry.name_check import check_name  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.structure.intent_registry.migrate import run_cli as migrate_run_cli
+from esoi.structure.intent_registry.admit import run_cli as admit_run_cli
+from esoi.structure.intent_registry.besidecode import run_cli as besidecode_run_cli
+from esoi.structure.intent_registry.circumstances import Circumstance, case_circumstances, digest, for_component, holds, run_context, slices
+from esoi.structure.intent_registry.implementedby import CAP, implemented_by, problems
 
-__all__ = ["AssemblyError", "IntentRegistering", "LockError", "admit", "besidecode", "check_name", "circumstances", "counted", "implementedby", "load_project", "migrate"]
+__all__ = ["AssemblyError", "CAP", "Circumstance", "IntentRegistering", "LockError", "admit_run_cli", "besidecode_run_cli", "case_circumstances", "check_name", "circumstances", "counted", "digest", "for_component", "holds", "implemented_by", "load_project", "migrate_run_cli", "problems", "run_context", "slices"]
 
 
 @solution("intent-registry", kind="event", entry="count", example=".")

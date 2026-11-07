@@ -3,7 +3,7 @@ project reviewed, about 6000 tokens in and 600 out, so the fixture set of this m
 spend, in stages of 3, 10 and 30 cases, with a call budget (esoi/metric-run-policy.md). Never run offline: the offline guard refuses its calls."""
 from shared_fixtures.interface import model_arms
 from shared_fixtures.interface import structure_fixture
-from esoi.structure.structure_quality.interface import expert_review
+from esoi.structure.structure_quality.interface import review
 from esoi.structure.structure_quality.interface import load
 
 PAID = True
@@ -13,6 +13,6 @@ def build(meter):
     ask = model_arms.provider(meter)
 
     def run(kind, args):
-        report = expert_review.review(load(structure_fixture.project(args["shape"])), lambda text: ask.answer([{"role": "user", "content": text}], model_arms.model() or None))
+        report = review(load(structure_fixture.project(args["shape"])), lambda text: ask.answer([{"role": "user", "content": text}], model_arms.model() or None))
         return {"score": report["score"], "verdict": report["verdict"], "flagged": report["flagged"]}
     return run

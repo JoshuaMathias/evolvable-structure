@@ -8,7 +8,7 @@ from esoi.understanding.readable_records import diagram, readme_trail
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.intents import Intent
 from esoi.structure.intent_registry.registry import Registry
-from esoi.structure.intent_registry.interface import implementedby
+from esoi.structure.intent_registry.interface import CAP, implemented_by
 from esoi.structure.intent_registry.tables import read_csv
 from esoi.understanding.readable_records.readme_view import ARM_NOTE, FILE, FOLDER_NOTE, View, entry_call, first_sentence, impl_label, leader, link, list_item, metric_names, mine, named, one_line
 
@@ -30,11 +30,11 @@ def code_cell(view: View, folder: Path, filepath: str) -> str:
 def implemented_line(registry: Registry, view: View, folder: Path, solution_id: str) -> List[str]:
     """``- Implemented by: ...``: the files that implement a solution as links from the folder's page, generated from the records, the
     declarations and the ownership map (never hand-kept), at most ``implementedby.CAP`` of them."""
-    files = implementedby.implemented_by(view.config, registry, solution_id, view.declared_all, view.files)
+    files = implemented_by(view.config, registry, solution_id, view.declared_all, view.files)
     if not files:
         return []
     root = view.config.root
-    shown = [f"[`{f}`]({link(folder, root / f)})" for f in files[:implementedby.CAP]]
+    shown = [f"[`{f}`]({link(folder, root / f)})" for f in files[:CAP]]
     rest = len(files) - len(shown)
     return ["- Implemented by: " + ", ".join(shown) + (f" and {rest} more" if rest > 0 else "")]
 

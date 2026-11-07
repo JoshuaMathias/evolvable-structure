@@ -7,7 +7,7 @@ from pathlib import Path
 
 from shared_fixtures.interface import harness_fixture
 from esoi.optimization.leaderboard import arm_kinds, case_identity, ranking, rival_decisions, switching_policy
-from esoi.optimization.leaderboard.interface import board_report, verdict_labels
+from esoi.optimization.leaderboard.interface import board_report_board, verdict_labels_verdict
 
 
 def rank(args):
@@ -34,7 +34,7 @@ def verdict(args):
             row["component"] = name
         per_case = case_rows(name, rows, args.get("outcomes") or {})
         policy = switching_policy.Policy(alpha=args.get("alpha", switching_policy.ALPHA), require_significance=args.get("require_significance", False))
-        label, detail = verdict_labels.verdict(rows, args["selected"], config.evaluation, history, per_case, policy)
+        label, detail = verdict_labels_verdict(rows, args["selected"], config.evaluation, history, per_case, policy)
         return {"verdict": label, "text": detail,
                 "arms": {i: arm_kinds.arm_kind(r, config.evaluation) for i, r in rows.items()}}
 
@@ -45,7 +45,7 @@ def board(args):
         harness_fixture.write_results(config.results_path, args["rows"])
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
-            code = board_report.board(config, harness_fixture.registry_selecting(args["selected"]), bool(args.get("strict")))
+            code = board_report_board(config, harness_fixture.registry_selecting(args["selected"]), bool(args.get("strict")))
         text = out.getvalue()
     return {"exit": code, "text": text,
             "beats": [ln.split()[1] for ln in text.splitlines() if ln.strip().startswith("!")],

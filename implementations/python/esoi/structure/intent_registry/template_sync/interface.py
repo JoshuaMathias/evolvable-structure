@@ -3,9 +3,10 @@ from typing import Dict, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
-from esoi.structure.intent_registry.template_sync import templates, versioning  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.structure.intent_registry.template_sync.templates import sync
+from esoi.structure.intent_registry.template_sync.versioning import VersionError, record, report as versioning_report
 
-__all__ = ["templates", "versioning"]
+__all__ = ["VersionError", "record", "sync", "versioning_report"]
 
 
 @solution("template-sync", kind="evaluate", entry="fields", example=".")

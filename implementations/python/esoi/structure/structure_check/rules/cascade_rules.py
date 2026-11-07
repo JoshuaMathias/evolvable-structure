@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 from esoi.optimization.leaderboard import arm_selection, cascade_stages
-from esoi.optimization.leaderboard.interface import stage_standings
-from esoi.optimization.measurement_harness.interface import defect_reason, stale_reason
+from esoi.optimization.leaderboard.interface import decide, standings
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import defect_reason, stale_reason
 from esoi.structure.intent_registry.tables import ids
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
 
@@ -83,10 +83,10 @@ def run(ctx: Context) -> list:
         component, selected = next(iter(ctx.harness_arms(metric.get("command", ""))), ("", ""))   # the command names the selected arm
         if errors or not stages or component not in ctx.history:
             continue
-        current = stage_standings.decide(stages, stage_standings.standings(stages, ctx.history[component], datetime.date.today(),
+        current = decide(stages, standings(stages, ctx.history[component], datetime.date.today(),
                                  lambda row, c=component: stale_reason(ctx.config, c, row, False),
                                  ctx.config.evaluation), ctx.config.evaluation)   # rows on the current cases only
-        recorded = stage_standings.decide(stages, stage_standings.standings(stages, ctx.history[component], datetime.date.today(),
+        recorded = decide(stages, standings(stages, ctx.history[component], datetime.date.today(),
                                   lambda row, c=component: defect_reason(ctx.config, c, row),
                                   ctx.config.evaluation), ctx.config.evaluation)   # every well-formed row, whatever changed since
         found, advice = disagreement_lines(ctx, metric, component, selected, Cascade(stages, current, recorded))

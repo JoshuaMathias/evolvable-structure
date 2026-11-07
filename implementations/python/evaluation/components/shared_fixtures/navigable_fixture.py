@@ -14,7 +14,7 @@ from typing import Dict, Tuple
 
 from shared_fixtures import glance_fixture
 from esoi.structure.intent_registry import besidecode, config, intents, registry
-from esoi.understanding.readable_records.interface import readme
+from esoi.understanding.readable_records.interface import readme_pages
 
 CACHE: Dict[Tuple[str, str], Tuple[Path, str]] = {}
 RECORDS: Dict[Tuple[str, str], dict] = {}   # the [records] table each laid-out tree is read with
@@ -72,7 +72,7 @@ def lay_out(cfg, arm: str, target: Path):
     moved = dataclasses.replace(cfg, root=target, records=records)
     besidecode.apply(moved, besidecode.plan(moved, "beside" if arm == "beside_code" else "gather"))
     final = moved if arm == "beside_code" else dataclasses.replace(moved, records={**records, "beside_code": []})
-    pages = readme.pages(final, registry.load(final))
+    pages = readme_pages(final, registry.load(final))
     for path, text in pages:
         path.write_text(text, encoding="utf-8")
     digest = hashlib.sha256("".join(f"{p.relative_to(target)}\n{t}" for p, t in sorted(pages)).encode()).hexdigest()[:16]

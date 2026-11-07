@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 
 from shared_fixtures import repo_fixture
-from esoi.runtime.consumer_check.interface import consumer
+from esoi.runtime.consumer_check.interface import cases_hash, check_consumer
 from esoi.runtime.consumer_check.interface import Options
 
 LIBRARY_FILES = {
@@ -41,7 +41,7 @@ def baseline_consumer(dest: Path) -> Path:
     repo_fixture.write(root, "case_files/cases.json", "[]\n")
     repo_fixture.write(root, "registry.csv", REGISTRY)
     repo_fixture.write(root, "solutions.csv", SOLUTIONS)
-    digest = consumer.cases_hash(["case_files/cases.json"], root)
+    digest = cases_hash(["case_files/cases.json"], root)
     repo_fixture.write(root, "results.csv", "solution_id,cases,passed,git_sha,cases_sha\n"
                        f"escalate,1,1,abc1234,{digest}\n")
     return root
@@ -62,7 +62,7 @@ def run_check(edits: list) -> dict:
     for name in [m for m in sys.modules if m == "consumer_sink"]:
         del sys.modules[name]
     try:
-        report = consumer.check_consumer(root / "registry.csv", root, OPTIONS, solutions=root / "solutions.csv",
+        report = check_consumer(root / "registry.csv", root, OPTIONS, solutions=root / "solutions.csv",
                                          results=root / "results.csv")
         problems = report.problems
         notes = report.notes

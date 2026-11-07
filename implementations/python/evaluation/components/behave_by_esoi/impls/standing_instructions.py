@@ -3,10 +3,10 @@ model judge grades the reply (the regex ``must_not`` patterns are a prefilter). 
 call, which costs money: run only after Joshua has approved the spend (structure/metric-run-policy.md). The setting is a
 bare chat with no tools, so it measures the instruction layer alone."""
 from shared_fixtures.interface import model_arms
-from esoi.understanding.the_standard.skill_distribution.interface import skill
+from esoi.understanding.the_standard.skill_distribution.interface import BUNDLED, skill_SKILL_FILE
 
 PAID = True
-SKILL_FILE = skill.BUNDLED / "evolvable-structure" / skill.SKILL_FILE
+SKILL_FILE = BUNDLED / "evolvable-structure" / skill_SKILL_FILE
 
 
 def build(meter):

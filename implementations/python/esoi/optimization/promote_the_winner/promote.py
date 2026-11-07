@@ -31,7 +31,7 @@ from esoi.optimization.leaderboard.interface import held_out_parts, rival_pairin
 from esoi.structure.intent_registry import intents
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.specify_from_code.declarations import intent_folder
-from esoi.optimization.measurement_harness.interface import stale_reason
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import stale_reason
 from esoi.structure.intent_registry.registry import Registry
 from esoi.runtime.implementation_selection.select import load_table
 from esoi.structure.intent_registry.tables import ids, read_csv, read_header, write_csv

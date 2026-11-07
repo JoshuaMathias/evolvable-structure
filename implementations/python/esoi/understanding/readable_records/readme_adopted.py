@@ -12,11 +12,11 @@ from typing import List
 
 from esoi.structure.intent_registry.intents import Intent
 from esoi.structure.intent_registry.registry import Registry
-from esoi.structure.library_adoption.interface import resolve
+from esoi.structure.library_adoption.interface import Libraries, Library, Reference, references
 from esoi.understanding.readable_records.readme_view import View, first_sentence, link, mine, one_line
 
 
-def target(lib: resolve.Library, solution_id: str, folder: Path) -> str:
+def target(lib: Library, solution_id: str, folder: Path) -> str:
     """Where the library's page for a solution is: under the configured ``url`` when there is one, else a relative path; '' when it has no page."""
     page = lib.page(solution_id)
     if page is None or lib.root is None:
@@ -26,7 +26,7 @@ def target(lib: resolve.Library, solution_id: str, folder: Path) -> str:
     return link(folder, page)
 
 
-def entry(libraries: resolve.Libraries, ref: resolve.Reference, folder: Path) -> str:
+def entry(libraries: Libraries, ref: Reference, folder: Path) -> str:
     """One bullet for a reference: ``- [Library name](link) (`local id`): the library's description, first sentence. Library: name.``"""
     lib = libraries.get(ref.library)
     row = lib.solution(ref.solution_id) if not lib.error else None
@@ -44,10 +44,10 @@ def lines(view: View, registry: Registry, intent: Intent, level: str = "##") -> 
     """The section for this intent's adopted and specialized solutions, empty when it has none."""
     if view.config is None:
         return []
-    refs, _ = resolve.references(view.config, registry)
+    refs, _ = references(view.config, registry)
     own = {r.get("solution_id", "") for r in mine(registry.every_solution(), intent.intent_id)}
     mine_refs = [r for r in refs if r.local_id in own]
     if not mine_refs:
         return []
-    libraries = resolve.Libraries(view.config)
+    libraries = Libraries(view.config)
     return [f"{level} Solutions from a library", ""] + [entry(libraries, r, intent.folder) for r in mine_refs] + [""]

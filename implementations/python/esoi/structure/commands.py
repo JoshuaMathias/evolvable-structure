@@ -9,10 +9,10 @@ from esoi import command_table
 
 
 def run_check(config, args: argparse.Namespace) -> int:
-    from esoi.structure.structure_check.interface import check
+    from esoi.structure.structure_check.interface import check_run_cli
     from esoi.structure.intent_registry import intents
     with intents.session():
-        return check.run_cli(config, args.strict, args.write_docs, findings=args.findings)
+        return check_run_cli(config, args.strict, args.write_docs, findings=args.findings)
 
 
 def run_rules(config, args: argparse.Namespace) -> int:
@@ -24,25 +24,25 @@ def run_rules(config, args: argparse.Namespace) -> int:
 
 def run_structure_quality(config, args: argparse.Namespace) -> int:
     """Print the Structure Quality report of a path, or with ``--compare`` the comparison of two structures (advisory: the exit code is always 0)."""
-    from esoi.structure.structure_check.interface import structure_quality_rules
-    from esoi.structure.structure_quality.interface import compare, report
+    from esoi.structure.structure_check.interface import assess_path, compare_refs
+    from esoi.structure.structure_quality.interface import compare_lines, report_lines
     if args.compare:
         try:
-            result = structure_quality_rules.compare_refs(args.compare[0], args.compare[1], args.path, args.stage, not args.fast)
+            result = compare_refs(args.compare[0], args.compare[1], args.path, args.stage, not args.fast)
         except ValueError as exc:
             print(f"esoi: {exc}", file=sys.stderr)
             return 2
-        for line in compare.lines(result):
+        for line in compare_lines(result):
             print(line)
         return 0
-    for line in report.lines(structure_quality_rules.assess_path(Path(args.path), args.stage, not args.fast)):
+    for line in report_lines(assess_path(Path(args.path), args.stage, not args.fast)):
         print(line)
     return 0
 
 
 def run_template(config, args: argparse.Namespace) -> int:
-    from esoi.structure.intent_registry.template_sync.interface import templates
-    return templates.sync(config, args.source, check=args.action == "check")
+    from esoi.structure.intent_registry.template_sync.interface import sync
+    return sync(config, args.source, check=args.action == "check")
 
 
 def run_fields(config, args: argparse.Namespace) -> int:
@@ -56,8 +56,8 @@ def run_fields(config, args: argparse.Namespace) -> int:
 
 
 def run_intent(config, args: argparse.Namespace) -> int:
-    from esoi.structure.intent_registry.interface import migrate
-    return migrate.run_cli(config, args.apply)
+    from esoi.structure.intent_registry.interface import migrate_run_cli
+    return migrate_run_cli(config, args.apply)
 
 
 def records_sync(config, args: argparse.Namespace) -> int:
@@ -108,10 +108,10 @@ def records_check(config, args: argparse.Namespace) -> int:
 def run_records(config, args: argparse.Namespace) -> int:
     if args.action in ("place", "gather"):
         from esoi.structure.intent_registry import registry
-        from esoi.structure.intent_registry.interface import besidecode
-        from esoi.understanding.readable_records.interface import readme
-        return besidecode.run_cli(config, "beside" if args.action == "place" else "gather", args.apply,
-                                  after_apply=lambda moved: readme.write(moved, registry.load(moved), say=lambda text: None))
+        from esoi.structure.intent_registry.interface import besidecode_run_cli
+        from esoi.understanding.readable_records.interface import readme_write
+        return besidecode_run_cli(config, "beside" if args.action == "place" else "gather", args.apply,
+                                  after_apply=lambda moved: readme_write(moved, registry.load(moved), say=lambda text: None))
     if args.action == "sync":
         return records_sync(config, args)
     return records_check(config, args)
@@ -119,15 +119,15 @@ def run_records(config, args: argparse.Namespace) -> int:
 
 def run_admit(config, args: argparse.Namespace) -> int:
     from esoi.structure.intent_registry import registry
-    from esoi.structure.intent_registry.interface import admit
-    return admit.run_cli(config, registry.load(config), args.solution, args.name, args.why, args.uses, args.filepath, args.changed,
+    from esoi.structure.intent_registry.interface import admit_run_cli
+    return admit_run_cli(config, registry.load(config), args.solution, args.name, args.why, args.uses, args.filepath, args.changed,
                          say=lambda text: print(text, file=sys.stderr if text.startswith("esoi:") else sys.stdout))
 
 
 def run_new(config, args: argparse.Namespace) -> int:
-    from esoi.structure.intent_registry.specify_from_code.interface import newsolution
+    from esoi.structure.intent_registry.specify_from_code.interface import create
     try:
-        written = newsolution.create(config, args.id, args.intent)
+        written = create(config, args.id, args.intent)
     except ValueError as exc:
         print(f"esoi: {exc}", file=sys.stderr)
         return 2
@@ -141,7 +141,7 @@ def run_new(config, args: argparse.Namespace) -> int:
 def run_version(config, args: argparse.Namespace) -> int:
     """``esoi version``: works without a configuration; ``--record`` needs one."""
     from esoi.structure.intent_registry import config as config_module
-    from esoi.structure.intent_registry.template_sync.interface import versioning
+    from esoi.structure.intent_registry.template_sync.interface import VersionError, record, versioning_report
     try:
         config = config_module.load(args.config)
     except config_module.ConfigMissing:
@@ -154,19 +154,19 @@ def run_version(config, args: argparse.Namespace) -> int:
             print("esoi: no esoi.toml found to record the template version in", file=sys.stderr)
             return 2
         try:
-            print(f"wrote {versioning.record(config)} under [records] in {config.source.name}")
-        except versioning.VersionError as exc:
+            print(f"wrote {record(config)} under [records] in {config.source.name}")
+        except VersionError as exc:
             print(f"esoi: {exc}", file=sys.stderr)
             return 2
         return 0
-    for line in versioning.report(config):
+    for line in versioning_report(config):
         print(line)
     return 0
 
 
 def run_hygiene(config, args: argparse.Namespace) -> int:
     from esoi.structure.intent_registry import config as config_module
-    from esoi.structure.structure_check.interface import hygiene
+    from esoi.structure.structure_check.interface import HygieneError, allowances_from, hygiene_run_cli
     table = {}
     try:
         table = config_module.load(args.config, Path(args.root)).hygiene
@@ -176,11 +176,11 @@ def run_hygiene(config, args: argparse.Namespace) -> int:
         print(f"esoi: {exc}", file=sys.stderr)
         return 2
     try:
-        allow = hygiene.allowances_from(table)
-    except hygiene.HygieneError as exc:
+        allow = allowances_from(table)
+    except HygieneError as exc:
         print(f"esoi hygiene: {exc}", file=sys.stderr)
         return 2
-    return hygiene.run_cli(Path(args.root), args.staged, args.history, allow)
+    return hygiene_run_cli(Path(args.root), args.staged, args.history, allow)
 
 
 TABLE = """

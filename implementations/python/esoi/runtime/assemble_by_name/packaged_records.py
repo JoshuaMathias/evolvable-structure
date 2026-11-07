@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Mapping, Tuple
 
-from esoi.optimization.leaderboard.interface import lock_evidence
+from esoi.optimization.leaderboard.interface import lock_evidence_records_evidence
 from esoi.runtime.assemble_by_name import hierarchy
 from esoi.structure.intent_registry.interface import AssemblyError
 from esoi.runtime.implementation_selection import selection_cascade
@@ -68,7 +68,7 @@ def read_records(root: Path) -> Packaged:
     except Exception as error:
         raise AssemblyError(f"the records in {root} cannot be loaded ({type(error).__name__}: {error})") from error
     try:
-        evidence = lock_evidence.records_evidence(cfg, loaded)
+        evidence = lock_evidence_records_evidence(cfg, loaded)
     except Exception:
         evidence = {}   # no results to judge by: the lock then records the default without a verdict
     return Packaged(defaults, modules, "the records", hierarchy.read_overrides(cfg), evidence)

@@ -20,6 +20,6 @@ class ComponentRows:
     """The path patterns of the components table."""
 
     def unowned(self, project: str) -> List[str]:
-        from esoi.structure.structure_check.interface import check
+        from esoi.structure.structure_check.interface import build_context
         cfg, found = load_project(project)
-        return sorted(name for name, owners in check.build_context(cfg).owners.items() if not owners)
+        return sorted(name for name, owners in build_context(cfg).owners.items() if not owners)

@@ -17,9 +17,9 @@ import tempfile
 from pathlib import Path
 from typing import Dict, List
 
-from esoi.structure.structure_check.interface import check
+from esoi.structure.structure_check.interface import check_all, write_docs
 from esoi.structure.intent_registry import config
-from esoi.understanding.the_standard.interface import scaffold
+from esoi.understanding.the_standard.interface import init
 
 PORTS = ('"""The fixture port."""\nfrom typing import Protocol\n\n\nclass Greeter(Protocol):\n'
          '    """Says hello."""\n\n    def greet(self, name: str) -> str: ...\n')
@@ -71,7 +71,7 @@ def baseline_repo(dest: Path) -> Path:
     """The clean fixture: ``esoi init`` plus a port, a selection table, an adapters layer, then generated docs."""
     root = Path(dest)
     root.mkdir(parents=True, exist_ok=True)
-    scaffold.init(root, "demo", say=lambda text: None)
+    init(root, "demo", say=lambda text: None)
     set_cell(root, "esoi/intent.csv", "intent_id", "demo", "name", "Consistent greetings")
     set_cell(root, "esoi/intent.csv", "intent_id", "demo", "vision_statement", "Every person is greeted by their own name.")
     set_cell(root, "esoi/intent.csv", "intent_id", "demo", "opportunities",
@@ -110,7 +110,7 @@ def baseline_repo(dest: Path) -> Path:
     path.write_text(csv_text(cols, rows))
     set_cell(root, "esoi/solutions.csv", "solution_id", "greet-a-person", "interface_name", "Greeter")
     set_cell(root, "esoi/solutions.csv", "solution_id", "greet-a-person", "selected", "plain")
-    check.write_docs(config.load(root), say=lambda text: None)
+    write_docs(config.load(root), say=lambda text: None)
     return root
 
 
@@ -165,7 +165,7 @@ def apply_edits(root: Path, edits: List[dict]) -> None:
               "append": lambda r, e: (r / e.get("path", "")).write_text((r / e.get("path", "")).read_text() + e["content"]),
               "delete": lambda r, e: (r / e.get("path", "")).unlink(),
               "git_record": lambda r, e: git_record(r), "git_commit": lambda r, e: git_commit(r),
-              "regen": lambda r, e: check.write_docs(config.load(r), say=lambda text: None)}
+              "regen": lambda r, e: write_docs(config.load(r), say=lambda text: None)}
     for e in edits:
         op = e["op"]
         if op in simple:
@@ -243,7 +243,7 @@ def report(root: Path, strict: bool = False) -> Dict[str, object]:
     """Run the live checker over a fixture and return its verdict: exit code, the problem lines and the advisory lines (which never change the exit code)."""
     advisory: List[str] = []
     try:
-        problems, advisory = check.check_all(config.load(root), strict)
+        problems, advisory = check_all(config.load(root), strict)
     except Exception as exc:
         problems = [f"CRASH {type(exc).__name__}: {exc}"]
     return {"exit": 1 if problems else 0, "problems": problems, "advisory": advisory}

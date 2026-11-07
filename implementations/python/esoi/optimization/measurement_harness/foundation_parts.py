@@ -45,7 +45,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from esoi.optimization.leaderboard import case_identity, results_log
 from esoi.optimization.measurement_harness import arm_loading, balance, case_loading, component_folder, run_errors
 from esoi.optimization.when_metrics_are_run.interface import BudgetExceeded
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import builds_on, code_provenance, stale_reasons
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import Foundation, builds_on_identity, declared, declared_arms, load_config, current_sha, stale_reason
 from esoi.structure.intent_registry.config import Config
 
 
@@ -69,19 +69,19 @@ class Part:
     per_case: List[Dict[str, Any]] = field(default_factory=list)
 
 
-def recorded_part(f: builds_on.Foundation, arm: str) -> Tuple[Optional[Part], str]:
+def recorded_part(f: Foundation, arm: str) -> Tuple[Optional[Part], str]:
     """The foundation's latest whole-set row for ``arm`` as a part, or ``(None, why it cannot be reused)``."""
-    fconf = builds_on.load_config(f)
+    fconf = load_config(f)
     rows = [r for r in results_log.all_results(fconf.results_path).get(f.target, {}).get(arm, []) if not (r.get("sample") or "").strip()]
     if not rows:
         return None, f"the foundation has no recorded whole-set result for {arm}"
     row = rows[-1]
-    if why := stale_reasons.stale_reason(fconf, f.target, row):
+    if why := stale_reason(fconf, f.target, row):
         return None, why
     return part_from_row(f, arm, row, fconf), ""
 
 
-def part_from_row(f: builds_on.Foundation, arm: str, row: Dict[str, str], fconf: Config) -> Part:
+def part_from_row(f: Foundation, arm: str, row: Dict[str, str], fconf: Config) -> Part:
     """A reused ``Part`` from the foundation's recorded whole-set row, with its per-case rows when they match the row's case count."""
     per = [dict(r) for r in results_log.per_case_rows(fconf)
            if (r["component"], r["impl"], r["cases_sha"], (r["sample"] or "").strip()) == (f.target, arm, row["cases_sha"], "")]
@@ -89,7 +89,7 @@ def part_from_row(f: builds_on.Foundation, arm: str, row: Dict[str, str], fconf:
     return Part(f.name, arm, int(float(row["cases"])), float(row["passed"]), int(float(row.get("model_calls") or 0)),
                 int(float(row.get("tokens_in") or 0)), int(float(row.get("tokens_out") or 0)),
                 float(cost) if cost not in ("", None) else "", float(row.get("seconds") or 0), row.get("dev", ""), row.get("heldout", ""),
-                "reused", builds_on.identity(f, arm, row["git_sha"], row["cases_sha"]),
+                "reused", builds_on_identity(f, arm, row["git_sha"], row["cases_sha"]),
                 per_case=per if len(per) == int(float(row["cases"])) else [])
 
 
@@ -106,7 +106,7 @@ def score_one(score: Any, fn: Callable, case: Dict[str, Any], meter: Any) -> Dic
     return row
 
 
-def run_summary(f: builds_on.Foundation, arm: str, rows: List[Dict[str, Any]], spend: Tuple[Any, Dict[str, Any], float], ident: str, reason: str) -> Part:
+def run_summary(f: Foundation, arm: str, rows: List[Dict[str, Any]], spend: Tuple[Any, Dict[str, Any], float], ident: str, reason: str) -> Part:
     """The ``Part`` a run of the foundation's cases makes: counts, what the meter spent since ``spend`` began, dev and held-out ratios."""
     meter, spent, started = spend
     held = [r for r in rows if r["heldout"]]
@@ -126,11 +126,11 @@ class Consumer:
     say: Callable[[str], None]
 
 
-def run_part(f: builds_on.Foundation, arm: str, consumer: Consumer, reason: str) -> Optional[Part]:
+def run_part(f: Foundation, arm: str, consumer: Consumer, reason: str) -> Optional[Part]:
     """Run the foundation's cases through the foundation's own scorer. With a named foundation arm it is the foundation's own build of that arm;
     without one the consumer's ``adapter(name, fn)`` turns the consumer's arm into what the foundation's scorer calls."""
     adapter, meter, say = consumer.adapter, consumer.meter, consumer.say
-    fconf = builds_on.load_config(f)
+    fconf = load_config(f)
     component_folder.prepare_path(fconf)
     cases = case_loading.load_cases(f.target, fconf)
     score = importlib.import_module(f"{f.target}.score")
@@ -141,16 +141,16 @@ def run_part(f: builds_on.Foundation, arm: str, consumer: Consumer, reason: str)
     spent = dict(calls=meter.calls, tin=meter.tokens_in, tout=meter.tokens_out, cost=meter.cost_usd)
     started = time.time()
     rows = [score_one(score, fn, case, meter) for case in cases]
-    sha = code_provenance.current_sha(fconf, f.target, arm) if arm else code_provenance.current_sha(fconf)
-    ident = builds_on.identity(f, arm or "(consumer arm)", sha, case_identity.cases_digest(f.target, fconf.evaluation))
+    sha = current_sha(fconf, f.target, arm) if arm else current_sha(fconf)
+    ident = builds_on_identity(f, arm or "(consumer arm)", sha, case_identity.cases_digest(f.target, fconf.evaluation))
     return run_summary(f, arm or "(consumer arm)", rows, (meter, spent, started), ident, reason)
 
 
 def measure(config: Config, component: str, impl: str, consumer: Consumer) -> List[Part]:
     """The part each foundation contributes for this arm: reuse a current recorded result, else the policy's choice (see the module docstring)."""
     adapter, say = consumer.adapter, consumer.say
-    named, parts = builds_on.declared_arms(config, component, impl), []
-    for f in builds_on.declared(config, component):
+    named, parts = declared_arms(config, component, impl), []
+    for f in declared(config, component):
         arm = named.get(f.name, "")
         if not arm and adapter is None:
             say(f"{f.name}: this arm names no foundation arm and the score module has no adapter, so it does not build on {f.name}")
@@ -169,7 +169,7 @@ def measure(config: Config, component: str, impl: str, consumer: Consumer) -> Li
     return parts
 
 
-def part_shares(own: Dict[str, Any], parts: List[Part], foundations: List[builds_on.Foundation]) -> Dict[str, float]:
+def part_shares(own: Dict[str, Any], parts: List[Part], foundations: List[Foundation]) -> Dict[str, float]:
     """Each part's share (the consumer's own cases are ``""``), renormalised over the parts present."""
     weights = {p.name: next(f.share for f in foundations if f.name == p.name) for p in parts}
     if own["cases"]:
@@ -196,7 +196,7 @@ def totals(own: Dict[str, Any], own_cost: Any, parts: List[Part], passed: float,
                 builds_on=";".join(column("identity")))
 
 
-def blend(own: Dict[str, Any], own_cost: Any, parts: List[Part], foundations: List[builds_on.Foundation], table: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+def blend(own: Dict[str, Any], own_cost: Any, parts: List[Part], foundations: List[Foundation], table: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     """The composed summary fields: parts and the consumer's own cases weighted by share (shares renormalised over the parts present), then
     folded by the consumer's ``[balance.<component>]``. ``own`` is the consumer's own run summary (``cases``, ``passed``, ``seconds`` ...)."""
     shares = part_shares(own, parts, foundations)

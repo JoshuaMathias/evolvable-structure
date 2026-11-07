@@ -12,7 +12,7 @@ import re
 
 from shared_fixtures.interface import glance_fixture
 from shared_fixtures.interface import verdict_score
-from esoi.understanding.readable_records.interface import diagram, readme_view
+from esoi.understanding.readable_records.interface import diagram_block, DIAGRAM_LINES, FIRST_SCREEN_LINES, SUMMARY_LINES, WRAP, link, one_line, readme_view_FILE, recorded_call, screen_lines
 
 CHECKS = ("vision", "coherence", "diagram", "solutions", "links", "finished", "pure", "size")
 LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)\)")
@@ -23,11 +23,11 @@ def window(text):
     kept, total, inside = [], 0, False
     for line in text.splitlines():
         if line.startswith("```"):
-            total += 0 if inside else readme_view.DIAGRAM_LINES
+            total += 0 if inside else DIAGRAM_LINES
             inside = not inside
         elif not inside:
-            total += max(1, -(-len(line) // readme_view.WRAP))
-        if total > readme_view.FIRST_SCREEN_LINES:
+            total += max(1, -(-len(line) // WRAP))
+        if total > FIRST_SCREEN_LINES:
             break
         kept.append(line)
     return "\n".join(kept)
@@ -44,7 +44,7 @@ def resolves(view, folder, target):
     full = (folder / path).resolve()
     if full.exists():
         return True
-    return any(i.folder.resolve() / readme_view.FILE == full for i in view.intents)
+    return any(i.folder.resolve() / readme_view_FILE == full for i in view.intents)
 
 
 def solutions_listed(text: str, loaded, view, intent) -> bool:
@@ -57,29 +57,29 @@ def row_listed(text: str, r: dict, view) -> bool:
     """Whether a table row names the solution's entry call and its selected implementation."""
     sid = r.get("solution_id", "")
     lines = [ln for ln in text.splitlines() if f"`{sid}`" in ln and ln.startswith("|")]
-    call = f'run("{sid}"' if sid in view.declared and (view.declared[sid].entry or view.declared[sid].kind) else (readme_view.recorded_call(r) or "no entry declared")
-    picked = readme_view.one_line(r.get("selected", "")) or "none selected"
+    call = f'run("{sid}"' if sid in view.declared and (view.declared[sid].entry or view.declared[sid].kind) else (recorded_call(r) or "no entry declared")
+    picked = one_line(r.get("selected", "")) or "none selected"
     return any(call in ln and picked in ln for ln in lines)
 
 
 def links_resolve(text: str, view, intent) -> bool:
     """Whether every link of the page resolves and the page links the sub-intents, the parent and the repository's top page."""
     targets = [t for t in LINK.findall(text)]
-    wanted = [readme_view.link(intent.folder, c.folder / readme_view.FILE) for c in view.intents if c.parent == intent.intent_id]
+    wanted = [link(intent.folder, c.folder / readme_view_FILE) for c in view.intents if c.parent == intent.intent_id]
     parent = view.intent(intent.parent) if intent.parent else None
     if parent is not None:
-        wanted.append(readme_view.link(intent.folder, parent.folder / readme_view.FILE))
-    if (view.config.root / readme_view.FILE).is_file():
-        wanted.append(readme_view.link(intent.folder, view.config.root / readme_view.FILE))
+        wanted.append(link(intent.folder, parent.folder / readme_view_FILE))
+    if (view.config.root / readme_view_FILE).is_file():
+        wanted.append(link(intent.folder, view.config.root / readme_view_FILE))
     return all(resolves(view, intent.folder, t) for t in targets) and all(w in targets for w in wanted)
 
 
 def verdicts(text, loaded, view, intent, again):
-    vision = readme_view.one_line(intent.row.get("vision_statement", ""))
-    coherence = readme_view.one_line(intent.row.get("solution_coherence", ""))
+    vision = one_line(intent.row.get("vision_statement", ""))
+    coherence = one_line(intent.row.get("solution_coherence", ""))
     screen = window(text)
     out = {"vision": not vision or vision in screen, "coherence": not coherence or coherence[:80] in screen}
-    block = diagram.block(loaded, intent)
+    block = diagram_block(loaded, intent)
     out["diagram"] = not block or "\n".join(block) in screen
     out["solutions"] = solutions_listed(text, loaded, view, intent)
     out["links"] = links_resolve(text, view, intent)
@@ -87,7 +87,7 @@ def verdicts(text, loaded, view, intent, again):
     out["pure"] = bool(text) and text == again
     top = summary(text)
     tables = [ln for ln in top.splitlines() if ln.startswith("| Implementation |") or ln.startswith("| Solution | Name |")]
-    out["size"] = bool(text) and readme_view.screen_lines(top) <= readme_view.SUMMARY_LINES and not tables
+    out["size"] = bool(text) and screen_lines(top) <= SUMMARY_LINES and not tables
     return out
 
 

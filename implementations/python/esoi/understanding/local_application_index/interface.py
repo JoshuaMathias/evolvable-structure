@@ -4,8 +4,9 @@ from typing import Dict, Protocol, runtime_checkable
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.optimization.measurement_harness.interface import count_cases
 from esoi.understanding.local_application_index import projects  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.understanding.local_application_index.projects import add, init, read_projects, where
 
-__all__ = ["LocalApplicationIndexing", "projects"]
+__all__ = ["LocalApplicationIndexing", "add", "init", "projects", "read_projects", "where"]
 
 
 @solution("local-application-index", kind="event", entry="describe", example=".")

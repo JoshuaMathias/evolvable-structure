@@ -21,7 +21,7 @@ import re
 from pathlib import Path
 from typing import Dict, List
 
-from esoi.structure.structure_check.interface import check as check_module
+from esoi.structure.structure_check.interface import write_docs
 from esoi.optimization.leaderboard import case_identity
 from esoi.structure.intent_registry.template_sync import versioning
 from esoi.structure.intent_registry.config import DEFAULT_STRUCTURE_DIR, Config, from_mapping
@@ -344,7 +344,7 @@ def init(root: Path, package: str = "", force: bool = False, say=print) -> List[
         results.write_text(result_rows(root), encoding="utf-8")
         written.append("evaluation/components/results.csv")
     config = from_mapping({"package": package, "layers": ["core"], "structure_dir": DEFAULT_STRUCTURE_DIR}, root)
-    check_module.write_docs(config, say=lambda text: None)
+    write_docs(config, say=lambda text: None)
     for rel in skipped:
         say(f"kept existing {rel}")
     say(f"wrote {len(written)} file(s) under {root}")

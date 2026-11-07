@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from esoi.optimization.leaderboard import arm_kinds, arm_selection, results_log
-from esoi.optimization.leaderboard.interface import verdict_labels
+from esoi.optimization.leaderboard.interface import solution_verdicts
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.intents import header_union
 from esoi.structure.intent_registry.records import (
@@ -165,7 +165,7 @@ def load_sources(config: Config, registry: Registry, template=None) -> Sources:
     return Sources(
         config, registry, template, extra, columns(template, extra), selection_table(config),
         {(c, i): row for c, rows in results_log.latest_results(config.results_path).items() for i, row in rows.items()},
-        verdict_labels.solution_verdicts(config, registry.solutions, registry=registry),
+        solution_verdicts(config, registry.solutions, registry=registry),
         {r["implementation_id"]: r for r in registry.implementations}, {m["metric_id"]: m for m in registry.metrics},
         {s["solution_id"]: s for s in registry.every_solution()}, by_solution)
 
