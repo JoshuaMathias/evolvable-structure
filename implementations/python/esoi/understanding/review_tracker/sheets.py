@@ -119,24 +119,32 @@ def merge_sheet_only(i: str, header: List[str], sr: Row, b: Optional[str]) -> Tu
     return sr, f"  {i}: deleted in CSV but changed in sheet, kept"
 
 
+def merge_one(i: str, header: List[str], cr: Optional[Row], sr: Optional[Row], b: Optional[str]):
+    """Merge one id by where it exists: both sides, only the CSV, or only the sheet."""
+    if cr and sr:
+        return merge_both(i, header, cr, sr, b)
+    if cr:
+        return merge_csv_only(i, header, cr, b)
+    return merge_sheet_only(i, header, sr, b)
+
+
+def union_header(csv_header: List[str], sheet_header: List[str]) -> List[str]:
+    """The CSV header (or the sheet's when the CSV has none) plus any sheet columns it lacks."""
+    header = list(csv_header) or list(sheet_header)
+    return header + [h for h in sheet_header if h and h not in header]
+
+
 def merge(csv_header: List[str], csv_rows: List[Row], sheet_header: List[str], sheet_rows: List[Row],
           base: Dict[str, str], prefix: str, key: str) -> Tuple[List[str], List[Row], List[str]]:
     """Return (header, merged rows, log lines). ``base`` is {key: hash} from the last sync."""
-    header = list(csv_header) or list(sheet_header)
-    header += [h for h in sheet_header if h and h not in header]
+    header = union_header(csv_header, sheet_header)
     log = assign_blank_ids(csv_rows, sheet_rows, prefix, key)
     by_csv = {r[key]: r for r in csv_rows}
     by_sheet = {r[key]: r for r in sheet_rows}
     order = [r[key] for r in csv_rows] + [r[key] for r in sheet_rows if r[key] not in by_csv]
     out: List[Row] = []
     for i in order:
-        cr, sr, b = by_csv.get(i), by_sheet.get(i), base.get(i)
-        if cr and sr:
-            kept, line = merge_both(i, header, cr, sr, b)
-        elif cr:
-            kept, line = merge_csv_only(i, header, cr, b)
-        else:
-            kept, line = merge_sheet_only(i, header, sr, b)
+        kept, line = merge_one(i, header, by_csv.get(i), by_sheet.get(i), base.get(i))
         if kept is not None:
             out.append(kept)
         if line:
@@ -254,6 +262,28 @@ def chosen_side(mode: str, csv_side: tuple, sheet_side: tuple, base: Dict[str, s
     return merge(csv_side[0], csv_side[1], sheet_side[0], sheet_side[1], base, prefix, key)
 
 
+def sync_tab(title: str, spec: tuple, api, mode: str, state: dict, dry_run: bool, say: Callable[[str], None]) -> Optional[List[str]]:
+    """Sync one tab with its CSV and record it in ``state``; its header, or None when the CSV is missing and the tab is skipped."""
+    path, key, prefix = spec
+    if not path.exists():   # never read a missing file as "everything deleted"
+        say(f"[{title}] SKIPPED: {path.name} not found")
+        return None
+    csv_header, csv_rows, sheet_header, sheet_rows = read_both(api, title, path, dry_run)
+    header, rows, log = chosen_side(mode, (csv_header, csv_rows), (sheet_header, sheet_rows), state.get(title, {}).get("rows", {}), prefix, key)
+    say(f"[{title}] csv={len(csv_rows)} sheet={len(sheet_rows)} -> {len(rows)} rows")
+    for line in log:
+        say(line)
+    keys = [r[key] for r in rows]
+    dup = sorted({k for k in keys if keys.count(k) > 1})
+    if dup:
+        raise SystemExit(f"duplicate ids in {title}: {dup}; fix them before syncing")
+    if not dry_run and header:
+        write_table(path, header, rows)
+        api.write(title, header, rows)
+        state[title] = {"header": header, "rows": {r[key]: row_hash(header, r) for r in rows}}
+    return header
+
+
 def run_sync(config: Config, api, mode: str, dry_run: bool = False, say: Callable[[str], None] = print) -> int:
     tabs = tabs_from(config)
     state_path = config.root / config.sheets.get("state_file", ".esoi_sync_state.json")
@@ -261,25 +291,10 @@ def run_sync(config: Config, api, mode: str, dry_run: bool = False, say: Callabl
     if not dry_run:
         api.ensure_tabs(list(tabs))
     headers: Dict[str, List[str]] = {}
-    for title, (path, key, prefix) in tabs.items():
-        if not path.exists():   # never read a missing file as "everything deleted"
-            say(f"[{title}] SKIPPED: {path.name} not found")
-            continue
-        csv_header, csv_rows, sheet_header, sheet_rows = read_both(api, title, path, dry_run)
-        header, rows, log = chosen_side(mode, (csv_header, csv_rows), (sheet_header, sheet_rows), state.get(title, {}).get("rows", {}), prefix, key)
-        say(f"[{title}] csv={len(csv_rows)} sheet={len(sheet_rows)} -> {len(rows)} rows")
-        for line in log:
-            say(line)
-        keys = [r[key] for r in rows]
-        dup = sorted({k for k in keys if keys.count(k) > 1})
-        if dup:
-            raise SystemExit(f"duplicate ids in {title}: {dup}; fix them before syncing")
-        headers[title] = header
-        if dry_run or not header:
-            continue
-        write_table(path, header, rows)
-        api.write(title, header, rows)
-        state[title] = {"header": header, "rows": {r[key]: row_hash(header, r) for r in rows}}
+    for title, spec in tabs.items():
+        header = sync_tab(title, spec, api, mode, state, dry_run, say)
+        if header is not None:
+            headers[title] = header
     if dry_run:
         say("dry run: nothing written")
         return 0

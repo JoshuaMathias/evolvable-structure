@@ -202,15 +202,20 @@ def implementation_rows(src: Sources, s: Row, comp: str, chosen_impl: str) -> Tu
         is_sel = is_selected_path(path, chosen, s.get("selected", ""))
         selected_id = iid if is_sel else selected_id
         res = src.results.get((comp, stem(path))) if comp else None
-        rec = src.impl_records.get(iid, {})
-        rows.append({
-            "implementation_id": iid, "solution_id": sid, "filepath": path,
-            **{k: rec.get(k, "") for k in src.extra["implementations"]},
-            **{k: rec.get(k, "") for k in fields(src.template, "implementation", True)}, "kind": kind_of(src.config, path),
-            "selected": "yes" if is_sel else "",
-            **result_cells(res),
-            "auto_status": "selected" if is_sel else ("measured" if res else "unmeasured")})
+        rows.append(implementation_row(src, sid, path, iid, is_sel, res))
     return rows, impl_ids, selected_id
+
+
+def implementation_row(src: Sources, sid: str, path: str, iid: str, is_sel: bool, res) -> Row:
+    """The tracker row of one implementation of a solution."""
+    rec = src.impl_records.get(iid, {})
+    return {
+        "implementation_id": iid, "solution_id": sid, "filepath": path,
+        **{k: rec.get(k, "") for k in src.extra["implementations"]},
+        **{k: rec.get(k, "") for k in fields(src.template, "implementation", True)}, "kind": kind_of(src.config, path),
+        "selected": "yes" if is_sel else "",
+        **result_cells(res),
+        "auto_status": "selected" if is_sel else ("measured" if res else "unmeasured")}
 
 
 def solution_row(src: Sources, s: Row, impl_ids: List[str], selected_id: str, has_metric: bool, measured: bool) -> Row:
@@ -272,10 +277,7 @@ def metric_rows(src: Sources, metric_users: Dict[str, List[tuple]]) -> List[Row]
 
 def ideal_rows(src: Sources) -> List[Row]:
     """One row per ideal of the solutions, then one per principle of the whole repository."""
-    solutions_of_ideal: Dict[str, List[str]] = {}
-    for s in src.registry.every_solution():
-        for iid in ids(s.get("ideal_ids", "")):
-            solutions_of_ideal.setdefault(iid, []).append(s["solution_id"])
+    solutions_of_ideal = solutions_by_ideal(src)
     rows = []
     for i in src.registry.ideals:
         sids = solutions_of_ideal.get(i["ideal_id"], [])
@@ -285,13 +287,25 @@ def ideal_rows(src: Sources) -> List[Row]:
                      "scope": "solution", "solution_ids": SEP.join(sids),
                      "metric_ids": SEP.join(m for sid in sids for m in ids(src.sol_by_id[sid].get("metric_ids", ""))),
                      "auto_status": "measured" if measured else "unmeasured"})
-    for p in src.registry.principles:
-        rows.append({"ideal_id": p["principle_id"].lower(), "scope": "principle", "name": p.get("name", ""),
-                     "principle": p.get("statement", ""), "state_description": "",
-                     "hints_of_measurement": p.get("how_measured", ""), "problem_ids": "",
-                     "solution_ids": "the whole repo", "metric_ids": "",
-                     "auto_status": "enforced-by-check" if "(S" in p.get("how_measured", "") else "behaviour-eval"})
-    return rows
+    return rows + [principle_row(p) for p in src.registry.principles]
+
+
+def solutions_by_ideal(src: Sources) -> Dict[str, List[str]]:
+    """For each ideal id, the ids of the solutions that name it."""
+    found: Dict[str, List[str]] = {}
+    for s in src.registry.every_solution():
+        for iid in ids(s.get("ideal_ids", "")):
+            found.setdefault(iid, []).append(s["solution_id"])
+    return found
+
+
+def principle_row(p: Row) -> Row:
+    """The ideals-tab row of one principle of the whole repository."""
+    return {"ideal_id": p["principle_id"].lower(), "scope": "principle", "name": p.get("name", ""),
+            "principle": p.get("statement", ""), "state_description": "",
+            "hints_of_measurement": p.get("how_measured", ""), "problem_ids": "",
+            "solution_ids": "the whole repo", "metric_ids": "",
+            "auto_status": "enforced-by-check" if "(S" in p.get("how_measured", "") else "behaviour-eval"}
 
 
 def build(config: Config, registry: Registry, template=None) -> Dict[str, List[Row]]:
@@ -317,14 +331,20 @@ def stale(config: Config, registry: Registry, template=None) -> List[str]:
     cols = columns(template, extras(config))
     out = []
     for tab, rows in build(config, registry, template).items():
-        have = read_csv(config.tracker_dir / f"{tab}.csv")
-        want = merge_tracking(config, tab, rows, cols[tab][0])
-        path = config.tracker_dir / f"{tab}.csv"
-        header_ok = bool(have) and read_header(path) == cols[tab] + TRACKING
-        if [{k: r.get(k, "") for k in cols[tab]} for r in have] != [{k: r.get(k, "") for k in cols[tab]} for r in want] \
-                or (have and not header_ok) or (not have and want):
+        if tab_is_stale(config, tab, rows, cols[tab]):
             out.append(tab)
     return out
+
+
+def tab_is_stale(config: Config, tab: str, rows: List[Row], cols: List[str]) -> bool:
+    """Whether a tab's CSV differs from the registry in a structural column, its header, or whether it exists at all."""
+    path = config.tracker_dir / f"{tab}.csv"
+    have = read_csv(path)
+    want = merge_tracking(config, tab, rows, cols[0])
+    header_ok = bool(have) and read_header(path) == cols + TRACKING
+    if [{k: r.get(k, "") for k in cols} for r in have] != [{k: r.get(k, "") for k in cols} for r in want]:
+        return True
+    return bool((have and not header_ok) or (not have and want))
 
 
 def write(config: Config, registry: Registry, say=print) -> None:
