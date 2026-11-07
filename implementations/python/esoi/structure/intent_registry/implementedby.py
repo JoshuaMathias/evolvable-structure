@@ -65,15 +65,19 @@ def form_of(config: Config, filepath: str) -> Form:
         return Form("code", entry)
     if not path.is_file():
         return Form("reference", entry, wrong=[f"{entry} does not exist"])
-    tabular = path.suffix.lower() in (".csv", ".tsv")
-    if symbol.strip() and tabular:
-        row = next((r for r in read_csv(path) if symbol.strip() in [v.strip() for v in list(r.values())[:1]]), None)
-        if row is None:
-            return Form("registry-row", entry, wrong=[f"{symbol.strip()} is not a row of {entry}"])
-        return Form("registry-row", entry, cells_of(row))
-    if tabular:
-        return Form("reference", entry, [p for row in read_csv(path) for p in cells_of(row)])
+    if path.suffix.lower() in (".csv", ".tsv"):
+        return tabular_form(path, entry, symbol.strip())
     return Form("reference", entry, linked_paths(config, path))
+
+
+def tabular_form(path, entry: str, symbol: str) -> Form:
+    """The form of a reference to a table: one registry row when a symbol names it, else every path the table lists."""
+    if not symbol:
+        return Form("reference", entry, [p for row in read_csv(path) for p in cells_of(row)])
+    row = next((r for r in read_csv(path) if symbol in [v.strip() for v in list(r.values())[:1]]), None)
+    if row is None:
+        return Form("registry-row", entry, wrong=[f"{symbol} is not a row of {entry}"])
+    return Form("registry-row", entry, cells_of(row))
 
 
 def cells_of(row: Dict[str, str]) -> List[str]:

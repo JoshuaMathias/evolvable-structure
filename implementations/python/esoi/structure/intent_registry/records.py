@@ -305,6 +305,16 @@ def check_columns(rs: RecordSet, entity: str, rows: List[Dict[str, str]], need: 
     rs.bad += unapproved_column_problems(name, rows[0], template, name, approved)
 
 
+def check_row_fields(rs: RecordSet, entity: str, row: Dict[str, str], need: List[str], template: Template) -> None:
+    """R2 for one row: each required field left empty (a specification-only row needs only the specification fields)."""
+    if rs.skipped(entity, row) or (entity == "solution" and row.get("solution_id") in rs.adopted):
+        return
+    wanted = checked_fields(template, entity, False) if rs.specification_only(entity, row) else need
+    empty = [k for k in wanted if k in row and not row[k].strip() and k not in MAY_BE_EMPTY.get(entity, ())]
+    if empty:
+        rs.bad.append(f"R2 {row.get(rs.keys[entity], '')}: template field(s) not filled: {', '.join(empty)}")
+
+
 def check_template_fields(rs: RecordSet, template: Template, interface_required: bool, merged: bool,
                           approved: Optional[Dict[str, Set[str]]]) -> None:
     """R1 for missing columns (a merged tree has its headers checked by ``check_headers``) and R2 for each required field left empty."""
@@ -313,12 +323,7 @@ def check_template_fields(rs: RecordSet, template: Template, interface_required:
         if rows and not merged:
             check_columns(rs, entity, rows, need, template, approved)
         for row in rows:
-            if rs.skipped(entity, row) or (entity == "solution" and row.get("solution_id") in rs.adopted):
-                continue
-            wanted = checked_fields(template, entity, False) if rs.specification_only(entity, row) else need
-            empty = [k for k in wanted if k in row and not row[k].strip() and k not in MAY_BE_EMPTY.get(entity, ())]
-            if empty:
-                rs.bad.append(f"R2 {row.get(rs.keys[entity], '')}: template field(s) not filled: {', '.join(empty)}")
+            check_row_fields(rs, entity, row, need, template)
 
 
 def check_problem_row(rs: RecordSet, pid: str, row: Dict[str, str]) -> None:
@@ -330,12 +335,10 @@ def check_problem_row(rs: RecordSet, pid: str, row: Dict[str, str]) -> None:
         rs.bad.append(f"R3 {pid}: no solution addresses this problem")
     if not ids(row.get("ideal_ids", "")):
         rs.bad.append(f"R3 {pid}: no ideal opposes this problem")
-    for sid in ids(row.get("solution_ids", "")):
-        if sid in solutions and pid not in ids(solutions[sid].get("problem_ids", "")) and sid not in rs.waived and sid not in rs.adopted:
-            rs.bad.append(f"R3 {pid}: lists solution {sid} but {sid} does not list it in problem_ids")
-    for iid in ids(row.get("ideal_ids", "")):
-        if iid in ideals and pid not in ids(ideals[iid].get("problem_ids", "")):
-            rs.bad.append(f"R3 {pid}: lists ideal {iid} but {iid} does not list it in problem_ids")
+    rs.bad += [f"R3 {pid}: lists solution {sid} but {sid} does not list it in problem_ids" for sid in ids(row.get("solution_ids", ""))
+               if sid in solutions and pid not in ids(solutions[sid].get("problem_ids", "")) and sid not in rs.waived and sid not in rs.adopted]
+    rs.bad += [f"R3 {pid}: lists ideal {iid} but {iid} does not list it in problem_ids" for iid in ids(row.get("ideal_ids", ""))
+               if iid in ideals and pid not in ids(ideals[iid].get("problem_ids", ""))]
 
 
 def check_problem_links(rs: RecordSet, related_problem_ids: Optional[Set[str]]) -> None:

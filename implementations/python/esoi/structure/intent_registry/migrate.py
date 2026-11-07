@@ -103,15 +103,21 @@ def manual_steps(config: Config, unplaced: Dict[str, List[str]]) -> List[str]:
         "See docs/how-to/migrate-to-intents.md in the esoi repository."]
 
 
-def plan(config: Config, apply: bool = False) -> Tuple[List[str], List[str]]:
-    """(what was done or would be done, steps left to a person). Raises ValueError when the repository is not legacy."""
-    structure = config.structure
+def legacy_overall(config: Config) -> Path:
+    """The folder of the legacy ``overall`` network; ValueError when the repository is not legacy."""
     overall = config.root / config.overall if config.overall else None
     if config.intent_mode:
         raise ValueError(f"{config.structure_dir}/intent.csv already exists; this repository uses the intent layout")
     if overall is None or not overall.is_dir():
         raise ValueError("no legacy `overall` network is configured, so there is nothing to migrate; "
                          "`esoi init` writes the intent layout for a new repository")
+    return overall
+
+
+def plan(config: Config, apply: bool = False) -> Tuple[List[str], List[str]]:
+    """(what was done or would be done, steps left to a person). Raises ValueError when the repository is not legacy."""
+    structure = config.structure
+    overall = legacy_overall(config)
     solutions_o = read_csv(overall / "solutions.csv")
     intent_id = re.sub(r"[^a-z0-9]+", "-", (config.package or config.root.name).lower()).strip("-") or "top-intent"
     intent_row = {"intent_id": intent_id, "name": "", "vision_statement": "", "opportunities": "", "implements": ""}

@@ -38,11 +38,8 @@ def solution_folder(config: Config, registry: Registry, solution_id: str) -> Pat
     return declarations.holder(config, config.structure, "solutions.csv", "solution_id", solution_id)
 
 
-def admit(config: Config, registry: Registry, solution_id: str, name: str, why: str, uses: Sequence[str] = (),
-          filepath: str = "") -> List[str]:
-    """Add the implementation row ``<solution_id>:<slug of name>`` and list it in the solution's ``implementations``. Returns the
-    changes, one line each. Raises ``ValueError`` when the solution is unknown, the technology is already there, the reason is empty,
-    or a used solution does not exist."""
+def checked_request(registry: Registry, name: str, why: str, uses: Sequence[str]) -> str:
+    """The slug of the technology, after checking the reason is given, the name is not empty and the used solutions exist."""
     if not why.strip():
         raise ValueError("--why is required: the description of a new alternative says what it is and why it is worth measuring")
     key = slug(name)
@@ -52,6 +49,15 @@ def admit(config: Config, registry: Registry, solution_id: str, name: str, why: 
     missing = [u for u in uses if u not in known]
     if missing:
         raise ValueError(f"the solutions it would use do not exist: {', '.join(missing)}")
+    return key
+
+
+def admit(config: Config, registry: Registry, solution_id: str, name: str, why: str, uses: Sequence[str] = (),
+          filepath: str = "") -> List[str]:
+    """Add the implementation row ``<solution_id>:<slug of name>`` and list it in the solution's ``implementations``. Returns the
+    changes, one line each. Raises ``ValueError`` when the solution is unknown, the technology is already there, the reason is empty,
+    or a used solution does not exist."""
+    key = checked_request(registry, name, why, uses)
     folder = solution_folder(config, registry, solution_id)
     impl_id = f"{solution_id}:{key}"
     if impl_id in {r.get("implementation_id", "") for r in registry.implementations}:

@@ -164,6 +164,20 @@ def read_line(items: List[dict], state: dict, raw: str) -> None:
         add_to_section(current, state, raw, line, stripped)
 
 
+def question_row(entity: str, group: str, text: str, keys: set, notes: List[str]) -> Optional[Dict[str, str]]:
+    """The template row of one question, or None for a duplicate key (noted); a guessed key is noted too."""
+    text, optional = split_optional(text)
+    key, question, mapped = field_key(entity, text)
+    if key in keys:
+        notes.append(f"{entity}: duplicate key {key!r} skipped")
+        return None
+    keys.add(key)
+    if not mapped:
+        notes.append(f"{entity}: bare question {question!r} has no entry in BARE_KEYS; key {key!r} guessed")
+    return {"entity": entity, "field_key": key, "question": question, "group": group,
+            "required": "yes" if group == "specify" and not optional else "no"}
+
+
 def item_rows(item: dict, notes: List[str]) -> List[Dict[str, str]]:
     """The template rows of one entity item; notes about duplicates, guessed keys and empty bullets are appended to ``notes``."""
     entity = item["entity"]
@@ -171,16 +185,9 @@ def item_rows(item: dict, notes: List[str]) -> List[Dict[str, str]]:
     keys: set = set()
     for group in ("specify", "interface"):
         for text in item[group]:
-            text, optional = split_optional(text)
-            key, question, mapped = field_key(entity, text)
-            if key in keys:
-                notes.append(f"{entity}: duplicate key {key!r} skipped")
-                continue
-            keys.add(key)
-            if not mapped:
-                notes.append(f"{entity}: bare question {question!r} has no entry in BARE_KEYS; key {key!r} guessed")
-            rows.append({"entity": entity, "field_key": key, "question": question, "group": group,
-                         "required": "yes" if group == "specify" and not optional else "no"})
+            row = question_row(entity, group, text, keys, notes)
+            if row is not None:
+                rows.append(row)
     for name, key in (("not", "what_it_is_not"), ("connects", "connects_to")):
         if item[name]:
             rows.append({"entity": entity, "field_key": key, "question": clean(" ".join(item[name])), "group": "meta", "required": "no"})

@@ -208,14 +208,19 @@ def upgrade_rows(entity: str, rows: List[Row]) -> List[Row]:
     return [upgrade_row(entity, row) for row in rows]
 
 
+def add_solution_columns(out: List[str]) -> None:
+    """Add the columns a solution gains: ``description`` after ``name``, the new ones, and ``tags`` after ``measures_of_success``."""
+    if "description" not in out:
+        out.insert(out.index("name") + 1 if "name" in out else 0, "description")
+    out += [c for c in NEW_SOLUTION_COLUMNS if c not in out]
+    if "tags" not in out:
+        out.insert(out.index("measures_of_success") + 1 if "measures_of_success" in out else len(out), "tags")
+
+
 def add_new_columns(entity: str, out: List[str]) -> None:
     """Add the columns an entity gains in the migration, each beside the column it belongs after."""
     if entity == "solution":
-        if "description" not in out:
-            out.insert(out.index("name") + 1 if "name" in out else 0, "description")
-        out += [c for c in NEW_SOLUTION_COLUMNS if c not in out]
-        if "tags" not in out:
-            out.insert(out.index("measures_of_success") + 1 if "measures_of_success" in out else len(out), "tags")
+        add_solution_columns(out)
         return
     for column in NEW_METRIC_COLUMNS:
         if column not in out:

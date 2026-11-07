@@ -57,17 +57,16 @@ def beside_folders(config: Config) -> List[Path]:
     listed, each once. The structure folder and anything inside it are never beside the code."""
     patterns = config.records.get("beside_code", []) if isinstance(config.records, dict) else []
     found: List[Path] = []
-    seen = set()
     for pattern in ([patterns] if isinstance(patterns, str) else patterns):
-        for path in sorted(config.root.glob(str(pattern))):
-            if path in seen or path.name in SKIPPED_FOLDERS or not path.is_dir():
-                continue
-            if path == config.structure or config.structure in path.parents:
-                continue
-            if any((path / name).is_file() for name in (INTENT_FILE, *RECORD_FILES)):
-                found.append(path)
-                seen.add(path)
+        found += [p for p in sorted(config.root.glob(str(pattern))) if p not in found and holds_beside_records(config, p)]
     return found
+
+
+def holds_beside_records(config: Config, path: Path) -> bool:
+    """Whether a folder holds records beside code: not skipped, not the structure folder or inside it, and with an intent or record file."""
+    if path.name in SKIPPED_FOLDERS or not path.is_dir() or path == config.structure or config.structure in path.parents:
+        return False
+    return any((path / name).is_file() for name in (INTENT_FILE, *RECORD_FILES))
 
 
 def owner_of(config: Config, folder: Path, intent_folders: Dict[Path, str]) -> str:

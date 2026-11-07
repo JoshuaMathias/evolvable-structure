@@ -271,14 +271,17 @@ def find(start: Path) -> Optional[Path]:
     return None
 
 
+def config_file(path: Optional[Path], start: Optional[Path]) -> Optional[Path]:
+    """The configuration file named by ``path`` (a file, or a folder holding one), else the nearest from ``start``."""
+    if path is None:
+        return find(Path(start or Path.cwd()))
+    path = Path(path)
+    return find(path) or path / CONFIG_NAME if path.is_dir() else path
+
+
 def load(path: Optional[Path] = None, start: Optional[Path] = None) -> Config:
     """Load the configuration at ``path`` (a file, or a folder holding one), else the nearest from ``start``."""
-    if path is not None:
-        path = Path(path)
-        if path.is_dir():
-            path = find(path) or path / CONFIG_NAME
-    else:
-        path = find(Path(start or Path.cwd()))
+    path = config_file(path, start)
     if path is None or not Path(path).is_file():
         raise ConfigMissing("no esoi.toml (or [tool.esoi] in pyproject.toml) found; run `esoi init` to create one")
     try:
