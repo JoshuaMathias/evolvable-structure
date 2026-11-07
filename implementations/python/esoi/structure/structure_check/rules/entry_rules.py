@@ -33,7 +33,7 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 from esoi.structure.intent_registry import intents
 from esoi.runtime.implementation_selection.declare import KINDS
@@ -58,6 +58,21 @@ SUMMARIES = {
 }
 
 
+def solution_declaration(node, rel: str, deco) -> Optional[Tuple[str, Dict[str, object]]]:
+    """``(solution id, its declaration)`` when ``deco`` is ``@solution("id", ...)`` on ``node``, else None."""
+    if not (isinstance(deco, ast.Call) and getattr(deco.func, "id", getattr(deco.func, "attr", "")) == "solution"
+            and deco.args and isinstance(deco.args[0], ast.Constant)):
+        return None
+    keywords = {k.arg: k.value for k in deco.keywords}
+    return str(deco.args[0].value), dict(
+        name=node.name, file=rel, is_class=isinstance(node, ast.ClassDef),
+        kind=keywords["kind"].value if isinstance(keywords.get("kind"), ast.Constant) else "",
+        entry=keywords["entry"].value if isinstance(keywords.get("entry"), ast.Constant) else "",
+        example="example" in keywords,
+        methods={n.name for n in getattr(node, "body", []) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))},
+        bases=[ast.unparse(b) for b in getattr(node, "bases", [])])
+
+
 def declarations(ctx: Context) -> Dict[str, Dict[str, object]]:
     """``{solution id: {name, kind, entry, example, is_class, methods, bases}}`` for every @solution in the measured code."""
     from esoi.structure.intent_registry.specify_from_code import declarations as declared_module
@@ -70,19 +85,9 @@ def declarations(ctx: Context) -> Dict[str, Dict[str, object]]:
         if tree is None:
             continue
         for node in nodes_of(tree):
-            if not isinstance(node, (ast.ClassDef, ast.FunctionDef)):
-                continue
-            for deco in node.decorator_list:
-                if isinstance(deco, ast.Call) and getattr(deco.func, "id", getattr(deco.func, "attr", "")) == "solution" \
-                        and deco.args and isinstance(deco.args[0], ast.Constant):
-                    keywords = {k.arg: k.value for k in deco.keywords}
-                    out[str(deco.args[0].value)] = dict(
-                        name=node.name, file=rel, is_class=isinstance(node, ast.ClassDef),
-                        kind=keywords["kind"].value if isinstance(keywords.get("kind"), ast.Constant) else "",
-                        entry=keywords["entry"].value if isinstance(keywords.get("entry"), ast.Constant) else "",
-                        example="example" in keywords,
-                        methods={n.name for n in getattr(node, "body", []) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))},
-                        bases=[ast.unparse(b) for b in getattr(node, "bases", [])])
+            if isinstance(node, (ast.ClassDef, ast.FunctionDef)):
+                found = [solution_declaration(node, rel, deco) for deco in node.decorator_list]
+                out.update(f for f in found if f is not None)
     return out
 
 
@@ -96,45 +101,9 @@ def real_text(row: Dict[str, str], field: str, own_id: str) -> bool:
     return bool(text) and text != own_id and not MARKER.match(text)
 
 
-def overall_network(ctx: Context) -> List[str]:
-    found = [i for i in intents.discover(ctx.config) if i.is_top]
-    if not found:
-        return []
-    top = found[0]
-    def mine(rows):
-        return [r for r in rows if r.get("intent_id", top.intent_id) == top.intent_id]
-    solutions = {r["solution_id"]: r for r in mine(ctx.registry.authored())}
-    implementations = ctx.registry.implementations
-    from esoi.runtime.implementation_selection.select import default_name
-    uses: Dict[str, List[str]] = {}
-    for sid, row in solutions.items():
-        chosen = (default_name(row, implementations) or "").lower()
-        record = next((r for r in implementations if r.get("solution_id") == sid
-                       and r["implementation_id"].split(":", 1)[-1].lower() == chosen), {})
-        uses[sid] = [t for t in ids(record.get("uses_solution_ids", "")) if t in solutions and t != sid]
-    used = {t for v in uses.values() for t in v}
-    roots = [s for s in solutions if s not in used]
-    bad: List[str] = []
-    if len(roots) != 1:
-        if not ctx.waived("S36", top.intent_id):
-            bad.append(f"S36 {top.intent_id}: {len(roots)} root solutions; the solution the repository implements is the one root "
-                       f"of its top intent ({', '.join(roots[:8])}{'...' if len(roots) > 8 else ''}); next: make one solution the "
-                       "one the others are used by, through uses_solution_ids")
-        return bad
-    root = solutions[roots[0]]
-    sid = root["solution_id"]
-    problems, ideals = ids(root.get("problem_ids", "")), ids(root.get("ideal_ids", ""))
-    metric = (root.get("authoritative_metric_id") or "").strip()
-    metrics = {r["metric_id"]: r for r in mine(ctx.registry.metrics)}
-    if not metric:
-        metric = next((m for m, r in metrics.items() if sid in ids(r.get("solution_ids", ""))), "")
-    arms = [r for r in implementations if r.get("solution_id") == sid]
-    lacking = [what for what, ok in (("a problem", problems), ("an ideal", ideals), ("an authoritative metric", metric),
-                                     ("an alternative implementation beside the selected one", len(arms) >= 2)) if not ok]
-    if lacking and not ctx.waived("S36", sid):
-        bad.append(f"S36 {sid}: the solution this repository implements lacks {'; '.join(lacking)}; next: add it to the records of {sid}")
-
-    def reaches(table: Dict[str, Dict[str, str]], column: str, start: str, goal: Set[str]) -> bool:
+def linked_up_problems(ctx: Context, top, sid: str, entity: str, table: Dict[str, Dict[str, str]], column: str, goal: Set[str]) -> List[str]:
+    """S36 for the records of one kind that do not link up to the root's through ``column``, or link up with no real text."""
+    def reaches(start: str) -> bool:
         seen, stack = set(), [start]
         while stack:
             x = stack.pop()
@@ -145,22 +114,95 @@ def overall_network(ctx: Context) -> List[str]:
             seen.add(x)
             stack += ids(table.get(x, {}).get(column, ""))
         return False
+    bad: List[str] = []
+    loose = [rid for rid in table if not reaches(rid) and not ctx.waived("S36", rid)]
+    if loose:
+        bad.append(f"S36 {top.intent_id}: {len(loose)} {entity}(s) do not link up to {sid}'s through {column}: "
+                   f"{', '.join(loose[:12])}{'...' if len(loose) > 12 else ''}; next: set {column} on each to the id of the root's {entity}")
+    linked = [rid for rid in table if rid in goal or reaches(rid)]
+    thin = [rid for rid in linked if not real_text(table[rid], TEXT_FIELD[entity], rid) and not ctx.waived("S36", rid)]
+    if thin:
+        bad.append(f"S36 {top.intent_id}: {len(thin)} {entity}(s) linked to {sid}'s have no real {TEXT_FIELD[entity]} text "
+                   f"(empty, its own id, or only an unconfirmed marker): {', '.join(thin[:12])}{'...' if len(thin) > 12 else ''}; "
+                   f"next: write the {TEXT_FIELD[entity]} from what the project owner decided")
+    return bad
+
+
+def root_solutions(ctx: Context, solutions: Dict[str, Dict[str, str]]) -> List[str]:
+    """The solutions of the top intent that no other solution uses, through the selected implementation's `uses_solution_ids`."""
+    from esoi.runtime.implementation_selection.select import default_name
+    implementations = ctx.registry.implementations
+    uses: Dict[str, List[str]] = {}
+    for sid, row in solutions.items():
+        chosen = (default_name(row, implementations) or "").lower()
+        record = next((r for r in implementations if r.get("solution_id") == sid
+                       and r["implementation_id"].split(":", 1)[-1].lower() == chosen), {})
+        uses[sid] = [t for t in ids(record.get("uses_solution_ids", "")) if t in solutions and t != sid]
+    used = {t for v in uses.values() for t in v}
+    return [s for s in solutions if s not in used]
+
+
+def authoritative_metric(root: Dict[str, str], metrics: Dict[str, Dict[str, str]]) -> str:
+    """The root solution's authoritative metric: the one it names, else the first metric that measures it."""
+    sid = root["solution_id"]
+    return (root.get("authoritative_metric_id") or "").strip() or next((m for m, r in metrics.items() if sid in ids(r.get("solution_ids", ""))), "")
+
+
+def overall_network(ctx: Context) -> List[str]:
+    found = [i for i in intents.discover(ctx.config) if i.is_top]
+    if not found:
+        return []
+    top = found[0]
+
+    def mine(rows):
+        return [r for r in rows if r.get("intent_id", top.intent_id) == top.intent_id]
+    solutions = {r["solution_id"]: r for r in mine(ctx.registry.authored())}
+    roots = root_solutions(ctx, solutions)
+    bad: List[str] = []
+    if len(roots) != 1:
+        if not ctx.waived("S36", top.intent_id):
+            bad.append(f"S36 {top.intent_id}: {len(roots)} root solutions; the solution the repository implements is the one root "
+                       f"of its top intent ({', '.join(roots[:8])}{'...' if len(roots) > 8 else ''}); next: make one solution the "
+                       "one the others are used by, through uses_solution_ids")
+        return bad
+    root = solutions[roots[0]]
+    sid = root["solution_id"]
+    problems, ideals = ids(root.get("problem_ids", "")), ids(root.get("ideal_ids", ""))
+    metrics = {r["metric_id"]: r for r in mine(ctx.registry.metrics)}
+    metric = authoritative_metric(root, metrics)
+    arms = [r for r in ctx.registry.implementations if r.get("solution_id") == sid]
+    lacking = [what for what, ok in (("a problem", problems), ("an ideal", ideals), ("an authoritative metric", metric),
+                                     ("an alternative implementation beside the selected one", len(arms) >= 2)) if not ok]
+    if lacking and not ctx.waived("S36", sid):
+        bad.append(f"S36 {sid}: the solution this repository implements lacks {'; '.join(lacking)}; next: add it to the records of {sid}")
     for entity, rows, key, column, goal in (
             ("problem", mine(ctx.registry.problems), "problem_id", "parent_problem_ids", set(problems)),
             ("ideal", mine(ctx.registry.ideals), "ideal_id", "parent_ideal_ids", set(ideals)),
             ("metric", list(metrics.values()), "metric_id", "parent_metric_ids", {metric} if metric else set())):
-        table = {r[key]: r for r in rows}
-        loose = [rid for rid in table if not reaches(table, column, rid, goal) and not ctx.waived("S36", rid)]
-        if loose:
-            bad.append(f"S36 {top.intent_id}: {len(loose)} {entity}(s) do not link up to {sid}'s through {column}: "
-                       f"{', '.join(loose[:12])}{'...' if len(loose) > 12 else ''}; next: set {column} on each to the id of the root's {entity}")
-        linked = [rid for rid in table if rid in goal or reaches(table, column, rid, goal)]
-        thin = [rid for rid in linked if not real_text(table[rid], TEXT_FIELD[entity], rid) and not ctx.waived("S36", rid)]
-        if thin:
-            bad.append(f"S36 {top.intent_id}: {len(thin)} {entity}(s) linked to {sid}'s have no real {TEXT_FIELD[entity]} text "
-                       f"(empty, its own id, or only an unconfirmed marker): {', '.join(thin[:12])}{'...' if len(thin) > 12 else ''}; "
-                       f"next: write the {TEXT_FIELD[entity]} from what the project owner decided")
+        bad += linked_up_problems(ctx, top, sid, entity, {r[key]: r for r in rows}, column, goal)
     return bad
+
+
+def interface_problems(row: Dict[str, str], names: List[str], found: Dict[str, object]) -> List[str]:
+    """What is wrong with the @solution declaration of a solution that has code."""
+    problems = []
+    if found["name"] not in names:
+        problems.append(f"interface_name is {row.get('interface_name', '')!r}, not {found['name']}")
+    if found["kind"] not in KINDS and (found["is_class"] or found["kind"]):
+        problems.append(f"kind= is {found['kind']!r}, not one of {', '.join(KINDS)}")
+    if found["is_class"] and not found["entry"]:
+        problems.append("no entry= method")
+    elif found["is_class"] and found["entry"] not in found["methods"] and not [b for b in found["bases"] if "Protocol" not in b]:
+        problems.append(f"entry {found['entry']!r} is not a method of {found['name']}")
+    if not found["example"]:
+        problems.append("no example= input")
+    return problems
+
+
+def in_package_code(record: Dict[str, str], package_dir: str, evaluation: str) -> bool:
+    """Whether an implementation record points at a Python file of the package that is not evaluation code."""
+    path = record.get("filepath") or ""
+    return path.split("::")[0].endswith(".py") and path.startswith(package_dir) and not path.startswith(evaluation)
 
 
 def interfaces(ctx: Context) -> List[str]:
@@ -171,9 +213,7 @@ def interfaces(ctx: Context) -> List[str]:
     bad: List[str] = []
     for row in ctx.every_solution():
         sid = row.get("solution_id", "")
-        in_code = [r for r in ctx.registry.implementations if r.get("solution_id") == sid
-                   and (r.get("filepath") or "").split("::")[0].endswith(".py")
-                   and (r.get("filepath") or "").startswith(package_dir) and not (r.get("filepath") or "").startswith(evaluation)]
+        in_code = [r for r in ctx.registry.implementations if r.get("solution_id") == sid and in_package_code(r, package_dir, evaluation)]
         if not in_code or ctx.waived("S37", sid):
             continue
         names = ids(row.get("interface_name", ""))
@@ -183,17 +223,7 @@ def interfaces(ctx: Context) -> List[str]:
                        f"its interface{' (interface_name says ' + ', '.join(names) + ', which no @solution declares)' if names else ''}; next: "
                        f"declare it where it lives")
             continue
-        problems = []
-        if found["name"] not in names:
-            problems.append(f"interface_name is {row.get('interface_name', '')!r}, not {found['name']}")
-        if found["kind"] not in KINDS and (found["is_class"] or found["kind"]):
-            problems.append(f"kind= is {found['kind']!r}, not one of {', '.join(KINDS)}")
-        if found["is_class"] and not found["entry"]:
-            problems.append("no entry= method")
-        elif found["is_class"] and found["entry"] not in found["methods"] and not [b for b in found["bases"] if "Protocol" not in b]:
-            problems.append(f"entry {found['entry']!r} is not a method of {found['name']}")
-        if not found["example"]:
-            problems.append("no example= input")
+        problems = interface_problems(row, names, found)
         if problems:
             bad.append(f"S37 {sid}: {found['file']}: " + "; ".join(problems) + "; next: fix the @solution declaration")
     return bad
@@ -228,13 +258,8 @@ def skip_inside(ctx: Context, rule: str) -> bool:
     return True
 
 
-def chain_digest(ctx: Context) -> str:
-    """A digest of what an entry check reads beyond the project's own files: the esoi library, and every package the project
-    imports that itself uses esoi (the parent hubs of an Assembler chain), by file path, size and modification time."""
-    import importlib.machinery
-    if ctx.chain:
-        return ctx.chain
-    found = {Path(__file__).resolve().parents[3]}
+def imported_package_names(ctx: Context) -> set:
+    """The top-level names the project's own package imports."""
     wanted: set = set()
     package_dir = (ctx.config.package_dir or "").rstrip("/") + "/"
     for rel in ctx.files:
@@ -245,20 +270,36 @@ def chain_digest(ctx: Context) -> str:
                     wanted.update(a.name.split(".")[0] for a in node.names)
                 elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
                     wanted.add(node.module.split(".")[0])
+    return wanted
+
+
+def esoi_user_folder(name: str, search: List[str]) -> Optional[Path]:
+    """The folder of an importable package that itself uses esoi, else None."""
+    import importlib.machinery
+    try:
+        spec = importlib.machinery.PathFinder.find_spec(name, search)
+    except (ImportError, ValueError):
+        return None
+    if spec is None or not spec.origin or not spec.origin.endswith("__init__.py"):
+        return None
+    folder = Path(spec.origin).resolve().parent
+    try:
+        return folder if "esoi" in folder.joinpath("__init__.py").read_text(encoding="utf-8", errors="replace") else None
+    except OSError:
+        return None
+
+
+def chain_digest(ctx: Context) -> str:
+    """A digest of what an entry check reads beyond the project's own files: the esoi library, and every package the project
+    imports that itself uses esoi (the parent hubs of an Assembler chain), by file path, size and modification time."""
+    if ctx.chain:
+        return ctx.chain
+    found = {Path(__file__).resolve().parents[3]}
     search = [str(ctx.root / p) for p in (ctx.config.python_path or ["."])] + sys.path
-    for name in sorted(wanted - {ctx.config.package, "esoi"} - set(sys.stdlib_module_names)):
-        try:
-            spec = importlib.machinery.PathFinder.find_spec(name, search)
-        except (ImportError, ValueError):
-            spec = None
-        if spec is None or not spec.origin or not spec.origin.endswith("__init__.py"):
-            continue
-        folder = Path(spec.origin).resolve().parent
-        try:
-            if "esoi" in folder.joinpath("__init__.py").read_text(encoding="utf-8", errors="replace"):
-                found.add(folder)
-        except OSError:
-            continue
+    for name in sorted(imported_package_names(ctx) - {ctx.config.package, "esoi"} - set(sys.stdlib_module_names)):
+        folder = esoi_user_folder(name, search)
+        if folder is not None:
+            found.add(folder)
     digest = hashlib.sha1()
     for folder in sorted(found):
         for file in sorted(folder.rglob("*.py")):
@@ -331,34 +372,38 @@ NEXT_COHERENCE = {"paragraph": "edit the intent's solution_coherence so each use
                   "balance": "group solutions so no implementation uses more than max_fan_out"}
 
 
-def flow_lines(report, waived=lambda key: False) -> List[str]:
-    """S50 lines from a coherence report: solutions with an implementation but no caller in the flow, and stated edges nothing calls."""
+def intent_flow_lines(r: Dict[str, object], waived) -> List[str]:
+    """S50 lines for one intent of a coherence report."""
     from esoi.structure.structure_check.coherence import STRONG
     out: List[str] = []
-    for r in report["intents"]:
-        callers: Dict[str, List[str]] = {}
-        unseen: List[str] = []
-        for edge, evidence in sorted(r.get("verdicts", {}).items()):
-            user, _, used = edge.partition("->")
-            if evidence == "n/a" or not used:
-                continue
-            callers.setdefault(used, [])
-            if evidence in STRONG:
-                callers[used].append(user)
-            else:
-                unseen.append(edge)
-        for used, who in sorted(callers.items()):
-            if not who and not waived(used) and not waived(f"{r['intent']}:{used}"):
-                users = ", ".join(sorted(e.partition("->")[0] for e in unseen if e.endswith("->" + used)))
-                out.append(f"S50 {used}: it has an implementation, but no caller shows in the flow of {r['intent']} (the code of {users} neither imports, "
-                           "types nor names it); next: write the flow first (here, a call through its entry point from the solution that uses it) "
-                           "(docs/how-to/start-from-the-flow.md)")
-        rest = [e for e in unseen if callers.get(e.partition("->")[2]) and not waived(f"{r['intent']}:{e}")]
-        if rest:
-            out.append(f"S50 {r['intent']}: {len(rest)} stated edge(s) are not called in the code yet: {', '.join(rest[:8])}"
-                       f"{' and more' if len(rest) > 8 else ''}; next: write the flow first (in code, function definitions and calls of solution functions), "
-                       "then the implementations it reaches")
+    callers: Dict[str, List[str]] = {}
+    unseen: List[str] = []
+    for edge, evidence in sorted(r.get("verdicts", {}).items()):
+        user, _, used = edge.partition("->")
+        if evidence == "n/a" or not used:
+            continue
+        callers.setdefault(used, [])
+        if evidence in STRONG:
+            callers[used].append(user)
+        else:
+            unseen.append(edge)
+    for used, who in sorted(callers.items()):
+        if not who and not waived(used) and not waived(f"{r['intent']}:{used}"):
+            users = ", ".join(sorted(e.partition("->")[0] for e in unseen if e.endswith("->" + used)))
+            out.append(f"S50 {used}: it has an implementation, but no caller shows in the flow of {r['intent']} (the code of {users} neither imports, "
+                       "types nor names it); next: write the flow first (here, a call through its entry point from the solution that uses it) "
+                       "(docs/how-to/start-from-the-flow.md)")
+    rest = [e for e in unseen if callers.get(e.partition("->")[2]) and not waived(f"{r['intent']}:{e}")]
+    if rest:
+        out.append(f"S50 {r['intent']}: {len(rest)} stated edge(s) are not called in the code yet: {', '.join(rest[:8])}"
+                   f"{' and more' if len(rest) > 8 else ''}; next: write the flow first (in code, function definitions and calls of solution functions), "
+                   "then the implementations it reaches")
     return out
+
+
+def flow_lines(report, waived=lambda key: False) -> List[str]:
+    """S50 lines from a coherence report: solutions with an implementation but no caller in the flow, and stated edges nothing calls."""
+    return [line for r in report["intents"] for line in intent_flow_lines(r, waived)]
 
 
 def flow(ctx: Context) -> List[str]:

@@ -147,17 +147,8 @@ def host_of(h: Hierarchy, intent) -> Tuple[str, Set[str]]:
     return host.get("solution_id", ""), set(ids(host.get("uses_solution_ids", "")))
 
 
-def root_problems(h: Hierarchy, intent, mine: List[str], inner: Set[Tuple[str, str]], host_uses: Set[str],
-                  problems: Dict[str, List[str]]) -> Tuple[List[str], Dict[str, int]]:
-    """The roots of an intent and the depth of every solution below them; M5 problems for the wrong roots and for unreachable solutions."""
-    used_inside = {b for _, b in inner}
-    roots = [s for s in mine if s not in used_inside]
-    if intent.is_top and len(roots) != 1:
-        problems["roots"].append(f"{len(roots)} roots, the top intent has one: {', '.join(roots)}")
-    if not intent.is_top:
-        loose = [r for r in roots if r not in host_uses]
-        if loose:
-            problems["roots"].append(f"roots not used by {intent.row.get('implements')}: {', '.join(loose)}")
+def depth_below(h: Hierarchy, roots: List[str], mine: List[str]) -> Dict[str, int]:
+    """How many uses edges below a root each solution of the intent lies."""
     depth = {r: 0 for r in roots}
     stack = list(roots)
     while stack:
@@ -166,6 +157,20 @@ def root_problems(h: Hierarchy, intent, mine: List[str], inner: Set[Tuple[str, s
             if t in mine and depth.get(t, -1) < depth[x] + 1 and depth[x] + 1 <= len(mine):
                 depth[t] = depth[x] + 1
                 stack.append(t)
+    return depth
+
+
+def root_problems(h: Hierarchy, intent, mine: List[str], inner: Set[Tuple[str, str]], host_uses: Set[str],
+                  problems: Dict[str, List[str]]) -> Tuple[List[str], Dict[str, int]]:
+    """The roots of an intent and the depth of every solution below them; M5 problems for the wrong roots and for unreachable solutions."""
+    used_inside = {b for _, b in inner}
+    roots = [s for s in mine if s not in used_inside]
+    if intent.is_top and len(roots) != 1:
+        problems["roots"].append(f"{len(roots)} roots, the top intent has one: {', '.join(roots)}")
+    loose = [r for r in roots if r not in host_uses]
+    if not intent.is_top and loose:
+        problems["roots"].append(f"roots not used by {intent.row.get('implements')}: {', '.join(loose)}")
+    depth = depth_below(h, roots, mine)
     unreached = [s for s in mine if s not in depth]
     if unreached:
         problems["roots"].append(f"unreachable from a root: {', '.join(unreached)}")
@@ -190,6 +195,20 @@ def diagram_problems(h: Hierarchy, intent, mine: List[str], problems: Dict[str, 
         problems["diagram"].append("this esoi has no `esoi diagram` (template version 4 and later)")
 
 
+def floor_problems(scores: Dict[str, object], lim: Dict[str, float], problems: Dict[str, List[str]]) -> None:
+    """M2 problems for a precision, coverage or lift under its floor."""
+    precision, coverage, lift = scores["precision"], scores["coverage"], scores["lift"]
+    verdicts, checkable = scores["verdicts"], scores["checkable"]
+    if precision is not None and precision < lim["code_floor"]:
+        problems["code"].append(f"precision {precision} below the floor {lim['code_floor']}; not shown by strong evidence: "
+                                + ", ".join(f"{e} ({v or 'none'})" for e, v in checkable.items() if v not in STRONG))
+    if coverage is not None and coverage < lim["coverage_floor"]:
+        problems["code"].append(f"coverage {coverage} below the floor {lim['coverage_floor']}: edges with an end that has no code: "
+                                + ", ".join(e for e, v in verdicts.items() if v == "n/a"))
+    if lift is not None and lift < lim["min_lift"]:
+        problems["code"].append(f"lift {lift} below {lim['min_lift']}: the evidence fires on non-edges as often as on edges")
+
+
 def code_scores(h: Hierarchy, checked: Set[Tuple[str, str]], base_rate: Optional[float], lim: Dict[str, float],
                 problems: Dict[str, List[str]]) -> Dict[str, object]:
     """M2: the strongest code evidence of each checked edge, the precision, coverage and lift of an intent, and the problems under the floors."""
@@ -199,15 +218,9 @@ def code_scores(h: Hierarchy, checked: Set[Tuple[str, str]], base_rate: Optional
     precision = round(len(strong) / len(checkable), 3) if checkable else None
     coverage = round(len(checkable) / len(verdicts), 3) if verdicts else None
     lift = round(precision / base_rate, 2) if precision is not None and base_rate else None
-    if precision is not None and precision < lim["code_floor"]:
-        problems["code"].append(f"precision {precision} below the floor {lim['code_floor']}; not shown by strong evidence: "
-                                + ", ".join(f"{e} ({v or 'none'})" for e, v in checkable.items() if v not in STRONG))
-    if coverage is not None and coverage < lim["coverage_floor"]:
-        problems["code"].append(f"coverage {coverage} below the floor {lim['coverage_floor']}: edges with an end that has no code: "
-                                + ", ".join(e for e, v in verdicts.items() if v == "n/a"))
-    if lift is not None and lift < lim["min_lift"]:
-        problems["code"].append(f"lift {lift} below {lim['min_lift']}: the evidence fires on non-edges as often as on edges")
-    return dict(verdicts=verdicts, checkable=checkable, strong=strong, precision=precision, coverage=coverage, lift=lift)
+    scores = dict(verdicts=verdicts, checkable=checkable, strong=strong, precision=precision, coverage=coverage, lift=lift)
+    floor_problems(scores, lim, problems)
+    return scores
 
 
 def code_recall(h: Hierarchy, mine: List[str]) -> Tuple[int, Optional[float]]:

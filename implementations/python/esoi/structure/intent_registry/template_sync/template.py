@@ -95,11 +95,8 @@ def split_optional(text: str) -> Tuple[str, bool]:
     return (found.group(1) + text[found.end():], True) if found else (text, False)
 
 
-def field_key(entity: str, text: str) -> Tuple[str, str, bool]:
-    """(key, question, mapped) for one field line with its bullet removed."""
-    labelled = LABELLED.match(text)
-    if labelled and "?" not in labelled.group(1):
-        return snake(labelled.group(1)), clean(labelled.group(2)) or clean(labelled.group(1)), True
+def bare_key(entity: str, text: str) -> Tuple[str, str, bool]:
+    """(key, question, mapped) for a field line that carries no label: a known bare question, a short bare label, or a guessed key."""
     lowered = text.lower()
     for ent, pattern, key in BARE_KEYS:
         if ent == entity and re.search(pattern, lowered):
@@ -111,6 +108,90 @@ def field_key(entity: str, text: str) -> Tuple[str, str, bool]:
     return "_".join(words[:3]) or "field", clean(text), False
 
 
+def field_key(entity: str, text: str) -> Tuple[str, str, bool]:
+    """(key, question, mapped) for one field line with its bullet removed."""
+    labelled = LABELLED.match(text)
+    if labelled and "?" not in labelled.group(1):
+        return snake(labelled.group(1)), clean(labelled.group(2)) or clean(labelled.group(1)), True
+    return bare_key(entity, text)
+
+
+def section_of(name: str) -> str:
+    """The section a heading line opens: specify, interface, not or connects."""
+    return "specify" if name == "specify" else "interface" if name.startswith("if technology") else \
+        "not" if name.startswith("what") else "connects"
+
+
+def add_to_section(current: dict, state: dict, raw: str, line: str, stripped: str) -> None:
+    """Add a field line, or a continuation of the definition, to the item being read."""
+    section = state["section"]
+    indent = len(raw) - len(raw.lstrip())
+    if section in ("specify", "interface") and current[section] and indent > state["indent"] >= 0:
+        current[section][-1] += " " + stripped        # deeper than its field line: guidance for that field
+    elif section in ("specify", "interface", "not", "connects"):
+        current[section].append(stripped)
+        state["indent"] = indent
+    elif section == "definition":
+        current["definition"] += " " + stripped
+
+
+def read_line(items: List[dict], state: dict, raw: str) -> None:
+    """Fold one line of the template block into the items; ``state`` holds the item being read, its section and the indent of its field lines."""
+    line = raw.strip()
+    top_level = not raw.startswith((" ", "\t"))
+    if INTRO.match(line) and top_level:
+        state["current"] = None
+        return
+    item = ITEM.match(line) if top_level else None
+    if item:
+        state["current"] = {"entity": item.group(1).strip().lower(), "definition": item.group(2).strip(),
+                            "specify": [], "interface": [], "not": [], "connects": [], "empty": 0}
+        items.append(state["current"])
+        state["section"] = "definition"
+        return
+    current = state["current"]
+    if current is None:
+        return
+    stripped = re.sub(r"^-\s*", "", line)
+    header = HEADER.match(stripped)
+    if header:
+        state["section"] = section_of(header.group(1).lower())
+        if header.group(2).strip() and state["section"] in ("not", "connects"):
+            current[state["section"]].append(header.group(2).strip())
+    elif line in ("-", ""):
+        current["empty"] += 1
+    else:
+        add_to_section(current, state, raw, line, stripped)
+
+
+def item_rows(item: dict, notes: List[str]) -> List[Dict[str, str]]:
+    """The template rows of one entity item; notes about duplicates, guessed keys and empty bullets are appended to ``notes``."""
+    entity = item["entity"]
+    rows = [{"entity": entity, "field_key": "definition", "question": clean(item["definition"]), "group": "meta", "required": "no"}]
+    keys: set = set()
+    for group in ("specify", "interface"):
+        for text in item[group]:
+            text, optional = split_optional(text)
+            key, question, mapped = field_key(entity, text)
+            if key in keys:
+                notes.append(f"{entity}: duplicate key {key!r} skipped")
+                continue
+            keys.add(key)
+            if not mapped:
+                notes.append(f"{entity}: bare question {question!r} has no entry in BARE_KEYS; key {key!r} guessed")
+            rows.append({"entity": entity, "field_key": key, "question": question, "group": group,
+                         "required": "yes" if group == "specify" and not optional else "no"})
+    for name, key in (("not", "what_it_is_not"), ("connects", "connects_to")):
+        if item[name]:
+            rows.append({"entity": entity, "field_key": key, "question": clean(" ".join(item[name])), "group": "meta", "required": "no"})
+    if item["empty"]:
+        notes.append(f"{entity}: {item['empty']} empty bullet(s) skipped (section unfinished)")
+    required = [r for r in rows if r["group"] == "specify"]
+    optional = [r for r in rows if r["group"] == "interface"]
+    notes.append(f"{entity}: {len(required)} required field(s), {len(optional)} interface field(s)")
+    return rows
+
+
 def parse(skill_text: str) -> Tuple[List[Dict[str, str]], List[str]]:
     """The template rows and a list of notes about what was parsed, skipped or guessed."""
     notes: List[str] = []
@@ -119,74 +200,15 @@ def parse(skill_text: str) -> Tuple[List[Dict[str, str]], List[str]]:
     if not block:
         return rows, ["no 'Intent specification' block found"]
     items: List[dict] = []
-    current: Optional[dict] = None
-    section = ""
-    field_indent = -1
+    state = {"current": None, "section": "", "indent": -1}
     for raw in block:
-        if not raw.strip():
-            continue
-        line = raw.strip()
-        if INTRO.match(line) and not raw.startswith((" ", "\t")):
-            current = None
-            continue
-        item = ITEM.match(line) if not raw.startswith((" ", "\t")) else None
-        if item:
-            current = {"entity": item.group(1).strip().lower(), "definition": item.group(2).strip(),
-                       "specify": [], "interface": [], "not": [], "connects": [], "empty": 0}
-            items.append(current)
-            section = "definition"
-            continue
-        if current is None:
-            continue
-        stripped = re.sub(r"^-\s*", "", line)
-        header = HEADER.match(stripped)
-        if header:
-            name = header.group(1).lower()
-            section = "specify" if name == "specify" else "interface" if name.startswith("if technology") else \
-                "not" if name.startswith("what") else "connects"
-            if header.group(2).strip() and section in ("not", "connects"):
-                current[section].append(header.group(2).strip())
-            continue
-        if line in ("-", ""):
-            current["empty"] += 1
-            continue
-        indent = len(raw) - len(raw.lstrip())
-        if section in ("specify", "interface") and current[section] and indent > field_indent >= 0:
-            current[section][-1] += " " + stripped        # deeper than its field line: guidance for that field
-        elif section in ("specify", "interface", "not", "connects"):
-            current[section].append(stripped)
-            field_indent = indent
-        elif section == "definition":
-            current["definition"] += " " + stripped
+        if raw.strip():
+            read_line(items, state, raw)
     seen = {i["entity"] for i in items}
     for missing in [e for e in ENTITIES if e not in seen]:
         notes.append(f"{missing}: section missing from the source")
     for item in items:
-        entity = item["entity"]
-        rows.append({"entity": entity, "field_key": "definition", "question": clean(item["definition"]),
-                     "group": "meta", "required": "no"})
-        keys: set = set()
-        for group in ("specify", "interface"):
-            for text in item[group]:
-                text, optional = split_optional(text)
-                key, question, mapped = field_key(entity, text)
-                if key in keys:
-                    notes.append(f"{entity}: duplicate key {key!r} skipped")
-                    continue
-                keys.add(key)
-                if not mapped:
-                    notes.append(f"{entity}: bare question {question!r} has no entry in BARE_KEYS; key {key!r} guessed")
-                rows.append({"entity": entity, "field_key": key, "question": question, "group": group,
-                             "required": "yes" if group == "specify" and not optional else "no"})
-        for name, key in (("not", "what_it_is_not"), ("connects", "connects_to")):
-            if item[name]:
-                rows.append({"entity": entity, "field_key": key, "question": clean(" ".join(item[name])),
-                             "group": "meta", "required": "no"})
-        if item["empty"]:
-            notes.append(f"{entity}: {item['empty']} empty bullet(s) skipped (section unfinished)")
-        required = [r for r in rows if r["entity"] == entity and r["group"] == "specify"]
-        optional = [r for r in rows if r["entity"] == entity and r["group"] == "interface"]
-        notes.append(f"{entity}: {len(required)} required field(s), {len(optional)} interface field(s)")
+        rows += item_rows(item, notes)
     return rows, notes
 
 

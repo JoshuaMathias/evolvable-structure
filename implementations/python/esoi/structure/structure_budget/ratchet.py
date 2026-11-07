@@ -57,6 +57,17 @@ def default_branch(root: Path) -> List[str]:
     return named + ["origin/main", "origin/master", "main", "master"]
 
 
+def merge_base_with_default(root: Path, head: str) -> Optional[str]:
+    """The merge base of HEAD with the first default branch that exists and differs from HEAD."""
+    for branch in default_branch(root):
+        if git(root, "rev-parse", "--verify", "-q", f"{branch}^{{commit}}")[0] != 0:
+            continue
+        code, merged = git(root, "merge-base", "HEAD", branch)
+        if code == 0 and merged and merged != head:
+            return merged
+    return None
+
+
 def resolve_base(root: Path, configured: str = "") -> Tuple[Optional[str], str]:
     """``(base commit, note)``. ``base`` is None with a note: ``root commit`` (nothing to compare), or ``no base: ...``."""
     code, inside = git(root, "rev-parse", "--is-inside-work-tree")
@@ -71,12 +82,9 @@ def resolve_base(root: Path, configured: str = "") -> Tuple[Optional[str], str]:
         if code != 0:
             return None, f"no base: trend not computed (base {named!r} is not in this clone; {NEEDS_HISTORY})"
         return found, ""
-    for branch in default_branch(root):
-        if git(root, "rev-parse", "--verify", "-q", f"{branch}^{{commit}}")[0] != 0:
-            continue
-        code, merged = git(root, "merge-base", "HEAD", branch)
-        if code == 0 and merged and merged != head:
-            return merged, ""
+    merged = merge_base_with_default(root, head)
+    if merged:
+        return merged, ""
     shallow = git(root, "rev-parse", "--is-shallow-repository")[1] == "true"
     code, parent = git(root, "rev-parse", "--verify", "-q", "HEAD~1")
     if code == 0 and parent:
@@ -131,21 +139,9 @@ def effective_ceiling(rules: Dict[str, Any], intent: str, key: str) -> float:
     return own.get(key, table.get(key, DEFAULT_CEILINGS[key]))
 
 
-def trend(config: Any) -> Tuple[List[Trend], str]:
-    """The trend of the working tree against the base: ``(trends, note)``. ``note`` is non-empty when no trend could be computed."""
-    root = Path(config.root)
-    base, note = resolve_base(root, config.option("S39", "base", ""))
-    if base is None:
-        return [], ("" if note == "root commit" else note)
+def waiver_trends(config: Any, root: Path, base: str, was_on: Set[str]) -> List[Trend]:
+    """The waivers of each rule that was enabled at the base, now against then."""
     from esoi.structure.intent_registry import intents
-    source = Path(config.source) if config.source else root / "esoi.toml"
-    base_rules, base_disabled = rules_at(show(root, base, str(source.relative_to(root))) if source.is_absolute() else None, source)
-    out: List[Trend] = []
-    was_on = {r for r in OPT_IN if bool((base_rules.get(r, {}) or {}).get("enabled", False)) and r not in base_disabled}
-    for rule in OPT_IN:
-        if rule in was_on and not config.enabled(rule):
-            out.append(Trend(f"rule {rule} enabled", "yes", "no", "disabled", adverse=True))
-    # waivers: the set at the base against the set now, per rule, only for a rule that was enabled at the base
     folders = [i.folder for i in intents.discover(config)] if config.intent_mode else [config.structure]
     now: Set[Tuple[str, str]] = set()
     before: Set[Tuple[str, str]] = set()
@@ -154,6 +150,7 @@ def trend(config: Any) -> Tuple[List[Trend], str]:
         if (folder / "waivers.csv").is_file():
             now |= waivers_of((folder / "waivers.csv").read_text(encoding="utf-8"))
         before |= waivers_of(show(root, base, rel))
+    out: List[Trend] = []
     for rule in RULES:
         if rule not in was_on:
             continue   # the commit that first enables a rule sets its baseline
@@ -163,28 +160,56 @@ def trend(config: Any) -> Tuple[List[Trend], str]:
         added = sorted(set(b) - set(a))
         out.append(Trend(f"waivers of {rule}" + (f" (new: {', '.join(added[:8])}{'...' if len(added) > 8 else ''})" if added else ""),
                          len(a), len(b), direction, adverse=bool(added)))
-    # floors and ceilings of [rules.S38]
-    if "S38" in was_on:
-        names = set((base_rules.get("S38", {}).get("floors", {}) or {})) | set((config.option("S38", "floors", {}) or {}))
-        names |= {i.intent_id for i in intents.discover(config)} if config.intent_mode else set()
-        for intent in sorted(names):
-            old, new = effective(base_rules, intent), effective(config.rules, intent)
-            for flat, key in FLOORS:
-                if old[flat] != new[flat]:
-                    out.append(Trend(f"floor {key} of {intent}", old[flat], new[flat], "rose" if new[flat] > old[flat] else "fell",
-                                     adverse=new[flat] < old[flat]))
-        for intent in sorted(names):   # a ceiling written for one intent in its floors table
-            for key in ("max_fan_out", "max_names_per_sentence"):
-                written = [((r.get("S38", {}) or {}).get("floors", {}) or {}).get(intent, {}) for r in (base_rules, config.rules)]
-                if not any(key in w for w in written):
-                    continue
-                old = effective_ceiling(base_rules, intent, key)
-                new = effective_ceiling(config.rules, intent, key)
-                if old != new:
-                    out.append(Trend(f"ceiling {key} of {intent}", old, new, "rose" if new > old else "fell", adverse=new > old))
-        for key in CEILINGS:
-            old = (base_rules.get("S38", {}) or {}).get(key, DEFAULT_CEILINGS[key])
-            new = config.option("S38", key, DEFAULT_CEILINGS[key])
+    return out
+
+
+def intent_limit_trends(base_rules: Dict[str, Any], config: Any, names: Set[str]) -> List[Trend]:
+    """The floors, and the ceilings written for one intent, that changed since the base."""
+    out: List[Trend] = []
+    for intent in sorted(names):
+        old, new = effective(base_rules, intent), effective(config.rules, intent)
+        for flat, key in FLOORS:
+            if old[flat] != new[flat]:
+                out.append(Trend(f"floor {key} of {intent}", old[flat], new[flat], "rose" if new[flat] > old[flat] else "fell",
+                                 adverse=new[flat] < old[flat]))
+    for intent in sorted(names):   # a ceiling written for one intent in its floors table
+        for key in ("max_fan_out", "max_names_per_sentence"):
+            written = [((r.get("S38", {}) or {}).get("floors", {}) or {}).get(intent, {}) for r in (base_rules, config.rules)]
+            if not any(key in w for w in written):
+                continue
+            old = effective_ceiling(base_rules, intent, key)
+            new = effective_ceiling(config.rules, intent, key)
             if old != new:
-                out.append(Trend(f"ceiling {key}", old, new, "rose" if new > old else "fell", adverse=new > old))
+                out.append(Trend(f"ceiling {key} of {intent}", old, new, "rose" if new > old else "fell", adverse=new > old))
+    return out
+
+
+def coherence_trends(base_rules: Dict[str, Any], config: Any) -> List[Trend]:
+    """The floors and ceilings of [rules.S38] that changed since the base."""
+    from esoi.structure.intent_registry import intents
+    names = set((base_rules.get("S38", {}).get("floors", {}) or {})) | set((config.option("S38", "floors", {}) or {}))
+    names |= {i.intent_id for i in intents.discover(config)} if config.intent_mode else set()
+    out = intent_limit_trends(base_rules, config, names)
+    for key in CEILINGS:
+        old = (base_rules.get("S38", {}) or {}).get(key, DEFAULT_CEILINGS[key])
+        new = config.option("S38", key, DEFAULT_CEILINGS[key])
+        if old != new:
+            out.append(Trend(f"ceiling {key}", old, new, "rose" if new > old else "fell", adverse=new > old))
+    return out
+
+
+def trend(config: Any) -> Tuple[List[Trend], str]:
+    """The trend of the working tree against the base: ``(trends, note)``. ``note`` is non-empty when no trend could be computed."""
+    root = Path(config.root)
+    base, note = resolve_base(root, config.option("S39", "base", ""))
+    if base is None:
+        return [], ("" if note == "root commit" else note)
+    source = Path(config.source) if config.source else root / "esoi.toml"
+    base_rules, base_disabled = rules_at(show(root, base, str(source.relative_to(root))) if source.is_absolute() else None, source)
+    was_on = {r for r in OPT_IN if bool((base_rules.get(r, {}) or {}).get("enabled", False)) and r not in base_disabled}
+    out = [Trend(f"rule {rule} enabled", "yes", "no", "disabled", adverse=True)
+           for rule in OPT_IN if rule in was_on and not config.enabled(rule)]
+    out += waiver_trends(config, root, base, was_on)
+    if "S38" in was_on:
+        out += coherence_trends(base_rules, config)
     return out, ""

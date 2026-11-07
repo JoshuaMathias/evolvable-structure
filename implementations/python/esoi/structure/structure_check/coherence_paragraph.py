@@ -138,6 +138,20 @@ def templated_problem(stated: Dict[str, str], every_solution) -> List[str]:
     return []
 
 
+def clause_claims(c: str, first: str, start: int, named_at: List[Tuple[int, str]], every_solution, walk) -> List[str]:
+    """The relations one clause states from ``first`` (named at ``start``) to a later solution that no uses path joins."""
+    claimed = []
+    present = {other for _, other in named_at}
+    named_here = [x for other in every_solution if other in present for x in (other, every_solution[other].get("name", "")) if x]
+    for at, sid in named_at:
+        if sid == first or at <= start:
+            continue
+        names = [x for x in (first, sid, every_solution[first].get("name", ""), every_solution[sid].get("name", "")) if x]
+        if other_words(c[max(start, 0):at], names + named_here) >= MIN_CLAUSE_WORDS and not reaches(walk, first, sid):
+            claimed.append(f"{first}->{sid} in \"{c[:80]}\"")
+    return claimed
+
+
 def claimed_problem(parts: List[str], every_solution, uses, host_sid: str, host_uses) -> List[str]:
     """A problem for each relation the paragraph states between two solutions that no uses path of the records joins."""
     subject_any = clause_subjects(parts, every_solution, every_solution)
@@ -148,19 +162,9 @@ def claimed_problem(parts: List[str], every_solution, uses, host_sid: str, host_
     for i, c in enumerate(parts):
         named_at = named_in(c, every_solution, every_solution)
         if re.match(r"^\s*It\b", c) and i and subject_any[i - 1]:
-            first, start = subject_any[i - 1], 0
+            claimed += clause_claims(c, subject_any[i - 1], 0, named_at, every_solution, walk)
         elif named_at:
-            start, first = named_at[0]
-        else:
-            continue
-        for at, sid in named_at:
-            if sid == first or at <= start:
-                continue
-            names = [x for x in (first, sid, every_solution[first].get("name", ""), every_solution[sid].get("name", "")) if x]
-            present = {other for _, other in named_at}
-            named_here = [x for other in every_solution if other in present for x in (other, every_solution[other].get("name", "")) if x]
-            if other_words(c[max(start, 0):at], names + named_here) >= MIN_CLAUSE_WORDS and not reaches(walk, first, sid):
-                claimed.append(f"{first}->{sid} in \"{c[:80]}\"")
+            claimed += clause_claims(c, named_at[0][1], named_at[0][0], named_at, every_solution, walk)
     if not claimed:
         return []
     return ["states a relation the records do not hold (no uses path from the first to the second): " + "; ".join(dict.fromkeys(claimed))]

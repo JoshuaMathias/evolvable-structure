@@ -240,21 +240,23 @@ def solution_and_implementation_rows(src: Sources) -> Tuple[List[Row], List[Row]
     return sol_rows, impls, metric_users
 
 
+def metric_row(src: Sources, mid: str, users: List[tuple]) -> Row:
+    """The row of one metric, however many solutions it serves."""
+    m = src.metric_by_id[mid]
+    many = len(users) > 1
+    texts = [(f"{u[0]['solution_id']}: " if many else "") + f"{u[1].get('passed', '')}/{u[1].get('cases', '')}" for u in users if u[1]]
+    return {
+        **{k: m.get(k, "") for k in src.extra["metrics"]},
+        **{k: m.get(k, "") for k in ["metric_id"] + fields(src.template, "metric", True) + ["solution_ids", "command"]},
+        "latest_result": " ".join(t for t in texts if t) if many else (texts[0] if texts else ""),
+        "auto_status": "specification" if not any(u[2] for u in users)
+        else "measured" if any(u[1] for u in users)
+        else ("needs_run" if any(u[2] for u in users) else "needs_metric")}
+
+
 def metric_rows(src: Sources, metric_users: Dict[str, List[tuple]]) -> List[Row]:
     """One row per metric, however many solutions it serves."""
-    rows = []
-    for mid, users in metric_users.items():
-        m = src.metric_by_id[mid]
-        many = len(users) > 1
-        texts = [(f"{u[0]['solution_id']}: " if many else "") + f"{u[1].get('passed', '')}/{u[1].get('cases', '')}" for u in users if u[1]]
-        rows.append({
-            **{k: m.get(k, "") for k in src.extra["metrics"]},
-            **{k: m.get(k, "") for k in ["metric_id"] + fields(src.template, "metric", True) + ["solution_ids", "command"]},
-            "latest_result": " ".join(t for t in texts if t) if many else (texts[0] if texts else ""),
-            "auto_status": "specification" if not any(u[2] for u in users)
-            else "measured" if any(u[1] for u in users)
-            else ("needs_run" if any(u[2] for u in users) else "needs_metric")})
-    return rows
+    return [metric_row(src, mid, users) for mid, users in metric_users.items()]
 
 
 def ideal_rows(src: Sources) -> List[Row]:

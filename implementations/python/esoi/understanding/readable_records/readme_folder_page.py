@@ -87,12 +87,8 @@ def one_level_below(registry: Registry, view: View, folder: Path) -> List[str]:
     return ["## One level below", ""] + lines + [""] if lines else []
 
 
-def render_folder(registry: Registry, view: View, owner: str, folder: Path) -> str:
-    """The README of a solution folder kept beside its code: each solution it holds, with its entry call and selected
-    implementation, the implementations it holds with a link to the code, the metrics with their leaders, the problems and
-    ideals, links up and down, and the diagram when the folders below it hold solutions it builds on."""
-    config = view.config
-    solutions = [r for r in registry.every_solution() if r.get("solution_id", "") in ids_in(folder, "solutions.csv", "solution_id")]
+def folder_heading(registry: Registry, view: View, owner: str, folder: Path, solutions: List[dict]) -> List[str]:
+    """The title, the purpose of a lone solution, the breadcrumb and the line naming the page above."""
     heading_text = one_line(solutions[0].get("name", "")) if len(solutions) == 1 else folder.name
     lines = [f"# {heading_text or folder.name}", ""]
     parent = view.intent(owner)
@@ -109,52 +105,84 @@ def render_folder(registry: Registry, view: View, owner: str, folder: Path) -> s
         top = next((i for i in view.intents if not i.parent), None)
         shown = (one_line(top.row.get("name", "")) or top.intent_id) if above[0] == "Top" and top is not None else above[0]
         lines += [f"Part of [{shown}]({link(folder, above[1] / FILE)})", ""]
-    single, parent_shown = len(solutions) == 1, parent is not None and parent.folder.resolve() != folder.resolve()
-    for r in solutions:
-        sid = r.get("solution_id", "")
-        lines += [f"## {one_line(r.get('name', '')) or sid} (`{sid}`)", ""]
-        purpose = first_sentence(r.get("purpose", "")) or first_sentence(r.get("description", ""))
-        if purpose and not (single and parent_shown):
-            lines += [purpose, ""]
-        picked = one_line(r.get("selected", ""))
-        for label, column in (("Out of scope", "out_of_scope"), ("Delegates to", "delegates_to")):
-            said = one_line(r.get(column, ""))
-            said = ", ".join(part.strip() for part in said.split(";") if part.strip()) if column == "delegates_to" else said
-            if said and said.lower().rstrip(".") != "none":
-                lines.append(f"- {label}: {said}")
-        lines += [f"- Entry call: {entry_call(view, config.package, sid, r)}",
-                  f"- Selected implementation: {impl_label(registry, sid, picked)}",
-                  f"- Metric: {metric_names(r.get('metric', ''))}"]
-        lines += implemented_line(registry, view, folder, sid) + [""]
-    lines += one_level_below(registry, view, folder)
-    picture = folder_diagram(registry, view, owner, folder)
-    if picture:
-        lines += ["## Diagram", "", "An arrow runs from the solution that provides to the solution that builds on it; its label is "
-                  "what the provider outputs.", ""] + picture + [""]
+    return lines
+
+
+def solution_section(registry: Registry, view: View, folder: Path, r: dict, show_purpose: bool) -> List[str]:
+    """One solution of the folder: its heading, purpose, exclusions, entry call, selected implementation and metric."""
+    sid = r.get("solution_id", "")
+    lines = [f"## {one_line(r.get('name', '')) or sid} (`{sid}`)", ""]
+    purpose = first_sentence(r.get("purpose", "")) or first_sentence(r.get("description", ""))
+    if purpose and show_purpose:
+        lines += [purpose, ""]
+    picked = one_line(r.get("selected", ""))
+    for label, column in (("Out of scope", "out_of_scope"), ("Delegates to", "delegates_to")):
+        said = one_line(r.get(column, ""))
+        said = ", ".join(part.strip() for part in said.split(";") if part.strip()) if column == "delegates_to" else said
+        if said and said.lower().rstrip(".") != "none":
+            lines.append(f"- {label}: {said}")
+    lines += [f"- Entry call: {entry_call(view, view.config.package, sid, r)}",
+              f"- Selected implementation: {impl_label(registry, sid, picked)}",
+              f"- Metric: {metric_names(r.get('metric', ''))}"]
+    return lines + implemented_line(registry, view, folder, sid) + [""]
+
+
+def implementations_section(registry: Registry, view: View, folder: Path) -> List[str]:
+    """The table of the implementations whose records sit in this folder, with a link to the code and whether each is selected."""
     mine_impl = set(ids_in(folder, "implementations.csv", "implementation_id"))
     impls = [r for r in registry.implementations if r.get("implementation_id", "") in mine_impl]
-    if impls:
-        chosen = {r.get("solution_id", ""): one_line(r.get("selected", "")) for r in registry.every_solution()}
-        lines += ["## Implementations", "", "| Implementation | Handle | Purpose | Code | Selected |", "|---|---|---|---|---|"]
-        for r in impls:
-            name = r.get("implementation_id", "").split(":", 1)[-1]
-            lines.append(f"| {one_line(r.get('name', '')) or r.get('implementation_id', '')} | `{r.get('implementation_id', '')}` | {one_line(r.get('description', ''))} | "
-                         f"{code_cell(view, folder, r.get('filepath', ''))} | "
-                         f"{'selected' if chosen.get(r.get('solution_id', '')) in (name, r.get('implementation_id', '')) else ''} |")
-        lines.append("")
+    if not impls:
+        return []
+    chosen = {r.get("solution_id", ""): one_line(r.get("selected", "")) for r in registry.every_solution()}
+    lines = ["## Implementations", "", "| Implementation | Handle | Purpose | Code | Selected |", "|---|---|---|---|---|"]
+    for r in impls:
+        name = r.get("implementation_id", "").split(":", 1)[-1]
+        lines.append(f"| {one_line(r.get('name', '')) or r.get('implementation_id', '')} | `{r.get('implementation_id', '')}` | {one_line(r.get('description', ''))} | "
+                     f"{code_cell(view, folder, r.get('filepath', ''))} | "
+                     f"{'selected' if chosen.get(r.get('solution_id', '')) in (name, r.get('implementation_id', '')) else ''} |")
+    return lines + [""]
+
+
+def metrics_section(registry: Registry, view: View, folder: Path) -> List[str]:
+    """The metrics whose records sit in this folder, each with its leader."""
     metric_ids = set(ids_in(folder, "metrics.csv", "metric_id"))
     metrics = [r for r in registry.metrics if r.get("metric_id", "") in metric_ids]
-    if metrics:
-        lines += ["## Metrics", ""]
-        for r in metrics:
-            tail = leader(view, r)
-            lines.append(f"- {named(r, 'metric_id')}" + (f": {tail}" if tail else ""))
-        lines.append("")
+    if not metrics:
+        return []
+    lines = ["## Metrics", ""]
+    for r in metrics:
+        tail = leader(view, r)
+        lines.append(f"- {named(r, 'metric_id')}" + (f": {tail}" if tail else ""))
+    return lines + [""]
+
+
+def problems_and_ideals(registry: Registry, folder: Path) -> List[str]:
+    """The problems and the ideals whose records sit in this folder."""
+    lines: List[str] = []
     problem_ids, ideal_ids = set(ids_in(folder, "problems.csv", "problem_id")), set(ids_in(folder, "ideals.csv", "ideal_id"))
     for title, rows, key, column in (("Problems", [r for r in registry.problems if r.get("problem_id", "") in problem_ids], "problem_id", "problem"),
                                      ("Ideals", [r for r in registry.ideals if r.get("ideal_id", "") in ideal_ids], "ideal_id", "principle")):
         if rows:
             lines += [f"## {title}", ""] + [list_item(r, key, column) for r in rows] + [""]
+    return lines
+
+
+def render_folder(registry: Registry, view: View, owner: str, folder: Path) -> str:
+    """The README of a solution folder kept beside its code: each solution it holds, with its entry call and selected
+    implementation, the implementations it holds with a link to the code, the metrics with their leaders, the problems and
+    ideals, links up and down, and the diagram when the folders below it hold solutions it builds on."""
+    solutions = [r for r in registry.every_solution() if r.get("solution_id", "") in ids_in(folder, "solutions.csv", "solution_id")]
+    lines = folder_heading(registry, view, owner, folder, solutions)
+    parent = view.intent(owner)
+    single, parent_shown = len(solutions) == 1, parent is not None and parent.folder.resolve() != folder.resolve()
+    for r in solutions:
+        lines += solution_section(registry, view, folder, r, not (single and parent_shown))
+    lines += one_level_below(registry, view, folder)
+    picture = folder_diagram(registry, view, owner, folder)
+    if picture:
+        lines += ["## Diagram", "", "An arrow runs from the solution that provides to the solution that builds on it; its label is "
+                  "what the provider outputs.", ""] + picture + [""]
+    lines += implementations_section(registry, view, folder) + metrics_section(registry, view, folder) + problems_and_ideals(registry, folder)
     lines += ["## Where to go next", ""] + folder_links(view, owner, folder) + ["", FOLDER_NOTE]
     return "\n".join(lines).rstrip() + "\n"
 

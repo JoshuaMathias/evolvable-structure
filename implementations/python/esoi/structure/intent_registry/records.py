@@ -109,6 +109,11 @@ TECHNICAL_COLUMNS = {
 }
 
 
+def is_link_or_tracking(column: str) -> bool:
+    """Whether a column is an id or link (`*_id`, `*_ids`) or the review tracker's own (`tracking_*`); neither needs approval."""
+    return column.endswith(("_id", "_ids")) or column.startswith("tracking_")
+
+
 def unapproved_column_problems(name: str, header: Iterable[str], template: Template, label: str,
                                approved: Optional[Dict[str, Set[str]]] = None) -> List[str]:
     """R7 lines for each column of record file ``name`` that is neither a field of the template, nor technical
@@ -118,14 +123,13 @@ def unapproved_column_problems(name: str, header: Iterable[str], template: Templ
         return []
     allowed = {r["field_key"] for r in template.get(entity, []) if r["group"] != "meta"}
     allowed |= TECHNICAL_COLUMNS.get(name, set()) | (approved or {}).get(name, set())
-    removed = set(REMOVED_COLUMNS.get(name, {})) | set(RENAMED_COLUMNS.get(name, {})) | ({"opportunity"} if entity == "intent" else set())
+    removed = set(REMOVED_COLUMNS.get(name, {})) | set(RENAMED_COLUMNS.get(name, {})) | {"intent": {"opportunity"}}.get(entity, set())
     return [f"R7 {label}: column `{column}` is not in the template, is not a technical column (an id, a link, a file path "
             "or a command) and is not approved. Propose the field to the person who owns the specification; add it to "
             f"`approved_fields` under `[records]` in esoi.toml (`{name.removesuffix('.csv')} = [\"{column}\"]`), or to the "
             "template in SKILL.md, only once they approve."
             for column in header
-            if column not in allowed and column not in removed and not column.endswith(("_id", "_ids"))
-            and not column.startswith("tracking_")]
+            if column not in allowed and column not in removed and not is_link_or_tracking(column)]
 
 
 def solutions_with_a_command(metric_rows: Iterable[Dict[str, str]], pattern: str = DEFAULT_METRIC_COMMAND) -> Set[str]:
@@ -202,6 +206,16 @@ def match_implementations(solution_id: str, entries: List[str], records: Dict[st
     return claimed, sorted(set(records) - set(claimed.values()))
 
 
+def needed_columns(folder: Path, entity: str, key: str, rows: List[Dict[str, str]], template: Template,
+                   interface_required: bool, metric_command: str) -> List[str]:
+    """The columns a record file's header must carry. A solution of kind specification needs no interface fields, and a header may omit them only for those."""
+    if entity == "solution" and rows:
+        commanded = solutions_with_a_command(read_csv(Path(folder) / "metrics.csv"), metric_command)
+        if not any(r.get(key, "") in commanded for r in rows):
+            return [key, *checked_fields(template, entity, False)]
+    return [key, *checked_fields(template, entity, interface_required)]
+
+
 def check_headers(folder: Path, template: Template, interface_required: bool = True, label: str = "",
                   approved: Optional[Dict[str, Set[str]]] = None, metric_command: str = DEFAULT_METRIC_COMMAND) -> List[str]:
     """R1 problems in the header of each record file of one intent folder: a missing key or template column. A file
@@ -211,14 +225,8 @@ def check_headers(folder: Path, template: Template, interface_required: bool = T
         path = Path(folder) / name
         if not path.is_file():
             continue
-        rows = read_csv(path)
         header = read_header(path)
-        # a solution of kind specification needs no interface fields, and a header may omit them only for those
-        need = [key, *checked_fields(template, entity, interface_required)]
-        if entity == "solution" and rows:
-            commanded = solutions_with_a_command(read_csv(Path(folder) / "metrics.csv"), metric_command)
-            if not any(r.get(key, "") in commanded for r in rows):
-                need = [key, *checked_fields(template, entity, False)]
+        need = needed_columns(folder, entity, key, read_csv(path), template, interface_required, metric_command)
         missing = [k for k in need if k not in header]
         if missing:
             bad.append(f"R1 {label or folder}/{name}: missing template column(s) {', '.join(missing)}"
@@ -286,18 +294,24 @@ def index_tables(rs: RecordSet, overall: Optional[Overall]) -> None:
             rs.bad.append(f"R1 {FILES[entity][0]}: no records")
 
 
+def check_columns(rs: RecordSet, entity: str, rows: List[Dict[str, str]], need: List[str], template: Template,
+                  approved: Optional[Dict[str, Set[str]]]) -> None:
+    """R1 for template columns a record file lacks, old column names, and columns nobody approved."""
+    name = FILES[entity][0]
+    missing = [k for k in [rs.keys[entity], *need] if k not in rows[0]]
+    if missing:
+        rs.bad.append(f"R1 {name}: missing template column(s) {', '.join(missing)} (run `esoi template sync`, then fill them)")
+    rs.bad += renamed_column_problems(name, rows[0], name)
+    rs.bad += unapproved_column_problems(name, rows[0], template, name, approved)
+
+
 def check_template_fields(rs: RecordSet, template: Template, interface_required: bool, merged: bool,
                           approved: Optional[Dict[str, Set[str]]]) -> None:
     """R1 for missing columns (a merged tree has its headers checked by ``check_headers``) and R2 for each required field left empty."""
     for entity, rows in rs.tables.items():
         need = checked_fields(template, entity, interface_required)
         if rows and not merged:
-            name = FILES[entity][0]
-            missing = [k for k in [rs.keys[entity], *need] if k not in rows[0]]
-            if missing:
-                rs.bad.append(f"R1 {name}: missing template column(s) {', '.join(missing)} (run `esoi template sync`, then fill them)")
-            rs.bad += renamed_column_problems(name, rows[0], name)
-            rs.bad += unapproved_column_problems(name, rows[0], template, name, approved)
+            check_columns(rs, entity, rows, need, template, approved)
         for row in rows:
             if rs.skipped(entity, row) or (entity == "solution" and row.get("solution_id") in rs.adopted):
                 continue
@@ -307,22 +321,28 @@ def check_template_fields(rs: RecordSet, template: Template, interface_required:
                 rs.bad.append(f"R2 {row.get(rs.keys[entity], '')}: template field(s) not filled: {', '.join(empty)}")
 
 
+def check_problem_row(rs: RecordSet, pid: str, row: Dict[str, str]) -> None:
+    """R3 for one problem: its solutions and ideals are records, there is at least one of each, and each lists the problem back."""
+    solutions, ideals = rs.index["solution"], rs.index["ideal"]
+    rs.unknown(pid, "solution_ids", ids(row.get("solution_ids", "")), solutions)
+    rs.unknown(pid, "ideal_ids", ids(row.get("ideal_ids", "")), ideals)
+    if not ids(row.get("solution_ids", "")):
+        rs.bad.append(f"R3 {pid}: no solution addresses this problem")
+    if not ids(row.get("ideal_ids", "")):
+        rs.bad.append(f"R3 {pid}: no ideal opposes this problem")
+    for sid in ids(row.get("solution_ids", "")):
+        if sid in solutions and pid not in ids(solutions[sid].get("problem_ids", "")) and sid not in rs.waived and sid not in rs.adopted:
+            rs.bad.append(f"R3 {pid}: lists solution {sid} but {sid} does not list it in problem_ids")
+    for iid in ids(row.get("ideal_ids", "")):
+        if iid in ideals and pid not in ids(ideals[iid].get("problem_ids", "")):
+            rs.bad.append(f"R3 {pid}: lists ideal {iid} but {iid} does not list it in problem_ids")
+
+
 def check_problem_links(rs: RecordSet, related_problem_ids: Optional[Set[str]]) -> None:
-    """R3 for each problem: its solutions and ideals are records, there is at least one of each, and each lists the problem back."""
-    problems, ideals, solutions = rs.index["problem"], rs.index["ideal"], rs.index["solution"]
+    """R3 for each problem's links, and for related problems that are not problems of the related registry."""
+    problems = rs.index["problem"]
     for pid, row in problems.items():
-        rs.unknown(pid, "solution_ids", ids(row.get("solution_ids", "")), solutions)
-        rs.unknown(pid, "ideal_ids", ids(row.get("ideal_ids", "")), ideals)
-        if not ids(row.get("solution_ids", "")):
-            rs.bad.append(f"R3 {pid}: no solution addresses this problem")
-        if not ids(row.get("ideal_ids", "")):
-            rs.bad.append(f"R3 {pid}: no ideal opposes this problem")
-        for sid in ids(row.get("solution_ids", "")):
-            if sid in solutions and pid not in ids(solutions[sid].get("problem_ids", "")) and sid not in rs.waived and sid not in rs.adopted:
-                rs.bad.append(f"R3 {pid}: lists solution {sid} but {sid} does not list it in problem_ids")
-        for iid in ids(row.get("ideal_ids", "")):
-            if iid in ideals and pid not in ids(ideals[iid].get("problem_ids", "")):
-                rs.bad.append(f"R3 {pid}: lists ideal {iid} but {iid} does not list it in problem_ids")
+        check_problem_row(rs, pid, row)
     if related_problem_ids is not None:
         for pid, row in problems.items():
             rs.bad += [f"R3 {pid}: related_problem_ids names {other!r}, which is not a problem of the related registry"
