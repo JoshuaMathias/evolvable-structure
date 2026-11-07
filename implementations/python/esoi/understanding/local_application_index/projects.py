@@ -164,20 +164,38 @@ def local_facts(path: Optional[Path]) -> Tuple[str, str, str, str]:
     return own_name, own_vision, structure_of(path)[0], next((c for c in START_HERE_CANDIDATES if (path / c).exists()), "")
 
 
+def resolve_default(value: str, *fallbacks: str) -> str:
+    """The first non-empty of the given value and its fallbacks."""
+    return next((v for v in (value, *fallbacks) if v), "")
+
+
+def stored_location(location: str, path: Optional[Path]) -> str:
+    """A URL as given; an existing local path relative to home; anything else as given."""
+    if not is_url(location) and path is not None and path.exists():
+        return home_relative(path)
+    return location
+
+
+def location_base(location: str, path: Optional[Path]) -> str:
+    """The last name in a project's location: its folder name when local, else the last part of the URL."""
+    if path is not None and path.name:
+        return path.name
+    return location.rstrip("/").rsplit("/", 1)[-1]
+
+
 def project_row(location: str, project_id: str, name: str, vision: str, kind: str, specifications: str, start_here: str,
                 relations: str, notes: str) -> Row:
     """The index row of a project: what the flags say, completed from the project's own folder when it is a local one."""
     path = local_path(location)
-    if path is not None and path.exists():
-        path = path.resolve()
-    stored = location if is_url(location) else home_relative(path) if path is not None and path.exists() else location
+    path = path.resolve() if path is not None and path.exists() else path
+    stored = stored_location(location, path)
     own_name, own_vision, guessed_spec, guessed_start = local_facts(path)
-    base = path.name if path is not None and path.name else location.rstrip("/").rsplit("/", 1)[-1]
+    base = location_base(location, path)
     # a project that has a top intent record keeps its name and vision there, so the row holds them only when given
-    return {"project_id": project_id or slug(name or own_name or base),
+    return {"project_id": project_id or slug(resolve_default(name, own_name, base)),
             "name": name or ("" if own_name else base), "vision_statement": vision,
-            "location": stored, "kind": kind or guess_kind(location), "specifications": specifications or guessed_spec,
-            "start_here": start_here or guessed_start, "relations": relations, "notes": notes}
+            "location": stored, "kind": kind or guess_kind(location), "specifications": resolve_default(specifications, guessed_spec),
+            "start_here": resolve_default(start_here, guessed_start), "relations": relations, "notes": notes}
 
 
 def add(home: Path, location: str, project_id: str = "", name: str = "", vision: str = "", kind: str = "",
