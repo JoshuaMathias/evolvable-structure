@@ -51,6 +51,17 @@ def project_folder(root, sid, args, tag):
     tables.write_csv(root / "specs" / "implementations.csv", ["implementation_id", "solution_id", "filepath"], rows)
 
 
+def case_outcome(sid: str, args: dict, interface) -> dict:
+    """What the cascade chooses for the declared case: the resolved implementation, the chosen one, its layer, the names and the layers."""
+    picked = selection_cascade.choose(sid, args.get("using"))
+    found = declare.resolve(sid, args.get("using"))
+    out = {"resolved": found.__name__, "chosen": picked.name, "layer": picked.layer,
+           "names": selection_cascade.names(sid), "layers": [found[0] for found in selection_cascade.explain(sid, args.get("using"))]}
+    if interface is not None:
+        out["interface_chosen"] = interface.chosen(args.get("using")).name
+    return out
+
+
 def declared_case(args):
     tag = next(counter)
     sid = f"case-{tag}-{args['solution']}"
@@ -73,13 +84,7 @@ def declared_case(args):
             stack.enter_context(declare.override(sid, args["context"]))
         with stack:
             try:
-                picked = selection_cascade.choose(sid, args.get("using"))
-                found = declare.resolve(sid, args.get("using"))
-                out = {"resolved": found.__name__, "chosen": picked.name, "layer": picked.layer,
-                       "names": selection_cascade.names(sid), "layers": [found[0] for found in selection_cascade.explain(sid, args.get("using"))]}
-                if interface is not None:
-                    out["interface_chosen"] = interface.chosen(args.get("using")).name
-                return out
+                return case_outcome(sid, args, interface)
             except Exception as exc:
                 return {"error": type(exc).__name__, "text": str(exc).replace(sid, args["solution"])}
             finally:

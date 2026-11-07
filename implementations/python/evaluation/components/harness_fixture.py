@@ -45,6 +45,27 @@ def registry_selecting(selected: str, component: str = "mini") -> Registry:
                                 "metric_command": f"esoi run {component} --impl {selected}", "selected_by": "the fixture"}])
 
 
+def write_component(root: Path, comp: Path, cases_file: str, markers: dict | None) -> None:
+    """Write the mini component, its impls, its cases (JSON or CSV) and the ``mini_pkg`` code under test into the temporary repository."""
+    (comp / "impls").mkdir(parents=True)
+    (root / "mini_pkg").mkdir()
+    (root / "mini_pkg" / "live.py").write_text("X = 1\n")
+    (comp / "__init__.py").write_text("")
+    (comp / "impls" / "__init__.py").write_text("")
+    (comp / "score.py").write_text(SCORE)
+    for impl, text in (("good", GOOD), ("bad", BAD), ("spender", SPENDER)):
+        (comp / "impls" / f"{impl}.py").write_text(text)
+    for impl, marker in (markers or {}).items():
+        (comp / "impls" / f"{impl}.py").write_text(f'"""{marker}: a reference arm."""\n')
+    if cases_file == "json":
+        (comp / "cases.json").write_text(json.dumps(MINI_CASES))
+    else:
+        with open(comp / "cases.csv", "w", newline="") as fh:
+            writer = csv.DictWriter(fh, fieldnames=["id", "kind", "heldout"], lineterminator="\n")
+            writer.writeheader()
+            writer.writerows({"id": c["id"], "kind": "echo", "heldout": "yes" if c["heldout"] else ""} for c in MINI_CASES)
+
+
 @contextlib.contextmanager
 def mini_component(cases_file: str = "json", markers: dict | None = None):
     """A mini component with three cases and impls ``good``, ``bad`` and ``spender`` (one model call per case), inside
@@ -54,23 +75,7 @@ def mini_component(cases_file: str = "json", markers: dict | None = None):
         root = Path(tmp)
         name = f"minicomp{next(counter)}"
         comp = root / "evaluation" / "components" / name
-        (comp / "impls").mkdir(parents=True)
-        (root / "mini_pkg").mkdir()
-        (root / "mini_pkg" / "live.py").write_text("X = 1\n")
-        (comp / "__init__.py").write_text("")
-        (comp / "impls" / "__init__.py").write_text("")
-        (comp / "score.py").write_text(SCORE)
-        for impl, text in (("good", GOOD), ("bad", BAD), ("spender", SPENDER)):
-            (comp / "impls" / f"{impl}.py").write_text(text)
-        for impl, marker in (markers or {}).items():
-            (comp / "impls" / f"{impl}.py").write_text(f'"""{marker}: a reference arm."""\n')
-        if cases_file == "json":
-            (comp / "cases.json").write_text(json.dumps(MINI_CASES))
-        else:
-            with open(comp / "cases.csv", "w", newline="") as fh:
-                writer = csv.DictWriter(fh, fieldnames=["id", "kind", "heldout"], lineterminator="\n")
-                writer.writeheader()
-                writer.writerows({"id": c["id"], "kind": "echo", "heldout": "yes" if c["heldout"] else ""} for c in MINI_CASES)
+        write_component(root, comp, cases_file, markers)
 
         def git(*a):
             return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid", *a],
