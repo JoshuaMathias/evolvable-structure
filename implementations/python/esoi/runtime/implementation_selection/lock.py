@@ -55,6 +55,13 @@ EXIT_CURRENT, EXIT_ERROR, EXIT_SAFE, EXIT_BLOCKED = 0, 2, 3, 4   # esoi lock --s
 CACHE: Dict[Tuple[str, int, int], Dict[str, Any]] = {}
 
 
+def check_arms(found: Dict[str, Any], where: str) -> None:
+    """Raise ``LockError`` for a solution entry that names no arm."""
+    for sid, entry in found["solutions"].items():
+        if not isinstance(entry, dict) or not str(entry.get("arm", "")).strip():
+            raise LockError(f"{where}: solution {sid!r} names no arm; remedy: esoi lock --update --solution {sid}")
+
+
 def read(source: Any) -> Dict[str, Any]:
     """The lock as a dict, from a path or a mapping. Raises ``LockError`` for a file that is missing, unreadable or of another schema."""
     if isinstance(source, Mapping):
@@ -78,9 +85,7 @@ def read(source: Any) -> Dict[str, Any]:
         raise LockError(f"{where} is not an esoi lock (schema {SCHEMA!r} with a solutions table); remedy: esoi lock writes one")
     if str(found["schema"]) != SCHEMA:
         raise LockError(f"{where} has schema {found['schema']!r}, this esoi reads {SCHEMA!r}; remedy: esoi lock --update rewrites it")
-    for sid, entry in found["solutions"].items():
-        if not isinstance(entry, dict) or not str(entry.get("arm", "")).strip():
-            raise LockError(f"{where}: solution {sid!r} names no arm; remedy: esoi lock --update --solution {sid}")
+    check_arms(found, where)
     if not isinstance(source, Mapping):
         CACHE[key] = found
     return found
@@ -102,11 +107,23 @@ def attach_evidence(config: Any, snapshot: Dict[str, Any]) -> None:
             snapshot[sid]["evidence"] = found
 
 
+def incumbent_p_values(config: Any, loaded: Any, row: Dict[str, str], results: Dict[str, Any], history: Dict[str, Any], per_case: Any) -> List[float]:
+    """The p-values that the solution's selected arm beats each rival, from the rival decisions."""
+    from esoi.optimization.leaderboard import arm_selection, rival_decisions, switching_policy
+    component, impl = arm_selection.selected_arm(config, row, "", loaded)
+    rows = results.get(component, {})
+    if impl not in rows:
+        return []
+    decided = rival_decisions.decisions(rows, impl, config.evaluation, history.get(component), per_case,
+                                        switching_policy.policy_for(config, row.get("solution_id", ""), component, per_case))
+    return [d.p_incumbent for d in decided if d.p_incumbent is not None]
+
+
 def records_evidence(config: Any, loaded: Any = None) -> Dict[str, Dict[str, Any]]:
     """``{solution_id: {"verdict", "detail", "p"}}`` from the records and the results log of ``config`` (an ``esoi.structure.intent_registry.config.Config``):
     the leaderboard's verdict on each evaluated solution's selected arm, and the smallest Holm-adjusted p-value that the selected
     arm is better than a rival (``None`` when no test was possible). Solutions with no results are left out."""
-    from esoi.optimization.leaderboard import arm_selection, results_log, rival_decisions, switching_policy, verdict_labels
+    from esoi.optimization.leaderboard import results_log, verdict_labels
     from esoi.structure.intent_registry import registry as registry_module
     loaded = loaded or registry_module.load(config)
     if not config.results_path.is_file():
@@ -122,11 +139,7 @@ def records_evidence(config: Any, loaded: Any = None) -> Dict[str, Dict[str, Any
         found = verdicts.get(sid)
         if not found or not found["component"]:
             continue
-        component, impl = arm_selection.selected_arm(config, row, "", loaded)
-        rows = results.get(component, {})
-        decided = rival_decisions.decisions(rows, impl, config.evaluation, history.get(component), per_case,
-                                        switching_policy.policy_for(config, sid, component, per_case)) if impl in rows else []
-        ps = [d.p_incumbent for d in decided if d.p_incumbent is not None]
+        ps = incumbent_p_values(config, loaded, row, results, history, per_case)
         out[sid] = {"verdict": found["verdict"], "detail": found["detail"], "p": round(min(ps), 6) if ps else None}
     return out
 
@@ -173,14 +186,19 @@ def latest(assembler: Assembler, config: Optional[AssemblyConfig] = None, soluti
         winner = assembler.layers(sid, None, base).winner
         if winner is None:
             continue
-        holder = next((one for one in assembler.chain() if one.scope == winner.scope), assembler)
-        found = dict(holder.packaged().evidence.get(sid, {}))
-        entries = declarations.gather(closure.members_pairs(assembler.closure(base, None, (sid,))))
-        out[sid] = Selected({"arm": winner.name, "scope": winner.scope or assembler.scope, "chain": chain,
-                             "verdict": found.get("verdict", ""), "p": found.get("p"),
-                             "evidence": found.get("detail") or f"the default of {winner.scope or assembler.scope} ({winner.source}); no results recorded for it",
-                             "requirements": [requirement_record(e) for e in entries]}, entries)
+        out[sid] = selected_from(assembler, base, sid, winner, chain)
     return out
+
+
+def selected_from(assembler: Assembler, base: AssemblyConfig, sid: str, winner: Any, chain: List[str]) -> Selected:
+    """The ``Selected`` record for a solution's winning layer: its arm, evidence and the requirements of its closure."""
+    holder = next((one for one in assembler.chain() if one.scope == winner.scope), assembler)
+    found = dict(holder.packaged().evidence.get(sid, {}))
+    entries = declarations.gather(closure.members_pairs(assembler.closure(base, None, (sid,))))
+    return Selected({"arm": winner.name, "scope": winner.scope or assembler.scope, "chain": chain,
+                     "verdict": found.get("verdict", ""), "p": found.get("p"),
+                     "evidence": found.get("detail") or f"the default of {winner.scope or assembler.scope} ({winner.source}); no results recorded for it",
+                     "requirements": [requirement_record(e) for e in entries]}, entries)
 
 
 def dump(path: Any, data: Mapping[str, Any]) -> None:
@@ -210,6 +228,11 @@ def write(assembler: Assembler, path: Any = DEFAULT_FILE, config: Optional[Assem
 
 
 # what would change
+
+def added_line(a: Dict[str, Any]) -> str:
+    """The report line for one added requirement."""
+    return f"    + {a['label']}{'' if a['required'] else ' (optional)'}: {a['status']}" + (f"; {a['remedy']}" if a.get("remedy") and a["status"] != checking.MET else "")
+
 
 @dataclass
 class Change:
@@ -243,8 +266,7 @@ class Change:
         out = [f"{self.solution}: {move}  [{self.verdict or 'no verdict'}{p}]" + ("" if self.safe else "  BLOCKED by unmet requirements")]
         if self.evidence:
             out.append(f"    evidence: {self.evidence}")
-        for a in self.added:
-            out.append(f"    + {a['label']}{'' if a['required'] else ' (optional)'}: {a['status']}" + (f"; {a['remedy']}" if a.get("remedy") and a["status"] != checking.MET else ""))
+        out.extend(added_line(a) for a in self.added)
         for r in self.removed:
             out.append(f"    - {r['label']}")
         return out
@@ -271,20 +293,25 @@ def diff(assembler: Assembler, source: Any, config: Optional[AssemblyConfig] = N
         old, new = data["solutions"].get(sid), now.get(sid)
         if old and new and old["arm"] == new.record["arm"]:
             continue
-        known = {r["id"]: r for r in (old or {}).get("requirements", [])}
-        checks = checking.check(new.entries, env) if new else []
-        added = []
-        for entry, one in zip(new.entries if new else [], checks):
-            rec = requirement_record(entry)
-            if rec["id"] not in known:
-                added.append({**rec, "status": one.status, "remedy": one.remedy, "failing": one.failing,
-                              "used_by": list(entry.used_by), "secret": bool(getattr(entry.requirement, "secret", False)) or entry.requirement.kind == "api"})
-        fresh = {requirement_record(e)["id"] for e in (new.entries if new else [])}
-        removed = [r for rid, r in known.items() if rid not in fresh]
+        added, removed = requirement_changes(old, new, env)
         record = new.record if new else {}
         out.append(Change(sid, (old or {}).get("arm", ""), record.get("arm", ""), record.get("verdict", ""), record.get("p"),
                           record.get("evidence", ""), added, removed))
     return out
+
+
+def requirement_changes(old: Optional[Dict[str, Any]], new: Optional[Selected], env: Mapping[str, str]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """``(added, removed)`` requirement records between the lock's recorded closure and the new one; each added one carries its status."""
+    known = {r["id"]: r for r in (old or {}).get("requirements", [])}
+    entries = new.entries if new else []
+    added = []
+    for entry, one in zip(entries, checking.check(entries, env) if new else []):
+        rec = requirement_record(entry)
+        if rec["id"] not in known:
+            added.append({**rec, "status": one.status, "remedy": one.remedy, "failing": one.failing,
+                          "used_by": list(entry.used_by), "secret": bool(getattr(entry.requirement, "secret", False)) or entry.requirement.kind == "api"})
+    fresh = {requirement_record(e)["id"] for e in entries}
+    return added, [r for rid, r in known.items() if rid not in fresh]
 
 
 @dataclass
@@ -326,20 +353,29 @@ def command(base: str, package: str, file: str, solution: str = "") -> str:
                                 f"--solution {solution}" if solution else "") if x)
 
 
+def environment_step(a: Dict[str, Any]) -> Dict[str, Any]:
+    """The step that sets one unmet variable; a secret is a person's to obtain."""
+    return {"action": "set-environment", "command": None, "human": bool(a.get("secret")), "requirement": a["id"],
+            "detail": a["remedy"] or a["label"],
+            "note": "a key is a person's to obtain: ask them, using the signup link in the detail" if a.get("secret") else ""}
+
+
+def install_step(unmet: List[Dict[str, Any]], solution: str, package: str) -> List[Dict[str, Any]]:
+    """The one step that installs the unmet python packages, or none."""
+    if not any(a["kind"] == "python" for a in unmet):
+        return []
+    install = "esoi install" + (f" --package {package}" if package else "") + f" --solution {solution} --yes"
+    return [{"action": "install-packages", "command": install, "human": False,
+             "detail": "; ".join(a["remedy"] for a in unmet if a["kind"] == "python" and a["remedy"])}]
+
+
 def remedy_steps(unmet: List[Dict[str, Any]], solution: str, package: str) -> List[Dict[str, Any]]:
     """The steps that meet the unmet requirements: packages, binaries, services, environment, then anything else."""
     steps: List[Dict[str, Any]] = []
-    if any(a["kind"] == "python" for a in unmet):
-        install = "esoi install" + (f" --package {package}" if package else "") + f" --solution {solution} --yes"
-        steps.append({"action": "install-packages", "command": install, "human": False,
-                      "detail": "; ".join(a["remedy"] for a in unmet if a["kind"] == "python" and a["remedy"])})
+    steps.extend(install_step(unmet, solution, package))
     for kind, action in (("binary", "install-binary"), ("service", "start-service")):
         steps.extend({"action": action, "command": None, "human": False, "detail": a["remedy"] or a["label"]} for a in unmet if a["kind"] == kind)
-    for a in unmet:
-        if a["kind"] in ("env", "api"):
-            steps.append({"action": "set-environment", "command": None, "human": bool(a.get("secret")), "requirement": a["id"],
-                          "detail": a["remedy"] or a["label"],
-                          "note": "a key is a person's to obtain: ask them, using the signup link in the detail" if a.get("secret") else ""})
+    steps.extend(environment_step(a) for a in unmet if a["kind"] in ("env", "api"))
     steps.extend({"action": "resolve", "command": None, "human": False, "detail": a["remedy"] or a["label"]}
                  for a in unmet if a["kind"] not in ("python", "binary", "service", "env", "api"))
     return steps
@@ -358,20 +394,23 @@ def steps_for(change: Change, package: str, file: str) -> List[Dict[str, Any]]:
     return steps
 
 
+def update_item(change: Change, package: str, file: str) -> Dict[str, Any]:
+    """One available update as the plan lists it: the change, whether it is blocked, its unmet requirements, steps and apply command."""
+    item = change.to_dict()
+    item["blocked"] = not change.safe
+    item["unmet"] = [{"id": a["id"], "label": a["label"], "kind": a["kind"], "remedy": a["remedy"]} for a in change.unmet]
+    item["steps"] = steps_for(change, package, file)
+    item["apply"] = command("esoi lock --update", package, file, change.solution)
+    return item
+
+
 def status(assembler: Assembler, source: Any, config: Optional[AssemblyConfig] = None, solutions: Sequence[str] = (),
            environ: Optional[Mapping[str, str]] = None, package: str = "", file: str = DEFAULT_FILE) -> Tuple[int, Dict[str, Any]]:
     """``(exit code, plan)``. Exit 0: up to date. 3: updates are available and every one is safe. 4: updates are available and at
     least one is blocked by an unmet requirement. The plan (schema ``esoi.runtime.implementation_selection.lock.status/1``) lists every update, its requirement
     changes, and for a blocked one the unmet requirements, the remedy steps in order and the single command that applies it."""
     changes = diff(assembler, source, config, solutions, environ)
-    updates = []
-    for change in changes:
-        item = change.to_dict()
-        item["blocked"] = not change.safe
-        item["unmet"] = [{"id": a["id"], "label": a["label"], "kind": a["kind"], "remedy": a["remedy"]} for a in change.unmet]
-        item["steps"] = steps_for(change, package, file)
-        item["apply"] = command("esoi lock --update", package, file, change.solution)
-        updates.append(item)
+    updates = [update_item(change, package, file) for change in changes]
     blocked = any(u["blocked"] for u in updates)
     code = EXIT_BLOCKED if blocked else EXIT_SAFE if updates else EXIT_CURRENT
     state = "blocked" if blocked else "safe-updates" if updates else "up-to-date"
