@@ -7,5 +7,5 @@ def import_base(package: List[str], level: int, module: Optional[str]) -> str:
     base = module or ""
     if not level:
         return base
-    parts = package[: len(package) - (level - 1)] if level > 1 else package
+    parts = package[: max(len(package) - (level - 1), 0)] if level > 1 else package
     return ".".join(parts + ([base] if base else []))
