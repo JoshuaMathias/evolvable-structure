@@ -3,48 +3,78 @@ arguments and their handlers.
 
 A table is text. A line that starts at the left edge is a command, ``name | options | help``; each indented line under it is one argument,
 ``flags | options | help``, where flags are comma-separated (``--from`` or a bare ``name`` for a positional) and options are space-separated
-``key=value`` pairs for ``add_argument`` (``action``, ``default``, ``choices`` as a comma list, ``type=int``, ``nargs``, ``metavar`` as a comma
-pair, ``dest``, ``required``) plus ``group=NAME`` to put arguments in one mutually exclusive group. A command's options may be ``add_help=False``
-or ``needs_config=False``. A value that is a Python literal is read as one (``8``, ``True``, ``None``, ``[]``); anything else is a string, and an
-empty value is the empty string. The handler of a command is the ``run_<name>`` function of the module that owns the table (dashes become underscores).
+``key=value`` pairs. The keys are a closed list, and a value is read by what its key means, never by how it looks:
+
+* an argument takes ``action``, ``default``, ``choices`` (a comma list, each read by the argument's ``type``), ``type`` (``int``), ``nargs`` (``?``, ``*``, ``+``,
+  ``REMAINDER`` or a whole number), ``metavar`` (a comma pair makes a tuple), ``dest``, ``required`` (``True`` or ``False``), and ``group=NAME`` to put arguments in one
+  mutually exclusive group;
+* ``default`` is the text after the ``=`` (empty for the empty string, so ``default=8`` is ``"8"`` and ``type=int`` makes ``argparse`` turn it into 8), except the two words
+  ``None`` and ``[]``, which are those values;
+* a command takes ``add_help`` and ``needs_config`` (``True`` or ``False``).
+
+A key, a value or a handler the table does not allow stops the build with a ``TableError`` that names the line. The handler of a command is the
+``run_<name>`` function of the module that owns the table (dashes become underscores).
 """
 from __future__ import annotations
 
 import argparse
-import ast
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 TYPES = {"int": int}
+ARGUMENT_KEYS = ("action", "default", "choices", "type", "nargs", "metavar", "dest", "required", "group")
+COMMAND_KEYS = ("add_help", "needs_config")
+BOOLEAN_KEYS = ("required", "add_help", "needs_config")
+NARGS_WORDS = {"?": "?", "*": "*", "+": "+", "REMAINDER": argparse.REMAINDER}
+DEFAULT_WORDS = {"None": None, "[]": []}
 
 
-def literal(text: str) -> Any:
-    """The Python literal a value spells, else the text itself."""
-    try:
-        return ast.literal_eval(text)
-    except (ValueError, SyntaxError):
-        return text
+class TableError(ValueError):
+    """A line of a command table that cannot be built; the message names the line."""
 
 
-def option_value(key: str, text: str) -> Any:
-    """One ``key=value`` option of an argument or command as ``argparse`` takes it."""
+def option_value(key: str, text: str, options: Dict[str, Any]) -> Any:
+    """One ``key=value`` option as ``argparse`` takes it; ``options`` holds the ones read before it on the line."""
+    if key in BOOLEAN_KEYS:
+        if text not in ("True", "False"):
+            raise TableError(f"{key} must be True or False, not {text!r}")
+        return text == "True"
+    if key == "type":
+        if text not in TYPES:
+            raise TableError(f"type must be one of {', '.join(TYPES)}, not {text!r}")
+        return TYPES[text]
+    if key == "nargs":
+        if text in NARGS_WORDS:
+            return NARGS_WORDS[text]
+        if text.isdigit():
+            return int(text)
+        raise TableError(f"nargs must be ?, *, +, REMAINDER or a whole number, not {text!r}")
     if key == "choices":
-        return [literal(part) for part in text.split(",")]
+        kind = options.get("type", str)   # write type= before choices=
+        try:
+            return [kind(part) for part in text.split(",")]
+        except ValueError:
+            raise TableError(f"choices {text!r} are not all valid for type {kind.__name__}") from None
     if key == "metavar" and "," in text:
         return tuple(text.split(","))
-    if key == "nargs" and text == "REMAINDER":
-        return argparse.REMAINDER
-    if key == "type":
-        return TYPES[text]
-    return literal(text)
+    if key == "default":
+        return DEFAULT_WORDS.get(text, text)
+    return text
 
 
-def options_of(text: str) -> Dict[str, Any]:
-    """The ``key=value`` pairs of an options field."""
-    pairs = (part.partition("=") for part in text.split())
-    return {key: option_value(key, value) for key, _, value in pairs}
+def options_of(text: str, allowed: Tuple[str, ...]) -> Dict[str, Any]:
+    """The ``key=value`` pairs of an options field; a key outside ``allowed`` is an error."""
+    found: Dict[str, Any] = {}
+    for part in text.split():
+        key, equals, value = part.partition("=")
+        if not equals:
+            raise TableError(f"{part!r} is not key=value")
+        if key not in allowed:
+            raise TableError(f"unknown option {key!r} (allowed: {', '.join(allowed)})")
+        found[key] = option_value(key, value, found)
+    return found
 
 
-def split_fields(line: str) -> list:
+def split_fields(line: str) -> List[str]:
     """The three fields of a table line: its name or flags, its options and its help."""
     fields = [part.strip() for part in line.strip().split("|", 2)]
     return fields + [""] * (3 - len(fields))
@@ -52,7 +82,7 @@ def split_fields(line: str) -> list:
 
 def add_argument(parser: argparse.ArgumentParser, line: str, groups: Dict[str, Any]) -> None:
     flags, text, help_text = split_fields(line)
-    options = options_of(text)
+    options = options_of(text, ARGUMENT_KEYS)
     target = parser
     if "group" in options:
         name = options.pop("group")
@@ -64,19 +94,32 @@ def add_argument(parser: argparse.ArgumentParser, line: str, groups: Dict[str, A
     target.add_argument(*flags.split(","), **options)
 
 
+def add_command(sub, line: str, handlers: Dict[str, Callable], extra: Optional[Dict[str, Dict[str, Any]]]):
+    """The sub-parser of one command line of the table."""
+    name, text, help_text = split_fields(line)
+    options = options_of(text, COMMAND_KEYS)
+    handler = handlers.get("run_" + name.replace("-", "_"))
+    if handler is None:
+        raise TableError(f"command {name!r} has no function run_{name.replace('-', '_')}")
+    parser = sub.add_parser(name, help=help_text, add_help=options.pop("add_help", True))
+    parser.set_defaults(handler=handler, **options, **(extra or {}).get(name, {}))
+    return parser
+
+
 def register(sub, table: str, handlers: Dict[str, Callable], extra: Optional[Dict[str, Dict[str, Any]]] = None) -> None:
     """Add every command of ``table`` to the sub-parsers ``sub``; ``handlers`` is the owning module's namespace and ``extra`` adds
     ``set_defaults`` values to a command by name (for a value that is code, such as a function of the parsed arguments)."""
     parser = None
     groups: Dict[str, Any] = {}
-    for line in table.splitlines():
+    for number, line in enumerate(table.splitlines(), 1):
         if not line.strip():
             continue
-        if line[0] != " ":
-            name, text, help_text = split_fields(line)
-            options = options_of(text)
-            parser = sub.add_parser(name, help=help_text, add_help=options.pop("add_help", True))
-            parser.set_defaults(handler=handlers["run_" + name.replace("-", "_")], **options, **(extra or {}).get(name, {}))
-            groups = {}
-        else:
-            add_argument(parser, line, groups)
+        try:
+            if line[0] != " ":
+                parser, groups = add_command(sub, line, handlers, extra), {}
+            elif parser is None:
+                raise TableError("an argument line comes before any command")
+            else:
+                add_argument(parser, line, groups)
+        except (TableError, argparse.ArgumentError) as exc:
+            raise TableError(f"command table line {number} ({line.strip()[:60]!r}): {exc}") from None

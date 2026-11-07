@@ -14,7 +14,7 @@ import os
 from dataclasses import dataclass, field, replace
 from io import StringIO
 from pathlib import Path, PurePosixPath
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from esoi.structure.intent_registry.import_base import import_base
 from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
@@ -130,8 +130,42 @@ KEYWORDS = frozenset("False None True and as assert async await break class cont
                      "lambda nonlocal not or pass raise return try while with yield".split())
 
 
-def skipped_lines(tree: ast.AST) -> Set[int]:
+def declaration_parts(value: ast.AST) -> Optional[List[ast.AST]]:
+    """The parts a declaring value is made of (none for a constant or a name), else ``None`` when the value computes something."""
+    if isinstance(value, (ast.Constant, ast.Name, ast.Attribute)):
+        return []
+    if isinstance(value, ast.UnaryOp):
+        return [value.operand]
+    if isinstance(value, ast.Dict):
+        return [part for part in [*value.keys, *value.values] if part is not None]
+    if isinstance(value, (ast.List, ast.Tuple, ast.Set)):
+        return list(value.elts)
+    if isinstance(value, ast.Call) and isinstance(value.func, ast.Name) and value.func.id == "field":   # a dataclass field(...)
+        return [part.value for part in value.keywords]
+    return None
+
+
+def declaration_value(value: Optional[ast.AST]) -> bool:
+    """Whether a value only declares: a constant, a name, or a dict, list, tuple or set of them (a table, a string list), or a dataclass ``field(...)`` of them."""
+    parts = [] if value is None else declaration_parts(value)
+    return parts is not None and all(declaration_value(part) for part in parts)
+
+
+def declaration_lines(tree: ast.AST) -> Set[int]:
+    """The lines of statements that declare and compute nothing: module and class level assignments whose value is a table or list of constants, and the
+    annotated fields of a dataclass. Two such tables share a shape, not logic, so they are not copied code."""
     skip: Set[int] = set()
+    for scope in nodes_of(tree):
+        if not isinstance(scope, (ast.Module, ast.ClassDef)):
+            continue
+        for node in scope.body:
+            if isinstance(node, (ast.Assign, ast.AnnAssign)) and declaration_value(node.value):
+                skip.update(range(node.lineno, (node.end_lineno or node.lineno) + 1))
+    return skip
+
+
+def skipped_lines(tree: ast.AST) -> Set[int]:
+    skip: Set[int] = declaration_lines(tree)
     for node in nodes_of(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             skip.update(range(node.lineno, (node.end_lineno or node.lineno) + 1))

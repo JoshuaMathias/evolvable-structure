@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / "evaluation" / "components"))
 from shared_fixtures import structure_fixture
 from esoi.structure.structure_check.rules import structure_quality_rules
 from esoi.structure.intent_registry import parsed_source
-from esoi.structure.structure_quality import assess, balance, compare, coupling, expert_review, interface, overlap, project, report as report_module, scope
+from esoi.structure.structure_quality import assess, balance, compare, coupling, duplication, expert_review, interface, overlap, project, report as report_module, scope
 from esoi.structure.structure_quality.balance import Budgets
 
 
@@ -579,3 +579,29 @@ def test_a_unit_that_takes_a_name_from_the_shared_kernel_that_only_it_uses_is_st
     loaded = project.load(tmp_path)
     lines = coupling.offending_imports(loaded, *coupling.classified(loaded, balance.Budgets())[:2])
     assert [line for line in lines if "DOOR_ONLY" in line and "app/a/interface.py" in line]
+
+
+TABLE_TEXT = "NAMES = {\n" + "".join(f'    "name{i}": ("module.{i}", "attr{i}"),\n' for i in range(40)) + "}\nLIST = [" + ", ".join(f'"item{i}"' for i in range(40)) + "]\n"
+LOGIC_TEXT = ("def total(rows, rate):\n    out = 0\n    for row in rows:\n        if row.get('kind') == 'paid':\n            out += row['amount'] * rate\n"
+              "        elif row.get('kind') == 'refund':\n            out -= row['amount']\n    return round(out, 2)\n" * 6)
+
+
+def reuse_parts(tmp_path, text):
+    write(tmp_path, {"a/mod.py": text, "b/mod.py": text, "a/interface.py": "", "b/interface.py": ""})
+    found = duplication.measure(project.load(tmp_path), Budgets())
+    return found.parts if found.score is not None else {"share_of_code_copied": 0}   # no tokens left to compare: nothing was copied
+
+
+def test_two_tables_of_constants_with_one_shape_are_not_copied_code(tmp_path):
+    assert reuse_parts(tmp_path, TABLE_TEXT)["share_of_code_copied"] == 0
+
+
+def test_two_files_that_repeat_logic_are_still_copied_code(tmp_path):
+    assert reuse_parts(tmp_path, LOGIC_TEXT)["share_of_code_copied"] > 0.5
+
+
+def test_a_dataclass_field_list_is_a_declaration_and_a_call_in_a_value_is_not(tmp_path):
+    fields = "from dataclasses import dataclass\n\n@dataclass\nclass Row:\n" + "".join(f"    f{i}: int = 0\n" for i in range(40))
+    computed = "VALUES = [" + ", ".join(f"len('x{i}')" for i in range(40)) + "]\n"
+    assert reuse_parts(tmp_path, fields)["share_of_code_copied"] < 0.2
+    assert reuse_parts(tmp_path / "second", computed)["share_of_code_copied"] > 0.5
