@@ -83,7 +83,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 - Behaviour adherence (`metric-esoi-behaviour-adherence`): leader `reference_good`, 52 of 52 cases
 - Local index lookup cases (`metric-local-index-lookup`): leader `live_index`, 10 of 10 cases
 - README fidelity (`metric-readme-fidelity`): leader `live_readme`, 10 of 10 cases
-- README glanceability (`metric-readme-glanceability`): leader `at_a_glance`, 1 of 4 cases
+- README glanceability (`metric-readme-glanceability`): leader `at_a_glance`, 2 of 4 cases
 - Review coverage (`metric-review-coverage`): leader `live_tracker`, 10 of 10 cases
 - Specification recall at k (`metric-spec-index-recall`): leader `weighted_tfidf`, 31 of 35 cases
 - Spec search correctness (`metric-spec-search`): leader `gated`, 6 of 6 cases

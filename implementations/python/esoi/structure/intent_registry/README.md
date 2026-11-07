@@ -44,7 +44,7 @@ flowchart LR
 ## Metrics
 
 - Record completeness (`metric-record-completeness`): leader `live_checker`, 11 of 14 cases
-- Navigable records (`metric-navigable-records`): leader `beside_code`, 29 of 53 cases
+- Navigable records (`metric-navigable-records`): leader `beside_code`, 23 of 50 cases
 
 ## Problems
 

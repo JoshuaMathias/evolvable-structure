@@ -24,7 +24,7 @@ Part of [A Project's Records and Code as One Structure](../README.md)
 
 ## Metrics
 
-- Trace completeness (`metric-trace-completeness`): leader `live_checker`, 12 of 16 cases
+- Trace completeness (`metric-trace-completeness`): leader `live_checker`, 16 of 16 cases
 
 ## Where to go next
 

@@ -39,7 +39,7 @@ flowchart LR
 
 ## Metrics
 
-- Provenance completeness (`metric-provenance-completeness`): leader `live_harness`, 27 of 28 cases
+- Provenance completeness (`metric-provenance-completeness`): leader `live_harness`, 29 of 29 cases
 
 ## Problems
 

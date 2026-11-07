@@ -27,7 +27,7 @@ Part of [How People and Agents Come to Apply ESOI](../README.md)
 ## Metrics
 
 - README fidelity (`metric-readme-fidelity`): leader `live_readme`, 10 of 10 cases
-- README glanceability (`metric-readme-glanceability`): leader `at_a_glance`, 1 of 4 cases
+- README glanceability (`metric-readme-glanceability`): leader `at_a_glance`, 2 of 4 cases
 
 ## Problems
 

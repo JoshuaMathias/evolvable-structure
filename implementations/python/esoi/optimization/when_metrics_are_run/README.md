@@ -44,7 +44,7 @@ flowchart LR
 
 ## Metrics
 
-- Decisions backed by current results (`metric-decisions-backed-by-current-results`): leader `live_checker`, 10 of 16 cases
+- Decisions backed by current results (`metric-decisions-backed-by-current-results`): leader `live_checker`, 16 of 16 cases
 
 ## Problems
 

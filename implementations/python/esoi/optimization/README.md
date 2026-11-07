@@ -77,9 +77,9 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 
 - Metric record kept (`metric-keep-metric-record`): leader `live_record`, 67 of 67 cases
 - Ranking correctness (`metric-ranking-correctness`): leader `live_leaderboard`, 54 of 54 cases
-- Provenance completeness (`metric-provenance-completeness`): leader `live_harness`, 27 of 28 cases
+- Provenance completeness (`metric-provenance-completeness`): leader `live_harness`, 29 of 29 cases
 - Promotion correctness (`metric-promotion-correctness`): leader `live_promote`, 17 of 17 cases
-- Decisions backed by current results (`metric-decisions-backed-by-current-results`): leader `live_checker`, 10 of 16 cases
+- Decisions backed by current results (`metric-decisions-backed-by-current-results`): leader `live_checker`, 16 of 16 cases
 - Case discrimination (`metric-case-discrimination`)
 - Staleness precision (`metric-staleness-precision`): leader `import_closure`, 46 of 55 cases
 - Public evidence graded (`metric-public-evidence`): leader `graded`, 11 of 11 cases

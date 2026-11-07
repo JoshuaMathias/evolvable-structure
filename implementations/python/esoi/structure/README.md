@@ -85,13 +85,13 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 ## Metrics and their leaders
 
 - Record completeness (`metric-record-completeness`): leader `live_checker`, 11 of 14 cases
-- Navigable records (`metric-navigable-records`): leader `beside_code`, 29 of 53 cases
+- Navigable records (`metric-navigable-records`): leader `beside_code`, 23 of 50 cases
 - Adoption clarity (`metric-adoption-clarity`)
-- Trace completeness (`metric-trace-completeness`): leader `live_checker`, 12 of 16 cases
+- Trace completeness (`metric-trace-completeness`): leader `live_checker`, 16 of 16 cases
 - Structure cost against catches (`metric-structure-cost-against-catches`)
-- Violation detection (`metric-violation-detection`): leader `live_checker`, 61 of 76 cases
-- Check dependability (`metric-check-dependability`): leader `live_checker`, 61 of 76 cases
-- Structure quality agreement (`metric-structure-quality-agreement`): leader `balanced_static`, 41 of 41 cases
+- Violation detection (`metric-violation-detection`): leader `live_checker`, 76 of 76 cases
+- Check dependability (`metric-check-dependability`): leader `live_checker`, 76 of 76 cases
+- Structure quality agreement (`metric-structure-quality-agreement`): leader `balanced_static`, 49 of 49 cases
 - Declaration sync (`metric-declaration-sync`): leader `live_declarations`, 14 of 14 cases
 - Template agreement (`metric-template-agreement`): leader `live_parser`, 11 of 11 cases
 
