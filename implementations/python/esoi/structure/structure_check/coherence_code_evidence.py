@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 from esoi.structure.intent_registry.import_base import import_base, statement_modules
-from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
+from esoi.structure.intent_registry.parsed_source import decorator_calls, first_string, nodes_of, tree_of
 from esoi.structure.intent_registry.tables import glob_re
 from esoi.structure.structure_check.coherence_paragraph import position
 from esoi.structure.structure_check.coherence_records import ids
@@ -110,12 +110,7 @@ def document_targets(text: str) -> List[str]:
 
 def declared_owner(node) -> str:
     """The solution id a class declares through ``@implementation("id", ...)`` or ``@solution("id", ...)``, or ''."""
-    for deco in getattr(node, "decorator_list", []):
-        if isinstance(deco, ast.Call) and deco.args and isinstance(deco.args[0], ast.Constant) and isinstance(deco.args[0].value, str):
-            func = deco.func.attr if isinstance(deco.func, ast.Attribute) else getattr(deco.func, "id", "")
-            if func in ("implementation", "solution"):
-                return deco.args[0].value
-    return ""
+    return next((found for found in (first_string(deco) for deco in decorator_calls(node, "implementation", "solution")) if found is not None), "")
 
 
 class Code:

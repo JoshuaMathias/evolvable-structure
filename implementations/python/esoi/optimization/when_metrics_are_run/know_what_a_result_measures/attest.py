@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from esoi.structure.intent_registry.config import Config
+from esoi.structure.intent_registry.tables import read_csv
 
 FILE = "attestations.csv"
 COLUMNS = ["date", "component", "impl", "from_sha", "through_sha", "author", "reason", "files"]
@@ -37,11 +38,7 @@ def path_of(config: Config) -> Path:
 
 
 def read(config: Config) -> List[Row]:
-    path = path_of(config)
-    if not path.is_file():
-        return []
-    with path.open(newline="", encoding="utf-8") as handle:
-        return list(csv.DictReader(handle))
+    return read_csv(path_of(config))
 
 
 def chain(config: Config, component: str, impl: str, sha: str) -> List[Row]:

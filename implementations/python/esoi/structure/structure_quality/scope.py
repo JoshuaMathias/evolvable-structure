@@ -11,11 +11,9 @@ the dimension is a geometric mean of its parts, so a new part that most projects
 from __future__ import annotations
 
 import ast
-import csv
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 
-from esoi.structure.intent_registry.parsed_source import nodes_of
 from esoi.structure.structure_quality.adopted import adopted_projects, installed_classes
 from esoi.structure.structure_quality.conformance import (arm_problems, declared_solutions, decorator_id, inherited_members, is_protocol, passes_through,
                                                          protocol_members, protocol_problems)
@@ -30,9 +28,7 @@ INTERFACE_SEVERITY = 3   # the exponent of the share of arms on their interface;
 
 def classes(project: Project):
     for module in project.modules.values():
-        if module.tree is None:
-            continue
-        for node in nodes_of(module.tree):
+        for node in module.walk():
             if isinstance(node, ast.ClassDef):
                 yield module, node
 
@@ -93,7 +89,7 @@ def base_index(arm: ast.ClassDef, module, index: Dict[str, object], adopted_inde
     out = index
     if any(getattr(b, "id", getattr(b, "attr", "")) == arm.name for b in arm.bases) and arm.name in adopted_index:
         out = {**out, arm.name: adopted_index[arm.name]}
-    for node in nodes_of(module.tree) if module.tree is not None else ():
+    for node in module.walk():
         if isinstance(node, ast.ImportFrom):
             renamed = {a.asname: adopted_index[a.name] for a in node.names if a.asname and a.name in adopted_index and a.asname not in out}
             out = {**out, **renamed}
@@ -125,7 +121,7 @@ def imported_bases(arm: ast.ClassDef, module, project: Project, index: Dict[str,
     classes of one name in different modules (two ``CardsMixin``) are not mixed up."""
     wanted = {getattr(b, "id", getattr(b, "attr", "")) for b in arm.bases}
     out = index
-    for node in nodes_of(module.tree) if module.tree is not None else ():
+    for node in module.walk():
         if isinstance(node, ast.ImportFrom):
             out = {**out, **imported_class(node, module, project, wanted)}
     return out
@@ -155,7 +151,7 @@ def own_module_names(project: Project, path: str) -> set:
     """The local names a module binds, by any import in it, to a module of its own unit: a call through them is the unit's own work."""
     module = project.modules[path]
     out = set()
-    for node in nodes_of(module.tree) if module.tree is not None else ():
+    for node in module.walk():
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             out |= own_unit_bindings(project, module, path, node)
     return out
@@ -210,10 +206,8 @@ def protocols_per_unit(project: Project) -> Dict[str, List[str]]:
 def arm_purposes(project: Project) -> Dict[str, List[str]]:
     """Per solution id, the name and description of each of its arms, from every implementations.csv under the project."""
     out: Dict[str, List[str]] = defaultdict(list)
-    for relative in project.named["implementations.csv"]:
-        with (project.root / relative).open(newline="", encoding="utf-8") as handle:
-            for row in csv.DictReader(handle):
-                out[row.get("solution_id", "")].append(" ".join([row.get("name", ""), row.get("description", "")]))
+    for row in project.rows("implementations.csv"):
+        out[row.get("solution_id", "")].append(" ".join([row.get("name", ""), row.get("description", "")]))
     return out
 
 

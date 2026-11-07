@@ -18,6 +18,7 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from esoi.structure.intent_registry.import_base import import_base
 from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
+from esoi.structure.intent_registry.tables import read_csv
 from esoi.structure.structure_quality.complexity import cyclomatic
 
 SKIPPED = {".git", "node_modules", "venv", ".venv", "__pycache__", "build", "dist", "site-packages", ".esoi_cache", ".tox", ".mypy_cache"}
@@ -36,6 +37,10 @@ class Module:
     tokens: List[str] = field(default_factory=list)   # normalized tokens outside imports and docstrings
     tree: ast.AST = None
 
+    def walk(self) -> Tuple[ast.AST, ...]:
+        """Every syntax node of the module in walk order, none when the file did not parse."""
+        return nodes_of(self.tree) if self.tree is not None else ()
+
 
 @dataclass
 class Project:
@@ -45,6 +50,10 @@ class Project:
     markers: Set[str]   # folders holding an interface.py or solutions.csv
     index: Dict[str, str]   # dotted name (and every suffix of it) to the one file it names
     named: Dict[str, List[str]] = field(default_factory=dict)   # record file name to its paths under the root, from the one walk that loaded the project
+
+    def rows(self, name: str) -> List[Dict[str, str]]:
+        """The rows of every record file called ``name`` under the root, in path order."""
+        return [row for relative in self.named[name] for row in read_csv(self.root / relative)]
 
     def folder_files(self) -> Dict[str, int]:
         counts: Dict[str, int] = {}
@@ -151,11 +160,27 @@ def declaration_value(value: Optional[ast.AST]) -> bool:
     return parts is not None and all(declaration_value(part) for part in parts)
 
 
+def registration_lines(scope: ast.AST) -> Set[int]:
+    """The lines of a function's or class's decorators that only register it (``@implementation("id", "name")``): calls of constants."""
+    decorators = scope.decorator_list if isinstance(scope, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) else []
+    return {line for deco in decorators if isinstance(deco, ast.Call) and all(declaration_value(part) for part in [*deco.args, *(k.value for k in deco.keywords)])
+            for line in range(deco.lineno, (deco.end_lineno or deco.lineno) + 1)}
+
+
+def protocol_lines(scope: ast.AST) -> Set[int]:
+    """The lines of a Protocol class, which declares signatures only."""
+    if isinstance(scope, ast.ClassDef) and any(getattr(base, "id", getattr(base, "attr", "")) == "Protocol" for base in scope.bases):
+        return set(range(scope.lineno, (scope.end_lineno or scope.lineno) + 1))
+    return set()
+
+
 def declaration_lines(tree: ast.AST) -> Set[int]:
-    """The lines of statements that declare and compute nothing: module and class level assignments whose value is a table or list of constants, and the
-    annotated fields of a dataclass. Two such tables share a shape, not logic, so they are not copied code."""
+    """The lines of statements that declare and compute nothing: module and class level assignments whose value is a table or list of constants, the
+    annotated fields of a dataclass, a registration decorator whose arguments are constants, and the whole of a Protocol (signatures only). Two such
+    declarations share a shape, not logic, so they are not copied code."""
     skip: Set[int] = set()
     for scope in nodes_of(tree):
+        skip |= registration_lines(scope) | protocol_lines(scope)
         if not isinstance(scope, (ast.Module, ast.ClassDef)):
             continue
         for node in scope.body:

@@ -65,13 +65,16 @@ def list_item(row: Dict[str, str], key: str, text_key: str, limit: int = 0) -> s
     return f"- {sentence} (`{ident}`)" if sentence else f"- `{ident}`"
 
 
+def without_id_prefix(name: str, ident: str) -> str:
+    """``name`` without a leading ``id:`` (a name that repeats its id before a colon is shown once)."""
+    return name[len(ident) + 1:].strip() if name.lower().startswith(ident.lower() + ":") else name
+
+
 def named(row: Dict[str, str], key: str) -> str:
     """A record as a person reads it: its ``name`` leading and its id after it as a code-font handle, ``Name (`id`)``. A record with no
     name is shown by its id alone. The id is the stable handle that commands and links use; the name is what every page leads with."""
     ident = row.get(key, "")
-    name = one_line(row.get("name", ""))
-    if name.lower().startswith(ident.lower() + ":"):
-        name = name[len(ident) + 1:].strip()
+    name = without_id_prefix(one_line(row.get("name", "")), ident)
     if not name or name.lower() == ident.lower():
         sentence = first_sentence(row.get("problem", "") or row.get("principle", ""))   # until a record has a name its sentence leads, never the id
         name = sentence if sentence and key in ("problem_id", "ideal_id") else ""

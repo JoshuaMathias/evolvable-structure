@@ -17,6 +17,7 @@ import ast
 import csv
 from typing import Dict, List, Optional, Set, Tuple
 
+from esoi.structure.intent_registry.parsed_source import decorator_calls, first_string
 from esoi.structure.structure_quality.project import Project
 
 Signature = Tuple[Tuple[str, ...], Tuple[str, ...], bool, bool, bool, int]   # positional names, keyword-only names, takes *args, takes **kwargs, async, required positionals
@@ -24,12 +25,7 @@ Signature = Tuple[Tuple[str, ...], Tuple[str, ...], bool, bool, bool, int]   # p
 
 def decorator_id(node: ast.ClassDef, name: str) -> str:
     """The solution id a ``@solution("id", ...)`` or ``@implementation("id", ...)`` decorator names, or an empty string."""
-    for dec in node.decorator_list:
-        if isinstance(dec, ast.Call) and getattr(dec.func, "id", getattr(dec.func, "attr", "")) == name and dec.args:
-            first = dec.args[0]
-            if isinstance(first, ast.Constant) and isinstance(first.value, str):
-                return first.value
-    return ""
+    return next((found for found in (first_string(dec) for dec in decorator_calls(node, name)) if found is not None), "")
 
 
 def is_protocol(node: ast.ClassDef) -> bool:

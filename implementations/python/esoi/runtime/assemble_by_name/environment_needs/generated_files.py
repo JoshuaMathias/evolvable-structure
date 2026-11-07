@@ -20,9 +20,7 @@ def api_facts(item: Api, users: str) -> List[str]:
     """The comment lines for an api key: what it is, who uses it, its links, free tier, rate limit and whether it is optional."""
     facts = [f"{item.service} API key" + (" (secret)" if item.key.secret else ""), users]
     facts += [link("signup", item.signup_url), link("docs", item.docs_url), link("pricing", item.pricing_url)]
-    for text, value in (("free tier", item.free_tier), ("rate limit", item.rate_limit)):
-        if value:
-            facts.append(f"{text}: {value}" + (f" (as of {item.as_of})" if item.as_of else ""))
+    facts += item.stated_limits
     facts.append("works without a key (keyless path); a key is optional" if item.keyless else "required")
     return facts
 

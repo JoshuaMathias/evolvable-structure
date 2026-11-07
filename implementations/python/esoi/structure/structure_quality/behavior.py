@@ -7,7 +7,6 @@ to hold the same across and is not counted.
 """
 from __future__ import annotations
 
-import csv
 import re
 from collections import defaultdict
 from pathlib import PurePosixPath
@@ -38,14 +37,12 @@ def metric_cases(project: Project) -> Dict[str, bool]:
     """Solution ids whose metric command names an evaluation component that has a ``cases.json``."""
     out: Dict[str, bool] = {}
     case_folders = {PurePosixPath(p).parent.name for p in project.named["cases.json"]}
-    for relative in project.named["metrics.csv"]:
-        with (project.root / relative).open(newline="", encoding="utf-8") as handle:
-            for row in csv.DictReader(handle):
-                names = re.findall(r"esoi run (\w+)", row.get("command", ""))
-                if any(n in case_folders for n in names):
-                    for sid in re.split(r"[;,]\s*", row.get("solution_ids", "")):
-                        if sid.strip():
-                            out[sid.strip()] = True
+    for row in project.rows("metrics.csv"):
+        names = re.findall(r"esoi run (\w+)", row.get("command", ""))
+        if any(n in case_folders for n in names):
+            for sid in re.split(r"[;,]\s*", row.get("solution_ids", "")):
+                if sid.strip():
+                    out[sid.strip()] = True
     return out
 
 

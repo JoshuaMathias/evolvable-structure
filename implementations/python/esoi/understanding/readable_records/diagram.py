@@ -20,6 +20,7 @@ from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.intents import Intent, discover
 from esoi.structure.intent_registry.registry import Registry
 from esoi.structure.intent_registry.tables import ids, written
+from esoi.understanding.readable_records.readme_view import without_id_prefix
 
 FILE = "diagram.md"
 HEADER = ("These are ESOI records rendered as a diagram (evolvable structure that optimizes intent). This page is generated from the "
@@ -47,9 +48,7 @@ def edges(registry: Registry, intent_id: str) -> Dict[Tuple[str, str], str]:
 def label_of(sid: str, name: str) -> str:
     """A node's label: the display name as the headline and the id as a small italic second line. A name that is only its id (or starts
     with the id and a colon) is shown once, never as ``id: name`` twice."""
-    shown = " ".join((name or "").split())
-    if shown.lower().startswith(sid.lower() + ":"):
-        shown = shown[len(sid) + 1:].strip()
+    shown = without_id_prefix(" ".join((name or "").split()), sid)
     if not shown or shown.lower() == sid.lower():
         return clip(sid, 40)
     return f"{clip(shown, 40)}<br/><i>{sid}</i>"

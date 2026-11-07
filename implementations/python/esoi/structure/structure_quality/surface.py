@@ -19,7 +19,7 @@ from collections import defaultdict
 from pathlib import PurePosixPath
 from typing import Dict, List, Optional, Set
 
-from esoi.structure.intent_registry.parsed_source import nodes_of
+from esoi.structure.intent_registry.parsed_source import decorator_calls
 from esoi.structure.structure_quality.conformance import decorator_id, is_protocol, protocol_members
 from esoi.structure.structure_quality.balance import Budgets, Dimension, from_parts, mean
 from esoi.structure.structure_quality.coupling import cross_edges
@@ -66,7 +66,7 @@ def called_ids(project: Project) -> Dict[str, Set[str]]:
     """Per string written as the first argument of a call, the units whose modules write it."""
     out: Dict[str, Set[str]] = defaultdict(set)
     for module in project.modules.values():
-        for node in nodes_of(module.tree) if module.tree is not None else ():
+        for node in module.walk():
             if isinstance(node, ast.Call) and node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
                 out[node.args[0].value].add(module.unit)
     return out
@@ -100,11 +100,10 @@ def served_names(project: Project) -> Dict[str, Set[str]]:
 
 def entry_member(node: ast.ClassDef) -> str:
     """The member a ``@solution(..., entry="name")`` decorator names: the one the front door calls when a caller runs the solution by its id."""
-    for dec in node.decorator_list:
-        if isinstance(dec, ast.Call) and getattr(dec.func, "id", getattr(dec.func, "attr", "")) == "solution":
-            for keyword in dec.keywords:
-                if keyword.arg == "entry" and isinstance(keyword.value, ast.Constant):
-                    return str(keyword.value.value)
+    for dec in decorator_calls(node, "solution"):
+        for keyword in dec.keywords:
+            if keyword.arg == "entry" and isinstance(keyword.value, ast.Constant):
+                return str(keyword.value.value)
     return ""
 
 
@@ -113,7 +112,7 @@ def members_used(project: Project, used: Dict[str, Set[str]]) -> Dict[str, tuple
     mentions = mentions_by_unit(project)
     out: Dict[str, tuple] = {}
     for module in project.modules.values():
-        for node in nodes_of(module.tree) if module.tree is not None else ():
+        for node in module.walk():
             if isinstance(node, ast.ClassDef) and is_protocol(node) and decorator_id(node, "solution") and node.name in used.get(module.unit, ()):
                 members = set(protocol_members(node))
                 called = {m for m in members if mentions.get(m, set()) - {module.unit}} | ({entry_member(node)} & members)

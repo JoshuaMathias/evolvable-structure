@@ -39,7 +39,7 @@ from typing import Dict, List, Optional, Set, Tuple
 from esoi.structure.intent_registry import intents
 from esoi.runtime.implementation_selection.declare import KINDS
 from esoi.structure.intent_registry.tables import ids
-from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
+from esoi.structure.intent_registry.parsed_source import decorator_calls, nodes_of, tree_of
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
 
 SUMMARIES = {
@@ -61,8 +61,7 @@ SUMMARIES = {
 
 def solution_declaration(node, rel: str, deco) -> Optional[Tuple[str, Dict[str, object]]]:
     """``(solution id, its declaration)`` when ``deco`` is ``@solution("id", ...)`` on ``node``, else None."""
-    if not (isinstance(deco, ast.Call) and getattr(deco.func, "id", getattr(deco.func, "attr", "")) == "solution"
-            and deco.args and isinstance(deco.args[0], ast.Constant)):
+    if deco not in decorator_calls(node, "solution") or not (deco.args and isinstance(deco.args[0], ast.Constant)):
         return None
     keywords = {k.arg: k.value for k in deco.keywords}
     return str(deco.args[0].value), dict(

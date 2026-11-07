@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 TREES: Dict[Tuple[str, int, int], Optional[ast.Module]] = {}
 WALKS: Dict[int, Tuple[ast.AST, Tuple[ast.AST, ...]]] = {}   # id of a tree -> (the tree, kept so the id stays its own, every node in walk order)
@@ -29,6 +29,18 @@ def tree_of(path: Path) -> Optional[ast.Module]:
         except (OSError, SyntaxError, UnicodeDecodeError, ValueError):
             TREES[key] = None
     return TREES[key]
+
+
+def first_string(call: ast.Call) -> Optional[str]:
+    """The string a call's first argument is written as, or None when it has no such argument."""
+    first = call.args[0] if call.args else None
+    return first.value if isinstance(first, ast.Constant) and isinstance(first.value, str) else None
+
+
+def decorator_calls(node: ast.AST, *names: str) -> List[ast.Call]:
+    """The decorators of a function or class written as a call of one of ``names`` (``@name(...)`` or ``@module.name(...)``), in order."""
+    return [deco for deco in getattr(node, "decorator_list", ())
+            if isinstance(deco, ast.Call) and getattr(deco.func, "id", getattr(deco.func, "attr", "")) in names]
 
 
 def nodes_of(tree: ast.AST) -> Tuple[ast.AST, ...]:

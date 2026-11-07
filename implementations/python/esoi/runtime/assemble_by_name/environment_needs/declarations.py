@@ -82,6 +82,12 @@ class Api(Requirement):
     def label(self) -> str:
         return "api " + self.service
 
+    @property
+    def stated_limits(self) -> List[str]:
+        """The free tier and the rate limit the arm author states, each dated when ``as_of`` is given."""
+        dated = f" (as of {self.as_of})" if self.as_of else ""
+        return [f"{text}: {value}{dated}" for text, value in (("free tier", self.free_tier), ("rate limit", self.rate_limit)) if value]
+
 
 @dataclass(frozen=True)
 class Python(Requirement):

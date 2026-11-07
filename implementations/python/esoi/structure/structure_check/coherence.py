@@ -68,7 +68,8 @@ from esoi.structure.intent_registry import config as esoi_config
 from esoi.structure.intent_registry import intents as esoi_intents
 from esoi.structure.structure_check.coherence_code_evidence import Code
 from esoi.structure.structure_check.coherence_paragraph import SOLUTION_NAMES, check_paragraph
-from esoi.structure.structure_check.coherence_records import ids, read, selected_record
+from esoi.structure.structure_check.coherence_records import ids, selected_record
+from esoi.structure.intent_registry.tables import read_csv
 
 DEFAULTS = {"max_fan_out": 9, "max_depth": 4, "code_floor": 1.0, "coverage_floor": 0.0, "min_lift": 1.0}
 STRONG = ("E1", "E2", "E3", "E4", "E5")
@@ -115,15 +116,15 @@ def load_hierarchy(cfg) -> Hierarchy:
     every_impl: List[Dict[str, str]] = []
     home: Dict[str, str] = {}
     for intent_id, folder in esoi_intents.folders(cfg):
-        for r in read(folder / "solutions.csv"):
+        for r in read_csv(folder / "solutions.csv"):
             every_solution[r["solution_id"]] = r
             home[r["solution_id"]] = intent_id
-        every_impl += read(folder / "implementations.csv")
+        every_impl += read_csv(folder / "implementations.csv")
     SOLUTION_NAMES.clear()
     SOLUTION_NAMES.update({sid: r.get("name", "") for sid, r in every_solution.items()})
     selected = {sid: selected_record(sid, r, every_impl) for sid, r in every_solution.items()}
     uses = {sid: [t for t in ids(rec.get("uses_solution_ids", "")) if t != sid] for sid, rec in selected.items()}
-    components = [r for _, folder in esoi_intents.folders(cfg) for r in read(folder / "components.csv")]
+    components = [r for _, folder in esoi_intents.folders(cfg) for r in read_csv(folder / "components.csv")]
     return Hierarchy(cfg, every_solution, every_impl, home, uses, Code(cfg, every_solution, every_impl, selected, components))
 
 

@@ -18,7 +18,7 @@ import ast
 from typing import Dict, List, Optional
 
 from esoi.structure.library_adoption.interface import Libraries, Reference, references, unresolved
-from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
+from esoi.structure.intent_registry.parsed_source import decorator_calls, nodes_of, tree_of
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
 from esoi.structure.structure_quality.interface import OVERLAP, OVERLAP_WORDS, content
 
@@ -84,9 +84,8 @@ def declared_for(path_text: str, ctx: Context) -> Optional[set]:
         return None
     found = set()
     for node in nodes_of(tree):
-        for deco in getattr(node, "decorator_list", []):
-            if isinstance(deco, ast.Call) and getattr(deco.func, "id", getattr(deco.func, "attr", "")) == "implementation" \
-                    and deco.args and isinstance(deco.args[0], ast.Constant):
+        for deco in decorator_calls(node, "implementation"):
+            if deco.args and isinstance(deco.args[0], ast.Constant):
                 found.add(str(deco.args[0].value))
     return found
 

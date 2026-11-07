@@ -15,9 +15,7 @@ EXIT_MET, EXIT_UNMET, EXIT_ERROR = 0, 1, 2   # the exit codes of esoi requiremen
 def describe_api(item: Api) -> str:
     """One line about an API: key situation, free tier and rate limit."""
     bits = [item.label, "keyless path available" if item.keyless else "key required" if item.key else "no key"]
-    for text, value in (("free tier", item.free_tier), ("rate limit", item.rate_limit)):
-        if value:
-            bits.append(f"{text}: {value}" + (f" (as of {item.as_of})" if item.as_of else ""))
+    bits += item.stated_limits
     return ", ".join(bits)
 
 

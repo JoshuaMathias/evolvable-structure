@@ -17,7 +17,6 @@ followed to the module that defines it.
 from __future__ import annotations
 
 import ast
-import csv
 from collections import defaultdict
 from pathlib import PurePosixPath
 from typing import Dict, List, Optional, Set, Tuple
@@ -45,12 +44,10 @@ def declares_entry(tree: object) -> bool:
 def declared_entries(project: Project) -> Set[str]:
     """The files that name a unit's declared way in: those implementations.csv records name as the code of an arm, and those that declare one in code."""
     found: Set[str] = {path for path, module in project.modules.items() if declares_entry(module.tree)}
-    for relative in project.named["implementations.csv"]:
-        with (project.root / relative).open(newline="", encoding="utf-8") as handle:
-            for row in csv.DictReader(handle):
-                target = (row.get("filepath") or "").partition("::")[0].strip()
-                if target:
-                    found.add(target)
+    for row in project.rows("implementations.csv"):
+        target = (row.get("filepath") or "").partition("::")[0].strip()
+        if target:
+            found.add(target)
     return found
 
 
