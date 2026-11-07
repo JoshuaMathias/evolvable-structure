@@ -23,7 +23,7 @@ import importlib
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 from esoi.runtime.assemble_by_name import hierarchy
 from esoi.optimization.measurement_harness import interface as harness
@@ -218,21 +218,33 @@ def judge(config: Config, loaded: Any, row: Optional[Dict[str, str]], sid: str, 
     if child_arm not in rows and (measured := arm_selection.selected_arm(config, row, comp, loaded)[1]) in rows:
         child_arm, found.child_arm = measured, measured   # the records name the arm by its file; the metric knows it by its arm name
     mine, theirs = rows.get(child_arm), rows.get(parent_arm)
-    for impl, rec in ((child_arm, mine), (parent_arm, theirs)):
-        if rec is not None and (why := harness.stale_reason(config, comp, rec, True)):
-            found.stale += f"{impl}: {why}; "
-            found.steps.append(steps_for(config, comp, impl, rec, mine))
-    found.stale = found.stale.rstrip("; ")
+    add_stale(config, comp, found, ((child_arm, mine), (parent_arm, theirs)), mine)
     pairs, unmatched = rival_pairing.rival_pairs(rows, child_arm, config.evaluation, history) if mine is not None else ([], [])
     if mine is None or not any(b["impl"] == parent_arm for _, b in pairs):
         found.advice = describe_missing(config, loaded, row, comp, child_arm, parent_arm, mine, theirs, unmatched, found)
         return found
+    found.numbers, found.verdict, found.advice = decide(config, rows, history, per_case, (sid, kind, comp), parent_arm, child_arm)
+    return found
+
+
+def decide(config: Config, rows: Dict[str, Dict[str, str]], history: Dict[str, Any], per_case: Any, subject: Tuple[str, str, str],
+           parent_arm: str, child_arm: str) -> Tuple[str, str, str]:
+    """``(numbers, verdict, advice)`` of the parent's arm against the child's, from the rival decision on the child's metric."""
+    sid, kind, comp = subject
     policy = switching_policy.policy_for(config, sid, comp, per_case)
     decided = [d for d in rival_decisions.decisions(rows, child_arm, config.evaluation, history, per_case, policy) if d.rival == parent_arm]
     d = decided[0]
-    found.numbers = f"{parent_arm} {ranking.pass_rate(d.other):.3g} against {child_arm} {ranking.pass_rate(d.own):.3g} on {case_identity.describe_cases(d.own)}; {d.text}"
-    found.verdict, found.advice = verdict_advice(d.outcome, kind, sid, parent_arm, child_arm, found.numbers)
-    return found
+    numbers = f"{parent_arm} {ranking.pass_rate(d.other):.3g} against {child_arm} {ranking.pass_rate(d.own):.3g} on {case_identity.describe_cases(d.own)}; {d.text}"
+    return (numbers, *verdict_advice(d.outcome, kind, sid, parent_arm, child_arm, numbers))
+
+
+def add_stale(config: Config, comp: str, found: Finding, recorded: Tuple[Tuple[str, Optional[Dict[str, str]]], ...], mine: Optional[Dict[str, str]]) -> None:
+    """Note on ``found`` which of the recorded rows are stale, with the step that re-records each."""
+    for impl, rec in recorded:
+        if rec is not None and (why := harness.stale_reason(config, comp, rec, True)):
+            found.stale += f"{impl}: {why}; "
+            found.steps.append(steps_for(config, comp, impl, rec, mine))
+    found.stale = found.stale.rstrip("; ")
 
 
 def verdict_advice(outcome: str, kind: str, sid: str, parent_arm: str, child_arm: str, numbers: str) -> Tuple[str, str]:
@@ -271,6 +283,27 @@ def describe_missing(config: Config, loaded: Any, row: Dict[str, str], comp: str
 
 # the report
 
+def changed_arm(loaded: Any, row: Optional[Dict[str, str]], sid: str, parent_arm: str, locked: Dict[str, str]) -> Tuple[bool, bool, str]:
+    """``(overridden, lock_moved, child_arm)``: how the child's arm for ``sid`` stands against the parent's."""
+    own = variants.base_of(default_name(row, loaded.implementations)).lower() if row else ""
+    overridden = bool(own) and own != parent_arm
+    lock_moved = bool(locked.get(sid)) and locked[sid] != parent_arm and not overridden
+    return overridden, lock_moved, own if overridden else locked.get(sid, "")
+
+
+def compare_one(config: Config, loaded: Any, row: Optional[Dict[str, str]], sid: str, parent_arm: str, locked: Dict[str, str],
+                reasons: Dict[str, Any], metric_ids: Set[str]) -> Union[Finding, str, None]:
+    """The finding for one solution, a skip note, or None when nothing can have changed under the child."""
+    overridden, lock_moved, child_arm = changed_arm(loaded, row, sid, parent_arm, locked)
+    if not child_arm or not (overridden or lock_moved):
+        return None   # inherited and not locked, or unchanged
+    has_metric = any(r in metric_ids for r in reasons.get(sid, ()))
+    found = judge(config, loaded, row, sid, "override" if overridden else "inherited", parent_arm, child_arm)
+    if overridden and not has_metric and not lock_moved and found.verdict == "not-measured":
+        return f"{sid}: override of {parent_arm} cites no metric and has no row to compare; not re-checked"
+    return found
+
+
 def follow(config: Config, parent: str = "", solutions: Tuple[str, ...] = (), lock_file: str = "esoi.lock.json") -> Report:
     """Compare the parent's current selections with the child's lock and overrides, and judge each change on the child's metric."""
     selections, label = parent_selections(config, parent)
@@ -287,21 +320,25 @@ def follow(config: Config, parent: str = "", solutions: Tuple[str, ...] = (), lo
         if solutions and sid not in solutions:
             continue
         report.checked += 1
-        parent_arm = selections[sid]
-        row = rows.get(sid)
-        own = variants.base_of(default_name(row, loaded.implementations)).lower() if row else ""
-        overridden = bool(own) and own != parent_arm
-        child_arm = own if overridden else locked.get(sid, "")
-        lock_moved = bool(locked.get(sid)) and locked[sid] != parent_arm and not overridden
-        if not child_arm or not (overridden or lock_moved):
-            continue   # inherited and not locked, or unchanged: nothing can have changed under the child
-        has_metric = any(r in metric_ids for r in reasons.get(sid, ()))
-        found = judge(config, loaded, row, sid, "override" if overridden else "inherited", parent_arm, child_arm)
-        if overridden and not has_metric and not lock_moved and found.verdict == "not-measured":
-            report.skipped.append(f"{sid}: override of {parent_arm} cites no metric and has no row to compare; not re-checked")
-            continue
-        report.findings.append(found)
+        compared = compare_one(config, loaded, rows.get(sid), sid, selections[sid], locked, reasons, metric_ids)
+        if isinstance(compared, str):
+            report.skipped.append(compared)
+        elif compared is not None:
+            report.findings.append(compared)
     return report
+
+
+def render_finding(found: Finding, plan: bool, say: Callable[[str], None]) -> None:
+    """The lines for one finding: headline, advice, numbers, stale rows and the steps."""
+    headline = "KEEP THE LOCK" if found.verdict == "keep" and found.kind == "inherited" else HEADLINE[found.verdict]
+    say(f"{found.solution_id}: {headline} ({found.kind}: parent {found.parent_arm}, here {found.child_arm})")
+    say(f"  {found.advice}")
+    if found.numbers and found.verdict != "keep":
+        say(f"  numbers: {found.numbers}")
+    if found.stale:
+        say(f"  stale (measured code changed or the row is not current): {found.stale}")
+    for step in found.steps:
+        say(f"  {'would run' if plan and step.free else 'record'}: {step.command}   [{step.cost}]")
 
 
 def render(report: Report, plan: bool, say: Callable[[str], None]) -> None:
@@ -309,15 +346,7 @@ def render(report: Report, plan: bool, say: Callable[[str], None]) -> None:
     if report.nothing_changed:
         say("nothing changed: the parent's selections match what this repository holds, and no override needs a second look")
     for found in report.findings:
-        headline = "KEEP THE LOCK" if found.verdict == "keep" and found.kind == "inherited" else HEADLINE[found.verdict]
-        say(f"{found.solution_id}: {headline} ({found.kind}: parent {found.parent_arm}, here {found.child_arm})")
-        say(f"  {found.advice}")
-        if found.numbers and found.verdict != "keep":
-            say(f"  numbers: {found.numbers}")
-        if found.stale:
-            say(f"  stale (measured code changed or the row is not current): {found.stale}")
-        for step in found.steps:
-            say(f"  {'would run' if plan and step.free else 'record'}: {step.command}   [{step.cost}]")
+        render_finding(found, plan, say)
     for line in report.problems:
         say(f"malformed override: {line}" if line.startswith("overrides.csv") else f"problem: {line}")
     for line in report.skipped:
