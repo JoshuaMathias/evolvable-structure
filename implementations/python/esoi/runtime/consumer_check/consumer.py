@@ -232,6 +232,45 @@ def check_pin(report: ConsumerReport, requirements: Path, options: Options) -> N
     report.notes.append(f"pin lag: requirements pin {options.library} {pin[:10]}, installed checkout is {head[:10]} ({detail})")
 
 
+def check_implementation_row(row: Dict[str, str], rid: str, port: str, options: Options, report: ConsumerReport) -> None:
+    """C3: an implementation row names a symbol that imports and satisfies its port, or states the gap and the action."""
+    if not row["symbol"].strip():
+        report.problems.append(f"C3 {rid}: an implementation row needs a symbol")
+        return
+    try:
+        cls = resolve_symbol(f"{row['module'].strip()}:{row['symbol'].strip()}")
+    except Exception as exc:   # any import failure is the finding
+        report.problems.append(f"C3 {rid}: {row['module']}:{row['symbol']} does not import ({type(exc).__name__}: {exc})")
+        return
+    if port:
+        try:
+            port_cls = resolve_port(port, options)
+        except Exception:
+            report.problems.append(f"C3 {rid}: port {port!r} is not defined by the library")
+            return
+        report.problems.extend(f"C3 {rid}: {row['symbol']} does not satisfy {port}: {why}" for why in conformance_problems(cls, port_cls))
+    elif not (row["gap"].strip() and row["action"].strip()):
+        report.problems.append(f"C3 {rid}: an implementation row must name the port it claims, or state the gap "
+                               "(the library has no Protocol for it) and the action")
+
+
+def check_call_row(row: Dict[str, str], rid: str, kind: str, p: str, report: ConsumerReport) -> None:
+    """C4: a call or config row's symbol resolves and its module imports."""
+    symbol = row[f"{p}_symbol"].strip()
+    if not symbol:
+        report.problems.append(f"C4 {rid}: a {kind} row needs a {p}_symbol")
+    else:
+        try:
+            resolve_symbol(symbol)
+        except Exception as exc:
+            report.problems.append(f"C4 {rid}: {p}_symbol {symbol} does not resolve ({type(exc).__name__}: {exc})")
+    if row["module"].strip():
+        try:
+            importlib.import_module(row["module"].strip())
+        except Exception as exc:
+            report.problems.append(f"C4 {rid}: module {row['module']} does not import ({type(exc).__name__}: {exc})")
+
+
 def check_row(row: Dict[str, str], root: Path, solutions: set, options: Options, report: ConsumerReport) -> None:
     """Run C2 to C7 on one registry row."""
     p = options.column_prefix
@@ -244,49 +283,19 @@ def check_row(row: Dict[str, str], root: Path, solutions: set, options: Options,
     solution = row[f"{p}_solution_id"].strip()
     if solution and solutions and solution not in solutions:
         report.problems.append(f"C2 {rid}: solution id {solution!r} is not defined by the installed {options.library}")
-    port = row[f"{p}_port"].strip()
     if kind == "implementation":
-        if not row["symbol"].strip():
-            report.problems.append(f"C3 {rid}: an implementation row needs a symbol")
-        else:
-            try:
-                cls = resolve_symbol(f"{row['module'].strip()}:{row['symbol'].strip()}")
-            except Exception as exc:   # any import failure is the finding
-                report.problems.append(f"C3 {rid}: {row['module']}:{row['symbol']} does not import ({type(exc).__name__}: {exc})")
-                cls = None
-            if cls is not None and port:
-                try:
-                    port_cls = resolve_port(port, options)
-                except Exception:
-                    report.problems.append(f"C3 {rid}: port {port!r} is not defined by the library")
-                else:
-                    for why in conformance_problems(cls, port_cls):
-                        report.problems.append(f"C3 {rid}: {row['symbol']} does not satisfy {port}: {why}")
-            elif cls is not None and not (row["gap"].strip() and row["action"].strip()):
-                report.problems.append(f"C3 {rid}: an implementation row must name the port it claims, or state the gap "
-                                       "(the library has no Protocol for it) and the action")
+        check_implementation_row(row, rid, row[f"{p}_port"].strip(), options, report)
     elif kind in ("call", "config"):
-        symbol = row[f"{p}_symbol"].strip()
-        if not symbol:
-            report.problems.append(f"C4 {rid}: a {kind} row needs a {p}_symbol")
-        else:
-            try:
-                resolve_symbol(symbol)
-            except Exception as exc:
-                report.problems.append(f"C4 {rid}: {p}_symbol {symbol} does not resolve ({type(exc).__name__}: {exc})")
-        if row["module"].strip():
-            try:
-                importlib.import_module(row["module"].strip())
-            except Exception as exc:
-                report.problems.append(f"C4 {rid}: module {row['module']} does not import ({type(exc).__name__}: {exc})")
+        check_call_row(row, rid, kind, p, report)
     elif not row["action"].strip():
         report.problems.append(f"C5 {rid}: a duplicate row must state the action that removes it")
     status = row["status"].strip()
+    has_gap = bool(row["gap"].strip() and row["action"].strip())
     if status not in STATUSES:
         report.problems.append(f"C6 {rid}: status {status!r} is not one of {', '.join(STATUSES)}")
-    elif status != "done" and not (row["gap"].strip() and row["action"].strip()):
+    elif status != "done" and not has_gap:
         report.problems.append(f"C6 {rid}: status {status} needs both a gap and an action")
-    if not row["metric"].strip() and not (row["gap"].strip() and row["action"].strip()):
+    if not row["metric"].strip() and not has_gap:
         report.problems.append(f"C6 {rid}: no metric, so the gap and the action must say what proof is missing")
     for test in [t.strip() for t in row["tests"].split(";") if t.strip()]:
         if not (root / test.split("::")[0]).exists():
@@ -302,15 +311,8 @@ def cases_hash(files: List[str], root: Path) -> str:
     return digest.hexdigest()[:12]
 
 
-def check_solutions(report: ConsumerReport, rows: List[Dict[str, str]], solutions: Path, results: Path, root: Path) -> None:
-    """C9 to C11: every integration point sits in a solution with a current recorded result."""
-    sols = {r.get("solution_id", ""): r for r in intents.read_tree(Path(solutions).parent, Path(solutions).name)}
-    result_rows = read_csv(results)
-    latest: Dict[str, Dict[str, str]] = {}
-    for r in result_rows:
-        if r.get("kind", "offline") in ("live", "component"):
-            continue   # live proofs and scored components are recorded beside the gating offline run
-        latest[r.get("solution_id", "")] = r
+def used_solutions(report: ConsumerReport, rows: List[Dict[str, str]], sols: dict, solutions: Path) -> set:
+    """C9: the solutions the integration points sit in; a point in none, or in an unknown one, is a problem."""
     used = set()
     for row in rows:
         sid = row.get("solution_id", "").strip()
@@ -321,35 +323,55 @@ def check_solutions(report: ConsumerReport, rows: List[Dict[str, str]], solution
             report.problems.append(f"C9 {rid}: solution {sid!r} is not in {solutions.name}")
         else:
             used.add(sid)
+    return used
+
+
+def check_recorded_result(report: ConsumerReport, sid: str, sol: Dict[str, str], res: Optional[Dict[str, str]], root: Path) -> None:
+    """C9 and C10: a selected implementation, and a recorded result with provenance that still matches the metric files."""
+    if not sol.get("selected", "").strip():
+        report.problems.append(f"C9 {sid}: no selected implementation")
+    if res is None:
+        report.problems.append(f"C10 {sid}: no recorded result")
+        return
+    if not res.get("git_sha", "").strip() or not res.get("cases_sha", "").strip():
+        report.problems.append(f"C10 {sid}: the latest result lacks a git sha or a cases hash")
+    if res.get("passed", "") != res.get("cases", "x"):
+        report.notes.append(f"{sid}: latest result {res.get('passed')}/{res.get('cases')} is not all passing")
+    files = [f for f in sol.get("metric_files", "").split(";") if f.strip()]
+    if files and all((root / f).exists() for f in files) and cases_hash(files, root) != res.get("cases_sha", ""):
+        report.notes.append(f"C10 {sid}: stale result, the metric files changed since it was recorded (advice: run the metric when "
+                            f"what it teaches is worth its cost; a stale result informs and never blocks)")
+
+
+def check_component_run(report: ConsumerReport, sid: str, sol: Dict[str, str], result_rows: List[Dict[str, str]]) -> None:
+    """C11: a solution that names a component run has a recorded one with provenance."""
+    comp, impl = sol.get("component", "").strip(), sol.get("component_impl", "").strip()
+    if not comp and not impl:
+        return   # no component run is declared for this solution
+    row = next((r for r in reversed(result_rows) if r.get("kind") == "component"
+                and r.get("solution_id") == sid and r.get("component") == comp and r.get("impl") == impl), None)
+    if not comp or not impl:
+        report.problems.append(f"C11 {sid}: a solution that names a component run names both component and component_impl")
+    elif row is None:
+        report.problems.append(f"C11 {sid}: no recorded component run for {comp}/{impl}")
+    elif not row.get("git_sha", "").strip() or not row.get("cases_sha", "").strip():
+        report.problems.append(f"C11 {sid}: the component run {comp}/{impl} lacks a git sha or a cases hash")
+
+
+def check_solutions(report: ConsumerReport, rows: List[Dict[str, str]], solutions: Path, results: Path, root: Path) -> None:
+    """C9 to C11: every integration point sits in a solution with a current recorded result."""
+    sols = {r.get("solution_id", ""): r for r in intents.read_tree(Path(solutions).parent, Path(solutions).name)}
+    result_rows = read_csv(results)
+    latest: Dict[str, Dict[str, str]] = {}
+    for r in result_rows:
+        if r.get("kind", "offline") in ("live", "component"):
+            continue   # live proofs and scored components are recorded beside the gating offline run
+        latest[r.get("solution_id", "")] = r
+    used = used_solutions(report, rows, sols, solutions)
     for sid in sorted(used):
-        sol = sols[sid]
-        if not sol.get("selected", "").strip():
-            report.problems.append(f"C9 {sid}: no selected implementation")
-        res = latest.get(sid)
-        if res is None:
-            report.problems.append(f"C10 {sid}: no recorded result")
-            continue
-        if not res.get("git_sha", "").strip() or not res.get("cases_sha", "").strip():
-            report.problems.append(f"C10 {sid}: the latest result lacks a git sha or a cases hash")
-        if res.get("passed", "") != res.get("cases", "x"):
-            report.notes.append(f"{sid}: latest result {res.get('passed')}/{res.get('cases')} is not all passing")
-        files = [f for f in sol.get("metric_files", "").split(";") if f.strip()]
-        if files and all((root / f).exists() for f in files) and cases_hash(files, root) != res.get("cases_sha", ""):
-            report.notes.append(f"C10 {sid}: stale result, the metric files changed since it was recorded (advice: run the metric when "
-                                f"what it teaches is worth its cost; a stale result informs and never blocks)")
+        check_recorded_result(report, sid, sols[sid], latest.get(sid), root)
     for sid in sorted(used):
-        sol = sols[sid]
-        comp, impl = sol.get("component", "").strip(), sol.get("component_impl", "").strip()
-        if not comp and not impl:
-            continue   # no component run is declared for this solution
-        row = next((r for r in reversed(result_rows) if r.get("kind") == "component"
-                    and r.get("solution_id") == sid and r.get("component") == comp and r.get("impl") == impl), None)
-        if not comp or not impl:
-            report.problems.append(f"C11 {sid}: a solution that names a component run names both component and component_impl")
-        elif row is None:
-            report.problems.append(f"C11 {sid}: no recorded component run for {comp}/{impl}")
-        elif not row.get("git_sha", "").strip() or not row.get("cases_sha", "").strip():
-            report.problems.append(f"C11 {sid}: the component run {comp}/{impl} lacks a git sha or a cases hash")
+        check_component_run(report, sid, sols[sid], result_rows)
     report.notes.append(f"{len(used)} solutions carry integration points; {len(sols) - len(used)} defined without one")
 
 

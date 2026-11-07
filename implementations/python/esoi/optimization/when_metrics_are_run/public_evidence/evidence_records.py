@@ -82,67 +82,72 @@ def norm(name: str) -> str:
     return re.sub(r"[\s_]+", "-", (name or "").strip().lower())
 
 
+def header_problems(header: Sequence[str]) -> List[str]:
+    """Columns the header lacks, and columns that are not part of the evidence record."""
+    return ([f"header: column {c} is missing" for c in COLUMNS if c not in header]
+            + [f"header: column {c} is not part of the evidence record" for c in header if c not in COLUMNS])
+
+
+def finite_number(text: str) -> Optional[float]:
+    """The number a cell holds, or None when it is not a finite number."""
+    try:
+        value = float(text)
+    except ValueError:
+        return None
+    return value if value == value and value not in (float("inf"), float("-inf")) else None
+
+
+def cell_problems(cell: Dict[str, str]) -> Dict[str, str]:
+    """``{column: what is wrong}`` for one row's cells, in column-check order (a column appears once)."""
+    found: Dict[str, str] = {}
+    for column in REQUIRED:
+        if not cell[column]:
+            found[column] = "is empty; write a value (use `unknown` where a column allows it)"
+    for column, allowed in (("dimension", DIMENSIONS), ("better", BETTER), ("source_kind", SOURCE_KINDS),
+                            ("run_by_independent", RUN_BY), ("method_disclosed", METHOD), ("benchmark_status", STATUS)):
+        if cell[column] and cell[column] not in allowed:
+            found[column] = f"is {cell[column]!r}, not one of {', '.join(allowed)}"
+    if cell["value"] and finite_number(cell["value"]) is None:
+        found["value"] = f"is {cell['value']!r}, not a finite number"
+    if cell["n"] and not (cell["n"].isdigit() and int(cell["n"]) > 0):
+        found["n"] = f"is {cell['n']!r}, not a positive whole number (leave it empty when unstated)"
+    if cell["source_url"] and not re.match(r"^https?://\S+$", cell["source_url"]):
+        found["source_url"] = "is not an http(s) link"
+    for column in ("date_published", "date_checked"):
+        if cell[column] and as_date(cell[column]) is None:
+            found[column] = f"is {cell[column]!r}, not a date like 2026-10-31"
+    return found
+
+
+def as_date(text: str) -> Optional[datetime.date]:
+    """An ISO date, or None when the text is not one (or is empty)."""
+    try:
+        return datetime.date.fromisoformat(text) if text else None
+    except ValueError:
+        return None
+
+
 def parse_rows(rows: Iterable[Mapping[str, str]], header: Optional[Sequence[str]] = None) -> Tuple[List[Evidence], List[str]]:
     """``(evidence, problems)`` from row dicts. Every problem names its line (header is line 1) and the column."""
-    problems: List[str] = []
-    if header is not None:
-        for column in COLUMNS:
-            if column not in header:
-                problems.append(f"header: column {column} is missing")
-        for column in header:
-            if column not in COLUMNS:
-                problems.append(f"header: column {column} is not part of the evidence record")
-        if problems:
-            return [], problems
+    problems: List[str] = header_problems(header) if header is not None else []
+    if problems:
+        return [], problems
     out: List[Evidence] = []
     seen: Dict[str, int] = {}
     for position, row in enumerate(rows, 2):
-        before = len(problems)
         cell = {c: (row.get(c) or "").strip() for c in COLUMNS}
-
-        def bad(column: str, message: str) -> None:
-            problems.append(f"line {position} ({cell['evidence_id'] or 'no id'}): {column} {message}")
-
-        for column in REQUIRED:
-            if not cell[column]:
-                bad(column, "is empty; write a value (use `unknown` where a column allows it)")
-        for column, allowed in (("dimension", DIMENSIONS), ("better", BETTER), ("source_kind", SOURCE_KINDS),
-                                ("run_by_independent", RUN_BY), ("method_disclosed", METHOD), ("benchmark_status", STATUS)):
-            if cell[column] and cell[column] not in allowed:
-                bad(column, f"is {cell[column]!r}, not one of {', '.join(allowed)}")
+        found = cell_problems(cell)
+        if cell["evidence_id"] and cell["evidence_id"] in seen:
+            found.setdefault("evidence_id", f"repeats line {seen[cell['evidence_id']]}")
         if cell["evidence_id"]:
-            if cell["evidence_id"] in seen:
-                bad("evidence_id", f"repeats line {seen[cell['evidence_id']]}")
             seen.setdefault(cell["evidence_id"], position)
-        value = n = None
-        if cell["value"]:
-            try:
-                value = float(cell["value"])
-                if value != value or value in (float("inf"), float("-inf")):
-                    raise ValueError
-            except ValueError:
-                bad("value", f"is {cell['value']!r}, not a finite number")
-        if cell["n"]:
-            if cell["n"].isdigit() and int(cell["n"]) > 0:
-                n = int(cell["n"])
-            else:
-                bad("n", f"is {cell['n']!r}, not a positive whole number (leave it empty when unstated)")
-        if cell["source_url"] and not re.match(r"^https?://\S+$", cell["source_url"]):
-            bad("source_url", "is not an http(s) link")
-        dates: Dict[str, Optional[datetime.date]] = {}
-        for column in ("date_published", "date_checked"):
-            dates[column] = None
-            if cell[column]:
-                try:
-                    dates[column] = datetime.date.fromisoformat(cell[column])
-                except ValueError:
-                    bad(column, f"is {cell[column]!r}, not a date like 2026-10-31")
-        if len(problems) == before:
+        problems.extend(f"line {position} ({cell['evidence_id'] or 'no id'}): {column} {message}" for column, message in found.items())
+        if not found:
             out.append(Evidence(
-                cell["evidence_id"], cell["candidate"], cell["dimension"], cell["measure"], value, cell["unit"], cell["better"],
-                cell["comparator"], cell["source_url"], cell["source_kind"], cell["run_by_independent"], cell["method_disclosed"],
-                n, cell["benchmark_status"], dates["date_published"], dates["date_checked"],
-                tuple(c.strip() for c in cell["confounds"].split(LIST_SEPARATOR) if c.strip()), cell["note"], position))
+                cell["evidence_id"], cell["candidate"], cell["dimension"], cell["measure"], finite_number(cell["value"]) if cell["value"] else None,
+                cell["unit"], cell["better"], cell["comparator"], cell["source_url"], cell["source_kind"], cell["run_by_independent"],
+                cell["method_disclosed"], int(cell["n"]) if cell["n"] else None, cell["benchmark_status"], as_date(cell["date_published"]),
+                as_date(cell["date_checked"]), tuple(c.strip() for c in cell["confounds"].split(LIST_SEPARATOR) if c.strip()), cell["note"], position))
     direction: Dict[Tuple[str, str], Evidence] = {}
     for e in out:
         first = direction.setdefault((e.dimension, e.measure.lower()), e)

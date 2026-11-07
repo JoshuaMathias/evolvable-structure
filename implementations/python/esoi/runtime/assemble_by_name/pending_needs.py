@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import inspect
-from typing import Any, Dict, Mapping
+from typing import Any, Callable, Dict, List, Mapping
 
 from esoi.runtime.assemble_by_name.environment_needs import checking, declarations
 from esoi.runtime.assemble_by_name.arm_inspection import builder_of
@@ -25,43 +25,62 @@ def pending_needs(assembler: Any, config: AssemblyConfig, provided: Mapping[str,
         if sid in provided:
             return True
         picked = assembler.pick(sid, None, config)
-        if picked is None:
-            available = ", ".join(assembler.names(sid))
-            found[sid] = (f"{sid}: no selected arm; pass arms={{{sid!r}: <one of {available}>}}" if available
-                          else f"{sid}: no arm yet; pass provided={{{sid!r}: <your object>}}")
-        else:
-            try:
-                target = assembler.load(sid, picked.name)
-                needs = assembler.needs_of(target)
-            except Exception as error:
-                found[sid] = f"{sid} ({picked.name}): cannot be loaded ({error}); install what it needs or pass provided={{{sid!r}: ...}}"
-            else:
-                builder = builder_of(target)
-                options = {**config.options.get(sid, {}), **environ_fill(target, config.options.get(sid, {}), config.consumer_environ)}
-                missing = [name for name, par in (inspect.signature(builder).parameters.items() if builder is not None else [])
-                           if name != "self" and name not in needs and name not in options and par.default is par.empty
-                           and par.kind not in (par.VAR_POSITIONAL, par.VAR_KEYWORD)]
-                lacking = environ_lacking(target, config.options.get(sid, {}), config.consumer_environ)
-                given_options = config.options.get(sid, {})
-                remedy = checking.remedy_line(
-                    one for one in checking.check(declarations.declared(target), config.consumer_environ)
-                    if not (isinstance(one.requirement, declarations.Env) and one.requirement.option in given_options)
-                    and not (isinstance(one.requirement, declarations.Api) and one.requirement.key is not None
-                             and one.requirement.key.option in given_options))
-                lazy = assembler.lazy_needs_of(target)
-                unmet = [need for param, need in needs.items() if param not in lazy and not check(need)]
-                if lacking:
-                    found[sid] = (f"{sid} ({picked.name}): set " + "; ".join(f"{' or '.join(names)} (option {' or '.join(repr(o) for o in group)})"
-                                  for group, names in lacking.items()) + f" in the environ mapping you pass, or pass options={{{sid!r}: {{...}}}}")
-                elif remedy:
-                    found[sid] = f"{sid} ({picked.name}): {remedy}"
-                elif missing:
-                    found[sid] = f"{sid} ({picked.name}): pass options={{{sid!r}: {{{', '.join(repr(m) + ': ...' for m in missing)}}}}}"
-                elif unmet:
-                    found[sid] = f"{sid} ({picked.name}): needs {', '.join(unmet)}; see those lines"
+        line = no_arm_line(assembler, sid) if picked is None else pending_line(assembler, config, sid, picked.name, check)
+        if line:
+            found[sid] = line
         state[sid] = sid not in found
         return state[sid]
 
     for sid in assembler.visible():
         check(sid)
     return found
+
+
+def no_arm_line(assembler: Any, sid: str) -> str:
+    """The pending line of a solution no layer names an arm for."""
+    available = ", ".join(assembler.names(sid))
+    return (f"{sid}: no selected arm; pass arms={{{sid!r}: <one of {available}>}}" if available
+            else f"{sid}: no arm yet; pass provided={{{sid!r}: <your object>}}")
+
+
+def missing_arguments(target: Any, needs: Mapping[str, str], options: Mapping[str, Any]) -> List[str]:
+    """Constructor parameters of the target that are no need, no option and have no default."""
+    builder = builder_of(target)
+    return [name for name, par in (inspect.signature(builder).parameters.items() if builder is not None else [])
+            if name != "self" and name not in needs and name not in options and par.default is par.empty
+            and par.kind not in (par.VAR_POSITIONAL, par.VAR_KEYWORD)]
+
+
+def unmet_requirement_remedy(target: Any, config: AssemblyConfig, sid: str) -> str:
+    """The remedy line for the target's declared requirements that fail and that no option given for the solution fills."""
+    given_options = config.options.get(sid, {})
+    return checking.remedy_line(
+        one for one in checking.check(declarations.declared(target), config.consumer_environ)
+        if not (isinstance(one.requirement, declarations.Env) and one.requirement.option in given_options)
+        and not (isinstance(one.requirement, declarations.Api) and one.requirement.key is not None
+                 and one.requirement.key.option in given_options))
+
+
+def pending_line(assembler: Any, config: AssemblyConfig, sid: str, arm: str, check: Callable[[str], bool]) -> str:
+    """Why the picked arm cannot be built from defaults alone (empty when it can)."""
+    try:
+        target = assembler.load(sid, arm)
+        needs = assembler.needs_of(target)
+    except Exception as error:
+        return f"{sid} ({arm}): cannot be loaded ({error}); install what it needs or pass provided={{{sid!r}: ...}}"
+    options = {**config.options.get(sid, {}), **environ_fill(target, config.options.get(sid, {}), config.consumer_environ)}
+    missing = missing_arguments(target, needs, options)
+    lacking = environ_lacking(target, config.options.get(sid, {}), config.consumer_environ)
+    remedy = unmet_requirement_remedy(target, config, sid)
+    lazy = assembler.lazy_needs_of(target)
+    unmet = [need for param, need in needs.items() if param not in lazy and not check(need)]
+    if lacking:
+        return (f"{sid} ({arm}): set " + "; ".join(f"{' or '.join(names)} (option {' or '.join(repr(o) for o in group)})"
+                for group, names in lacking.items()) + f" in the environ mapping you pass, or pass options={{{sid!r}: {{...}}}}")
+    if remedy:
+        return f"{sid} ({arm}): {remedy}"
+    if missing:
+        return f"{sid} ({arm}): pass options={{{sid!r}: {{{', '.join(repr(m) + ': ...' for m in missing)}}}}}"
+    if unmet:
+        return f"{sid} ({arm}): needs {', '.join(unmet)}; see those lines"
+    return ""

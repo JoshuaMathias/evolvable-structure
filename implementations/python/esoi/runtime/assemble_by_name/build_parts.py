@@ -17,6 +17,24 @@ from esoi.runtime.implementation_selection import variants
 log = logging.getLogger("esoi.runtime.assemble_by_name.assemble")
 
 
+def check_arguments(sid: str, arm: str, target: Any, kwargs: Mapping[str, Any], options: Mapping[str, Any], chain: List[Tuple[str, str]]) -> None:
+    """Raise ``AssemblyError`` when the options name a parameter the arm lacks, or a required parameter has neither a need nor an option."""
+    builder = builder_of(target)
+    params = inspect.signature(builder).parameters if builder is not None else {}
+    extra = [k for k in options if k not in params or k in kwargs]
+    if extra:
+        raise AssemblyError(f"{sid} ({arm}) has no option(s) {', '.join(extra)}; its parameters: "
+                            f"{', '.join(p for p in params if p != 'self' and p not in kwargs) or 'none'}")
+    missing = [name for name, par in params.items()
+               if name != "self" and name not in kwargs and name not in options and par.default is par.empty
+               and par.kind not in (par.VAR_POSITIONAL, par.VAR_KEYWORD)]
+    if missing:
+        chain_text = " -> ".join([p for p, a in chain] + [sid])
+        raise AssemblyError(f"{sid} ({arm}) needs option(s) {', '.join(missing)} (chain: {chain_text}); remedy: "
+                            f"pass options={{{sid!r}: {{{', '.join(repr(m) + ': ...' for m in missing)}}}}} or "
+                            f"provided={{{sid!r}: ...}}")
+
+
 def assemble_defaults(assembler: Any, config: Optional[AssemblyConfig] = None, provided: Optional[Mapping[str, Any]] = None) -> Assembly:
     """Build every solution of the scope that its chosen arm (explicit name, selections, then the package default) can build
     with what was passed, and report the rest in ``Assembly.pending`` instead of raising. With no arguments this is the
@@ -78,20 +96,7 @@ def assemble(assembler: Any, config: Optional[AssemblyConfig] = None, provided: 
         kwargs = {param: (LazyNeed(need, lambda need=need, below=below: build(need, below)) if param in lazy else build(need, below))
                   for param, need in assembler.needs_of(target).items()}
         if inspect.isclass(target) or inspect.isfunction(target):   # a class or factory is built; anything else is an instance
-            builder = builder_of(target)
-            params = inspect.signature(builder).parameters if builder is not None else {}
-            extra = [k for k in options if k not in params or k in kwargs]
-            if extra:
-                raise AssemblyError(f"{sid} ({picked.name}) has no option(s) {', '.join(extra)}; its parameters: "
-                                    f"{', '.join(p for p in params if p != 'self' and p not in kwargs) or 'none'}")
-            missing = [name for name, par in params.items()
-                       if name != "self" and name not in kwargs and name not in options and par.default is par.empty
-                       and par.kind not in (par.VAR_POSITIONAL, par.VAR_KEYWORD)]
-            if missing:
-                chain_text = " -> ".join([p for p, a in chain] + [sid])
-                raise AssemblyError(f"{sid} ({picked.name}) needs option(s) {', '.join(missing)} (chain: {chain_text}); remedy: "
-                                    f"pass options={{{sid!r}: {{{', '.join(repr(m) + ': ...' for m in missing)}}}}} or "
-                                    f"provided={{{sid!r}: ...}}")
+            check_arguments(sid, picked.name, target, kwargs, options, chain)
             obj = target(**kwargs, **options)
         else:
             obj = target

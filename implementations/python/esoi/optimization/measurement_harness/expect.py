@@ -19,34 +19,35 @@ from __future__ import annotations
 from typing import Any, Callable, Dict, List
 
 
-def check(out: Any, expect: Dict[str, Any]) -> List[str]:
-    """The list of problems (empty means the case passed)."""
+def collection_problems(out: Dict[str, Any], expect: Dict[str, Any]) -> List[str]:
+    """Problems with the output's values and lists: ``eq``, ``has`` and ``any_of``."""
     problems: List[str] = []
-    out = out if isinstance(out, dict) else {"text": str(out)}
-    text = str(out.get("text", ""))
     for key, want in (expect.get("eq") or {}).items():
         if out.get(key) != want:
             problems.append(f"{key}: expected {want!r}, got {out.get(key)!r}")
     for key, wanted in (expect.get("has") or {}).items():
         have = out.get(key) or []
-        for item in wanted:
-            if item not in have:
-                problems.append(f"{key} lacks {item!r}")
+        problems.extend(f"{key} lacks {item!r}" for item in wanted if item not in have)
     for key, groups in (expect.get("any_of") or {}).items():
         have = out.get(key) or []
-        for group in groups:
-            if not any(item in have for item in group):
-                problems.append(f"{key} holds none of {group!r}")
-    for sub in expect.get("contains") or []:
-        if sub not in text:
-            problems.append(f"text lacks {sub!r}")
-    for sub in expect.get("not_contains") or []:
-        if sub in text:
-            problems.append(f"text must not contain {sub!r}")
+        problems.extend(f"{key} holds none of {group!r}" for group in groups if not any(item in have for item in group))
+    return problems
+
+
+def text_problems(text: str, expect: Dict[str, Any]) -> List[str]:
+    """Problems with the output's text: ``contains``, ``not_contains``, ``max_len`` and ``min_len``."""
+    problems = [f"text lacks {sub!r}" for sub in expect.get("contains") or [] if sub not in text]
+    problems += [f"text must not contain {sub!r}" for sub in expect.get("not_contains") or [] if sub in text]
     if "max_len" in expect and len(text) > expect["max_len"]:
         problems.append(f"text is {len(text)} chars, ceiling {expect['max_len']}")
     if "min_len" in expect and len(text) < expect["min_len"]:
         problems.append(f"text is {len(text)} chars, floor {expect['min_len']}")
+    return problems
+
+
+def number_problems(out: Dict[str, Any], expect: Dict[str, Any]) -> List[str]:
+    """Problems with the output's numbers: ``approx`` and ``at_most``."""
+    problems: List[str] = []
     for key, (want, tol) in (expect.get("approx") or {}).items():
         got = out.get(key)
         if not isinstance(got, (int, float)) or abs(got - want) > tol:
@@ -56,6 +57,12 @@ def check(out: Any, expect: Dict[str, Any]) -> List[str]:
         if not isinstance(got, (int, float)) or got > ceiling:
             problems.append(f"{key}: {got!r} is over the ceiling {ceiling}")
     return problems
+
+
+def check(out: Any, expect: Dict[str, Any]) -> List[str]:
+    """The list of problems (empty means the case passed)."""
+    out = out if isinstance(out, dict) else {"text": str(out)}
+    return collection_problems(out, expect) + text_problems(str(out.get("text", "")), expect) + number_problems(out, expect)
 
 
 def score_kind_case(fn: Callable[[str, dict], Any], case: Dict[str, Any]) -> Dict[str, Any]:

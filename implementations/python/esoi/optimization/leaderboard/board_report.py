@@ -53,6 +53,50 @@ def unmeasured_candidates(registry: Registry, history: Dict[str, Dict[str, List[
              "`esoi records sync` make it an arm)"] + found) if found else []
 
 
+def say_component(config: Config, component: str, rows: Dict[str, Row], sel: Optional[str], history: Dict[str, List[Row]], per_case: List[Row],
+                  policy, strict: bool, say: Callable[[str], None], stale, attested) -> int:
+    """Print one component's verdict, rows, comparisons and flags; returns how many flags count against a strict run."""
+    flagged = 0
+    label, detail = verdict(rows, sel, config.evaluation, history, per_case, policy) if sel else ("UNMEASURED", "no selected implementation: " + best_guess(rows, config.evaluation)[1])
+    say(f"{component} (selected: {sel or 'none recorded'}) {label}: {detail}")
+    for line in format_rows(rows, sel, config.evaluation):
+        say(line)
+    if stale and attested:
+        for impl, r in sorted(rows.items()):
+            if (said := attested(config, component, impl, r.get("git_sha", ""))) and not stale(config, component, r, True):
+                say(f"  = {impl}: {said}")
+    if not sel:
+        return 0
+    for own, rival in rival_pairs(rows, sel, config.evaluation, history)[0]:
+        if own is not rows.get(sel) or rival is not rows.get(rival["impl"]):
+            say(f"  = compared on {describe_cases(own)}: {sel} {own['passed']}/{own['cases']} ({own.get('date', '')}) "
+                f"against {rival['impl']} {rival['passed']}/{rival['cases']} ({rival.get('date', '')})")
+    for impl, why in incomparable_rivals(rows, sel, config.evaluation, history):
+        flagged += 1 if strict else 0
+        say(f"  ? {impl} is not comparable with {sel}: {why}; re-run both on the same sample "
+            "(`esoi run --stale` re-runs a rival on the selected arm's sample)")
+    for r in challengers(rows, sel, config.evaluation, history, per_case, policy):
+        flagged += 1
+        say(f"  ! {r['impl']} should replace the selected {sel}: decide whether to adopt it "
+            "(update the solution's `selected` and the live default together)")
+    for impl, why in (stale_rivals(config, component, rows, sel, stale, history) if stale else []):
+        flagged += 1 if strict else 0
+        say(f"  ~ {impl} is a rival the verdict on {sel} rests on, but {why}; re-run it on the current code "
+            "before trusting the verdict")
+    return flagged
+
+
+def say_solutions(config: Config, registry: Registry, results: Dict, history: Dict, per_case: List[Row], say: Callable[[str], None]) -> None:
+    """Print the verdict of each solution, by name and id."""
+    say("\nBy solution, as Name (id); commands take the id (WIN = shown, or guessed, better than every rival; TIE = no rival is shown better, so it stays; "
+        "UNMEASURED = no rival was compared; a rival that should replace the selected arm is flagged with `!` above)")
+    called = {r.get("solution_id", ""): " ".join((r.get("name") or "").split()) for r in registry.every_solution()}
+    for sid, v in sorted(solution_verdicts(config, registry.solutions, results, history, registry, per_case).items()):
+        reason = f"  kept because: {v['selected_by']}" if v["verdict"] == "TIE" else ""
+        title = f"{called[sid]} ({sid})" if called.get(sid) and called[sid].lower() != sid.lower() else sid
+        say(f"  {v['verdict']:<10} {title}: {v['detail']}{reason}")
+
+
 def board(config: Config, registry: Registry, strict: bool = False, say: Callable[[str], None] = print,
           stale: Optional[Callable[[Config, str, Row, bool], str]] = None,
           attested: Optional[Callable[[Config, str, str, str], str]] = None) -> int:
@@ -64,43 +108,13 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
     selected = selected_impls(config, registry.solutions, registry)
     per_case = per_case_rows(config)
     chosen = policies(config, registry, per_case)
-    flagged = 0
     apart = {c: rows for c, rows in results.items() if invariant_reason(c, config.evaluation)}
+    flagged = 0
     for component, rows in sorted(results.items()):
-        if component in apart:
-            continue
-        sel = selected.get(component)
-        label, detail = verdict(rows, sel, config.evaluation, history[component], per_case, chosen.get(component)) if sel else ("UNMEASURED", "no selected implementation: " + best_guess(rows, config.evaluation)[1])
-        say(f"{component} (selected: {sel or 'none recorded'}) {label}: {detail}")
-        for line in format_rows(rows, sel, config.evaluation):
-            say(line)
-        if stale and attested:
-            for impl, r in sorted(rows.items()):
-                if (said := attested(config, component, impl, r.get("git_sha", ""))) and not stale(config, component, r, True):
-                    say(f"  = {impl}: {said}")
-        for own, rival in (rival_pairs(rows, sel, config.evaluation, history[component])[0] if sel else []):
-            if own is not rows.get(sel) or rival is not rows.get(rival["impl"]):
-                say(f"  = compared on {describe_cases(own)}: {sel} {own['passed']}/{own['cases']} ({own.get('date', '')}) "
-                    f"against {rival['impl']} {rival['passed']}/{rival['cases']} ({rival.get('date', '')})")
-        for impl, why in (incomparable_rivals(rows, sel, config.evaluation, history[component]) if sel else []):
-            flagged += 1 if strict else 0
-            say(f"  ? {impl} is not comparable with {sel}: {why}; re-run both on the same sample "
-                "(`esoi run --stale` re-runs a rival on the selected arm's sample)")
-        for r in (challengers(rows, sel, config.evaluation, history[component], per_case, chosen.get(component)) if sel else []):
-            flagged += 1
-            say(f"  ! {r['impl']} should replace the selected {sel}: decide whether to adopt it "
-                "(update the solution's `selected` and the live default together)")
-        for impl, why in (stale_rivals(config, component, rows, sel, stale, history[component]) if sel and stale else []):
-            flagged += 1 if strict else 0
-            say(f"  ~ {impl} is a rival the verdict on {sel} rests on, but {why}; re-run it on the current code "
-                "before trusting the verdict")
-    say("\nBy solution, as Name (id); commands take the id (WIN = shown, or guessed, better than every rival; TIE = no rival is shown better, so it stays; "
-        "UNMEASURED = no rival was compared; a rival that should replace the selected arm is flagged with `!` above)")
-    called = {r.get("solution_id", ""): " ".join((r.get("name") or "").split()) for r in registry.every_solution()}
-    for sid, v in sorted(solution_verdicts(config, registry.solutions, results, history, registry, per_case).items()):
-        reason = f"  kept because: {v['selected_by']}" if v["verdict"] == "TIE" else ""
-        title = f"{called[sid]} ({sid})" if called.get(sid) and called[sid].lower() != sid.lower() else sid
-        say(f"  {v['verdict']:<10} {title}: {v['detail']}{reason}")
+        if component not in apart:
+            flagged += say_component(config, component, rows, selected.get(component), history[component], per_case, chosen.get(component),
+                                     strict, say, stale, attested)
+    say_solutions(config, registry, results, history, per_case, say)
     for line in unmeasured_candidates(registry, history):
         say(line)
     if apart:

@@ -53,6 +53,64 @@ class Ranking:
         return agrees_with_results(self.dimensions[chosen], own_results, better, tolerance)
 
 
+def shared_basis_estimates(asked: Sequence[str], found: Mapping, dim: str) -> Tuple[Optional[Tuple[str, str]], Dict[str, Estimate]]:
+    """The basis most candidates have on a dimension (more candidates, then better grades) and each candidate's estimate on it."""
+    options: Dict[Tuple[str, str], List[Estimate]] = {}
+    for cand in asked:
+        for est in found.get((cand, dim), []):
+            options.setdefault(est.basis, []).append(est)
+    best_basis = max(options, key=lambda b: (len({norm(x.candidate) for x in options[b]}),
+                                             -sum(LETTERS.index(x.grade) for x in options[b]), b), default=None)
+    return best_basis, {norm(est.candidate): est for est in (options[best_basis] if best_basis else [])}
+
+
+def place_candidates(picked: Mapping[str, Estimate], dim: str, p: Params) -> List[Placement]:
+    """The candidates in order, grade D ones after the rest, each with a note and the candidates it is within tolerance of."""
+    direction = x_better(picked)
+    usable = sorted((x for x in picked.values() if x.grade != "D"), key=lambda x: x.value, reverse=(direction == "higher"))
+    weak = sorted((x for x in picked.values() if x.grade == "D"), key=lambda x: x.value, reverse=(direction == "higher"))
+    placements: List[Placement] = []
+    for index, est in enumerate(usable + weak, 1):
+        tied = tuple(q.candidate for q in placements
+                     if q.estimate.grade != "D" and est.grade != "D" and spread(q.estimate.value, est.value) <= p.tolerance[dim])
+        note = (f"grade {est.grade}: {est.value:g} {est.unit}" + (f"; flags: {', '.join(est.flags)}" if est.flags else "")
+                + ("; " + est.settle if est.needs_own_run and est.settle else ""))
+        if est.grade == "D":
+            note = ("provisional, placed below every candidate with better evidence: " if usable else "provisional: ") + note
+        if tied:
+            note += f"; within {p.tolerance[dim]:.0%} of {', '.join(tied)}, so not a real difference"
+        placements.append(Placement(est.candidate, index, est, note, tied))
+    return placements
+
+
+def rank_dimension(dim: str, weight: float, asked: Sequence[str], names: Mapping[str, str], found: Mapping, p: Params) -> DimensionRanking:
+    """The shortlist of one dimension on its shared basis, with who was skipped (other basis) and who has no evidence."""
+    best_basis, picked = shared_basis_estimates(asked, found, dim)
+    have = {cand for cand in asked if (cand, dim) in found}
+    skipped = [(names[c], f"no row on {basis_label(best_basis)}; its evidence is on "
+                          + ", ".join(sorted(basis_label(x.basis) for x in found[(c, dim)])))
+               for c in asked if c in have and c not in picked]
+    return DimensionRanking(dim, weight, basis_label(best_basis) if best_basis else "", x_better(picked) if picked else "",
+                            place_candidates(picked, dim, p), skipped, [names[c] for c in asked if c not in have])
+
+
+def overall_of(cand: str, name: str, dimensions: Mapping[str, float], result: Mapping[str, DimensionRanking], p: Params, total: float) -> Overall:
+    """One candidate's weighted overall score across the dimensions it has comparable evidence on."""
+    score, covered, notes = 0.0, 0.0, []
+    for dim, weight in dimensions.items():
+        place = next((q for q in result[dim].ordered if norm(q.candidate) == cand), None)
+        if place is None:
+            notes.append(f"{dim}: no comparable evidence")
+            continue
+        count = len(result[dim].ordered)
+        position = 1.0 if count == 1 else 1 - (place.rank - 1) / (count - 1)
+        confidence = p.confidence[place.estimate.grade]
+        score += weight * position * confidence
+        covered += weight * (confidence > 0)
+        notes.append(f"{dim}: rank {place.rank} of {count}, grade {place.estimate.grade}")
+    return Overall(name, score / total, covered / total, notes)
+
+
 def rank(evidence: Iterable[Evidence], dimensions: Mapping[str, float], candidates: Optional[Sequence[str]] = None,
          today: Optional[datetime.date] = None, p: Params = DEFAULTS) -> Ranking:
     """Per-dimension ordered shortlists and a weighted overall. ``dimensions`` is ``{dimension: weight}``. Candidates are compared
@@ -69,54 +127,9 @@ def rank(evidence: Iterable[Evidence], dimensions: Mapping[str, float], candidat
     asked = [norm(c) for c in candidates] if candidates else sorted(names)
     for c in (candidates or []):
         names.setdefault(norm(c), c)
-    result: Dict[str, DimensionRanking] = {}
-    for dim, weight in dimensions.items():
-        options: Dict[Tuple[str, str], List[Estimate]] = {}
-        for cand in asked:
-            for est in found.get((cand, dim), []):
-                options.setdefault(est.basis, []).append(est)
-        have = {cand for cand in asked if (cand, dim) in found}
-        best_basis = max(options, key=lambda b: (len({norm(x.candidate) for x in options[b]}),
-                                                 -sum(LETTERS.index(x.grade) for x in options[b]), b), default=None)
-        picked: Dict[str, Estimate] = {}
-        for est in (options[best_basis] if best_basis else []):
-            picked[norm(est.candidate)] = est
-        skipped = [(names[c], f"no row on {basis_label(best_basis)}; its evidence is on "
-                              + ", ".join(sorted(basis_label(x.basis) for x in found[(c, dim)])))
-                   for c in asked if c in have and c not in picked]
-        direction = x_better(picked)
-        usable = sorted((x for x in picked.values() if x.grade != "D"), key=lambda x: x.value, reverse=(direction == "higher"))
-        weak = sorted((x for x in picked.values() if x.grade == "D"), key=lambda x: x.value, reverse=(direction == "higher"))
-        placements: List[Placement] = []
-        for index, est in enumerate(usable + weak, 1):
-            tied = tuple(q.candidate for q in placements
-                         if q.estimate.grade != "D" and est.grade != "D" and spread(q.estimate.value, est.value) <= p.tolerance[dim])
-            note = (f"grade {est.grade}: {est.value:g} {est.unit}" + (f"; flags: {', '.join(est.flags)}" if est.flags else "")
-                    + ("; " + est.settle if est.needs_own_run and est.settle else ""))
-            if est.grade == "D":
-                note = ("provisional, placed below every candidate with better evidence: " if usable else "provisional: ") + note
-            if tied:
-                note += f"; within {p.tolerance[dim]:.0%} of {', '.join(tied)}, so not a real difference"
-            placements.append(Placement(est.candidate, index, est, note, tied))
-        result[dim] = DimensionRanking(dim, weight, basis_label(best_basis) if best_basis else "", x_better(picked) if picked else "",
-                                       placements, skipped, [names[c] for c in asked if c not in have])
+    result = {dim: rank_dimension(dim, weight, asked, names, found, p) for dim, weight in dimensions.items()}
     total = sum(dimensions.values()) or 1.0
-    overall: List[Overall] = []
-    for cand in asked:
-        score, covered, notes = 0.0, 0.0, []
-        for dim, weight in dimensions.items():
-            place = next((q for q in result[dim].ordered if norm(q.candidate) == cand), None)
-            if place is None:
-                notes.append(f"{dim}: no comparable evidence")
-                continue
-            count = len(result[dim].ordered)
-            position = 1.0 if count == 1 else 1 - (place.rank - 1) / (count - 1)
-            confidence = p.confidence[place.estimate.grade]
-            score += weight * position * confidence
-            covered += weight * (confidence > 0)
-            notes.append(f"{dim}: rank {place.rank} of {count}, grade {place.estimate.grade}")
-        overall.append(Overall(names[cand], score / total, covered / total, notes))
-    overall.sort(key=lambda o: (-o.score, o.candidate))
+    overall = sorted((overall_of(cand, names[cand], dimensions, result, p, total) for cand in asked), key=lambda o: (-o.score, o.candidate))
     return Ranking(result, overall)
 
 
@@ -132,6 +145,19 @@ class Agreement:
     pairs: List[Tuple[str, str, str]]       # (better publicly, other, "agree" | "conflict" | "tie")
     excluded: List[str]
     lines: List[str]
+
+
+def judge_pair(a: Placement, b: Placement, gap: float, better: str, tolerance: float) -> Tuple[str, str]:
+    """Whether our scores agree with the public order of ``a`` over ``b`` (``gap`` is our score of a minus b): ``(kind, line)``."""
+    ours = -gap if better == "lower" else gap
+    if abs(gap) <= tolerance:
+        return "tie", (f"{a.candidate} and {b.candidate}: public evidence prefers {a.candidate}; our scores are within {tolerance:g}, "
+                       "so neither confirms nor contradicts it")
+    if ours > 0:
+        return "agree", f"{a.candidate} over {b.candidate}: public evidence (grades {a.estimate.grade}, {b.estimate.grade}) and our results agree"
+    return "conflict", (f"CONFLICT {a.candidate} over {b.candidate}: public evidence (grades {a.estimate.grade}, {b.estimate.grade}) "
+                        "prefers the first, our results prefer the second. Information, not an error: our cases may differ "
+                        "from the benchmark's, or the public number may not hold here. Our own result stays the basis for selection")
 
 
 def agrees_with_results(ranking: DimensionRanking, own_results: Mapping[str, float], better: str = "higher",
@@ -151,21 +177,9 @@ def agrees_with_results(ranking: DimensionRanking, own_results: Mapping[str, flo
         for b in public[i + 1:]:
             if a.candidate in b.tied_with or b.candidate in a.tied_with:
                 continue
-            ours = own[norm(a.candidate)] - own[norm(b.candidate)]
-            if better == "lower":
-                ours = -ours
-            if abs(own[norm(a.candidate)] - own[norm(b.candidate)]) <= tolerance:
-                pairs.append((a.candidate, b.candidate, "tie"))
-                lines.append(f"{a.candidate} and {b.candidate}: public evidence prefers {a.candidate}; our scores are within {tolerance:g}, "
-                             "so neither confirms nor contradicts it")
-            elif ours > 0:
-                pairs.append((a.candidate, b.candidate, "agree"))
-                lines.append(f"{a.candidate} over {b.candidate}: public evidence (grades {a.estimate.grade}, {b.estimate.grade}) and our results agree")
-            else:
-                pairs.append((a.candidate, b.candidate, "conflict"))
-                lines.append(f"CONFLICT {a.candidate} over {b.candidate}: public evidence (grades {a.estimate.grade}, {b.estimate.grade}) "
-                             "prefers the first, our results prefer the second. Information, not an error: our cases may differ "
-                             "from the benchmark's, or the public number may not hold here. Our own result stays the basis for selection")
+            kind, line = judge_pair(a, b, own[norm(a.candidate)] - own[norm(b.candidate)], better, tolerance)
+            pairs.append((a.candidate, b.candidate, kind))
+            lines.append(line)
     kinds = {kind for _, _, kind in pairs if kind != "tie"}
     verdict = "insufficient" if not kinds else "mixed" if len(kinds) > 1 else kinds.pop()
     return Agreement(ranking.dimension, verdict, pairs, excluded, lines)

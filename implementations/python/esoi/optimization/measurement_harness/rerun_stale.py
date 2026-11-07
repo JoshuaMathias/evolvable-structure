@@ -54,6 +54,52 @@ def not_rerun_reason(config: Config, component: str, impl: str, row: Optional[Di
     return "no pending decision or release depends on it (run `esoi run --stale --for-decision` when one does, or name the arm with --include)"
 
 
+def why_stale(config: Config, comp: str, impl: str, row: Optional[Dict[str, str]], is_selected: bool, flags: List[str], full: bool) -> str:
+    """Why an arm's recorded result no longer counts (empty when it is current): a changed file or case, a different sample than the
+    selected arm's, a sample when ``--full`` asks for the whole set, or an expiration that has passed."""
+    why = stale_reasons.stale_reason(config, comp, row)
+    if not why and row and not is_selected:
+        wanted = sample_args(config, comp, row)
+        if wanted != flags:
+            why = f"it was scored on a different sample ({' '.join(wanted) or 'full set'}) than the selected arm ({' '.join(flags) or 'full set'}), so it is not comparable"
+    if not why and full and row and sample_args(config, comp, row):
+        why = "it was scored on a sample and --full asks for the whole set"
+    if not why and is_selected:
+        why = expired_reason(config, comp, row)   # an expiration the metric or project declares and that has passed
+    return why
+
+
+def rerun_one(config: Config, comp: str, impl: str, row: Optional[Dict[str, str]], why: str, flags: List[str], named: bool,
+              options: Tuple[bool, bool, bool], say: Callable[[str], None]) -> str:
+    """Run (or plan) one stale arm worth running. Returns ``paid`` or ``capped`` when it was skipped, ``failed`` when it could not
+    start, else ``ran``."""
+    record, include_paid, plan = options
+    paid = paid_reason(config, comp, impl, row)
+    if paid and not (include_paid or named):
+        say(f"{comp}/{impl}: stale, {why}; SKIPPED because it may spend money ({paid})")
+        return "paid"
+    capped = "" if named else run_guards.ceiling_reason(config, comp, impl, run_guards.sample_of(flags), paid, stale_reasons.stale_reason)
+    if capped:
+        say(f"{comp}/{impl}: stale, {why}; SKIPPED, not worth running: {capped}")
+        return "capped"
+    say(f"{comp}/{impl}: stale, {why}")
+    if plan:
+        say(f"{comp}/{impl}: would run" + (f" ({' '.join(flags)})" if flags else ""))
+        return "planned"
+    score = importlib.import_module(f"{comp}.score")
+    try:
+        run_component(comp, score.score_case, ["--impl", impl] + flags + (["--record"] if record else ["--keep-going"]), config,
+                      lambda text: None, guards=False)
+    except PendingNetwork as exc:   # offline: informs, records nothing, is not a failure
+        say(f"{comp}/{impl}: {exc}")
+        return "offline"
+    except RunError as exc:   # an arm that cannot start (an unknown variant key, a bad circumstance) fails once, loudly
+        say(f"{comp}/{impl}: ERROR, {exc}")
+        return "failed"
+    say(f"{comp}/{impl}: run" + (f" ({' '.join(flags)})" if flags else "") + (" and recorded" if record else ""))
+    return "ran"
+
+
 def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool = True, include_paid: bool = False,
                 include: Optional[List[str]] = None, full: bool = False, plan: bool = False, run_all: bool = False,
                 for_decision: bool = False) -> int:
@@ -87,18 +133,10 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
     target: Dict[str, List[str]] = {}   # component -> run flags of its selected arm's sample
     for comp, impl in stale_arms(config):
         row = latest.get(comp, {}).get(impl)
-        why = stale_reasons.stale_reason(config, comp, row)
         if comp not in target:   # stale_arms lists the selected arm of a component first
             target[comp] = [] if full else sample_args(config, comp, row)
         flags = target[comp]
-        if not why and row and (comp, impl) not in selected_arms:
-            wanted = sample_args(config, comp, row)
-            if wanted != flags:
-                why = f"it was scored on a different sample ({' '.join(wanted) or 'full set'}) than the selected arm ({' '.join(flags) or 'full set'}), so it is not comparable"
-        if not why and full and row and sample_args(config, comp, row):
-            why = "it was scored on a sample and --full asks for the whole set"
-        if not why and (comp, impl) in selected_arms:
-            why = expired_reason(config, comp, row)   # an expiration the metric or project declares and that has passed
+        why = why_stale(config, comp, impl, row, (comp, impl) in selected_arms, flags, full)
         if not why:
             say(f"{comp}/{impl}: current")
             continue
@@ -109,32 +147,12 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
             say(f"{comp}/{impl}: {label}; not re-run: {waiting}")
             left.append(f"{comp}/{impl}")
             continue
-        paid = paid_reason(config, comp, impl, row)
-        if paid and not (include_paid or named):
-            say(f"{comp}/{impl}: stale, {why}; SKIPPED because it may spend money ({paid})")
+        outcome = rerun_one(config, comp, impl, row, why, flags, named, (record, include_paid, plan), say)
+        if outcome == "paid":
             skipped.append(f"{comp}/{impl}")
-            continue
-        capped = "" if named else run_guards.ceiling_reason(config, comp, impl, run_guards.sample_of(flags), paid, stale_reasons.stale_reason)
-        if capped:
-            say(f"{comp}/{impl}: stale, {why}; SKIPPED, not worth running: {capped}")
+        elif outcome == "capped":
             skipped_ceiling.append(f"{comp}/{impl}")
-            continue
-        say(f"{comp}/{impl}: stale, {why}")
-        if plan:
-            say(f"{comp}/{impl}: would run" + (f" ({' '.join(flags)})" if flags else ""))
-            continue
-        score = importlib.import_module(f"{comp}.score")
-        try:
-            run_component(comp, score.score_case, ["--impl", impl] + flags + (["--record"] if record else ["--keep-going"]), config,
-                          lambda text: None, guards=False)
-        except PendingNetwork as exc:   # offline: informs, records nothing, is not a failure
-            say(f"{comp}/{impl}: {exc}")
-            continue
-        except RunError as exc:   # an arm that cannot start (an unknown variant key, a bad circumstance) fails once, loudly
-            failed += 1
-            say(f"{comp}/{impl}: ERROR, {exc}")
-            continue
-        say(f"{comp}/{impl}: run" + (f" ({' '.join(flags)})" if flags else "") + (" and recorded" if record else ""))
+        failed += outcome == "failed"
     if left:
         say(f"{len(left)} row(s) not re-run: a changed file only informs; improve the implementation first, and measure when a decision "
             "depends on the result (`esoi run --stale --for-decision`, `--include COMPONENT/IMPL`, or `--all` for every stale arm)")

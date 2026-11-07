@@ -157,6 +157,113 @@ def settle_text(candidate: str, measure: str, comparator: str, flags: Sequence[s
     return ordered[0] if ordered else f"one more independent measurement of {measure} for {candidate}{where}"
 
 
+def cap_by_sources(letter: str, comparable: List[Evidence], used: List[Evidence], independent: List[Evidence],
+                   flags: set, reasons: List[str]) -> str:
+    """The letter after the caps that come from what the sources are: vendor-side only, no independent row, one source only."""
+    if all(e.vendor_side for e in comparable):
+        flags.add("vendor_only")
+        letter = worse(letter, "D")
+        reasons.append("every source is vendor-side (vendor or maintainer reported, or run by the owner): capped at D")
+    elif not independent:
+        letter = worse(letter, "C")
+        reasons.append("no independent source (community reports only): capped at C")
+    if len({e.source_key() for e in used}) == 1:
+        flags.add("single_source")
+        letter = worse(letter, "B")
+        reasons.append("one source only, so it is never relied on alone: capped at B")
+    return letter
+
+
+def find_contradictions(used: List[Evidence], converted: Dict[str, Tuple[float, str]], tol: float) -> List[Tuple[str, str, float]]:
+    """Pairs of rows from different sources whose values differ beyond the tolerance."""
+    found: List[Tuple[str, str, float]] = []
+    for i, a in enumerate(used):
+        for b in used[i + 1:]:
+            gap = spread(converted[a.evidence_id][0], converted[b.evidence_id][0])
+            if a.source_key() != b.source_key() and gap > tol:
+                found.append((a.evidence_id, b.evidence_id, gap))
+    return found
+
+
+def adjust_by_agreement(letter: str, contradictions: List[Tuple[str, str, float]], independent: List[Evidence], used: List[Evidence],
+                        tol: float, flags: set, reasons: List[str]) -> str:
+    """Lower the letter for a contradiction, raise it when two independent sources agree."""
+    agree_rows = [e for e in independent if e in used]
+    if contradictions:
+        flags.add("contradicts")
+        reasons.append("contradiction: " + "; ".join(f"{a} and {b} differ by {s:.0%}, over the {tol:.0%} tolerance"
+                                                    for a, b, s in contradictions) + ": lowered one letter")
+        return lowered(letter)
+    agreeing = len({e.source_key() for e in agree_rows})
+    if len({e.source_key() for e in independent}) >= 2 and agreeing >= 2:
+        reasons.append(f"{agreeing} independent sources agree within {tol:.0%}: raised one letter")
+        return raised(letter)
+    return letter
+
+
+def quality_flags(used: List[Evidence], today: datetime.date, p: Params, dim: str, flags: set, reasons: List[str]) -> None:
+    """Flags about the counting rows as a whole: stale, saturated, contamination risk, confounded, no method."""
+    stale_limit = p.stale_days[dim]
+    ages = [age_days(e, today) for e in used]
+    statuses = {e.benchmark_status for e in used}
+    checks = [("stale", all(d is not None and d > stale_limit for d in ages), f"every counting row is older than {stale_limit} days"),
+              ("saturated", statuses <= {"saturated", "archived"}, "the benchmark is " + "/".join(sorted(statuses)) + ": it no longer separates candidates"),
+              ("contamination_risk", statuses == {"contamination_risk"}, "the benchmark may have leaked into training data"),
+              ("confounded", all(e.confounds for e in used), ""),
+              ("no_method", all(e.method_disclosed == "no" for e in used), "no method is disclosed, so nothing can be re-run or checked")]
+    for flag, raised_flag, reason in checks:
+        if raised_flag:
+            flags.add(flag)
+            reasons.extend([reason] if reason else [])
+
+
+def headline_value(agree_rows: List[Evidence], converted: Dict[str, Tuple[float, str]], best_used: Evidence) -> float:
+    """The median of two or more agreeing independent rows, else the best counting row's value."""
+    if len(agree_rows) >= 2:
+        return statistics.median(converted[e.evidence_id][0] for e in agree_rows)
+    return converted[best_used.evidence_id][0]
+
+
+def own_run_need(rows: Sequence[Evidence], letter: str, flags: Tuple[str, ...], contradictions: List[Tuple[str, str, float]],
+                 confounds: Tuple[str, ...], unit: str, p: Params, reasons: List[str]) -> Tuple[bool, str]:
+    """Whether the grade is too low or a blocking flag is raised, and the one run that would settle it."""
+    blocked = sorted(set(flags) & set(p.blocking))
+    low = LETTERS.index(letter) > LETTERS.index(p.needs_grade)
+    if not (low or blocked):
+        return False, ""
+    first = rows[0]
+    ids = [x for pair in contradictions[:1] for x in pair[:2]] or [e.evidence_id for e in rows]
+    why = ([f"grade {letter} is below {p.needs_grade}"] if low else []) + ([f"flags block use: {', '.join(blocked)}"] if blocked else [])
+    reasons.append("needs an own run: " + "; ".join(why))
+    return True, settle_text(first.candidate, first.measure, first.comparator, flags, ids, confounds, unit)
+
+
+def not_counted_reasons(comparable: List[Evidence], used: List[Evidence], converted: Dict[str, Tuple[float, str]],
+                        best_used: Evidence, tol: float) -> List[str]:
+    """Why each vendor-side row beside an independent one is not counted."""
+    out = []
+    for e in (e for e in comparable if e not in used):
+        gap = spread(converted[e.evidence_id][0], converted[best_used.evidence_id][0])
+        out.append(f"vendor-side row {e.evidence_id} is not counted" + (f" (it differs from the independent value by {gap:.0%})" if gap > tol else ""))
+    return out
+
+
+def comparable_rows(rows: Sequence[Evidence], converted: Dict[str, Tuple[float, str]], base_unit: str, flags: set,
+                    reasons: List[str]) -> List[Evidence]:
+    """The rows whose unit converts to the base unit; the others raise ``unit_mismatch`` and are named, not compared."""
+    comparable = [e for e in rows if converted[e.evidence_id][1] == base_unit]
+    for e in (e for e in rows if e not in comparable):
+        flags.add("unit_mismatch")
+        reasons.append(f"{e.evidence_id} reports {e.unit}, which does not convert to {base_unit}; left out, not compared")
+    return comparable
+
+
+def confound_notes(comparable: List[Evidence], reasons: List[str]) -> Tuple[str, ...]:
+    """The confounds the rows name, sorted; each row that names some says so in the reasons."""
+    reasons.extend(f"{e.evidence_id} names confounds: {'; '.join(e.confounds)}" for e in comparable if e.confounds)
+    return tuple(sorted({c for e in comparable for c in e.confounds}))
+
+
 def grade_basis(rows: Sequence[Evidence], today: datetime.date, p: Params = DEFAULTS,
                 other_bases: Tuple[str, ...] = ()) -> Estimate:
     """Grade the rows of one candidate, one dimension and one basis."""
@@ -168,87 +275,26 @@ def grade_basis(rows: Sequence[Evidence], today: datetime.date, p: Params = DEFA
     scored = {e.evidence_id: row_points(e, today, p) for e in rows}
     best = max(rows, key=lambda e: (scored[e.evidence_id][0], not e.vendor_side, e.date_checked))
     base_unit = converted[best.evidence_id][1]
-    comparable = [e for e in rows if converted[e.evidence_id][1] == base_unit]
-    for e in rows:
-        if e not in comparable:
-            flags.add("unit_mismatch")
-            reasons.append(f"{e.evidence_id} reports {e.unit}, which does not convert to {base_unit}; left out, not compared")
+    comparable = comparable_rows(rows, converted, base_unit, flags, reasons)
     independent = [e for e in comparable if e.independent]
-    vendor_only = all(e.vendor_side for e in comparable)
     used = [e for e in comparable if not e.vendor_side] or comparable
-    ignored = [e for e in comparable if e not in used]
     tol = p.tolerance[dim]
     best_used = max(used, key=lambda e: (scored[e.evidence_id][0], e.date_checked))
     points, parts = scored[best_used.evidence_id]
     letter = letter_for(points, p)
     reasons.append(f"best row {best_used.evidence_id}: {points} points ({', '.join(parts)}) gives {letter}")
-    if vendor_only:
-        flags.add("vendor_only")
-        letter = worse(letter, "D")
-        reasons.append("every source is vendor-side (vendor or maintainer reported, or run by the owner): capped at D")
-    elif not independent:
-        letter = worse(letter, "C")
-        reasons.append("no independent source (community reports only): capped at C")
-    sources = {e.source_key() for e in used}
-    if len(sources) == 1:
-        flags.add("single_source")
-        letter = worse(letter, "B")
-        reasons.append("one source only, so it is never relied on alone: capped at B")
-    ind_sources = {e.source_key() for e in independent}
-    agree_rows = [e for e in independent if e in used]
-    contradictions: List[Tuple[str, str, float]] = []
-    for i, a in enumerate(used):
-        for b in used[i + 1:]:
-            if a.source_key() != b.source_key() and spread(converted[a.evidence_id][0], converted[b.evidence_id][0]) > tol:
-                contradictions.append((a.evidence_id, b.evidence_id, spread(converted[a.evidence_id][0], converted[b.evidence_id][0])))
-    if contradictions:
-        flags.add("contradicts")
-        letter = lowered(letter)
-        reasons.append("contradiction: " + "; ".join(f"{a} and {b} differ by {s:.0%}, over the {tol:.0%} tolerance"
-                                                    for a, b, s in contradictions) + ": lowered one letter")
-    elif len(ind_sources) >= 2 and len({e.source_key() for e in agree_rows}) >= 2:
-        letter = raised(letter)
-        reasons.append(f"{len({e.source_key() for e in agree_rows})} independent sources agree within {tol:.0%}: raised one letter")
-    for e in ignored:
-        gap = spread(converted[e.evidence_id][0], converted[best_used.evidence_id][0])
-        reasons.append(f"vendor-side row {e.evidence_id} is not counted"
-                       + (f" (it differs from the independent value by {gap:.0%})" if gap > tol else ""))
-    days = [age_days(e, today) for e in used]
-    stale_limit = p.stale_days[dim]
-    if all(d is not None and d > stale_limit for d in days):
-        flags.add("stale")
-        reasons.append(f"every counting row is older than {stale_limit} days")
-    if all(e.benchmark_status in ("saturated", "archived") for e in used):
-        flags.add("saturated")
-        reasons.append("the benchmark is " + "/".join(sorted({e.benchmark_status for e in used})) + ": it no longer separates candidates")
-    if all(e.benchmark_status == "contamination_risk" for e in used):
-        flags.add("contamination_risk")
-        reasons.append("the benchmark may have leaked into training data")
-    if all(e.confounds for e in used):
-        flags.add("confounded")
-    if all(e.method_disclosed == "no" for e in used):
-        flags.add("no_method")
-        reasons.append("no method is disclosed, so nothing can be re-run or checked")
-    confounds = tuple(sorted({c for e in comparable for c in e.confounds}))
-    for e in comparable:
-        if e.confounds:
-            reasons.append(f"{e.evidence_id} names confounds: {'; '.join(e.confounds)}")
-    values = [(e.evidence_id, converted[e.evidence_id][0]) for e in comparable]
-    if len(agree_rows) >= 2 and not contradictions:
-        value = statistics.median(converted[e.evidence_id][0] for e in agree_rows)
-    else:
-        value = converted[best_used.evidence_id][0]
+    letter = cap_by_sources(letter, comparable, used, independent, flags, reasons)
+    contradictions = find_contradictions(used, converted, tol)
+    letter = adjust_by_agreement(letter, contradictions, independent, used, tol, flags, reasons)
+    reasons.extend(not_counted_reasons(comparable, used, converted, best_used, tol))
+    quality_flags(used, today, p, dim, flags, reasons)
+    confounds = confound_notes(comparable, reasons)
+    agree_rows = [] if contradictions else [e for e in independent if e in used]
     ordered = tuple(sorted(flags, key=FLAGS.index))
-    blocked = sorted(set(ordered) & set(p.blocking))
-    low = LETTERS.index(letter) > LETTERS.index(p.needs_grade)
-    need = low or bool(blocked)
-    ids = [x for pair in contradictions[:1] for x in pair[:2]] or [e.evidence_id for e in rows]
-    settle = settle_text(first.candidate, first.measure, first.comparator, ordered, ids, confounds, base_unit) if need else ""
-    if need:
-        why = ([f"grade {letter} is below {p.needs_grade}"] if low else []) + ([f"flags block use: {', '.join(blocked)}"] if blocked else [])
-        reasons.append("needs an own run: " + "; ".join(why))
-    return Estimate(first.candidate, dim, first.measure, first.comparator, base_unit, first.better, value, values, letter, points,
-                    ordered, tuple(e.evidence_id for e in rows), contradictions, reasons, need, settle, other_bases, confounds)
+    need, settle = own_run_need(rows, letter, ordered, contradictions, confounds, base_unit, p, reasons)
+    return Estimate(first.candidate, dim, first.measure, first.comparator, base_unit, first.better,
+                    headline_value(agree_rows, converted, best_used), [(e.evidence_id, converted[e.evidence_id][0]) for e in comparable],
+                    letter, points, ordered, tuple(e.evidence_id for e in rows), contradictions, reasons, need, settle, other_bases, confounds)
 
 
 def basis_label(basis: Tuple[str, str]) -> str:

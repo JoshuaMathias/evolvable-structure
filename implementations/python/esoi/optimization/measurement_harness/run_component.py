@@ -35,23 +35,24 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from esoi.optimization.leaderboard import circumstances
 from esoi.optimization.leaderboard.case_identity import cases_digest
-from esoi.optimization.measurement_harness import access
 from esoi.optimization.measurement_harness import balance
 from esoi.optimization.measurement_harness import cassette as cassettes
 from esoi.optimization.measurement_harness import code_provenance
 from esoi.optimization.measurement_harness import run_log
 from esoi.optimization.measurement_harness.arm_loading import load_impl
 from esoi.optimization.measurement_harness.call_meter import CallMeter
-from esoi.optimization.measurement_harness.case_loading import load_cases, sample_label, stratified_sample
+from esoi.optimization.measurement_harness.case_loading import load_cases, sample_label
 from esoi.optimization.measurement_harness.check_guards import check_guards
 from esoi.optimization.measurement_harness.offline_guard import OfflineGuard, refuse_offline_network
 from esoi.optimization.measurement_harness.per_case_log import write_per_case
 from esoi.optimization.measurement_harness.record_result import record_result
 from esoi.optimization.measurement_harness.record_slices import record_slices
+from esoi.optimization.measurement_harness.run_arguments import build_parser, name_cases_to_run, narrow_cases
+from esoi.optimization.measurement_harness.run_cases import run_cases
 from esoi.optimization.measurement_harness.run_cost import run_cost
 from esoi.optimization.measurement_harness.run_errors import RunError
 from esoi.optimization.when_metrics_are_run import run_guards
-from esoi.optimization.when_metrics_are_run.paid_gating import BudgetExceeded, SIMULATED_MODEL, declared_live, declares_simulated, impl_path
+from esoi.optimization.when_metrics_are_run.paid_gating import SIMULATED_MODEL, declared_live, declares_simulated, impl_path
 from esoi.runtime.consumer_check import foundation
 from esoi.runtime.implementation_selection import variants
 from esoi.structure.intent_registry.config import Config
@@ -77,70 +78,8 @@ def details_text(headline: Any, limit: int = 300) -> str:
     return text if len(text) <= limit else text[:limit - 3] + "..."
 
 
-def run_component(component: str, scorer: Callable, argv: List[str], config: Config,
-                  say: Callable[[str], None] = print, guards: bool = True) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
-    """Drive one implementation over a component's cases; print each case; optionally record. Returns (summary, rows)."""
-    ap = argparse.ArgumentParser(prog=f"esoi run {component}", description=f"Evaluate the {component} component on its own.")
-    ap.add_argument("--impl", required=True, help="implementation name (impls/<name>.py) or module:build")
-    ap.add_argument("--only", default=None, help="comma-separated case ids")
-    ap.add_argument("--failed", action="store_true",
-                    help="run only the cases whose latest run (of this implementation, on these cases) failed; cannot be combined with --only or --sample")
-    ap.add_argument("--keep-going", action="store_true",
-                    help="run past a failing case; without it an unrecorded run stops at the first failure so the implementation can be improved at once")
-    ap.add_argument("--fresh", action="store_true",
-                    help="run every case, including ones already run for this implementation version (a --sample or whole run reuses those)")
-    ap.add_argument("--sample", type=int, default=None, metavar="N",
-                    help="run N cases spread over the strata (same cases every time; N=3 is a prefix of N=10)")
-    ap.add_argument("--max-calls", type=int, default=None, help="abort when model calls exceed this")
-    ap.add_argument("--cassette", default=None, metavar="DIR",
-                    help="record every wrapped model call in DIR and replay a call it already holds without calling the model (default: [harness] cassette, else off)")
-    ap.add_argument("--cassette-only", action="store_true",
-                    help="with a cassette, error on a call it does not hold: proves a variant that should be free is free")
-    ap.add_argument("--out", default=None, help="results json path (default: a temporary folder)")
-    ap.add_argument("--record", action="store_true", help="append the summary to the results log")
-    ap.add_argument("--force", default=None, metavar="REASON",
-                    help="run although a guard refuses (a perfect arm already caps this one, or a public result exists); the reason is recorded in details")
-    ap.add_argument("--differs", default=None, metavar="WHAT",
-                    help='run although a public result exists, saying what differs: "harness: ...", "prompt: ...", "settings", "corpus" or "metric"')
-    args = ap.parse_args(argv)
-    cases = load_cases(component, config)
-    whole = len(cases)
-    try:
-        circs = circumstances.for_component(config, component)   # an unreadable circumstance fails here, before any model call
-        circumstances.check_fields(circs, cases)
-    except ValueError as exc:
-        raise RunError(str(exc)) from exc
-    impl = args.impl if ":" in args.impl else variants.canonical(args.impl)   # one spelling of a variant in every record
-    refuse_offline_network(config, component, impl)
-    runs_path, cases_sha = config.root / config.runs_log, cases_digest(component, config.evaluation)
-    if args.failed:
-        if args.only or args.sample is not None:
-            raise RunError("--failed already names the cases to run (the ones that failed last); drop --only or --sample")
-        failing = run_log.failed_cases(runs_path, component, impl, cases_sha)
-        if not failing:
-            raise RunError(f"no failing case is logged for {impl} on these cases, so there is nothing to rerun "
-                           f"(the log is {config.runs_log}); run it without --failed")
-        args.only = ",".join(failing)
-    elif guards and not (args.only or args.sample is not None or args.record or args.force is not None):
-        unsolved = run_guards.unsolved_cases(config, component, impl)
-        if unsolved:   # the failing cases are rerun by themselves; the whole set waits until they pass
-            say(f"{len(unsolved)} case(s) failed in the latest run and have not passed since, so only those run ({', '.join(unsolved[:8])}"
-                f"{' ...' if len(unsolved) > 8 else ''}); pass --force \"reason\" to run the whole set")
-            args.only = ",".join(unsolved)
-    if args.only:
-        keep = {c.strip() for c in args.only.split(",")}
-        cases = [c for c in cases if c["id"] in keep]
-        if not cases:
-            raise RunError(f"--only {args.only!r} matches no case of {component}")
-    if args.sample is not None:
-        if args.sample < 1:
-            raise RunError("--sample needs a number of cases of at least 1")
-        cases = stratified_sample(cases, args.sample)
-    sample = sample_label(args, cases, whole)
-    budget = args.max_calls if args.max_calls is not None else "none"
-    say(f"{component}: {len(cases)} case(s), impl {args.impl}, model-call budget {budget}: "
-        f"{', '.join(str(c['id']) for c in cases[:12])}{' ...' if len(cases) > 12 else ''}")
-    notes = check_guards(config, component, impl, sample, args, say) if guards else []
+def make_meter(config: Config, component: str, impl: str, args: argparse.Namespace) -> Tuple[CallMeter, Optional[OfflineGuard]]:
+    """The call meter of a run, with its offline guard (None when the arm is declared live) and its cassette, if any."""
     meter = CallMeter(args.max_calls)
     guard = None if declared_live(config, component, impl, args.max_calls) else OfflineGuard(meter)
     meter.offline = guard is not None
@@ -153,86 +92,38 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
         except ValueError as exc:
             raise RunError(str(exc)) from exc
     meter.access = config.balance.get(component)
-    fn = load_impl(impl, component, config)(meter)
-    score = importlib.import_module(f"{component}.score")
-    builds = foundation.declared(config, component) if not (args.only or args.sample is not None) else []   # composition is for whole sets
-    if foundation.declared(config, component) and not builds:
-        say("note: a sampled or --only run scores the consumer's own cases only; the foundation parts are not composed")
-    git_sha = code_provenance.current_sha(config, component, impl)
-    reuse = {} if (args.fresh or args.only) else run_log.reusable(runs_path, component, impl, cases_sha, git_sha)
-    stop_at_fail = not (args.keep_going or args.record)   # a recorded run is a whole measurement; a development run is for fixing
-    log = run_log.RunLog(runs_path, dict(component=component, impl=impl, cases_sha=cases_sha, git_sha=git_sha, sample=sample,
-                                         recorded="yes" if args.record else "no"))
-    log.begin()
-    rows: List[Dict[str, Any]] = []
-    reused = dict(calls=0, tokens_in=0, tokens_out=0, cost=0.0, seconds=0.0, cases=0)
-    stopped, parts, own_at = "", [], None
-    started = time.time()
-    if guard:
-        guard.start()
-    try:
-        for case in cases:
-            before, t0, in0, out0, cost0 = meter.calls, time.time(), meter.tokens_in, meter.tokens_out, meter.cost_usd
-            replayed0, reads0 = meter.calls_replayed, meter.reads.copy()
-            if str(case["id"]) in reuse:
-                row = dict(reuse[str(case["id"])])
-                spent = float(row.pop("cost", 0) or 0)
-                for name, key in (("calls", "calls"), ("tokens_in", "tokens_in"), ("tokens_out", "tokens_out"), ("seconds", "seconds")):
-                    reused[name] += row.get(key) or 0
-                reused["cost"] += spent
-                reused["cases"] += 1
-                rows.append(row)
-                log.case(row, spent, reused=True)
-                say(f"[{row['id']:9}] {'PASS' if row['ok'] else 'FAIL'} reused from an earlier run of this implementation version")
-                continue
-            try:
-                row = scorer(fn, case)
-            except BudgetExceeded:
-                raise
-            except Exception as exc:
-                row = dict(ok=False, note=f"{type(exc).__name__}: {exc}")
-            row.update(id=case["id"], area=case.get("area"), calls=meter.calls - before, seconds=round(time.time() - t0, 1),
-                       tokens_in=meter.tokens_in - in0, tokens_out=meter.tokens_out - out0)
-            if meter.access and (bad := access.violation(meter.reads.minus(reads0), meter.access)):   # a read gate: the request fails
-                row.update(ok=False, note=f"{bad}; {row.get('note', '')}".strip("; "))
-            if meter.calls_replayed > replayed0:
-                row["calls_replayed"] = meter.calls_replayed - replayed0
-            rows.append(row)
-            log.case(row, meter.cost_usd - cost0)
-            say(f"[{row['id']:9}] {'PASS' if row['ok'] else 'FAIL'} calls={row['calls']} {row.get('got', '')} | {row.get('note', '')}")
-            if stop_at_fail and not row["ok"]:
-                stopped = f"stopped at the first failing case, {row['id']}"
-                break
-        own_at = (meter.calls, meter.tokens_in, meter.tokens_out, meter.cost_usd, time.time())   # the consumer's own spend, before the foundation part
-        if builds and not stopped:   # the foundation's part: reused when current, else run through the foundation's own scorer
-            parts = foundation.measure(config, component, impl, fn, getattr(score, "foundation_fn", None), meter, say)
-    except BaseException as exc:   # Ctrl-C, a spent call budget or a crash: what was scored stays in the log
-        log.end(f"stopped: {type(exc).__name__}")
-        raise
-    finally:
-        if guard:
-            guard.stop()
-    log.end("done" if not stopped else stopped.replace("stopped at", "stopped: at"))
-    cases = cases[:len(rows)]
-    passed = sum(bool(r["ok"]) for r in rows)
+    return meter, guard
+
+
+def build_summary(component: str, impl: str, config: Config, rows: List[Dict[str, Any]], cases: List[Dict[str, Any]], reused: Dict[str, Any],
+                  own_at: Tuple, started: float, meter: CallMeter, sample: str) -> Dict[str, Any]:
+    """The run's summary row: counts, spend (own plus reused) and the model."""
     held = [r for r, c in zip(rows, cases) if c.get("heldout")]
-    summary = dict(component=component, impl=impl, cases=len(rows), passed=passed,
-                   dev=f"{sum(bool(r['ok']) for r in rows if r not in held)}/{len(rows) - len(held)}",
-                   heldout=f"{sum(bool(r['ok']) for r in held)}/{len(held)}",
-                   model_calls=own_at[0] + reused["calls"], tokens_in=own_at[1] + reused["tokens_in"],
-                   tokens_out=own_at[2] + reused["tokens_out"],
-                   cli_reported_cost_usd=round(own_at[3] + reused["cost"], 4),
-                   seconds=round(own_at[4] - started + reused["seconds"], 1),
-                   model=SIMULATED_MODEL if declares_simulated(impl_path(config, component, variants.base_of(impl))) else meter.model,
-                   sample=sample)
+    return dict(component=component, impl=impl, cases=len(rows), passed=sum(bool(r["ok"]) for r in rows),
+                dev=f"{sum(bool(r['ok']) for r in rows if r not in held)}/{len(rows) - len(held)}",
+                heldout=f"{sum(bool(r['ok']) for r in held)}/{len(held)}",
+                model_calls=own_at[0] + reused["calls"], tokens_in=own_at[1] + reused["tokens_in"],
+                tokens_out=own_at[2] + reused["tokens_out"],
+                cli_reported_cost_usd=round(own_at[3] + reused["cost"], 4),
+                seconds=round(own_at[4] - started + reused["seconds"], 1),
+                model=SIMULATED_MODEL if declares_simulated(impl_path(config, component, variants.base_of(impl))) else meter.model,
+                sample=sample)
+
+
+def score_summary(summary: Dict[str, Any], config: Config, component: str, parts: list, builds: list, rows: list) -> Tuple[int, int, Any]:
+    """Add the balanced score (blended with the foundation's parts when there are any); returns (passed, total, cost)."""
     cost = run_cost(config, summary, summary["model"])
     if parts:
         summary.update(foundation.blend(summary, cost, parts, builds, config.balance.get(component)))
-        passed, total, cost = summary["passed"], summary["cases"], run_cost(config, summary, summary["model"])
-    else:
-        total = len(rows)
-        summary.update(balance.balanced(passed, total, cost, summary["seconds"], config.balance.get(component)))
-    say(f"\n{component} / {args.impl}: {passed}/{total} passed (dev {summary['dev']}, held-out "
+        return summary["passed"], summary["cases"], run_cost(config, summary, summary["model"])
+    summary.update(balance.balanced(summary["passed"], len(rows), cost, summary["seconds"], config.balance.get(component)))
+    return summary["passed"], len(rows), cost
+
+
+def say_totals(summary: Dict[str, Any], component: str, arm: str, passed: int, total: int, cost: Any, parts: list,
+               say: Callable[[str], None]) -> None:
+    """Print the run's headline line and the notes that explain how to read it."""
+    say(f"\n{component} / {arm}: {passed}/{total} passed (dev {summary['dev']}, held-out "
         f"{summary['heldout']}), {summary['model_calls']} model calls, {summary['tokens_in']} in / {summary['tokens_out']} out tokens, "
         f"cost {'$' + str(cost) if cost != '' else 'unknown (no price for the model in `prices`)'}, {summary['seconds']}s")
     if parts:   # the composed headline weights each part by its share, so its counts are not the raw ones that dev and held-out add up
@@ -245,6 +136,10 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     if "balanced" in summary:
         say(f"balanced score {summary['balanced']} = accuracy {summary['accuracy']}, ${summary['cost_per_case']}/case, "
             f"{summary['seconds_per_case']}s/case (weights and budgets: [balance.{component}] in the configuration)")
+
+
+def add_component_headline(summary: Dict[str, Any], score: Any, rows: list, component: str, say: Callable[[str], None]) -> None:
+    """The component's own headline (``aggregate``) and its hard fail (``disqualify``), when its scorer defines them."""
     if hasattr(score, "aggregate"):
         headline = score.aggregate(rows)
         say(f"{component}: {headline}")
@@ -253,6 +148,11 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
         summary["balanced"] = 0.0
         summary["details"] = f"DISQUALIFIED {barred}; {summary.get('details', '')}".strip("; ")
         say(f"{component}: DISQUALIFIED, {barred}")
+
+
+def run_notes(meter: CallMeter, reused: Dict[str, Any], parts: list, builds: list) -> List[str]:
+    """The notes a run adds to its details: refused calls, replays, reused cases, foundation parts and source reads."""
+    notes: List[str] = []
     if meter.attempted:
         notes.append(f"offline guard refused {meter.attempted} attempted model call(s) (metered {meter.calls}); declare the arm live (PAID = True) to call a model")
     if meter.calls_replayed:
@@ -264,6 +164,29 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     notes.extend(foundation.note_for(p, next(f.share for f in builds if f.name == p.name)) for p in parts)
     if meter.reads.calls or meter.reads.records:
         notes.append(f"source reads: {meter.reads.records} records, {meter.reads.bytes} bytes, {meter.reads.calls} calls")
+    return notes
+
+
+def record_run(summary: Dict[str, Any], config: Config, component: str, circs: Any, cases: list, rows: list, parts: list,
+               say: Callable[[str], None]) -> None:
+    """Append the summary to the results log, with the derived slices and the foundation's per-case outcomes."""
+    record_result(summary, config)
+    say(f"recorded in {config.results}")
+    if not summary["sample"].startswith("only:"):
+        for part in record_slices(config, component, circs, summary, cases, rows):
+            say(f"recorded {part['sample']}: {part['passed']}/{part['cases']} (derived from this run)")
+    if parts:   # the foundation's per-case outcomes join the consumer's log, so the paired test sees every case the number rests on
+        key = dict(component=component, impl=summary["impl"], cases_sha=cases_digest(component, config.evaluation),
+                   circumstances_sha=circumstances.digest(circs) if circs else "", sample=summary["sample"])
+        joined = [dict(key, case_id=f"{p.name}:{r['case_id']}", heldout="", ok=r["ok"], calls=r.get("calls", 0), tokens_in=0,
+                       tokens_out=0, seconds=r.get("seconds", 0), circumstances="", score="") for p in parts for r in p.per_case]
+        if joined:
+            write_per_case(config, joined)
+
+
+def finish_run(summary: Dict[str, Any], rows: list, notes: list, args: argparse.Namespace, config: Config, stopped: str,
+               say: Callable[[str], None]) -> None:
+    """Fold the notes into the details, write ``--out`` and say how a stopped run is continued."""
     if notes:
         summary["details"] = run_guards.note_details(summary.get("details", ""), notes)
     if args.out:
@@ -274,17 +197,63 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     if stopped:
         say(f"{stopped}: fix it and rerun just the failing case(s) with --failed; every case run is saved in {config.runs_log} "
             "(this run is not recorded; add --keep-going to run past failures)")
+
+
+def run_component(component: str, scorer: Callable, argv: List[str], config: Config,
+                  say: Callable[[str], None] = print, guards: bool = True) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    """Drive one implementation over a component's cases; print each case; optionally record. Returns (summary, rows)."""
+    args = build_parser(component).parse_args(argv)
+    cases = load_cases(component, config)
+    whole = len(cases)
+    try:
+        circs = circumstances.for_component(config, component)   # an unreadable circumstance fails here, before any model call
+        circumstances.check_fields(circs, cases)
+    except ValueError as exc:
+        raise RunError(str(exc)) from exc
+    impl = args.impl if ":" in args.impl else variants.canonical(args.impl)   # one spelling of a variant in every record
+    refuse_offline_network(config, component, impl)
+    runs_path, cases_sha = config.root / config.runs_log, cases_digest(component, config.evaluation)
+    name_cases_to_run(args, config, component, impl, cases_sha, say, guards)
+    cases = narrow_cases(args, component, cases)
+    sample = sample_label(args, cases, whole)
+    budget = args.max_calls if args.max_calls is not None else "none"
+    say(f"{component}: {len(cases)} case(s), impl {args.impl}, model-call budget {budget}: "
+        f"{', '.join(str(c['id']) for c in cases[:12])}{' ...' if len(cases) > 12 else ''}")
+    notes = check_guards(config, component, impl, sample, args, say) if guards else []
+    meter, guard = make_meter(config, component, impl, args)
+    fn = load_impl(impl, component, config)(meter)
+    score = importlib.import_module(f"{component}.score")
+    builds = foundation.declared(config, component) if not (args.only or args.sample is not None) else []   # composition is for whole sets
+    if foundation.declared(config, component) and not builds:
+        say("note: a sampled or --only run scores the consumer's own cases only; the foundation parts are not composed")
+    git_sha = code_provenance.current_sha(config, component, impl)
+    reuse = {} if (args.fresh or args.only) else run_log.reusable(runs_path, component, impl, cases_sha, git_sha)
+    log = run_log.RunLog(runs_path, dict(component=component, impl=impl, cases_sha=cases_sha, git_sha=git_sha, sample=sample,
+                                         recorded="yes" if args.record else "no"))
+    log.begin()
+    parts: list = []
+    started = time.time()
+    if guard:
+        guard.start()
+    try:
+        # a recorded run is a whole measurement; a development run is for fixing
+        rows, reused, stopped = run_cases(cases, scorer, fn, meter, reuse, log, say, not (args.keep_going or args.record))
+        own_at = (meter.calls, meter.tokens_in, meter.tokens_out, meter.cost_usd, time.time())   # the consumer's own spend, before the foundation part
+        if builds and not stopped:   # the foundation's part: reused when current, else run through the foundation's own scorer
+            parts = foundation.measure(config, component, impl, fn, getattr(score, "foundation_fn", None), meter, say)
+    except BaseException as exc:   # Ctrl-C, a spent call budget or a crash: what was scored stays in the log
+        log.end(f"stopped: {type(exc).__name__}")
+        raise
+    finally:
+        if guard:
+            guard.stop()
+    log.end("done" if not stopped else stopped.replace("stopped at", "stopped: at"))
+    cases = cases[:len(rows)]
+    summary = build_summary(component, impl, config, rows, cases, reused, own_at, started, meter, sample)
+    passed, total, cost = score_summary(summary, config, component, parts, builds, rows)
+    say_totals(summary, component, args.impl, passed, total, cost, parts, say)
+    add_component_headline(summary, score, rows, component, say)
+    finish_run(summary, rows, notes + run_notes(meter, reused, parts, builds), args, config, stopped, say)
     if args.record:
-        record_result(summary, config)
-        say(f"recorded in {config.results}")
-        if not sample.startswith("only:"):
-            for part in record_slices(config, component, circs, summary, cases, rows):
-                say(f"recorded {part['sample']}: {part['passed']}/{part['cases']} (derived from this run)")
-        if parts:   # the foundation's per-case outcomes join the consumer's log, so the paired test sees every case the number rests on
-            key = dict(component=component, impl=summary["impl"], cases_sha=cases_digest(component, config.evaluation),
-                       circumstances_sha=circumstances.digest(circs) if circs else "", sample=summary["sample"])
-            joined = [dict(key, case_id=f"{p.name}:{r['case_id']}", heldout="", ok=r["ok"], calls=r.get("calls", 0), tokens_in=0,
-                           tokens_out=0, seconds=r.get("seconds", 0), circumstances="", score="") for p in parts for r in p.per_case]
-            if joined:
-                write_per_case(config, joined)
+        record_run(summary, config, component, circs, cases, rows, parts, say)
     return summary, rows

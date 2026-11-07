@@ -97,6 +97,51 @@ def public_label(config: Config, registry: Registry, graded: Dict, solution_id: 
     return "; ".join(f"public, grade {e.grade}: {e.line()}" for e in found) or "none recorded"
 
 
+def arm_standing(impl: str, selected: str, apart: bool, found: dict, rows: dict, config: Config) -> str:
+    """How one arm stands against the selected one, in words."""
+    if apart:
+        return "complementary arm, not ranked"
+    if impl == selected:
+        return "selected"
+    if impl in found:
+        return verdict_label(found[impl])
+    if arm_kinds.is_ablation(rows[impl], config.evaluation):
+        return "reference arm (ablation or validity), not a rival"
+    return "not compared: no run on the same cases and sample as the selected arm"
+
+
+def arm_row(impl: str, selected: str, pairs: dict, rows: dict) -> dict:
+    """The run to show for an arm: the one scored on the selected arm's cases when there is a pair."""
+    if impl in pairs:
+        return pairs[impl][1]
+    if impl == selected and pairs:
+        return next(iter(pairs.values()))[0]
+    return rows[impl]
+
+
+def solution_rows(config: Config, registry: Registry, sol: dict, component: str, selected: str, history: dict, per_case: list, chosen: dict,
+                  graded: dict, note: str, impl_names: dict) -> List[List[str]]:
+    """The table rows of one solution: one per arm, the selected arm first."""
+    sid = sol["solution_id"]
+    arms = {impl: [r for r in found if not results_log.is_partial(r)] for impl, found in history[component].items()}
+    arms = {impl: found for impl, found in arms.items() if found}
+    rows = {impl: found[-1] for impl, found in arms.items()}
+    apart = bool(arm_kinds.invariant_reason(component, config.evaluation))
+    ranked = selected in rows and not apart
+    found = {d.rival: d for d in rival_decisions.decisions(rows, selected, config.evaluation, history[component], per_case,
+                                                        chosen.get(component))} if ranked else {}
+    pairs = {r["impl"]: (own, r) for own, r in rival_pairing.rival_pairs(rows, selected, config.evaluation, history[component])[0]} if ranked else {}
+    out: List[List[str]] = []
+    for impl in sorted(arms, key=lambda i: (i != selected, i)):
+        row = arm_row(impl, selected, pairs, rows)
+        arm = impl_names.get(f"{sid}:{impl}", "")
+        out.append([f"{sol.get('name') or sid} (`{sid}`)" if (sol.get("name") or "").strip().lower() != sid else f"`{sid}`",
+                    (f"{arm} (`{impl}`)" if arm and arm.lower() != impl.lower() else f"`{impl}`") + (" (selected)" if impl == selected else ""), str(row.get("cases", "")), rate_label(row),
+                    cost_label(row), seconds_label(row, per_case), arm_standing(impl, selected, apart, found, rows, config),
+                    public_label(config, registry, graded, sid, impl) + note])
+    return out
+
+
 def table_rows(config: Config, registry: Registry, today: Optional[datetime.date] = None, solution: str = "") -> List[List[str]]:
     history = results_log.all_results(config.results_path)
     per_case = results_log.per_case_rows(config)
@@ -109,41 +154,10 @@ def table_rows(config: Config, registry: Registry, today: Optional[datetime.date
     out: List[List[str]] = []
     impl_names = {r.get("implementation_id", ""): " ".join((r.get("name") or "").split()) for r in registry.implementations}
     for sol in registry.solutions:
-        sid = sol["solution_id"]
         component, selected = arm_selection.selected_arm(config, sol, "", registry)
-        if not component or (solution and sid != solution) or component not in history:
+        if not component or (solution and sol["solution_id"] != solution) or component not in history:
             continue
-        arms = {impl: [r for r in found if not results_log.is_partial(r)] for impl, found in history[component].items()}
-        arms = {impl: found for impl, found in arms.items() if found}
-        rows = {impl: found[-1] for impl, found in arms.items()}
-        apart = bool(arm_kinds.invariant_reason(component, config.evaluation))
-        ranked = selected in rows and not apart
-        found = {d.rival: d for d in rival_decisions.decisions(rows, selected, config.evaluation, history[component], per_case,
-                                                            chosen.get(component))} if ranked else {}
-        pairs = {r["impl"]: (own, r) for own, r in rival_pairing.rival_pairs(rows, selected, config.evaluation, history[component])[0]} \
-            if ranked else {}
-        for impl in sorted(arms, key=lambda i: (i != selected, i)):
-            if impl in pairs:
-                row = pairs[impl][1]   # the run scored on the selected arm's cases
-            elif impl == selected and pairs:
-                row = next(iter(pairs.values()))[0]
-            else:
-                row = rows[impl]
-            if apart:
-                standing = "complementary arm, not ranked"
-            elif impl == selected:
-                standing = "selected"
-            elif impl in found:
-                standing = verdict_label(found[impl])
-            elif arm_kinds.is_ablation(rows[impl], config.evaluation):
-                standing = "reference arm (ablation or validity), not a rival"
-            else:
-                standing = "not compared: no run on the same cases and sample as the selected arm"
-            arm = impl_names.get(f"{sid}:{impl}", "")
-            out.append([f"{sol.get('name') or sid} (`{sid}`)" if (sol.get("name") or "").strip().lower() != sid else f"`{sid}`",
-                        (f"{arm} (`{impl}`)" if arm and arm.lower() != impl.lower() else f"`{impl}`") + (" (selected)" if impl == selected else ""), str(row.get("cases", "")), rate_label(row),
-                        cost_label(row), seconds_label(row, per_case), standing,
-                        public_label(config, registry, graded, sid, impl) + note])
+        out.extend(solution_rows(config, registry, sol, component, selected, history, per_case, chosen, graded, note, impl_names))
     return out
 
 

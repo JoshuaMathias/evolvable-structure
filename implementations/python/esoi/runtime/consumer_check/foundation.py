@@ -286,22 +286,31 @@ def measure(config: Config, component: str, impl: str, consumer_fn: Callable, ad
     return parts
 
 
+def part_shares(own: Dict[str, Any], parts: List[Part], foundations: List[Foundation]) -> Dict[str, float]:
+    """Each part's share (the consumer's own cases are ``""``), renormalised over the parts present."""
+    weights = {p.name: next(f.share for f in foundations if f.name == p.name) for p in parts}
+    if own["cases"]:
+        weights[""] = 1.0 - sum(f.share for f in foundations)
+    total = sum(weights.values())
+    return {k: v / total for k, v in weights.items()}
+
+
+def weighted_per_case(shares: Dict[str, float], own_cases: int, own_value: float, parts: List[Part], value_of: Callable[[Part], float]) -> float:
+    """The share-weighted per-case figure: the consumer's own value per own case plus each part's value per its cases."""
+    own_term = shares.get("", 0.0) * own_value / own_cases if own_cases else 0.0
+    return own_term + sum(shares[p.name] * value_of(p) / p.cases for p in parts if p.cases)
+
+
 def blend(own: Dict[str, Any], own_cost: Any, parts: List[Part], foundations: List[Foundation], table: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     """The composed summary fields: parts and the consumer's own cases weighted by share (shares renormalised over the parts present), then
     folded by the consumer's ``[balance.<component>]``. ``own`` is the consumer's own run summary (``cases``, ``passed``, ``seconds`` ...)."""
-    weights = {p.name: next(f.share for f in foundations if f.name == p.name) for p in parts}
     from esoi.optimization.measurement_harness import interface as harness
-    own_share = 1.0 - sum(f.share for f in foundations)
-    if own["cases"]:
-        weights[""] = own_share
-    total = sum(weights.values())
-    shares = {k: v / total for k, v in weights.items()}
+    shares = part_shares(own, parts, foundations)
     cases = own["cases"] + sum(p.cases for p in parts)
-    accuracy = (shares.get("", 0.0) * own["passed"] / own["cases"] if own["cases"] else 0.0) + sum(shares[p.name] * p.passed / p.cases for p in parts if p.cases)
+    accuracy = weighted_per_case(shares, own["cases"], own["passed"], parts, lambda p: p.passed)
     unknown = (own["cases"] and own_cost == "") or any(p.cost == "" for p in parts)
-    cost_pc = None if unknown else ((shares.get("", 0.0) * float(own_cost or 0) / own["cases"] if own["cases"] else 0.0)
-                                    + sum(shares[p.name] * float(p.cost) / p.cases for p in parts if p.cases))
-    seconds_pc = (shares.get("", 0.0) * own["seconds"] / own["cases"] if own["cases"] else 0.0) + sum(shares[p.name] * p.seconds / p.cases for p in parts if p.cases)
+    cost_pc = None if unknown else weighted_per_case(shares, own["cases"], float(own_cost or 0), parts, lambda p: float(p.cost))
+    seconds_pc = weighted_per_case(shares, own["cases"], own["seconds"], parts, lambda p: p.seconds)
     out = dict(cases=cases, passed=round(accuracy * cases), model_calls=own["model_calls"] + sum(p.model_calls for p in parts),
                tokens_in=own["tokens_in"] + sum(p.tokens_in for p in parts), tokens_out=own["tokens_out"] + sum(p.tokens_out for p in parts),
                seconds=round(own["seconds"] + sum(p.seconds for p in parts), 1),
