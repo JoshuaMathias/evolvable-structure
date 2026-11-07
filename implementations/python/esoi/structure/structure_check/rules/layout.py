@@ -36,16 +36,22 @@ def module_imports(facts: Facts, dotted: str, package: str, is_init: bool) -> Li
     pkg_parts = parts if is_init else parts[:-1]
     found: List[Tuple[int, str]] = []
     for line, level, module, names in facts.imports:
-        full, from_names = resolve_import(level, module, names, pkg_parts)
-        if full[:1] == [package] and len(full) > 1:
-            found.append((line, full[1]))
-        elif full == [package] or (level and len(full) == 1 and not module):
-            found.extend((line, n) for n in from_names)
+        found += from_import_hits(line, level, module, names, pkg_parts, package)
     for line, name in facts.plain:
         p = name.split(".")
         if p[0] == package and len(p) > 1:
             found.append((line, p[1]))
     return found
+
+
+def from_import_hits(line: int, level: int, module, names, pkg_parts: List[str], package: str) -> List[Tuple[int, str]]:
+    """(line, top-level name under ``package``) for one ``from`` import."""
+    full, from_names = resolve_import(level, module, names, pkg_parts)
+    if full[:1] == [package] and len(full) > 1:
+        return [(line, full[1])]
+    if full == [package] or (level and len(full) == 1 and not module):
+        return [(line, n) for n in from_names]
+    return []
 
 
 def component_row_problems(ctx: Context) -> List[str]:
@@ -77,18 +83,30 @@ def document_problems(ctx: Context) -> List[str]:
         patterns = [glob_re(p) for p in ids(r["path"])]
         for path, solution in document_entries(r.get("documents", "")):
             where = f"S1 {r['component_id']}: documents entry {path!r}"
-            if not solution:
-                bad.append(f"{where} has no owner (write path=solution-id)")
-            elif solution not in sol_ids:
-                bad.append(f"{where}: solution {solution!r} is not in solutions.csv")
-            if path not in ctx.files:
-                bad.append(f"{where} is not a file of the repository")
-            elif not any(rx.match(path) for rx in patterns):
-                bad.append(f"{where} is not matched by this component's path (the component owns the file, `documents` names whose it is)")
+            bad += owner_problems(where, solution, sol_ids)
+            bad += file_problems(ctx, where, path, patterns)
             if path in document_owner and document_owner[path] != solution:
                 bad.append(f"{where} is owned by two solutions ({document_owner[path]}, {solution}); a document has one owner")
             document_owner.setdefault(path, solution)
     return bad
+
+
+def owner_problems(where: str, solution: str, sol_ids: set) -> List[str]:
+    """S1 for the owner a documents entry names: present, and a solution that exists."""
+    if not solution:
+        return [f"{where} has no owner (write path=solution-id)"]
+    if solution not in sol_ids:
+        return [f"{where}: solution {solution!r} is not in solutions.csv"]
+    return []
+
+
+def file_problems(ctx: Context, where: str, path: str, patterns: list) -> List[str]:
+    """S1 for the file a documents entry names: in the repository, and matched by the component's path."""
+    if path not in ctx.files:
+        return [f"{where} is not a file of the repository"]
+    if not any(rx.match(path) for rx in patterns):
+        return [f"{where} is not matched by this component's path (the component owns the file, `documents` names whose it is)"]
+    return []
 
 
 def ownership_problems(ctx: Context) -> List[str]:

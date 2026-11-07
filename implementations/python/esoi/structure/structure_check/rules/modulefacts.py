@@ -53,15 +53,22 @@ def collect(node: ast.AST, facts: Facts) -> None:
 def collect_one(node: ast.AST, facts: Facts) -> None:
     if isinstance(node, ast.ImportFrom):
         facts.imports.append([node.lineno, node.level, node.module, [a.name for a in node.names]])
-        if node.module == "os" and any(a.name in ("environ", "getenv", "putenv") for a in node.names):
+        if node.module == "os" and any(a.name in ENV_NAMES for a in node.names):
             facts.env.append(node.lineno)
     elif isinstance(node, ast.Import):
         for a in node.names:
             facts.plain.append([node.lineno, a.name])
-    elif isinstance(node, ast.Attribute) and node.attr in ("environ", "getenv", "putenv") \
-            and isinstance(node.value, ast.Name) and node.value.id == "os":
+    elif reads_os_environment(node):
         facts.env.append(node.lineno)
     collect(node, facts)
+
+
+ENV_NAMES = ("environ", "getenv", "putenv")
+
+
+def reads_os_environment(node: ast.AST) -> bool:
+    """Whether a node is ``os.environ``, ``os.getenv`` or ``os.putenv``."""
+    return isinstance(node, ast.Attribute) and node.attr in ENV_NAMES and isinstance(node.value, ast.Name) and node.value.id == "os"
 
 
 def scan(path: Path) -> Facts:

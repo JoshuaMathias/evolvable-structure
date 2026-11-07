@@ -112,11 +112,16 @@ def line_findings(line: str, number: int, path: str, allow: Allowances) -> List[
     named = [m.span() for rx in allow.patterns.values() for m in rx.finditer(line)]
     for name, rx in {**PATTERNS, **allow.patterns}.items():
         for match in rx.finditer(line):
-            if name == "api-key" and any(a < match.end() and match.start() < b for a, b in named):
-                continue   # the repository's own pattern already names this secret
-            if name in allow.patterns or not is_placeholder(name, match, allow):
+            if reported(name, match, named, allow):
                 found.append(Finding(path, number, name, redact(match.group(0))))
     return found
+
+
+def reported(name: str, match, named: list, allow: Allowances) -> bool:
+    """Whether a hit is a finding: not already named by the repository's own pattern, and not a placeholder."""
+    if name == "api-key" and any(a < match.end() and match.start() < b for a, b in named):
+        return False   # the repository's own pattern already names this secret
+    return name in allow.patterns or not is_placeholder(name, match, allow)
 
 
 def scan_text(text: str, path: str = "<text>", allow: Allowances = Allowances()) -> List[Finding]:
@@ -164,8 +169,8 @@ def scan_repo(root: Path, paths: Optional[Iterable[Path]] = None, staged: bool =
     return findings
 
 
-def scan_history(root: Path, allow: Allowances = Allowances()) -> List[Finding]:
-    """Every line added by any commit on any branch, plus commit authors and messages."""
+def history_text(root: Path) -> str:
+    """The patch text of every commit on any branch, with its author and message."""
     try:
         done = subprocess.run(["git", "log", "--all", "-p", "--no-color", "--format=commit %H%n%an <%ae>%n%B"], cwd=root,
                               capture_output=True, text=True)
@@ -174,7 +179,12 @@ def scan_history(root: Path, allow: Allowances = Allowances()) -> List[Finding]:
     if done is None or done.returncode != 0:
         raise HygieneError(f"{root} is not a git checkout with history (or git is missing), so --history has nothing "
                            "to scan")
-    out = done.stdout
+    return done.stdout
+
+
+def scan_history(root: Path, allow: Allowances = Allowances()) -> List[Finding]:
+    """Every line added by any commit on any branch, plus commit authors and messages."""
+    out = history_text(root)
     findings: List[Finding] = []
     commit, path = "", ""
     for line in out.splitlines():
