@@ -4,6 +4,8 @@ ESOI is a framework that ensure every aspect of your ideas or code can measurabl
 
 The same records (problems, ideals, solutions, implementations, metrics) work for code, business, and life.
 
+![ESOI at a glance: an intent holds a problem, an ideal, a solution, its implementations and the metric that picks the best one](docs/assets/esoi-structure.svg)
+
 # Quick Start
 
 Install the skill in Claude Code, so your AI agent applies the principles (other ways: [Install the skill](docs/how-to/install-the-skill.md)):

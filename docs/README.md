@@ -8,6 +8,8 @@ things improve, and it changes with you when your intent does.
 It works for anything with an intent and more than one way to serve it: a product, code, a course, a coaching program,
 a team process, a personal schedule.
 
+![ESOI at a glance: an intent holds a problem, an ideal, a solution, its implementations and the metric that picks the best one](assets/esoi-structure.svg)
+
 ## Tutorials
 
 Learn by doing; each one ends with something working.
