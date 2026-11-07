@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 
 import harness_fixture
-from esoi.optimization.promote_the_winner import promote
+from esoi.optimization.promote_the_winner.interface import promote
 from esoi.structure.intent_registry import registry as registry_module, tables
 from esoi.structure.intent_registry.config import Config
 

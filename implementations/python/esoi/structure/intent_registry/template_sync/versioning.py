@@ -35,8 +35,9 @@ import tomllib
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from esoi import __version__
 from esoi.structure.intent_registry.config import Config
+
+__version__ = "0.4.0"   # the package's version: pyproject.toml carries the same number (a test keeps them equal)
 
 STAMP_FILE = "skill_version.json"
 BUNDLED_STAMP = Path(__file__).resolve().parents[3] / "data" / STAMP_FILE
@@ -195,9 +196,9 @@ def recorded_version(config: Config) -> Tuple[Optional[int], str]:
     return value, ""
 
 
-def with_recorded_version(text: str, version: int) -> str:
-    """The text of ``esoi.toml`` with ``[records] template_version`` set, changing nothing else."""
-    lines = text.splitlines(keepends=True)
+def record_key_line(lines: List[str]) -> Tuple[Optional[int], bool, int]:
+    """Where the record key sits in the lines of ``esoi.toml``: (its line index or None, whether it is written dotted outside any section,
+    the index of the ``[records]`` header or -1)."""
     section, header = "", -1
     for index, line in enumerate(lines):
         if TABLE_ARRAY.match(line):
@@ -206,8 +207,17 @@ def with_recorded_version(text: str, version: int) -> str:
             section = SECTION.match(line).group(1)
             header = index if section == "records" else header
         elif (section == "records" and KEY_LINE.match(line)) or (section == "" and DOTTED_LINE.match(line)):
-            lines[index] = f"{'records.' if section == '' else ''}{RECORD_KEY} = {version}\n"
-            return check_toml("".join(lines), version)
+            return index, section == "", header
+    return None, False, header
+
+
+def with_recorded_version(text: str, version: int) -> str:
+    """The text of ``esoi.toml`` with ``[records] template_version`` set, changing nothing else."""
+    lines = text.splitlines(keepends=True)
+    found, dotted, header = record_key_line(lines)
+    if found is not None:
+        lines[found] = f"{'records.' if dotted else ''}{RECORD_KEY} = {version}\n"
+        return check_toml("".join(lines), version)
     if header >= 0:
         lines.insert(header + 1, f"{RECORD_KEY} = {version}\n")
         return check_toml("".join(lines), version)

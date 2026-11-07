@@ -4,7 +4,7 @@ Three things have a version here, and they move for different reasons.
 
 | What | Where it is written | Changes when |
 |---|---|---|
-| The `esoi` package | `version` in `implementations/python/pyproject.toml` (and `__version__` in `esoi/__init__.py`, which a test keeps equal) | a release, by the rule below |
+| The `esoi` package | `version` in `implementations/python/pyproject.toml` (and `__version__` in `versioning.py` of the template-sync unit, which `esoi/__init__.py` re-exports and a test keeps equal) | a release, by the rule below |
 | The skill the library follows | the `skill` part of the stamp | `esoi skill sync` copies a changed skill |
 | The intent template | the `template` part of the stamp: a whole number, the template version | `esoi template sync` finds changed template content |
 

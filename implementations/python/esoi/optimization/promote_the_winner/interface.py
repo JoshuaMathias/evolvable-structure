@@ -5,6 +5,8 @@ from esoi.runtime.implementation_selection.declare import implementation, soluti
 from esoi.structure.intent_registry.registry import load_project
 from esoi.optimization.promote_the_winner import promote  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 
+__all__ = ["WinnerPromoting", "promote"]
+
 
 @solution("promote-the-winner", kind="evaluate", entry="proposals", example=".")
 @runtime_checkable

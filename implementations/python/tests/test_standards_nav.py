@@ -1,7 +1,7 @@
 """Navigating standards by risk tag and checking a commit's added lines against them."""
 import subprocess
 
-from esoi.structure.structure_check import standards_check
+from esoi.understanding.spec_search import standards_check
 from esoi.understanding.spec_search import standards_nav as nav
 
 STANDARD = """# Thin routes

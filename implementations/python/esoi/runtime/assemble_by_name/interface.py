@@ -9,6 +9,8 @@ from esoi.runtime.assemble_by_name.installation import assembly_plan, execution,
 from esoi.runtime.assemble_by_name import assemble, hierarchy  # noqa: F401  (re-exported: other units call this unit through its interface)
 from esoi.runtime.assemble_by_name.assemble import Assembler  # noqa: F401  (re-exported: other units call this unit through its interface)
 
+__all__ = ["Assembler", "AssemblingByName", "assemble", "assembly_plan", "checking", "closure", "declarations", "execution", "generated_files", "hierarchy", "intent_map", "own_runner", "plan_report", "report", "resolution_ladder", "resolvers"]
+
 
 @solution("assemble-by-name", kind="event", entry="names", example="structure-check")
 @runtime_checkable

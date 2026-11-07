@@ -6,6 +6,10 @@ from esoi.runtime.implementation_selection.declare import implementation, soluti
 from esoi.structure.intent_registry.registry import load_project
 from esoi.structure.structure_check import check, hygiene  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 from esoi.structure.structure_check.rules import structure_quality_rules  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.structure.structure_check import coherence  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.structure.structure_check.rules.beside_rules import distance  # noqa: F401  (re-exported: other units call this unit through its interface)
+
+__all__ = ["StructureChecking", "check", "coherence", "distance", "hygiene", "structure_quality_rules"]
 
 
 @solution("structure-check", kind="evaluate", entry="check", example=".")

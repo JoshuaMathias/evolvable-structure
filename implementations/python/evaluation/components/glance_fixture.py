@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Dict, Tuple
 
 from esoi.structure.intent_registry import config, intents, registry
-from esoi.understanding.readable_records import readme_view
+from esoi.understanding.readable_records.interface import readme_view
 
 ADOPTERS = "ESOI_GLANCE_ADOPTERS"
 CACHE: Dict[str, Tuple] = {}

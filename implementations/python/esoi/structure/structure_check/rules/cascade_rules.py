@@ -7,7 +7,8 @@ from __future__ import annotations
 import datetime
 from typing import Dict, List, Tuple
 
-from esoi.optimization.leaderboard import arm_selection, cascade_stages, stage_standings
+from esoi.optimization.leaderboard import arm_selection, cascade_stages
+from esoi.optimization.leaderboard.interface import stage_standings
 from esoi.optimization.measurement_harness.interface import defect_reason, stale_reason
 from esoi.structure.intent_registry.tables import ids
 from esoi.structure.structure_check.rules.base import Context, RuleGroup

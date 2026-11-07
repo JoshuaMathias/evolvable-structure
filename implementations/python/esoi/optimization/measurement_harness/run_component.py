@@ -33,7 +33,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from esoi.optimization.leaderboard.interface import circumstances
+from esoi.optimization.leaderboard import circumstances
 from esoi.optimization.leaderboard.case_identity import cases_digest
 from esoi.optimization.measurement_harness import balance
 from esoi.optimization.measurement_harness import cassette as cassettes
@@ -51,9 +51,9 @@ from esoi.optimization.measurement_harness.run_arguments import build_parser, na
 from esoi.optimization.measurement_harness.run_cases import run_cases
 from esoi.optimization.measurement_harness.run_cost import run_cost
 from esoi.optimization.measurement_harness.run_errors import RunError
-from esoi.optimization.when_metrics_are_run.interface import run_guards
-from esoi.optimization.when_metrics_are_run.interface import SIMULATED_MODEL, declared_live, declares_simulated, impl_path
-from esoi.runtime.consumer_check.interface import foundation
+from esoi.optimization.when_metrics_are_run import run_guards
+from esoi.optimization.when_metrics_are_run.paid_gating import SIMULATED_MODEL, declared_live, declares_simulated, impl_path
+from esoi.runtime.consumer_check import foundation
 from esoi.runtime.implementation_selection import variants
 from esoi.structure.intent_registry.config import Config
 

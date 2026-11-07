@@ -11,9 +11,9 @@ from collections import Counter
 from typing import Dict, List
 
 from esoi.structure.intent_registry.template_sync import template as template_module
-from esoi.understanding.review_tracker import tracker
+from esoi.understanding.review_tracker.interface import tracker
 from esoi.structure.intent_registry import intents
-from esoi.understanding.readable_records import readme
+from esoi.understanding.readable_records.interface import readme
 from esoi.structure.intent_registry.records import check_headers, check_records, overall_ids, tables_of
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
 
@@ -68,7 +68,7 @@ def generated_page_problems(ctx: Context) -> List[str]:
         for page, text in readme.pages(config, ctx.registry, ctx.results, written_arm_pages_only=True):
             if not page.exists() or page.read_text(encoding="utf-8") != text:
                 bad.append(f"S8 {page.relative_to(config.root)}: out of date (run `esoi readmes`)")
-        from esoi.understanding.readable_records import diagram
+        from esoi.understanding.readable_records.interface import diagram
         bad.extend(f"S8 {path.relative_to(config.root)}: out of date (run `esoi diagram` or `esoi check --write-docs`)"
                    for path in diagram.stale(config, ctx.registry))
     return bad

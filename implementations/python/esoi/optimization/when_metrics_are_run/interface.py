@@ -7,10 +7,11 @@ from esoi.structure.intent_registry.registry import load_project
 from esoi.structure.intent_registry.tables import read_lines
 from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import attest, ownership_index, staleness  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 from esoi.optimization.when_metrics_are_run.public_evidence import evidence_report  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.optimization.when_metrics_are_run import paid_gating  # noqa: F401  (re-exported: other units call this unit through its interface)
 
 
 # What the harness and the consumer checks need to refuse a paid run: the budget error and the questions of whether an arm is paid and where it lives.
-__all__ = ["WhenMetricsAreRun", "OnADecision", "BudgetExceeded", "declared_live", "declares_simulated", "impl_path", "paid_reason"]
+__all__ = ["BudgetExceeded", "WhenMetricsAreRun", "attest", "declared_live", "declares_simulated", "evidence_report", "impl_path", "ownership_index", "paid_gating", "paid_reason", "staleness"]
 
 
 @solution("when-metrics-are-run", kind="event", entry="describe", example=".")

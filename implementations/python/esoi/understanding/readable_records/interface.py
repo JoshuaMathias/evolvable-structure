@@ -4,6 +4,9 @@ from typing import Protocol, runtime_checkable
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
 from esoi.understanding.readable_records import diagram, readme  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.understanding.readable_records import readme_view  # noqa: F401  (re-exported: other units call this unit through its interface)
+
+__all__ = ["ReadableRecording", "diagram", "readme", "readme_view"]
 
 
 @solution("readable-records", kind="evaluate", entry="page", example=".")

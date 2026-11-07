@@ -5,13 +5,13 @@ import datetime
 import subprocess
 from typing import Dict, Optional
 
-from esoi.optimization.leaderboard.interface import circumstances
+from esoi.optimization.leaderboard import circumstances
 from esoi.optimization.leaderboard.case_identity import cases_digest
 from esoi.optimization.leaderboard.results_log import is_partial
 from esoi.optimization.measurement_harness.code_provenance import changed_since, external_code_paths, parse_code_shas
 from esoi.optimization.measurement_harness.per_case_log import read_per_case
 from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import ownership_index, staleness
-from esoi.runtime.consumer_check.interface import foundation
+from esoi.runtime.consumer_check import foundation
 from esoi.structure.intent_registry.config import Config
 
 

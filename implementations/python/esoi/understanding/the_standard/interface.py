@@ -6,6 +6,9 @@ from esoi.structure.intent_registry.registry import load_project
 from esoi.structure.intent_registry.tables import read_lines
 from esoi.understanding.the_standard import docs  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 from esoi.understanding.the_standard.scaffold import init  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.understanding.the_standard import scaffold  # noqa: F401  (re-exported: other units call this unit through its interface)
+
+__all__ = ["TheStandard", "docs", "init", "scaffold"]
 
 
 @solution("the-standard", kind="event", entry="describe", example=".")

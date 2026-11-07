@@ -15,12 +15,10 @@ from esoi.runtime.implementation_selection.declare import implementation, soluti
 from esoi.structure.intent_registry.registry import load_project
 from esoi.optimization.measurement_harness import cassette  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 from esoi.optimization.measurement_harness import access, case_loading, record_result, run_component, stale_reasons  # noqa: F401  (re-exported: other units call this unit through its interface)
-from esoi.optimization.measurement_harness import run_log  # noqa: F401  (re-exported: other units call this unit through its interface)
-from esoi.optimization.measurement_harness.code_provenance import own_code_paths  # noqa: F401  (re-exported: other units call this unit through its interface)
 
 # What a consumer of the harness needs: load and run a component's cases for an arm, fold the result into the balanced number, narrow the
 # source-access limits, and ask whether a recorded row still describes the code (``stale_reason``, ``defect_reason``, ``code_changed_reason``).
-__all__ = ["MeasurementHarnessing", "access", "case_loading", "cassette", "count_cases", "defect_reason", "record_result", "run_component", "stale_reason", "stale_reasons", "own_code_paths", "run_log"]
+__all__ = ["MeasurementHarnessing", "access", "case_loading", "cassette", "count_cases", "defect_reason", "record_result", "run_component", "stale_reason", "stale_reasons"]
 
 
 @solution("measurement-harness", kind="event", entry="components", example=".")

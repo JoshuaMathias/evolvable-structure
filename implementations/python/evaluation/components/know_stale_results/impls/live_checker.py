@@ -1,7 +1,7 @@
 """CURRENT: the live checker, ``esoi.structure.structure_check.check.check`` (rules S10, S16, S20), run over a synthetic fixture repository, in
 strict mode when the case says so. Zero model calls."""
 import repo_fixture
-from esoi.structure.structure_check import check
+from esoi.structure.structure_check.interface import check
 
 
 def build(meter):

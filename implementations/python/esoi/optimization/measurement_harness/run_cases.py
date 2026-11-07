@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, List, Tuple
 
 from esoi.optimization.measurement_harness import access
 from esoi.optimization.measurement_harness.call_meter import CallMeter
-from esoi.optimization.when_metrics_are_run.interface import BudgetExceeded
+from esoi.optimization.when_metrics_are_run.paid_gating import BudgetExceeded
 
 
 def new_reused() -> Dict[str, Any]:

@@ -3,10 +3,10 @@
 import time
 
 import metric_record_fixture as fixture
-from esoi.optimization.keep_metric_record.iteration import MetricIteration
-from esoi.optimization.keep_metric_record.metric_meter import BEFORE, OfflineArmMeter, RecordedRowMeter, read_value
-from esoi.optimization.keep_metric_record.metric_results import FileMetricLedger, MetricResult, reconcile, render_line
-from esoi.optimization.keep_metric_record.spec_slice import Chosen, RepoSliceSource, SpecSlice, lexical_choice, next_milestone, target_of
+from esoi.optimization.keep_metric_record.interface import MetricIteration
+from esoi.optimization.keep_metric_record.interface import BEFORE, OfflineArmMeter, RecordedRowMeter, read_value
+from esoi.optimization.keep_metric_record.interface import FileMetricLedger, MetricResult, reconcile, render_line
+from esoi.optimization.keep_metric_record.interface import Chosen, RepoSliceSource, SpecSlice, lexical_choice, next_milestone, target_of
 
 
 def chooser(name):

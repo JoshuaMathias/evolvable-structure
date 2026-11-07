@@ -3,7 +3,7 @@ ever called stale. Zero model calls."""
 import repo_fixture
 import tracker_fixture
 from esoi.structure.intent_registry import config, registry
-from esoi.understanding.review_tracker import tracker
+from esoi.understanding.review_tracker.interface import tracker
 
 
 def build(meter):

@@ -6,7 +6,8 @@ import tempfile
 from pathlib import Path
 
 import harness_fixture
-from esoi.optimization.leaderboard import arm_kinds, board_report, case_identity, ranking, rival_decisions, switching_policy, verdict_labels
+from esoi.optimization.leaderboard import arm_kinds, case_identity, ranking, rival_decisions, switching_policy
+from esoi.optimization.leaderboard.interface import board_report, verdict_labels
 
 
 def rank(args):

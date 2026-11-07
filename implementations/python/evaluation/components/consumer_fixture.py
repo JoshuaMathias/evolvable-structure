@@ -9,8 +9,8 @@ import tempfile
 from pathlib import Path
 
 import repo_fixture
-from esoi.runtime.consumer_check import consumer
-from esoi.runtime.consumer_check.consumer import Options
+from esoi.runtime.consumer_check.interface import consumer
+from esoi.runtime.consumer_check.interface import Options
 
 LIBRARY_FILES = {
     "fixlib/__init__.py": '"""A fixture library."""\n',

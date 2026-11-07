@@ -68,6 +68,14 @@ def merge_base_with_default(root: Path, head: str) -> Optional[str]:
     return None
 
 
+def named_base(root: Path, named: str) -> Tuple[Optional[str], str]:
+    """``(commit, note)`` for a base the environment or the configuration names."""
+    code, found = git(root, "rev-parse", "--verify", "-q", f"{named}^{{commit}}")
+    if code != 0:
+        return None, f"no base: trend not computed (base {named!r} is not in this clone; {NEEDS_HISTORY})"
+    return found, ""
+
+
 def resolve_base(root: Path, configured: str = "") -> Tuple[Optional[str], str]:
     """``(base commit, note)``. ``base`` is None with a note: ``root commit`` (nothing to compare), or ``no base: ...``."""
     code, inside = git(root, "rev-parse", "--is-inside-work-tree")
@@ -78,13 +86,15 @@ def resolve_base(root: Path, configured: str = "") -> Tuple[Optional[str], str]:
         return None, "no base: trend not computed (the repository has no commit yet)"
     named = os.environ.get(BASE_ENV, "").strip() or str(configured or "").strip()
     if named:
-        code, found = git(root, "rev-parse", "--verify", "-q", f"{named}^{{commit}}")
-        if code != 0:
-            return None, f"no base: trend not computed (base {named!r} is not in this clone; {NEEDS_HISTORY})"
-        return found, ""
+        return named_base(root, named)
     merged = merge_base_with_default(root, head)
     if merged:
         return merged, ""
+    return parent_base(root)
+
+
+def parent_base(root: Path) -> Tuple[Optional[str], str]:
+    """``(commit, note)`` for the parent of HEAD, or why there is none: a shallow clone, or the root commit."""
     shallow = git(root, "rev-parse", "--is-shallow-repository")[1] == "true"
     code, parent = git(root, "rev-parse", "--verify", "-q", "HEAD~1")
     if code == 0 and parent:
@@ -210,6 +220,12 @@ def coherence_trends(base_rules: Dict[str, Any], config: Any) -> List[Trend]:
     return out
 
 
+def rules_on_at_base(root: Path, base: str, source: Path) -> Tuple[dict, set]:
+    """The rule settings at the base commit, and the opt-in rules that were on there."""
+    base_rules, base_disabled = rules_at(show(root, base, str(source.relative_to(root))) if source.is_absolute() else None, source)
+    return base_rules, {r for r in OPT_IN if bool((base_rules.get(r, {}) or {}).get("enabled", False)) and r not in base_disabled}
+
+
 def trend(config: Any) -> Tuple[List[Trend], str]:
     """The trend of the working tree against the base: ``(trends, note)``. ``note`` is non-empty when no trend could be computed."""
     root = Path(config.root)
@@ -217,8 +233,7 @@ def trend(config: Any) -> Tuple[List[Trend], str]:
     if base is None:
         return [], ("" if note == "root commit" else note)
     source = Path(config.source) if config.source else root / "esoi.toml"
-    base_rules, base_disabled = rules_at(show(root, base, str(source.relative_to(root))) if source.is_absolute() else None, source)
-    was_on = {r for r in OPT_IN if bool((base_rules.get(r, {}) or {}).get("enabled", False)) and r not in base_disabled}
+    base_rules, was_on = rules_on_at_base(root, base, source)
     out = [Trend(f"rule {rule} enabled", "yes", "no", "disabled", adverse=True)
            for rule in OPT_IN if rule in was_on and not config.enabled(rule)]
     out += waiver_trends(config, root, base, was_on)

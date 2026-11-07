@@ -4,6 +4,9 @@ from typing import Dict, Protocol, runtime_checkable
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
 from esoi.optimization.leaderboard import board_report, cascade_report, evidence_table  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.optimization.leaderboard import held_out_parts, rival_pairing, stage_standings, verdict_labels  # noqa: F401  (re-exported: other units call this unit through its interface)
+
+__all__ = ["Leaderboarding", "board_report", "cascade_report", "evidence_table", "held_out_parts", "rival_pairing", "stage_standings", "verdict_labels"]
 
 
 @solution("leaderboard", kind="evaluate", entry="standings", example=".")

@@ -12,7 +12,7 @@ from typing import List
 
 from esoi.structure.intent_registry.intents import Intent
 from esoi.structure.intent_registry.registry import Registry
-from esoi.structure.library_adoption import resolve
+from esoi.structure.library_adoption.interface import resolve
 from esoi.understanding.readable_records.readme_view import View, first_sentence, link, mine, one_line
 
 

@@ -5,6 +5,8 @@ from esoi.runtime.implementation_selection.declare import implementation, soluti
 from esoi.structure.intent_registry.registry import load_project
 from esoi.structure.intent_registry.interface import counted
 
+__all__ = ["StructureBudgeting"]
+
 
 @solution("structure-budget", kind="event", entry="describe", example=".")
 @runtime_checkable

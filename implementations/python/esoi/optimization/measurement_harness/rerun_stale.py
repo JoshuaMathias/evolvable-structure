@@ -10,8 +10,8 @@ from esoi.optimization.measurement_harness.component_folder import prepare_path
 from esoi.optimization.measurement_harness.run_component import run_component
 from esoi.optimization.measurement_harness.run_errors import PendingNetwork, RunError
 from esoi.optimization.measurement_harness.stale_reasons import expired_reason
-from esoi.optimization.when_metrics_are_run.interface import run_guards
-from esoi.optimization.when_metrics_are_run.interface import paid_reason
+from esoi.optimization.when_metrics_are_run import run_guards
+from esoi.optimization.when_metrics_are_run.paid_gating import paid_reason
 from esoi.structure.intent_registry.config import Config
 
 

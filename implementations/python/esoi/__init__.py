@@ -32,8 +32,8 @@ from typing import Any, Dict, Tuple
 
 from esoi.runtime.implementation_selection.declare import implementation, override, register, resolve, solution
 from esoi.runtime.implementation_selection.selection_registry import SelectionError
+from esoi.structure.intent_registry.template_sync.versioning import __version__
 
-__version__ = "0.4.0"
 
 # Flat public names, one per line: ``name module attribute`` (the attribute is left out when it is the name; it may differ from the name when
 # the attribute alone would be unclear). Public namespaces, one line per module: ``namespace module attribute,attribute``;

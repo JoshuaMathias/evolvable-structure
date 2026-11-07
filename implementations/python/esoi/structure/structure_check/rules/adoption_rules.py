@@ -17,10 +17,10 @@ from __future__ import annotations
 import ast
 from typing import Dict, List, Optional
 
-from esoi.structure.library_adoption import resolve
+from esoi.structure.library_adoption.interface import resolve
 from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
-from esoi.structure.structure_quality.overlap import OVERLAP, OVERLAP_WORDS, content
+from esoi.structure.structure_quality.interface import OVERLAP, OVERLAP_WORDS, content
 
 SUMMARIES = {
     "S53": "Advisory adoption: a reference `adopts` or `specializes` (`@library/solution_id`, library named in `[adopts.<library>]`) resolves to a "

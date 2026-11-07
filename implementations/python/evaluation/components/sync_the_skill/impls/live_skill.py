@@ -2,7 +2,7 @@
 import tempfile
 from pathlib import Path
 
-from esoi.understanding.the_standard.skill_distribution import skill
+from esoi.understanding.the_standard.skill_distribution.interface import skill
 from esoi.structure.intent_registry.config import Config
 
 

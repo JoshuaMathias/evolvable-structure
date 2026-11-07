@@ -174,7 +174,7 @@ def run_example(tmp_path: Path, source: str, files: Optional[Dict[str, str]] = N
 
 def docstring_example() -> str:
     """The indented example at the top of ``esoi.runtime.assemble_by_name.assemble``'s docstring."""
-    from esoi.runtime.assemble_by_name import assemble
+    from esoi.runtime.assemble_by_name.interface import assemble
     lines, found = (assemble.__doc__ or "").splitlines(), []
     start = next(i for i, line in enumerate(lines) if line.startswith("    from pathlib import Path"))
     for line in lines[start:]:

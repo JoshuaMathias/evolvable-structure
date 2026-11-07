@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence, Set, Tuple
 
-from esoi.structure.structure_check import standards_check
+from esoi.understanding.spec_search import standards_check
 from esoi.understanding.spec_search import standards_nav as nav
 
 Reader = Callable[[str, str], str]   # (commit, path) -> the file's text at that commit, "" when it does not exist there

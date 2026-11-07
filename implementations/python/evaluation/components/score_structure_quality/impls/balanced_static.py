@@ -1,7 +1,7 @@
 """CURRENT: ``esoi.structure.structure_quality.assess``, the seven dimensions read from the code and records and weighted into one number. Zero model calls."""
 import structure_fixture
-from esoi.structure.structure_quality import assess
-from esoi.structure.structure_quality.balance import Budgets
+from esoi.structure.structure_quality.interface import assess
+from esoi.structure.structure_quality.interface import Budgets
 
 
 def build(meter):

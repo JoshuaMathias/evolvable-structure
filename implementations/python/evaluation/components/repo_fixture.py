@@ -17,9 +17,9 @@ import tempfile
 from pathlib import Path
 from typing import Dict, List
 
-from esoi.structure.structure_check import check
+from esoi.structure.structure_check.interface import check
 from esoi.structure.intent_registry import config
-from esoi.understanding.the_standard import scaffold
+from esoi.understanding.the_standard.interface import scaffold
 
 PORTS = ('"""The fixture port."""\nfrom typing import Protocol\n\n\nclass Greeter(Protocol):\n'
          '    """Says hello."""\n\n    def greet(self, name: str) -> str: ...\n')

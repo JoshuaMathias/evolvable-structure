@@ -17,10 +17,10 @@ from typing import Callable, List, Optional, Tuple
 
 from esoi.structure.intent_registry import intents
 from esoi.optimization.leaderboard import results_log
-from esoi.understanding.readable_records import readme
+from esoi.understanding.readable_records.interface import readme
 from esoi.structure.structure_check import rules
 from esoi.structure.intent_registry.template_sync import template, versioning
-from esoi.understanding.review_tracker import tracker
+from esoi.understanding.review_tracker.interface import tracker
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.registry import load as load_registry
 from esoi.structure.structure_check.rules import entry_rules
@@ -120,7 +120,7 @@ def write_docs(config: Config, say: Callable[[str], None] = print) -> None:
     (config.structure / "COMPONENTS.md").write_text(render_components_doc(registry.components, config.structure_dir), encoding="utf-8")
     if config.intent_mode:
         readme.write(config, registry, say=lambda text: None)
-        from esoi.understanding.readable_records import diagram
+        from esoi.understanding.readable_records.interface import diagram
         diagram.write(config, registry, say=lambda text: None)
     if config.tracker_dir.is_dir() or registry.solutions:
         tracker.write(config, registry, say=lambda text: None)

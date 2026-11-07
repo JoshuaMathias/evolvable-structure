@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
-from esoi.structure.structure_quality import assess
+from esoi.structure.structure_quality.interface import assess
 
 SHOWN = 10
 DIMENSION_OF = {"S54": "scope", "S55": "size", "S56": "coupling", "S57": "reuse", "S58": "surface", "S59": "behavior"}
@@ -52,7 +52,7 @@ def assess_path(path: Path, stage: int = 1, flow: bool = True) -> Dict[str, Any]
 
 def compare_refs(before: str, after: str, repo: str = ".", stage: int = 1, flow: bool = True) -> Dict[str, Any]:
     """The Structure Quality comparison of two structures, each a folder or a git reference of ``repo`` (see ``esoi.structure.structure_quality.compare``)."""
-    from esoi.structure.structure_quality import compare
+    from esoi.structure.structure_quality.interface import compare
     return compare.compare(before, after, lambda folder, level: assess_path(folder, level, flow), repo, stage)
 
 

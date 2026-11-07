@@ -5,6 +5,8 @@ from esoi.runtime.implementation_selection.declare import implementation, soluti
 from esoi.structure.intent_registry.registry import load_project
 from esoi.structure.intent_registry.template_sync import templates, versioning  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 
+__all__ = ["templates", "versioning"]
+
 
 @solution("template-sync", kind="evaluate", entry="fields", example=".")
 @runtime_checkable

@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 from esoi.optimization.measurement_harness import access
 from esoi.optimization.measurement_harness import cassette as cassettes
 from esoi.optimization.measurement_harness.run_errors import OfflineViolation
-from esoi.optimization.when_metrics_are_run.interface import BudgetExceeded
+from esoi.optimization.when_metrics_are_run.paid_gating import BudgetExceeded
 
 
 def as_number(value: Any) -> float:

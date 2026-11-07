@@ -71,4 +71,4 @@ def summaries(config: Config) -> Dict[str, str]:
     return dict(sorted(out.items(), key=lambda kv: (kv[0][0], int(kv[0][1:]) if kv[0][1:].isdigit() else 0)))
 
 
-__all__ = ["BUILTIN", "Context", "RuleGroup", "all_groups", "load_plugin", "plugins", "summaries"]
+__all__ = []   # reached as rules.summaries and rules.plugins through the module, never by name

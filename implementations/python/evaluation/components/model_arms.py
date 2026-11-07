@@ -2,8 +2,8 @@
 environment so no vendor, key or price is written into the repository. Nothing here runs unless a paid arm is run."""
 import os
 
-from esoi.understanding.esoi_for_ai import command_provider
-from esoi.understanding.esoi_for_ai.esoi_behaviour_judge import behaviour_judge
+from esoi.understanding.esoi_for_ai.interface import command_provider
+from esoi.understanding.esoi_for_ai.esoi_behaviour_judge.interface import behaviour_judge
 
 COMMAND_ENV = "ESOI_MODEL_COMMAND"
 MODEL_ENV = "ESOI_MODEL"

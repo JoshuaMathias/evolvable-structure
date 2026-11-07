@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import List
 
-from esoi.runtime.assemble_by_name import hierarchy
+from esoi.runtime.assemble_by_name.interface import hierarchy
 from esoi.runtime.implementation_selection import variants
 from esoi.runtime.implementation_selection.select import default_name
 from esoi.structure.structure_check.rules.base import Context, RuleGroup

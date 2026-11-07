@@ -6,6 +6,9 @@ from esoi.structure.intent_registry.tables import read_lines
 from esoi.understanding.the_standard.skill_distribution.interface import skill_file
 from esoi.optimization.measurement_harness.interface import count_cases
 from esoi.understanding.esoi_for_ai.esoi_behaviour_judge.interface import EsoiBehaviourJudging
+from esoi.understanding.esoi_for_ai import behaviour, command_provider  # noqa: F401  (re-exported: other units call this unit through its interface)
+
+__all__ = ["EsoiForAi", "behaviour", "command_provider"]
 
 
 @solution("esoi-for-ai", kind="event", entry="describe", example=".")

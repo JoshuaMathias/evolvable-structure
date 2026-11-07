@@ -143,7 +143,7 @@ def test_the_base_is_the_merge_base_with_the_default_branch_when_that_is_not_hea
     commit(root, "waiver one")
     set_floor(root, 0.45)
     commit(root, "floor lowered")
-    from esoi.structure.structure_budget import ratchet
+    from esoi.structure.structure_check import ratchet
     found, note = ratchet.resolve_base(root)
     assert found == base and note == ""
     lines = trend(root)

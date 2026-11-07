@@ -192,7 +192,7 @@ def diagram_problems(h: Hierarchy, intent, mine: List[str], problems: Dict[str, 
 def diagram_page_problem(h: Hierarchy, intent) -> str:
     """Why the intent's diagram page is not current, or an empty string when it is."""
     try:
-        from esoi.understanding.readable_records import diagram as esoi_diagram
+        from esoi.understanding.readable_records.interface import diagram as esoi_diagram
         from esoi.structure.intent_registry.registry import load as load_registry
         page = intent.folder / esoi_diagram.FILE
         want_text = esoi_diagram.render(load_registry(h.cfg), intent)

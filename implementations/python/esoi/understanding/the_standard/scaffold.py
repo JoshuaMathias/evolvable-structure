@@ -21,7 +21,7 @@ import re
 from pathlib import Path
 from typing import Dict, List
 
-from esoi.structure.structure_check import check as check_module
+from esoi.structure.structure_check.interface import check as check_module
 from esoi.optimization.leaderboard import case_identity
 from esoi.structure.intent_registry.template_sync import versioning
 from esoi.structure.intent_registry.config import DEFAULT_STRUCTURE_DIR, Config, from_mapping

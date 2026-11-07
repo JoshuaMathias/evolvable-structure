@@ -88,14 +88,21 @@ def check_one(std: Standard, check: Check, root: Path, file: str, added: Dict[in
     return []
 
 
+def untested(std, check, in_scope: List[str], staged: List[str], diff: dict) -> bool:
+    """Whether files in a standard's scope are staged with no test beside them and no waiver in what was added."""
+    tests = glob_to_regex(check.argument or "tests/**")
+    if not in_scope or any(tests.match(f) for f in staged):
+        return False
+    return not any(waived_no_test(std.id, t) for f in in_scope for t in diff[f].values())
+
+
 def standard_findings(std, root: Path, staged: List[str], diff: dict) -> List[Finding]:
     """The findings of one standard's checks over the staged files in its scope."""
     findings: List[Finding] = []
     in_scope = [f for f in staged if matches(f, std.paths)]
     for check in std.checks:
         if check.kind == "needs-test":
-            tests = glob_to_regex(check.argument or "tests/**")
-            if in_scope and not any(tests.match(f) for f in staged) and not any(waived_no_test(std.id, t) for f in in_scope for t in diff[f].values()):
+            if untested(std, check, in_scope, staged, diff):
                 findings.append(Finding(std.id, in_scope[0], 0, check.message))
             continue
         for f in in_scope:

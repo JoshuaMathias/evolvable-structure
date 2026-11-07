@@ -3,7 +3,7 @@ failure mode (never the regexes or the other reply). It costs money: run only af
 (structure/metric-run-policy.md). The judge and the model that wrote a reply may be the same model, and then the judge may
 favour its own phrasing; this metric measures agreement with the labels and does not remove that risk."""
 import model_arms
-from esoi.understanding.esoi_for_ai.esoi_behaviour_judge import behaviour_judge
+from esoi.understanding.esoi_for_ai.esoi_behaviour_judge.interface import behaviour_judge
 
 PAID = True
 

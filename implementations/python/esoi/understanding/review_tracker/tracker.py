@@ -16,7 +16,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from esoi.optimization.leaderboard import arm_kinds, arm_selection, results_log, verdict_labels
+from esoi.optimization.leaderboard import arm_kinds, arm_selection, results_log
+from esoi.optimization.leaderboard.interface import verdict_labels
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.intents import header_union
 from esoi.structure.intent_registry.records import (

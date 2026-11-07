@@ -6,7 +6,7 @@ from esoi.structure.intent_registry.registry import load_project
 from esoi.understanding.the_standard.skill_distribution.skill import skill_file
 from esoi.understanding.the_standard.skill_distribution import skill  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 
-__all__ = ["SkillDistributing", "GeneratedPublicCopy", "skill_file"]
+__all__ = ["skill", "skill_file"]
 
 
 @solution("skill-distribution", kind="evaluate", entry="copies", example=".")

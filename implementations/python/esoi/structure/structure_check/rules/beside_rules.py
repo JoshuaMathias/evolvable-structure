@@ -19,9 +19,10 @@ A waiver excuses one key: the solution id, the folder's path from the repository
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
-from esoi.structure.intent_registry import besidecode, implementedby, intents
+from esoi.structure.intent_registry import besidecode, intents
+from esoi.structure.intent_registry.interface import implementedby
 from esoi.structure.intent_registry.specify_from_code import declarations
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
 
@@ -42,12 +43,79 @@ def distance(a: Path, b: Path) -> int:
 def reach(arms: Dict[Path, list], spec: Path, code: Path, row_folder: Path, shared: bool = False) -> int:
     """The link distance from a solution's spec folder to its code. A folder of arms owned by an intent has a generated README that
     links to the owner's README, so its code is one link past the folder that holds the row. Code in a shared layer the intent's own
-    code imports (``shared``, see ``besidecode.shared_layer_reaches``) is one link from the intent."""
+    code imports (``shared``, see ``shared_layer_reaches``) is one link from the intent."""
     if shared:
         return 1
     if code in arms and any(folder.resolve() == row_folder.resolve() for _, folder in arms[code]):
         return distance(spec, row_folder) + 1
     return distance(spec, code)
+
+
+def area_rank(config: Config, folder: Path, areas: List[Path]) -> Optional[int]:
+    """The layer rank of an area folder (a folder of records directly under the package): its own when ``layers`` names it, else the
+    rank most listed record folders share (an area is not named in ``layers`` until it holds code)."""
+    ranks = config.layer_rank
+    if folder.name in ranks:
+        return ranks[folder.name]
+    listed = [ranks[a.name] for a in areas if a.name in ranks]
+    if not listed:
+        return None
+    return max(set(listed), key=lambda rank: (listed.count(rank), rank))   # the rank most record folders share: the areas, not core
+
+
+def names_solution(config: Config, files: Set[str], solution_id: str, interface: str) -> bool:
+    """Whether the executable code of ``files`` names the solution: its id or its interface class (an identifier, annotation,
+    imported name or a string used as a value; a docstring or comment never counts), as an area wires its members by name
+    through typed needs rather than by importing them."""
+    import ast
+    import re
+    from esoi.structure.structure_check import coherence_code_evidence, coherence_paragraph
+    for rel in sorted(files):
+        path = config.root / rel
+        if not rel.endswith(".py") or not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        try:
+            tree = ast.parse(text)
+        except SyntaxError:
+            continue
+        for token in coherence_code_evidence.executable_tokens(text, tree):
+            if coherence_paragraph.position(solution_id, {}, token) >= 0 or (interface and re.search(r"\b" + re.escape(interface) + r"\b", token)):
+                return True
+    return False
+
+
+def shared_layer_reaches(config: Config, spec: Path, code_file: str, graph: Dict[str, Set[str]], intent_files: Set[str],
+                         solution_id: str = "", interface: str = "") -> bool:
+    """Whether ``code_file`` sits in a layer of the package that is shared infrastructure of the intent at ``spec`` (a layer ranked
+    below the area folders by ``layers``) and is imported by that intent's code (or named by its executable code through the solution's id or interface class, as an area wires
+    its members by typed need): the spec folder's modules and the code of the implementations its rows name. Code in a layer at or above the area, or one the intent's code never imports, does not reach."""
+    if not in_shared_layer(config, spec, code_file):
+        return False
+    if any(code_file in graph.get(g, ()) for g in intent_files):
+        return True
+    return bool(solution_id) and names_solution(config, intent_files, solution_id, interface)
+
+
+def layer_of(config: Config, package: Path, spec: Path, code_file: str) -> Optional[str]:
+    """The first folder under the package that holds ``code_file``, or None when the spec or the code is not inside the package."""
+    if not config.package or package not in spec.parents or spec == package:
+        return None
+    code = (config.root / code_file).resolve()
+    return code.relative_to(package).parts[0] if package in code.parents else None
+
+
+def in_shared_layer(config: Config, spec: Path, code_file: str) -> bool:
+    """Whether ``code_file`` sits in a layer of the package ranked below the area folder that holds the intent at ``spec``."""
+    package = (config.root / (config.package_dir or config.package or "")).resolve()
+    spec = spec.resolve()
+    layer = layer_of(config, package, spec, code_file)
+    if layer is None:
+        return False
+    ranks = config.layer_rank
+    areas = [p for p in package.iterdir() if p.is_dir() and any((p / n).is_file() for n in ("intent.csv", "solutions.csv", "implementations.csv"))]
+    mine = area_rank(config, package / spec.relative_to(package).parts[0], areas)
+    return layer in ranks and mine is not None and ranks[layer] < mine
 
 
 def shared_in(config, spec: Path, code_file: str, graph: Dict[str, set], intent_code: Dict[Path, set],
@@ -59,7 +127,7 @@ def shared_in(config, spec: Path, code_file: str, graph: Dict[str, set], intent_
     resolved = resolved if resolved is not None else {rel_file: (config.root / rel_file).resolve() for rel_file in graph}
     here = spec.resolve()
     mine = {rel_file for rel_file, path in resolved.items() if path.is_relative_to(here)} | intent_code.get(here, set())
-    return besidecode.shared_layer_reaches(config, spec, code_file, graph, mine, solution_id, interface)
+    return shared_layer_reaches(config, spec, code_file, graph, mine, solution_id, interface)
 
 
 def rel(config, path: Path) -> str:
@@ -96,13 +164,17 @@ def far_finding(ctx: Context, sid: str, folder: Path, codes, arms, moves, graph,
     return [f"S40 {sid}: its spec is in {rel(config, folder)} and its code in {', '.join(far)}, more than one link apart; next: {action}"]
 
 
+def duplicate_findings(ctx: Context) -> List[str]:
+    """S40 for each record kept in more than one place."""
+    config = ctx.config
+    return [f"S40 {ident}: a row of {name} is kept in {len(where)} places ({', '.join(rel(config, w) for w in where)}); "
+            "next: delete the copies that are not in the folder that holds its code"
+            for name, ident, where in intents.duplicate_rows(config) if not ctx.waived("S40", ident)]
+
+
 def findings(ctx: Context) -> List[str]:
     config = ctx.config
-    out: List[str] = []
-    for name, ident, where in intents.duplicate_rows(config):
-        if not ctx.waived("S40", ident):
-            out.append(f"S40 {ident}: a row of {name} is kept in {len(where)} places ({', '.join(rel(config, w) for w in where)}); "
-                       "next: delete the copies that are not in the folder that holds its code")
+    out: List[str] = duplicate_findings(ctx)
     held = besidecode.rows_by_file(config)
     solution_folder = {r.get("solution_id", "").strip(): folder for r, folder, _ in held["solutions.csv"]}
     interfaces = {r.get("solution_id", "").strip(): (r.get("interface_name", "") or "").strip() for r, _, _ in held["solutions.csv"]}

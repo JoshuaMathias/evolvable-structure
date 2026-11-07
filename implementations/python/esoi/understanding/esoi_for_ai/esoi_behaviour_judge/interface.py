@@ -3,6 +3,9 @@ from typing import Dict, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.optimization.measurement_harness.interface import count_cases
+from esoi.understanding.esoi_for_ai.esoi_behaviour_judge import behaviour_judge  # noqa: F401  (re-exported: other units call this unit through its interface)
+
+__all__ = ["EsoiBehaviourJudging", "behaviour_judge"]
 
 
 @solution("esoi-behaviour-judge", kind="event", entry="describe", example=".")

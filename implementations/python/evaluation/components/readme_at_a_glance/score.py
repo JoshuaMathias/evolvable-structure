@@ -12,7 +12,7 @@ import re
 
 import glance_fixture
 from verdict_score import tally, verdict_row
-from esoi.understanding.readable_records import diagram, readme_view
+from esoi.understanding.readable_records.interface import diagram, readme_view
 
 CHECKS = ("vision", "coherence", "diagram", "solutions", "links", "finished", "pure", "size")
 LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)\)")

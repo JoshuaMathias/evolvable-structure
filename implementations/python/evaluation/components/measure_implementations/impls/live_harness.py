@@ -7,11 +7,11 @@ import importlib
 import io
 
 import harness_fixture
-from esoi.optimization.measurement_harness import case_loading
-from esoi.optimization.when_metrics_are_run import paid_gating
-from esoi.optimization.measurement_harness import record_result
-from esoi.optimization.measurement_harness import run_component
-from esoi.optimization.measurement_harness import stale_reasons
+from esoi.optimization.measurement_harness.interface import case_loading
+from esoi.optimization.when_metrics_are_run.interface import paid_gating
+from esoi.optimization.measurement_harness.interface import record_result
+from esoi.optimization.measurement_harness.interface import run_component
+from esoi.optimization.measurement_harness.interface import stale_reasons
 
 
 def record(args):

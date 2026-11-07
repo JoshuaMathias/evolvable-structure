@@ -26,7 +26,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from esoi.optimization.leaderboard import arm_selection, case_identity, held_out_parts, ranking, results_log, rival_decisions, rival_pairing, switching_policy, cascade_stages, stage_standings
+from esoi.optimization.leaderboard import arm_selection, case_identity, ranking, results_log, rival_decisions, switching_policy, cascade_stages
+from esoi.optimization.leaderboard.interface import held_out_parts, rival_pairing, stage_standings
 from esoi.structure.intent_registry import intents
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.specify_from_code.declarations import intent_folder
@@ -354,7 +355,7 @@ def show_and_apply(config: Config, registry: Registry, p: Proposal, dry_run: boo
 def run_cli(config: Config, solution_id: str = "", dry_run: bool = False, apply_proposals: bool = False, say: Callable[[str], None] = print) -> int:
     """Print each proposal; apply those the policy allows. Exit 1 when a rival wins and nothing could be applied."""
     from esoi.structure.intent_registry import registry as registry_module
-    from esoi.understanding.review_tracker import tracker
+    from esoi.understanding.review_tracker.interface import tracker
     registry = registry_module.load(config)
     proposals = [p for p in propose(config, registry) if not solution_id or p.solution_id == solution_id]
     if not proposals:

@@ -8,7 +8,7 @@ from esoi.understanding.readable_records import diagram, readme_trail
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.intents import Intent
 from esoi.structure.intent_registry.registry import Registry
-from esoi.structure.intent_registry import implementedby
+from esoi.structure.intent_registry.interface import implementedby
 from esoi.structure.intent_registry.tables import read_csv
 from esoi.understanding.readable_records.readme_view import ARM_NOTE, FILE, FOLDER_NOTE, View, entry_call, first_sentence, impl_label, leader, link, list_item, metric_names, mine, named, one_line
 

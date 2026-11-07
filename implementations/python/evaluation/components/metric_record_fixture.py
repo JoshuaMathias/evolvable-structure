@@ -18,9 +18,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import esoi
-from esoi.understanding.the_standard import scaffold
-from esoi.optimization.keep_metric_record.metric_meter import AFTER, BEFORE
-from esoi.optimization.keep_metric_record.spec_slice import SpecSlice
+from esoi.understanding.the_standard.interface import scaffold
+from esoi.optimization.keep_metric_record.interface import AFTER, BEFORE
+from esoi.optimization.keep_metric_record.interface import SpecSlice
 
 HANG_SECONDS = 0.8   # a meter that hangs holds its thread this long; cases give the reading far less
 SLICE = SpecSlice(root="none", solution_id="greet-a-person", metric_id="greeting-pass-rate",

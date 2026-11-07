@@ -6,9 +6,10 @@ import tempfile
 from pathlib import Path
 
 import repo_fixture
-from esoi.structure.structure_check import check
+from esoi.structure.structure_check.interface import check
 from esoi.structure.intent_registry import config, registry, tables
-from esoi.structure.intent_registry.specify_from_code import declarations, newsolution
+from esoi.structure.intent_registry.specify_from_code import declarations
+from esoi.structure.intent_registry.specify_from_code.interface import newsolution
 from esoi.structure.intent_registry.config import Config
 
 

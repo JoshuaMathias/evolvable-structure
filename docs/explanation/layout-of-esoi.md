@@ -89,7 +89,7 @@ code. Modules that were later split into several files keep their first name as 
 | `check.py` | `structure/structure_check/check.py` |
 | `coherence.py` | `structure/structure_check/coherence.py` |
 | `hygiene.py` | `structure/structure_check/hygiene.py` |
-| `ratchet.py` | `structure/structure_budget/ratchet.py` |
+| `ratchet.py` | `structure/structure_check/ratchet.py` |
 | `harness.py` | `optimization/measurement_harness/harness.py` |
 | `hermetic.py` | `optimization/measurement_harness/hermetic.py` |
 | `expect.py` | `optimization/measurement_harness/expect.py` |

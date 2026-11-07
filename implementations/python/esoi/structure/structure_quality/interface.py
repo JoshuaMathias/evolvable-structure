@@ -4,8 +4,12 @@ from typing import Any, Callable, Dict, Optional, Protocol, runtime_checkable
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.structure_quality.balance import REFERENCE_LINE
 from esoi.structure.structure_quality import compare, report  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.structure.structure_quality import assess, expert_review  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.structure.structure_quality.balance import Budgets  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.structure.structure_quality.overlap import ARMS_SHARE_LITTLE, OVERLAP, OVERLAP_WORDS, content, mean_overlap  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.structure.structure_quality.project import load  # noqa: F401  (re-exported: other units call this unit through its interface)
 
-__all__ = ["StructureQualityAssessing"]
+__all__ = ["ARMS_SHARE_LITTLE", "Budgets", "OVERLAP", "OVERLAP_WORDS", "REFERENCE_LINE", "assess", "compare", "content", "expert_review", "load", "mean_overlap", "report"]
 
 
 @solution("structure-quality", kind="evaluate", entry="assess", example="docs")

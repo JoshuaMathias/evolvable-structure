@@ -3,6 +3,9 @@ from typing import List, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
+from esoi.structure.library_adoption import resolve  # noqa: F401  (re-exported: other units call this unit through its interface)
+
+__all__ = ["LibraryAdopting", "resolve"]
 
 
 @solution("library-adoption", kind="evaluate", entry="unresolved", example=".")

@@ -4,7 +4,7 @@ and reports how long the check takes cold and with a warm cache. Zero model call
 import time
 
 import repo_fixture
-from esoi.structure.structure_check import check
+from esoi.structure.structure_check.interface import check
 from esoi.structure.intent_registry import config
 
 

@@ -13,7 +13,7 @@ carries these lines (the rest of the file is read only by someone who needs the 
 Tags name the risk a standard mitigates (the skill's R1 to R4 style risks, here the risk of low quality code), so a tag
 is a handle on a problem the repository's records define, never a topic. Navigation is by tag and path: ``for_file``
 returns only the rules whose paths match the file being edited, so an author sees three lines instead of a standards
-index. Running the ``Check:`` lines on a commit is ``esoi.structure.structure_check.standards_check``; this module is
+index. Running the ``Check:`` lines on a commit is ``esoi.understanding.spec_search.standards_check``; this module is
 the one command-line front for ``for-task``, ``for-file``, ``lint``, ``measure``, ``compare``, ``train``, ``check-staged``
 and ``install-hook`` (``python -m esoi.understanding.spec_search.standards_nav``). The module reads no environment and
 writes nothing.
@@ -357,7 +357,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 def hook_or_staged(args, root: Optional[Path]) -> int:
     """Install the pre-commit hook, or check the staged change (and print the advisory) when a standards folder was found."""
-    from esoi.structure.structure_check import standards_check
+    from esoi.understanding.spec_search import standards_check
     if args.cmd == "install-hook":
         print(standards_check.install_hook(root or Path(args.repo).resolve()))
         return 0

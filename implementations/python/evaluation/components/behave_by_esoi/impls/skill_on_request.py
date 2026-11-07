@@ -3,8 +3,8 @@ load it (one call); when it does, the full SKILL.md is the system text of the an
 grades the reply. Two to three model calls per case, which costs money: run only after Joshua has approved the spend
 (structure/metric-run-policy.md). It measures the loading decision as well as the instructions."""
 import model_arms
-from esoi.understanding.esoi_for_ai import behaviour
-from esoi.understanding.the_standard.skill_distribution import skill
+from esoi.understanding.esoi_for_ai.interface import behaviour
+from esoi.understanding.the_standard.skill_distribution.interface import skill
 
 PAID = True
 SKILL_PATH = skill.BUNDLED / "evolvable-structure" / skill.SKILL_FILE

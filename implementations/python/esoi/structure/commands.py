@@ -100,8 +100,11 @@ def records_check(config, args: argparse.Namespace) -> int:
 
 def run_records(config, args: argparse.Namespace) -> int:
     if args.action in ("place", "gather"):
+        from esoi.structure.intent_registry import registry
         from esoi.structure.intent_registry.interface import besidecode
-        return besidecode.run_cli(config, "beside" if args.action == "place" else "gather", args.apply)
+        from esoi.understanding.readable_records.interface import readme
+        return besidecode.run_cli(config, "beside" if args.action == "place" else "gather", args.apply,
+                                  after_apply=lambda moved: readme.write(moved, registry.load(moved), say=lambda text: None))
     if args.action == "sync":
         return records_sync(config, args)
     return records_check(config, args)

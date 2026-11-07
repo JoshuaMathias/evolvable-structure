@@ -19,7 +19,7 @@ from pathlib import Path
 import navigable_fixture
 from verdict_score import tally, verdict_row
 from esoi.structure.intent_registry import besidecode, intents
-from esoi.structure.structure_check.rules.beside_rules import distance
+from esoi.structure.structure_check.interface import distance
 
 CHECKS = ("together", "clicks", "implemented", "unduplicated", "readme", "pure")
 CLICKS = 3

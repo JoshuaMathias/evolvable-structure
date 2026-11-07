@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, List
 from esoi.optimization.measurement_harness import run_log
 from esoi.optimization.measurement_harness.case_loading import stratified_sample
 from esoi.optimization.measurement_harness.run_errors import RunError
-from esoi.optimization.when_metrics_are_run.interface import run_guards
+from esoi.optimization.when_metrics_are_run import run_guards
 from esoi.structure.intent_registry.config import Config
 
 

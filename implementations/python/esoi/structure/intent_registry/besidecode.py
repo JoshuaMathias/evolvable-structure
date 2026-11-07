@@ -23,7 +23,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Callable, Dict, List, Optional, Set, Tuple
 
 from esoi.structure.intent_registry import intents
 from esoi.structure.intent_registry.config import Config
@@ -87,7 +87,6 @@ def arm_folders(config: Config) -> Dict[Path, List[Tuple[str, Path]]]:
     is covered by a README ``esoi readmes`` generates, which lists the arms and links to the owning intent's README. A folder
     qualifies only when it matches those patterns, holds no records of its own, is not at or around the row's folder, and the row
     has a known owning intent: arms of no known owner are not covered."""
-    import fnmatch
     root = config.root.resolve()
     patterns = arm_folder_patterns(config)
     holders = {folder.resolve() for _, folder in intents.folders(config)}
@@ -97,15 +96,18 @@ def arm_folders(config: Config) -> Dict[Path, List[Tuple[str, Path]]]:
         if here is None or not owner or here in holders:
             continue
         folder = folder.resolve()
-        if here == folder or folder in here.parents or here in folder.parents:
-            continue
-        rel_here = here.relative_to(root).as_posix() if root in here.parents else ""
-        if not any(fnmatch.fnmatchcase(rel_here, pattern) for pattern in patterns):
-            continue
-        pair = (owner, folder)
-        if pair not in out.setdefault(here, []):
-            out[here].append(pair)
+        if arm_folder_matches(here, folder, root, patterns) and (owner, folder) not in out.setdefault(here, []):
+            out[here].append((owner, folder))
     return out
+
+
+def arm_folder_matches(here: Path, folder: Path, root: Path, patterns: List[str]) -> bool:
+    """Whether an arm code folder is covered: not at or around the row's folder, and matching an arm folder pattern."""
+    import fnmatch
+    if here == folder or folder in here.parents or here in folder.parents:
+        return False
+    rel_here = here.relative_to(root).as_posix() if root in here.parents else ""
+    return any(fnmatch.fnmatchcase(rel_here, pattern) for pattern in patterns)
 
 
 def package_files(config: Config) -> Dict[str, str]:
@@ -139,74 +141,21 @@ def import_graph(config: Config) -> Dict[str, Set[str]]:
         is_pkg = rel.endswith("__init__.py")
         found: Set[str] = set()
         for node in nodes_of(tree):
-            if isinstance(node, ast.Import):
-                names = [a.name for a in node.names]
-            elif isinstance(node, ast.ImportFrom):
-                base = import_base(dotted.split(".") if is_pkg else dotted.split(".")[:-1], node.level, node.module)
-                names = [base] + [f"{base}.{a.name}" for a in node.names]
-            else:
-                continue
-            found.update(modules[n] for n in names if n in modules)
+            found.update(modules[n] for n in imported_names(node, dotted, is_pkg) if n in modules)
         found.discard(rel)
         graph[rel] = found
     return graph
 
 
-def area_rank(config: Config, folder: Path, areas: List[Path]) -> Optional[int]:
-    """The layer rank of an area folder (a folder of records directly under the package): its own when ``layers`` names it, else the
-    rank most listed record folders share (an area is not named in ``layers`` until it holds code)."""
-    ranks = config.layer_rank
-    if folder.name in ranks:
-        return ranks[folder.name]
-    listed = [ranks[a.name] for a in areas if a.name in ranks]
-    if not listed:
-        return None
-    return max(set(listed), key=lambda rank: (listed.count(rank), rank))   # the rank most record folders share: the areas, not core
-
-
-def names_solution(config: Config, files: Set[str], solution_id: str, interface: str) -> bool:
-    """Whether the executable code of ``files`` names the solution: its id or its interface class (an identifier, annotation,
-    imported name or a string used as a value; a docstring or comment never counts), as an area wires its members by name
-    through typed needs rather than by importing them."""
+def imported_names(node, dotted: str, is_pkg: bool) -> List[str]:
+    """The module names one import statement may refer to (none for any other node)."""
     import ast
-    import re
-    from esoi.structure.structure_check import coherence_code_evidence, coherence_paragraph
-    for rel in sorted(files):
-        path = config.root / rel
-        if not rel.endswith(".py") or not path.is_file():
-            continue
-        text = path.read_text(encoding="utf-8", errors="replace")
-        try:
-            tree = ast.parse(text)
-        except SyntaxError:
-            continue
-        for token in coherence_code_evidence.executable_tokens(text, tree):
-            if coherence_paragraph.position(solution_id, {}, token) >= 0 or (interface and re.search(r"\b" + re.escape(interface) + r"\b", token)):
-                return True
-    return False
-
-
-def shared_layer_reaches(config: Config, spec: Path, code_file: str, graph: Dict[str, Set[str]], intent_files: Set[str],
-                         solution_id: str = "", interface: str = "") -> bool:
-    """Whether ``code_file`` sits in a layer of the package that is shared infrastructure of the intent at ``spec`` (a layer ranked
-    below the area folders by ``layers``) and is imported by that intent's code (or named by its executable code through the solution's id or interface class, as an area wires
-    its members by typed need): the spec folder's modules and the code of the implementations its rows name. Code in a layer at or above the area, or one the intent's code never imports, does not reach."""
-    package = (config.root / (config.package_dir or config.package or "")).resolve()
-    spec = spec.resolve()
-    if not config.package or package not in spec.parents or spec == package:
-        return False
-    code = (config.root / code_file).resolve()
-    if package not in code.parents:
-        return False
-    layer = code.relative_to(package).parts[0]
-    ranks = config.layer_rank
-    areas = [p for p in package.iterdir() if p.is_dir() and any((p / n).is_file() for n in ("intent.csv", "solutions.csv", "implementations.csv"))]
-    mine = area_rank(config, package / spec.relative_to(package).parts[0], areas)
-    if layer not in ranks or mine is None or ranks[layer] >= mine:
-        return False
-    if any(code_file in graph.get(g, ()) for g in intent_files):
-        return True
-    return bool(solution_id) and names_solution(config, intent_files, solution_id, interface)
+    if isinstance(node, ast.Import):
+        return [a.name for a in node.names]
+    if isinstance(node, ast.ImportFrom):
+        base = import_base(dotted.split(".") if is_pkg else dotted.split(".")[:-1], node.level, node.module)
+        return [base] + [f"{base}.{a.name}" for a in node.names]
+    return []
 
 
 def host_for(allowed: Set[Path], folder: Optional[Path], root: Path) -> Optional[Path]:
@@ -320,17 +269,29 @@ def plan(config: Config, mode: str = "beside") -> List[Move]:
             return config.structure if owner == (top.intent_id if top else "") else folder
         return want.get((name, ident))
 
-    moves: List[Move] = []
-    for name, found in held.items():
-        for row, folder, owner in found:
-            ident = row.get(KEY_OF[name], "").strip()
-            target = destination(name, ident) if ident else None
-            if target is None or target.resolve() == folder.resolve():
-                continue
-            if intents.owner_of(config, target, named) != owner and target.resolve() != config.structure.resolve():
-                continue   # a row never leaves the intent that owns it
-            moves.append(Move(name, ident, folder, target))
-    return moves
+    moves = [move_for(config, name, row, folder, owner, destination, named) for name, found in held.items() for row, folder, owner in found]
+    return [m for m in moves if m is not None]
+
+
+def move_for(config: Config, name: str, row: Row, folder: Path, owner: str, destination: Callable[[str, str], Optional[Path]],
+             named) -> Optional[Move]:
+    """The move of one record to its destination, or None when it is already there or the destination belongs to another intent."""
+    ident = row.get(KEY_OF[name], "").strip()
+    target = destination(name, ident) if ident else None
+    if target is None or target.resolve() == folder.resolve():
+        return None
+    if intents.owner_of(config, target, named) != owner and target.resolve() != config.structure.resolve():
+        return None   # a row never leaves the intent that owns it
+    return Move(name, ident, folder, target)
+
+
+def carry_row(move: Move, carried: Dict[Tuple[Path, str], List[Row]], headers: Dict[Tuple[Path, str], List[str]]) -> None:
+    """Take the record out of its source file into ``carried`` and widen the destination's header to hold its columns."""
+    row = next(r for r in read_csv(move.source / move.file) if r.get(KEY_OF[move.file], "").strip() == move.ident)
+    carried.setdefault((move.target, move.file), []).append(row)
+    columns = headers.get((move.source, move.file)) or read_header(move.source / move.file)
+    have = headers.setdefault((move.target, move.file), read_header(move.target / move.file) if (move.target / move.file).is_file() else [])
+    have += [c for c in columns if c not in have]
 
 
 def apply(config: Config, moves: List[Move]) -> int:
@@ -343,11 +304,7 @@ def apply(config: Config, moves: List[Move]) -> int:
     for (folder, name), gone in removed.items():
         headers[(folder, name)] = read_header(folder / name)
     for move in moves:
-        row = next(r for r in read_csv(move.source / move.file) if r.get(KEY_OF[move.file], "").strip() == move.ident)
-        carried.setdefault((move.target, move.file), []).append(row)
-        columns = headers.get((move.source, move.file)) or read_header(move.source / move.file)
-        have = headers.setdefault((move.target, move.file), read_header(move.target / move.file) if (move.target / move.file).is_file() else [])
-        have += [c for c in columns if c not in have]
+        carry_row(move, carried, headers)
     for (folder, name), gone in removed.items():
         keep = [r for r in read_csv(folder / name) if r.get(KEY_OF[name], "").strip() not in gone]
         if keep:
@@ -359,9 +316,10 @@ def apply(config: Config, moves: List[Move]) -> int:
     return len(moves)
 
 
-def run_cli(config: Config, mode: str, do_apply: bool, say=print) -> int:
+def run_cli(config: Config, mode: str, do_apply: bool, say=print, after_apply: Optional[Callable[[Config], None]] = None) -> int:
     """``esoi records place|gather [--apply]``: list the records that are not where the layout puts them, or move them and
-    write the README of every folder that now holds records."""
+    write the README of every folder that now holds records (``after_apply`` is the caller's way to write them: the READMEs belong to
+    another solution, so this one takes it as a parameter)."""
     if not config.intent_mode:
         say("no intents here (the legacy layout), so there is nothing to place")
         return 0
@@ -378,11 +336,10 @@ def run_cli(config: Config, mode: str, do_apply: bool, say=print) -> int:
         say(f"{len(moves)} record(s) would move (dry run; add --apply)")
         return 0
     apply(config, moves)
-    from esoi.understanding.readable_records import readme
-    from esoi.structure.intent_registry import registry
     say(f"moved {len(moves)} record(s)")
-    readme.write(config, registry.load(config), say=lambda text: None)
-    say("wrote the READMEs; commit the moved records with them")
+    if after_apply is not None:
+        after_apply(config)
+        say("wrote the READMEs; commit the moved records with them")
     return 0
 
 

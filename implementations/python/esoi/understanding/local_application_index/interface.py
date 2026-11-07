@@ -5,6 +5,8 @@ from esoi.runtime.implementation_selection.declare import implementation, soluti
 from esoi.optimization.measurement_harness.interface import count_cases
 from esoi.understanding.local_application_index import projects  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 
+__all__ = ["LocalApplicationIndexing", "projects"]
+
 
 @solution("local-application-index", kind="event", entry="describe", example=".")
 @runtime_checkable
