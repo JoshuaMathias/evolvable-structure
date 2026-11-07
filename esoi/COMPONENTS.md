@@ -46,7 +46,6 @@ Edit the CSV, never this file. The rules are listed by `esoi rules`.
 | Stale Result Cases | `eval-know-stale-results` | evaluation | Cases for telling a stale result from a current one. | when-metrics-are-run |
 | Shared Evaluation Fixtures | `eval-shared` | evaluation | Fixtures shared by the evaluations, the results log and the per-case log. | structure-check, measurement-harness, consumer-check, when-metrics-are-run, esoi-for-ai, esoi-behaviour-judge, specify-from-code, readable-records, promote-the-winner |
 | Python Packaging | `python-project` | project | Packaging, the implementation's readme and its reference documents. | structure-check |
-| Continuous Integration Workflow | `ci` | project | The continuous integration workflow. | when-metrics-are-run |
 | Skill Distribution | `skill-distribution` | tools | Generating, checking and installing the public copy of the author's skill. | skill-distribution |
 | Skill Sync Cases | `eval-sync-the-skill` | evaluation | Cases for the sync, the drift check, leak detection and install. | skill-distribution |
 | Intent Tree | `intent-tree` | core | Finding the intent folders of a repository and reading their records as one tree. | intent-registry |

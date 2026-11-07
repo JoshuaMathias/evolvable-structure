@@ -1,3 +1,14 @@
+# Run the check in continuous integration (an example)
+
+Use this if you want your own repository's tests, structure check and hygiene scan to run on a hosting service's pull requests and pushes.
+It is an example to copy, not something every project needs: ESOI runs the same commands by hand (`esoi check`, `esoi hygiene`), and this
+repository runs no workflow of its own, so editing a README starts no process.
+
+## The example (GitHub Actions)
+
+Save it as `.github/workflows/check.yml` in your repository and change the install line to match where your package lives.
+
+```yaml
 name: check
 
 on:
@@ -28,3 +39,10 @@ jobs:
       # A stale recorded result only informs (the measured code changed since its commit): warn, never fail.
       - if: github.ref == 'refs/heads/main'
         run: esoi check --strict || echo "::warning::esoi check --strict reported stale results or structure findings, see the log above"
+```
+
+## What it does
+
+- It runs your tests, then `esoi check` (a structure problem fails the job; advisory findings are printed and exit 0), then `esoi hygiene`.
+- It runs no metric. A metric runs on a decision ([when metrics are run](../explanation/when-metrics-are-run.md)), and a stale result only informs.
+- `fetch-depth: 0` gives `esoi hygiene --history` the full history it needs.

@@ -46,6 +46,7 @@ Steps for a task you already know you want to do.
 - [Write a cascade that stays one number](how-to/write-a-cascade-that-stays-one-number.md): one balanced score at every stage, kinds of cases as case sources, floors marked, then `esoi check --findings`.
 - [Measure an implementation per circumstance](how-to/measure-per-circumstance.md): circumstances, variants, slice rows, and how to read a slice verdict as a proposal.
 - [Keep records beside the code](how-to/keep-records-beside-the-code.md): put each solution's records in the folder that holds its code, with a generated README in each.
+- [Run the check in continuous integration](how-to/run-the-check-in-ci.md): an example workflow to copy if you want the tests, the check and the hygiene scan on every push.
 - [Generate the README of every intent folder](how-to/generate-intent-readmes.md): write a page per intent folder that shows what it is, how its parts fit and where to go next.
 - [Write problems and ideals that hold up](how-to/write-problems-and-ideals-that-hold-up.md): a problem true today in plain words, an ideal as the state you want and not a solution; rules S51 and S52.
 - [Admit a technology that does not fit the structure](how-to/admit-a-technology-that-does-not-fit.md): the decision steps, what a specification change may touch, three worked examples, `esoi admit`.
