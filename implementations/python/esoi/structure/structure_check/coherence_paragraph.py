@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from collections import Counter
 from typing import Dict, List, Tuple
 
@@ -87,22 +88,34 @@ def clause_subjects(parts: List[str], every_solution: Dict[str, Dict[str, str]],
     return subjects
 
 
-def naming_problems(para: str, mine: List[str], every_solution, uses, host_sid: str, host_uses, max_names: int) -> List[str]:
+@dataclass(frozen=True)
+class Edges:
+    """The solutions of the intent and the uses edges the paragraph is checked against: the intent's own, every solution's, and its host's."""
+    mine: List[str]
+    every_solution: Dict
+    uses: Dict
+    host_sid: str
+    host_uses: object
+
+
+def naming_problems(para: str, edges: Edges, max_names: int) -> List[str]:
     """Problems with which solutions the paragraph names: several paragraphs, solutions missing, solutions of other intents, crowded sentences."""
+    mine, every_solution = edges.mine, edges.every_solution
     found: List[str] = []
     if re.search(r"\n\s*\n", para):
         found.append("more than one paragraph")
     missing = [s for s in mine if position(s, every_solution[s], para) < 0]
     if missing:
         found.append(f"names {len(mine) - len(missing)} of {len(mine)} solutions; missing: {', '.join(missing)}")
-    stray = stray_solutions(para, mine, every_solution, uses, host_sid, host_uses)
+    stray = stray_solutions(para, edges)
     if stray:
         found.append(f"names solutions of other intents no edge reaches: {', '.join(stray)}")
     return found + crowded_sentences(para, every_solution, max_names)
 
 
-def stray_solutions(para: str, mine: List[str], every_solution, uses, host_sid: str, host_uses) -> List[str]:
+def stray_solutions(para: str, edges: Edges) -> List[str]:
     """The solutions the paragraph names that no edge of the intent (or its host) reaches."""
+    mine, every_solution, uses, host_sid, host_uses = edges.mine, edges.every_solution, edges.uses, edges.host_sid, edges.host_uses
     allowed = set(mine) | {b for a in mine for b in uses[a]} | host_uses | {host_sid} | {
         s for s in every_solution if any(h in mine for h in uses[s])}
     return [s for s in every_solution if s not in allowed and position(s, every_solution[s], para) >= 0]
@@ -192,7 +205,8 @@ def check_paragraph(para: str, problems, mine, every_solution, uses, host_sid, h
     if not para:
         found.append("solution_coherence is empty")
         return
-    found += naming_problems(para, mine, every_solution, uses, host_sid, host_uses, max_names)
+    edges = Edges(mine, every_solution, uses, host_sid, host_uses)
+    found += naming_problems(para, edges, max_names)
     parts = clauses(para)
     stated = stated_edges(parts, inner, mine, every_solution)
     found += templated_problem(stated, every_solution)

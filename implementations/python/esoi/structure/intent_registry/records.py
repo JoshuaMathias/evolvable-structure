@@ -206,11 +206,11 @@ def match_implementations(solution_id: str, entries: List[str], records: Dict[st
     return claimed, sorted(set(records) - set(claimed.values()))
 
 
-def needed_columns(folder: Path, entity: str, key: str, rows: List[Dict[str, str]], template: Template,
-                   interface_required: bool, metric_command: str) -> List[str]:
-    """The columns a record file's header must carry. A solution of kind specification needs no interface fields, and a header may omit them only for those."""
+def needed_columns(entity: str, key: str, rows: List[Dict[str, str]], template: Template, interface_required: bool,
+                   commanded: Set[str]) -> List[str]:
+    """The columns a record file's header must carry. A solution of kind specification needs no interface fields, and a header may omit them only for those.
+    ``commanded`` holds the ids of the solutions that a metric's command measures."""
     if entity == "solution" and rows:
-        commanded = solutions_with_a_command(read_csv(Path(folder) / "metrics.csv"), metric_command)
         if not any(r.get(key, "") in commanded for r in rows):
             return [key, *checked_fields(template, entity, False)]
     return [key, *checked_fields(template, entity, interface_required)]
@@ -226,7 +226,9 @@ def check_headers(folder: Path, template: Template, interface_required: bool = T
         if not path.is_file():
             continue
         header = read_header(path)
-        need = needed_columns(folder, entity, key, read_csv(path), template, interface_required, metric_command)
+        rows = read_csv(path)
+        commanded = solutions_with_a_command(read_csv(Path(folder) / "metrics.csv"), metric_command) if entity == "solution" and rows else set()
+        need = needed_columns(entity, key, rows, template, interface_required, commanded)
         missing = [k for k in need if k not in header]
         if missing:
             bad.append(f"R1 {label or folder}/{name}: missing template column(s) {', '.join(missing)}"

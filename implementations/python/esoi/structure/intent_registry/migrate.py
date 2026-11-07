@@ -20,6 +20,7 @@ Standard library only.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -66,15 +67,25 @@ def placed_uses(structure: Path, selected_of: Dict[str, str], first_of: Dict[str
     return uses, unplaced
 
 
-def merge_records(entity: str, filename: str, overall: Path, structure: Path, selected_of: Dict[str, str],
-                  uses: Dict[str, List[str]], overall_solutions: int) -> Tuple[List[str], List[Row]]:
+@dataclass(frozen=True)
+class Legacy:
+    """The two record folders being merged, with what the overall network chose and which solutions its implementations build on."""
+    overall: Path
+    structure: Path
+    selected_of: Dict[str, str]
+    uses: Dict[str, List[str]]
+    overall_solutions: int
+
+
+def merge_records(legacy: Legacy, entity: str, filename: str) -> Tuple[List[str], List[Row]]:
     """The header and rows of one record file with the overall network's records first, then the detailed ones."""
+    overall, structure, selected_of, uses = legacy.overall, legacy.structure, legacy.selected_of, legacy.uses
     header_o = read_header(overall / filename) if (overall / filename).is_file() else []
     header_d = read_header(structure / filename) if (structure / filename).is_file() else []
     rows = read_csv(overall / filename) + read_csv(structure / filename)
     header = union_header(header_d[:1] or header_o[:1], header_o, header_d, drop=(RETIRED,))
     if entity == "solution":
-        for row in rows[:overall_solutions]:
+        for row in rows[:legacy.overall_solutions]:
             row["selected"] = selected_of.get(row["solution_id"], "").partition(":")[2]
         header = union_header(header, ["selected"])
     if entity == "implementation":
@@ -124,9 +135,10 @@ def plan(config: Config, apply: bool = False) -> Tuple[List[str], List[str]]:
     done = [f"write {config.structure_dir}/intent.csv ({intent_id}: name and vision statement left empty for you)"]
     selected_of, first_of = selected_and_first(overall)
     uses, unplaced = placed_uses(structure, selected_of, first_of)
+    legacy = Legacy(overall, structure, selected_of, uses, len(solutions_o))
     merged: Dict[str, Tuple[List[str], List[Row]]] = {}
     for entity, (filename, _) in FILES.items():
-        merged[filename] = merge_records(entity, filename, overall, structure, selected_of, uses, len(solutions_o))
+        merged[filename] = merge_records(legacy, entity, filename)
         done.append(f"merge {len(merged[filename][1])} {entity} record(s) of the overall network and the detailed records into "
                     f"{config.structure_dir}/{filename}")
     if uses:

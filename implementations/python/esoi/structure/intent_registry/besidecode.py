@@ -269,13 +269,22 @@ def plan(config: Config, mode: str = "beside") -> List[Move]:
             return config.structure if owner == (top.intent_id if top else "") else folder
         return want.get((name, ident))
 
-    moves = [move_for(config, name, row, folder, owner, destination, named) for name, found in held.items() for row, folder, owner in found]
+    place = Placement(config, destination, named)
+    moves = [move_for(place, name, row, folder, owner) for name, found in held.items() for row, folder, owner in found]
     return [m for m in moves if m is not None]
 
 
-def move_for(config: Config, name: str, row: Row, folder: Path, owner: str, destination: Callable[[str, str], Optional[Path]],
-             named) -> Optional[Move]:
+@dataclass(frozen=True)
+class Placement:
+    """Where records may go: the configuration, the destination of a record by file and id, and the named intent folders."""
+    config: Config
+    destination: Callable[[str, str], Optional[Path]]
+    named: object
+
+
+def move_for(place: Placement, name: str, row: Row, folder: Path, owner: str) -> Optional[Move]:
     """The move of one record to its destination, or None when it is already there or the destination belongs to another intent."""
+    config, destination, named = place.config, place.destination, place.named
     ident = row.get(KEY_OF[name], "").strip()
     target = destination(name, ident) if ident else None
     if target is None or target.resolve() == folder.resolve():

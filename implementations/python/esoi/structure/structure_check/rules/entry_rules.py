@@ -31,6 +31,7 @@ import re as regex
 import os
 import subprocess
 import sys
+from dataclasses import dataclass
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
@@ -120,8 +121,18 @@ def links_up(table: Dict[str, Dict[str, str]], column: str, goal: Set[str], star
     return False
 
 
-def linked_up_problems(ctx: Context, top, sid: str, entity: str, table: Dict[str, Dict[str, str]], column: str, goal: Set[str]) -> List[str]:
+@dataclass(frozen=True)
+class Chain:
+    """One kind of record and the column that links it up: its table by id, the column, and the root's ids that count as the goal."""
+    entity: str
+    table: Dict[str, Dict[str, str]]
+    column: str
+    goal: Set[str]
+
+
+def linked_up_problems(ctx: Context, top, sid: str, chain: Chain) -> List[str]:
     """S36 for the records of one kind that do not link up to the root's through ``column``, or link up with no real text."""
+    entity, table, column, goal = chain.entity, chain.table, chain.column, chain.goal
     def reaches(start: str) -> bool:
         return links_up(table, column, goal, start)
     bad: List[str] = []
@@ -201,7 +212,7 @@ def root_network_problems(ctx: Context, top, root: Dict[str, str], mine) -> List
             ("problem", mine(ctx.registry.problems), "problem_id", "parent_problem_ids", set(problems)),
             ("ideal", mine(ctx.registry.ideals), "ideal_id", "parent_ideal_ids", set(ideals)),
             ("metric", list(metrics.values()), "metric_id", "parent_metric_ids", {metric} if metric else set())):
-        bad += linked_up_problems(ctx, top, sid, entity, {r[key]: r for r in rows}, column, goal)
+        bad += linked_up_problems(ctx, top, sid, Chain(entity, {r[key]: r for r in rows}, column, goal))
     return bad
 
 

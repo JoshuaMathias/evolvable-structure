@@ -6,6 +6,7 @@ and the solutions an implementation builds on. The record rules (R1 to R7, insid
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from collections import defaultdict
 from typing import Dict, List
 
@@ -60,8 +61,17 @@ def exclusion_problems(sid: str, intent: str, row, siblings: list, scoped: bool)
     return []
 
 
-def row_role_problems(ctx: Context, row, group: list, intent: str, scoped: bool, known: set, containers: set) -> List[str]:
+@dataclass(frozen=True)
+class RoleFacts:
+    """The solution ids, the ids of containers (an implementation of them is a sub-intent), and whether the repository records ``delegates_to``."""
+    known: set
+    containers: set
+    scoped: bool
+
+
+def row_role_problems(ctx: Context, facts: RoleFacts, row, group: list, intent: str) -> List[str]:
     """S48 for one solution: exclusions stated, an owner named for them, delegates that exist, a change driver for a container."""
+    known, containers, scoped = facts.known, facts.containers, facts.scoped
     sid = row.get("solution_id", "")
     if not sid or ctx.waived("S48", sid) or adopts(row):   # the library states an adopted solution's role
         return []
@@ -96,22 +106,22 @@ def role_scope(ctx: Context) -> List[str]:
     kind of change that moves a container's metric. Informing only: the texts are judged by people, these are the prompts."""
     out: List[str] = []
     rows = ctx.registry.every_solution()
-    known, containers, scoped = role_facts(ctx, rows)
+    facts = role_facts(ctx, rows)
     for intent, group in solutions_by_intent(rows).items():
-        if not scoped and len(group) > 1 and intent and not ctx.waived("S48", intent):
+        if not facts.scoped and len(group) > 1 and intent and not ctx.waived("S48", intent):
             out.append(unscoped_line(intent, len(group)))
         for row in group:
-            out += row_role_problems(ctx, row, group, intent, scoped, known, containers)
+            out += row_role_problems(ctx, facts, row, group, intent)
         out += overlap_problems(ctx, group)
     return out
 
 
-def role_facts(ctx: Context, rows: list) -> tuple:
-    """The solution ids, the ids of containers (an implementation of them is a sub-intent), and whether the repository records ``delegates_to``."""
+def role_facts(ctx: Context, rows: list) -> RoleFacts:
+    """What the role check reads across all solutions."""
     known = {r.get("solution_id", "") for r in rows}
     containers = {r.get("solution_id", "") for r in ctx.registry.implementations if (r.get("sub_intent") or "").strip()}
     scoped = any("delegates_to" in row for row in rows)   # a repository that has the column records who owns what each solution excludes
-    return known, containers, scoped
+    return RoleFacts(known, containers, scoped)
 
 
 def solutions_by_intent(rows: list) -> Dict[str, list]:
