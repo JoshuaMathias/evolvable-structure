@@ -601,7 +601,7 @@ navigable_records,esoi_folder,39ee0b5f,,,NAV-050,,0,0,0,0,0.0,,
 navigable_records,esoi_folder,39ee0b5f,,,NAV-051,,0,0,0,0,0.0,,
 navigable_records,esoi_folder,39ee0b5f,,,NAV-052,,0,0,0,0,0.0,,
 navigable_records,esoi_folder,39ee0b5f,,,NAV-053,,0,0,0,0,0.0,,
-check_the_structure,live_checker,74fb44aa,,,CTS-000,,1,0,0,0,0.0,,
+check_the_structure,live_checker,74fb44aa,,,CTS-000,,1,0,0,0,0.1,,
 check_the_structure,live_checker,74fb44aa,,,CTS-001,,1,0,0,0,0.0,,
 check_the_structure,live_checker,74fb44aa,,,CTS-002,,1,0,0,0,0.0,,
 check_the_structure,live_checker,74fb44aa,,,CTS-003,,1,0,0,0,0.0,,
@@ -657,11 +657,11 @@ check_the_structure,live_checker,74fb44aa,,,CTS-057,,1,0,0,0,0.1,,
 check_the_structure,live_checker,74fb44aa,,,CTS-058,,1,0,0,0,0.1,,
 check_the_structure,live_checker,74fb44aa,,,CTS-059,,1,0,0,0,0.0,,
 check_the_structure,live_checker,74fb44aa,,,CTS-060,,1,0,0,0,0.1,,
-check_the_structure,live_checker,74fb44aa,,,CTS-061,,1,0,0,0,0.8,,
+check_the_structure,live_checker,74fb44aa,,,CTS-061,,1,0,0,0,0.7,,
 check_the_structure,live_checker,74fb44aa,,,CTS-062,,1,0,0,0,0.0,,
 check_the_structure,live_checker,74fb44aa,,,CTS-063,,1,0,0,0,0.0,,
-check_the_structure,live_checker,74fb44aa,,,CTS-064,,1,0,0,0,0.0,,
-check_the_structure,live_checker,74fb44aa,,,CTS-065,,1,0,0,0,0.0,,
+check_the_structure,live_checker,74fb44aa,,,CTS-064,,1,0,0,0,0.1,,
+check_the_structure,live_checker,74fb44aa,,,CTS-065,,1,0,0,0,0.1,,
 check_the_structure,live_checker,74fb44aa,,,CTS-066,,1,0,0,0,0.0,,
 check_the_structure,live_checker,74fb44aa,,,CTS-067,,1,0,0,0,0.0,,
 check_the_structure,live_checker,74fb44aa,,,CTS-068,,1,0,0,0,0.0,,
@@ -679,11 +679,11 @@ check_the_structure,live_checker,74fb44aa,,,CTS-079,,1,0,0,0,0.0,,
 check_the_structure,live_checker,74fb44aa,,,CTS-080,,1,0,0,0,0.0,,
 score_structure_quality,balanced_static,2323ea4c,,,SQ-001,,1,0,0,0,0.0,,1.0
 score_structure_quality,balanced_static,2323ea4c,,,SQ-002,,1,0,0,0,0.0,,1.0
-score_structure_quality,balanced_static,2323ea4c,,,SQ-003,,1,0,0,0,0.4,,0.994
+score_structure_quality,balanced_static,2323ea4c,,,SQ-003,,1,0,0,0,0.5,,0.9925
 score_structure_quality,balanced_static,2323ea4c,,,SQ-004,,1,0,0,0,0.9,,0.9865
 score_structure_quality,balanced_static,2323ea4c,,,SQ-005,,1,0,0,0,0.0,,1.0
 score_structure_quality,balanced_static,2323ea4c,,,SQ-006,,1,0,0,0,0.0,,1.0
-score_structure_quality,balanced_static,2323ea4c,,,SQ-007,,1,0,0,0,0.0,,1.0
+score_structure_quality,balanced_static,2323ea4c,,,SQ-007,,1,0,0,0,0.2,,0.997
 score_structure_quality,balanced_static,2323ea4c,,,SQ-008,,1,0,0,0,0.0,,1.0
 score_structure_quality,balanced_static,2323ea4c,,,SQ-009,,1,0,0,0,0.0,,1.0
 score_structure_quality,balanced_static,2323ea4c,,,SQ-010,,1,0,0,0,0.0,,1.0
@@ -701,7 +701,7 @@ score_structure_quality,balanced_static,2323ea4c,,,SQ-021,,1,0,0,0,0.0,,1.0
 score_structure_quality,balanced_static,2323ea4c,,,SQ-022,,1,0,0,0,0.0,,1.0
 score_structure_quality,balanced_static,2323ea4c,,,SQ-023,,1,0,0,0,0.0,,1.0
 score_structure_quality,balanced_static,2323ea4c,,,SQ-024,,1,0,0,0,0.0,,1.0
-score_structure_quality,balanced_static,2323ea4c,,,SQ-025,,1,0,0,0,7.2,,0.892
+score_structure_quality,balanced_static,2323ea4c,,,SQ-025,,1,0,0,0,8.1,,0.8785
 score_structure_quality,balanced_static,2323ea4c,,,SQ-026,,1,0,0,0,0.0,,1.0
 score_structure_quality,balanced_static,2323ea4c,,,SQ-027,,1,0,0,0,0.0,,1.0
 score_structure_quality,balanced_static,2323ea4c,,,SQ-028,,1,0,0,0,0.0,,1.0
@@ -729,7 +729,7 @@ score_structure_quality,balanced_static,2323ea4c,,,SQ-49,,1,0,0,0,0.0,,1.0
 score_structure_quality,file_size_only,2323ea4c,,,SQ-001,,1,0,0,0,0.0,,1.0
 score_structure_quality,file_size_only,2323ea4c,,,SQ-002,,1,0,0,0,0.0,,1.0
 score_structure_quality,file_size_only,2323ea4c,,,SQ-003,,1,0,0,0,0.3,,0.9955
-score_structure_quality,file_size_only,2323ea4c,,,SQ-004,,1,0,0,0,0.2,,0.997
+score_structure_quality,file_size_only,2323ea4c,,,SQ-004,,1,0,0,0,0.3,,0.9955
 score_structure_quality,file_size_only,2323ea4c,,,SQ-005,,0,0,0,0,0.0,,0.3
 score_structure_quality,file_size_only,2323ea4c,,,SQ-006,,0,0,0,0,0.0,,0.3
 score_structure_quality,file_size_only,2323ea4c,,,SQ-007,,0,0,0,0,0.0,,0.3
@@ -750,7 +750,7 @@ score_structure_quality,file_size_only,2323ea4c,,,SQ-021,,0,0,0,0,0.0,,0.3
 score_structure_quality,file_size_only,2323ea4c,,,SQ-022,,0,0,0,0,0.0,,0.3
 score_structure_quality,file_size_only,2323ea4c,,,SQ-023,,0,0,0,0,0.0,,0.3
 score_structure_quality,file_size_only,2323ea4c,,,SQ-024,,0,0,0,0,0.0,,0.3
-score_structure_quality,file_size_only,2323ea4c,,,SQ-025,,1,0,0,0,2.5,,0.9625
+score_structure_quality,file_size_only,2323ea4c,,,SQ-025,,1,0,0,0,3.1,,0.9535
 score_structure_quality,file_size_only,2323ea4c,,,SQ-026,,1,0,0,0,0.0,,1.0
 score_structure_quality,file_size_only,2323ea4c,,,SQ-027,,0,0,0,0,0.0,,0.3
 score_structure_quality,file_size_only,2323ea4c,,,SQ-028,,0,0,0,0,0.0,,0.3
@@ -766,7 +766,7 @@ score_structure_quality,file_size_only,2323ea4c,,,SQ-037,,0,0,0,0,0.0,,0.3
 score_structure_quality,file_size_only,2323ea4c,,,SQ-038,,0,0,0,0,0.0,,0.3
 score_structure_quality,file_size_only,2323ea4c,,,SQ-039,,0,0,0,0,0.0,,0.3
 score_structure_quality,file_size_only,2323ea4c,,,SQ-040,,0,0,0,0,0.0,,0.3
-score_structure_quality,file_size_only,2323ea4c,,,SQ-041,,0,0,0,0,0.1,,0.2985
+score_structure_quality,file_size_only,2323ea4c,,,SQ-041,,0,0,0,0,0.0,,0.3
 score_structure_quality,file_size_only,2323ea4c,,,SQ-42,,1,0,0,0,0.0,,1.0
 score_structure_quality,file_size_only,2323ea4c,,,SQ-43,,0,0,0,0,0.0,,0.3
 score_structure_quality,file_size_only,2323ea4c,,,SQ-44,,0,0,0,0,0.0,,0.3

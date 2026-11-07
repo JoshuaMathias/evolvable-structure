@@ -891,3 +891,16 @@ date,component,impl,cases,passed,dev,heldout,model_calls,tokens_in,tokens_out,co
 2026-11-06,specify_from_code,live_declarations,14,14,14/14,0/0,0,0,0,0.0,0.5,a7b557f,1f8aba2e,none,"new 2/2, scan 7/7, sync 5/5",,
 2026-11-06,sync_the_template,live_parser,11,11,11/11,0/0,0,0,0,0.0,0.0,a7b557f,01a5aa25,none,"parse 9/9, stale 2/2",,
 2026-11-06,sync_the_skill,live_skill,26,26,26/26,0/0,0,0,0,0.0,0.0,a7b557f,423db61b,none,"drift 5/5, install 5/5, leak 10/10, sync 6/6",,
+2026-11-07,rank_implementations,live_leaderboard,54,54,49/49,5/5,0,0,0,0.0,0.3,6575701,f6660393,none,"board 8/8, rank 13/13, verdict 33/33",,
+2026-11-07,measure_implementations,live_harness,29,29,25/25,4/4,0,0,0,0.0,0.4,6575701,94fdf00f,none,"cost 5/5, external 2/2, paid 4/4, record 4/4, run 10/10, simulated 3/3, validity 1/1",,
+2026-11-07,promote_the_winner,live_promote,17,17,17/17,0/0,0,0,0,0.0,0.0,6575701,e10ba250,none,"apply 2/2, decide 15/15",,
+2026-11-07,assemble_by_name,live_assembler,41,41,41/41,0/0,0,0,0,0.0,0.5,6575701,1b43c4f0,none,"assemble 39/39, docs 2/2",,
+2026-11-07,check_a_consumer,live_consumer_check,22,22,22/22,0/0,0,0,0,0.0,0.0,6575701,759c2b19,none,"mutations detected 20/20, clean fixtures passed 2/2",,
+2026-11-07,select_an_implementation,live_selector,32,32,32/32,0/0,0,0,0,0.0,0.0,6575701,8ba84fe1,none,"declared 13/13, resolve 19/19",,
+2026-11-07,check_the_structure,live_checker,76,76,76/76,0/0,0,0,0,0.0,4.3,6575701,74fb44aa,none,"mutations detected 61/61, clean fixtures passed 14/14",,
+2026-11-07,score_structure_quality,balanced_static,49,49,49/49,0/0,0,0,0,0.0,11.3,6575701,2323ea4c,none,"assess 29/29, compare 20/20",,0.9965
+2026-11-07,score_structure_quality,file_size_only,49,10,10/49,0/0,0,0,0,0.0,5.1,6575701,2323ea4c,none,"assess 8/29, compare 2/20",,0.4413
+2026-11-07,readme_at_a_glance,at_a_glance,4,2,2/4,0/0,0,0,0,0.0,0.8,6575701,9cd24d51,none,"vision 2/4, coherence 2/4, diagram 2/4, solutions 2/4, links 2/4, finished 2/4, pure 2/4, size 2/4",,
+2026-11-07,readme_at_a_glance,full_page,4,0,0/4,0/0,0,0,0,0.0,0.5,6575701,9cd24d51,none,"vision 2/4, coherence 2/4, diagram 0/4, solutions 0/4, links 0/4, finished 2/4, pure 2/4, size 0/4",,
+2026-11-07,readme_at_a_glance,links_page,4,0,0/4,0/0,0,0,0,0.0,0.5,6575701,9cd24d51,none,"vision 2/4, coherence 0/4, diagram 0/4, solutions 0/4, links 2/4, finished 2/4, pure 2/4, size 2/4",,
+2026-11-07,review_tracker,live_tracker,10,10,10/10,0/0,0,0,0,0.0,0.1,6575701,dd281943,none,tracker 10/10,,
