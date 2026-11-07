@@ -11,11 +11,29 @@ why this is one part of the number and not the number.
 from __future__ import annotations
 
 import csv
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import Dict, List, Tuple
 
 from esoi.structure.structure_quality.balance import Budgets, Dimension, combine, share
 from esoi.structure.structure_quality.project import Project
+
+
+def generated_copy(solutions: Path) -> bool:
+    """Whether a ``solutions.csv`` is the review tracker's combined copy (the registry's rows joined with the reviewers' ``tracking_*`` columns), which repeats solutions
+    that live elsewhere and is not a place where solutions are kept."""
+    with solutions.open(newline="", encoding="utf-8") as handle:
+        return "tracking_status" in (next(csv.reader(handle), None) or [])
+
+
+def solutions_below(folder: Path) -> List[Path]:
+    """The ``solutions.csv`` files an intent folder groups: its own and those of folders directly below it that are neither intents nor generated copies."""
+    found = []
+    for solutions in [folder / "solutions.csv", *sorted(folder.glob("*/solutions.csv"))]:
+        if solutions.parent != folder and (solutions.parent / "intent.csv").exists():
+            continue
+        if solutions.is_file() and not generated_copy(solutions):
+            found.append(solutions)
+    return found
 
 
 def intent_children(project: Project) -> List[Tuple[str, int]]:
@@ -25,12 +43,9 @@ def intent_children(project: Project) -> List[Tuple[str, int]]:
     for relative in project.named["intent.csv"]:
         folder = (root / relative).parent
         count = 0
-        for solutions in [folder / "solutions.csv", *sorted(folder.glob("*/solutions.csv"))]:
-            if solutions.parent != folder and (solutions.parent / "intent.csv").exists():
-                continue
-            if solutions.is_file():
-                with solutions.open(newline="", encoding="utf-8") as handle:
-                    count += sum(1 for _ in csv.DictReader(handle))
+        for solutions in solutions_below(folder):
+            with solutions.open(newline="", encoding="utf-8") as handle:
+                count += sum(1 for _ in csv.DictReader(handle))
         out.append((folder.relative_to(root).as_posix() or ".", count))
     return out
 

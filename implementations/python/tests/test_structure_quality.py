@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / "evaluation" / "components"))
 from shared_fixtures import structure_fixture
 from esoi.structure.structure_check.rules import structure_quality_rules
 from esoi.structure.intent_registry import parsed_source
-from esoi.structure.structure_quality import assess, balance, compare, coupling, duplication, expert_review, interface, overlap, project, report as report_module, scope
+from esoi.structure.structure_quality import assess, balance, compare, coupling, duplication, expert_review, size, interface, overlap, project, report as report_module, scope
 from esoi.structure.structure_quality.balance import Budgets
 
 
@@ -605,3 +605,11 @@ def test_a_dataclass_field_list_is_a_declaration_and_a_call_in_a_value_is_not(tm
     computed = "VALUES = [" + ", ".join(f"len('x{i}')" for i in range(40)) + "]\n"
     assert reuse_parts(tmp_path, fields)["share_of_code_copied"] < 0.2
     assert reuse_parts(tmp_path / "second", computed)["share_of_code_copied"] > 0.5
+
+
+def test_the_review_trackers_combined_copy_is_not_counted_as_solutions_the_intent_groups(tmp_path):
+    rows = "".join(f"s{i},a name\n" for i in range(20))
+    write(tmp_path, {"intent.csv": "intent_id\nroot\n", "solutions.csv": "solution_id,name\none,A\ntwo,B\n",
+                     "kept/solutions.csv": "solution_id,name\nthree,C\n",
+                     "tracker/solutions.csv": "solution_id,name,tracking_status\n" + rows.replace("\n", ",open\n"), "mod.py": "x = 1\n"})
+    assert dict(size.intent_children(project.load(tmp_path))) == {".": 3}

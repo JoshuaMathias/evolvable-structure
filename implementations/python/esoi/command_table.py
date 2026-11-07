@@ -23,7 +23,6 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 TYPES = {"int": int}
 ARGUMENT_KEYS = ("action", "default", "choices", "type", "nargs", "metavar", "dest", "required", "group")
 COMMAND_KEYS = ("add_help", "needs_config")
-BOOLEAN_KEYS = ("required", "add_help", "needs_config")
 NARGS_WORDS = {"?": "?", "*": "*", "+": "+", "REMAINDER": argparse.REMAINDER}
 DEFAULT_WORDS = {"None": None, "[]": []}
 
@@ -32,33 +31,51 @@ class TableError(ValueError):
     """A line of a command table that cannot be built; the message names the line."""
 
 
+def boolean(text: str, options: Dict[str, Any]) -> bool:
+    if text not in ("True", "False"):
+        raise TableError(f"a boolean option must be True or False, not {text!r}")
+    return text == "True"
+
+
+def type_of(text: str, options: Dict[str, Any]) -> Callable:
+    if text not in TYPES:
+        raise TableError(f"type must be one of {', '.join(TYPES)}, not {text!r}")
+    return TYPES[text]
+
+
+def nargs_of(text: str, options: Dict[str, Any]) -> Any:
+    if text in NARGS_WORDS:
+        return NARGS_WORDS[text]
+    if text.isdigit():
+        return int(text)
+    raise TableError(f"nargs must be ?, *, +, REMAINDER or a whole number, not {text!r}")
+
+
+def choices_of(text: str, options: Dict[str, Any]) -> list:
+    kind = options.get("type", str)   # write type= before choices=
+    try:
+        return [kind(part) for part in text.split(",")]
+    except ValueError:
+        raise TableError(f"choices {text!r} are not all valid for type {kind.__name__}") from None
+
+
+def metavar_of(text: str, options: Dict[str, Any]) -> Any:
+    return tuple(text.split(",")) if "," in text else text
+
+
+def default_of(text: str, options: Dict[str, Any]) -> Any:
+    return DEFAULT_WORDS.get(text, text)
+
+
+READERS: Dict[str, Callable[[str, Dict[str, Any]], Any]] = {
+    "required": boolean, "add_help": boolean, "needs_config": boolean, "type": type_of, "nargs": nargs_of, "choices": choices_of,
+    "metavar": metavar_of, "default": default_of,
+}
+
+
 def option_value(key: str, text: str, options: Dict[str, Any]) -> Any:
-    """One ``key=value`` option as ``argparse`` takes it; ``options`` holds the ones read before it on the line."""
-    if key in BOOLEAN_KEYS:
-        if text not in ("True", "False"):
-            raise TableError(f"{key} must be True or False, not {text!r}")
-        return text == "True"
-    if key == "type":
-        if text not in TYPES:
-            raise TableError(f"type must be one of {', '.join(TYPES)}, not {text!r}")
-        return TYPES[text]
-    if key == "nargs":
-        if text in NARGS_WORDS:
-            return NARGS_WORDS[text]
-        if text.isdigit():
-            return int(text)
-        raise TableError(f"nargs must be ?, *, +, REMAINDER or a whole number, not {text!r}")
-    if key == "choices":
-        kind = options.get("type", str)   # write type= before choices=
-        try:
-            return [kind(part) for part in text.split(",")]
-        except ValueError:
-            raise TableError(f"choices {text!r} are not all valid for type {kind.__name__}") from None
-    if key == "metavar" and "," in text:
-        return tuple(text.split(","))
-    if key == "default":
-        return DEFAULT_WORDS.get(text, text)
-    return text
+    """One ``key=value`` option as ``argparse`` takes it (text unless the key says otherwise); ``options`` holds the ones read before it on the line."""
+    return READERS.get(key, lambda value, read: value)(text, options)
 
 
 def options_of(text: str, allowed: Tuple[str, ...]) -> Dict[str, Any]:
