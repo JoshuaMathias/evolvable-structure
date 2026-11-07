@@ -199,9 +199,8 @@ def finish_run(summary: Dict[str, Any], rows: list, notes: list, args: argparse.
             "(this run is not recorded; add --keep-going to run past failures)")
 
 
-def run_component(component: str, scorer: Callable, argv: List[str], config: Config,
-                  say: Callable[[str], None] = print, guards: bool = True) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
-    """Drive one implementation over a component's cases; print each case; optionally record. Returns (summary, rows)."""
+def open_run(component: str, argv: List[str], config: Config, say: Callable[[str], None], guards: bool):
+    """Read the command line and choose the cases: ``(args, cases, circumstances, impl, sample label, cases digest)``."""
     args = build_parser(component).parse_args(argv)
     cases = load_cases(component, config)
     whole = len(cases)
@@ -212,13 +211,21 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
         raise RunError(str(exc)) from exc
     impl = args.impl if ":" in args.impl else variants.canonical(args.impl)   # one spelling of a variant in every record
     refuse_offline_network(config, component, impl)
-    runs_path, cases_sha = config.root / config.runs_log, cases_digest(component, config.evaluation)
+    cases_sha = cases_digest(component, config.evaluation)
     name_cases_to_run(args, config, component, impl, cases_sha, say, guards)
     cases = narrow_cases(args, component, cases)
     sample = sample_label(args, cases, whole)
     budget = args.max_calls if args.max_calls is not None else "none"
     say(f"{component}: {len(cases)} case(s), impl {args.impl}, model-call budget {budget}: "
         f"{', '.join(str(c['id']) for c in cases[:12])}{' ...' if len(cases) > 12 else ''}")
+    return args, cases, circs, impl, sample, cases_sha
+
+
+def run_component(component: str, scorer: Callable, argv: List[str], config: Config,
+                  say: Callable[[str], None] = print, guards: bool = True) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    """Drive one implementation over a component's cases; print each case; optionally record. Returns (summary, rows)."""
+    args, cases, circs, impl, sample, cases_sha = open_run(component, argv, config, say, guards)
+    runs_path = config.root / config.runs_log
     notes = check_guards(config, component, impl, sample, args, say) if guards else []
     meter, guard = make_meter(config, component, impl, args)
     fn = load_impl(impl, component, config)(meter)
