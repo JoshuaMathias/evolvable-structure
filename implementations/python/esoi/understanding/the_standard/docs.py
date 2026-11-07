@@ -49,13 +49,19 @@ def check(root: Path, docs: str = "docs") -> List[str]:
         if path != f"{docs}/{INDEX}" and category_of(path, docs) is None:
             found.append(f"{path}: sits outside {', '.join(name + '/' for name, label in CATEGORIES)}; move it into exactly one")
     for path in pages_under(root, docs):
-        for bang, label, target in LINK.findall(prose((root / path).read_text(encoding="utf-8"))):
-            if EXTERNAL.match(target):
-                continue
-            resolved = posixpath.normpath(posixpath.join(posixpath.dirname(path), target.partition("#")[0]))
-            if target.partition("#")[0] and not (root / resolved).exists():
-                found.append(f"{path}: link to {target} does not resolve")
+        found += [f"{path}: link to {target} does not resolve" for target in unresolved_links(root, path)]
     return found
+
+
+def unresolved_links(root: Path, path: str) -> List[str]:
+    """The internal link targets of one page that point at nothing."""
+    missing = []
+    for bang, label, target in LINK.findall(prose((root / path).read_text(encoding="utf-8"))):
+        anchorless = target.partition("#")[0]
+        resolved = posixpath.normpath(posixpath.join(posixpath.dirname(path), anchorless))
+        if not EXTERNAL.match(target) and anchorless and not (root / resolved).exists():
+            missing.append(target)
+    return missing
 
 
 def page_name(title: str) -> str:
@@ -209,6 +215,11 @@ def run_cli(args: object, root: Path, say=print) -> int:
             say(problem)
         say("esoi docs ok" if not problems else f"{len(problems)} docs problem(s)")
         return 1 if problems else 0
+    return run_wiki(args, root, docs, say)
+
+
+def run_wiki(args: object, root: Path, docs: str, say=print) -> int:
+    """``esoi docs wiki``: build the wiki pages and, when asked, push them."""
     url = args.repo_url or remote_url(root)
     if not url:
         say("esoi docs wiki: pass --repo-url (no origin remote to read it from)")

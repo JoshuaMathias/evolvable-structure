@@ -77,10 +77,7 @@ def one_level_below(view: View, registry: Registry, intent: Intent) -> List[str]
     refined = {i.row.get("implements", "").partition(":")[0].strip() for i in children}
     held = readme_trail.solution_folders(view)
     lines: List[str] = []
-    for child in children:
-        name = one_line(child.row.get("name", "")) or child.intent_id
-        vision = one_line(child.row.get("vision_statement", ""))
-        lines.append(f"- [{name}]({link(intent.folder, child.folder / FILE)}) (sub-intent)" + (f": {vision}" if vision else ""))
+    lines += [readme_trail.sub_intent_line(child, intent.folder) for child in children]
     for r in mine(registry.every_solution(), intent.intent_id):
         sid = r.get("solution_id", "")
         folder = held.get(sid)

@@ -125,24 +125,25 @@ def strip_private(text: str) -> str:
     out: List[str] = []
     position = 0
     for match in PRIVATE_SPAN.finditer(text):
-        start, end = match.start(), match.end()
-        rest = text[end:]
-        at_line_start = start == 0 or text[start - 1] == "\n"
-        ends_line = rest == "" or rest.startswith("\n")
-        if at_line_start and ends_line:
-            out.append(text[position:start])
-            position = end + (1 if rest.startswith("\n") else 0)
-        elif at_line_start and re.match(r"[.,;:)]", rest):
-            out.append(text[position:start].rstrip(" \t\n"))
-            position = end
-        elif ends_line or re.match(r"[.,;:)\]]", rest):
-            out.append(text[position:start])
-            position = end
-        else:
-            out.append(text[position:start] + " ")
-            position = end
+        kept, position = cut_span(text, position, match.start(), match.end())
+        out.append(kept)
     out.append(text[position:])
     return "".join(out)
+
+
+def cut_span(text: str, position: int, start: int, end: int) -> Tuple[str, int]:
+    """The text kept before one private span and where the next piece starts: a span alone on its line takes the line,
+    one before punctuation takes the space before it, and one in the middle of a line leaves a single space."""
+    rest = text[end:]
+    at_line_start = start == 0 or text[start - 1] == "\n"
+    ends_line = rest == "" or rest.startswith("\n")
+    if at_line_start and ends_line:
+        return text[position:start], end + (1 if rest.startswith("\n") else 0)
+    if at_line_start and re.match(r"[.,;:)]", rest):
+        return text[position:start].rstrip(" \t\n"), end
+    if ends_line or re.match(r"[.,;:)\]]", rest):
+        return text[position:start], end
+    return text[position:start] + " ", end
 
 
 def apply_substitutions(rel: str, text: str, substitutions: List[Substitution]) -> str:
@@ -275,6 +276,17 @@ def stamp_differs(config: Config, text: Optional[str]) -> bool:
     return text is not None and path is not None and (not path.is_file() or path.read_text(encoding="utf-8") != text)
 
 
+def write_copies(targets: List[Path], wanted: Dict[str, str]) -> None:
+    """Replace every copy folder with the wanted files."""
+    for target in targets:
+        if target.is_dir():
+            shutil.rmtree(target)
+        for rel, text in wanted.items():
+            path = target / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+
+
 def sync(config: Config, source: Optional[str] = None, check: bool = False, say: Callable[[str], None] = print) -> int:
     """Write (or with ``check`` only compare) every copy. Exit codes: 0 ok, 1 stale, 2 source or settings not usable."""
     try:
@@ -297,17 +309,32 @@ def sync(config: Config, source: Optional[str] = None, check: bool = False, say:
     if check:
         say("stale: " + "; ".join(stale) + " (run `esoi skill sync`)" if stale else "esoi skill copy is current")
         return 1 if stale else 0
-    for target in copy_folders(config, settings):
-        if target.is_dir():
-            shutil.rmtree(target)
-        for rel, text in wanted.items():
-            path = target / rel
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(text, encoding="utf-8")
+    write_copies(copy_folders(config, settings), wanted)
     if stamp is not None:
         versioning.stamp_path(config).write_text(stamp, encoding="utf-8")
     say(f"wrote {len(wanted)} file(s) to {len(copy_folders(config, settings))} folder(s)")
     return 0
+
+
+def copy_problems(config: Config, settings, terms) -> Tuple[Dict[str, str], List[str]]:
+    """The primary copy and what is wrong with the copies as committed: missing, leaking private text, or disagreeing."""
+    primary_dir, *others = copy_folders(config, settings)
+    primary = read_copy(primary_dir)
+    problems: List[str] = [] if primary else [f"{settings.dir}: no copy yet (run `esoi skill sync`)"]
+    problems += [str(f) for f in scan(primary, terms, settings.private_dirs)]
+    for other in others:
+        problems += [f"{other.relative_to(config.root).as_posix()}/{line} (differs from {settings.dir})"
+                     for line in differences(primary, read_copy(other))]
+    return primary, problems
+
+
+def staleness_problems(config: Config, settings, folder: Path, primary: Dict[str, str]) -> List[str]:
+    """How the committed copy and the version stamp differ from what the source would produce now."""
+    wanted = build_copy(folder, settings)
+    problems = [f"{settings.dir}/{line} (stale against the source)" for line in differences(wanted, primary)]
+    if stamp_differs(config, wanted_stamp(config, folder, settings, wanted)):
+        problems.append(f"{config.version_stamp} (version stamp stale against the source; run `esoi skill sync`)")
+    return problems
 
 
 def check(config: Config, source: Optional[str] = None, denylist: Optional[str] = None,
@@ -320,24 +347,15 @@ def check(config: Config, source: Optional[str] = None, denylist: Optional[str] 
     except SkillError as exc:
         say(f"esoi: {exc}")
         return 2
-    primary_dir, *others = copy_folders(config, settings)
-    primary = read_copy(primary_dir)
-    problems: List[str] = [] if primary else [f"{settings.dir}: no copy yet (run `esoi skill sync`)"]
-    problems += [str(f) for f in scan(primary, terms, settings.private_dirs)]
-    for other in others:
-        problems += [f"{other.relative_to(config.root).as_posix()}/{line} (differs from {settings.dir})"
-                     for line in differences(primary, read_copy(other))]
+    primary, problems = copy_problems(config, settings, terms)
     if folder is None:
         say("note: skill source not reachable, so freshness was not checked; leaks were checked on the committed copy")
     else:
         try:
-            wanted = build_copy(folder, settings)
+            problems += staleness_problems(config, settings, folder, primary)
         except SkillError as exc:
             say(f"esoi: {exc}")
             return 2
-        problems += [f"{settings.dir}/{line} (stale against the source)" for line in differences(wanted, primary)]
-        if stamp_differs(config, wanted_stamp(config, folder, settings, wanted)):
-            problems.append(f"{config.version_stamp} (version stamp stale against the source; run `esoi skill sync`)")
     if not terms:
         say("note: no deny list given, so only the generic leaks were checked")
     for line in problems:

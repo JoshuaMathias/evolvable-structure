@@ -71,6 +71,13 @@ def immediate_parent(steps: List[Step]) -> Optional[Step]:
     return steps[-2] if len(steps) > 1 else None
 
 
+def sub_intent_line(child: Intent, from_folder: Path) -> str:
+    """The list line of a sub-intent: its name linked from ``from_folder``, then its vision statement."""
+    vision = one_line(child.row.get("vision_statement", ""))
+    name = one_line(child.row.get("name", "")) or child.intent_id
+    return f"- [{name}]({link(from_folder, child.folder / FILE)}) (sub-intent)" + (f": {vision}" if vision else "")
+
+
 def sub_intents_of(view: View, solution_ids: List[str]) -> List[Intent]:
     """The sub-intents that implement any of these solutions (an intent's ``implements`` is ``solution:implementation``)."""
     return [i for i in view.intents if i.row.get("implements", "").partition(":")[0].strip() in solution_ids]
