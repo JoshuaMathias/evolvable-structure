@@ -26,6 +26,7 @@ corpus or metric). The reason is recorded in the row's ``details``.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -86,10 +87,10 @@ def ceiling_reason(config: Config, component: str, impl: str, sample: str, paid:
     now = case_identity.cases_digest(component, config.evaluation)
     mine = history.get(impl, [])
     own = mine[-1] if mine else None
+    cap = Cap(config, component, impl, sample, now, own, stale)
     for name, rows in sorted(history.items()):
-        best = current_perfect_row(rows, sample, now) if variants.canonical(name) != impl else None
-        if best is not None and not (arm_kinds.is_ablation(best, config.evaluation) or stale(config, component, best)
-                                     or can_exceed(config, component, own, best)):
+        best = cap_holder(cap, name, rows)
+        if best is not None:
             kind = "balanced score" if config.balance.get(component) else "pass or fail result"
             where = f"sample {sample}" if sample else "the full set"
             return (f"{name} already passed {best['passed']}/{best['cases']} on these cases ({where}) at "
@@ -99,10 +100,29 @@ def ceiling_reason(config: Config, component: str, impl: str, sample: str, paid:
     return ""
 
 
-def current_perfect_row(rows: List[Row], sample: str, cases_sha: str) -> Optional[Row]:
-    """The arm's latest perfect row on these cases and sample, or None."""
-    same = [r for r in rows if r.get("cases_sha") == cases_sha and (r.get("sample") or "").strip() == sample]
-    return same[-1] if same and perfect(same[-1]) else None
+@dataclass(frozen=True)
+class Cap:
+    """The arm whose run is being weighed: its component, name, sample and cases digest, its own latest row and the staleness check."""
+    config: Config
+    component: str
+    impl: str
+    sample: str
+    cases_sha: str
+    own: Optional[Row]
+    stale: Callable[[Config, str, Optional[Row]], str]
+
+
+def cap_holder(cap: Cap, name: str, rows: List[Row]) -> Optional[Row]:
+    """The other arm's perfect, current row on these cases and sample that ``cap.impl`` cannot beat, or None."""
+    if variants.canonical(name) == cap.impl:
+        return None
+    same = [r for r in rows if r.get("cases_sha") == cap.cases_sha and (r.get("sample") or "").strip() == cap.sample]
+    if not same or not perfect(same[-1]):
+        return None
+    best = same[-1]
+    if arm_kinds.is_ablation(best, cap.config.evaluation) or cap.stale(cap.config, cap.component, best) or can_exceed(cap.config, cap.component, cap.own, best):
+        return None
+    return best
 
 
 def unsolved_cases(config: Config, component: str, impl: str) -> List[str]:

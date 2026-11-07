@@ -206,11 +206,20 @@ def match_implementations(solution_id: str, entries: List[str], records: Dict[st
     return claimed, sorted(set(records) - set(claimed.values()))
 
 
-def needed_columns(entity: str, key: str, rows: List[Dict[str, str]], template: Template, interface_required: bool,
-                   commanded: Set[str]) -> List[str]:
-    """The columns a record file's header must carry. A solution of kind specification needs no interface fields, and a header may omit them only for those.
-    ``commanded`` holds the ids of the solutions that a metric's command measures."""
+@dataclass(frozen=True)
+class HeaderCheck:
+    """What the headers of one intent folder are checked against: the folder, the template, whether interface fields are required and the metric command."""
+    folder: Path
+    template: Template
+    interface_required: bool
+    metric_command: str
+
+
+def needed_columns(check: HeaderCheck, entity: str, key: str, rows: List[Dict[str, str]]) -> List[str]:
+    """The columns a record file's header must carry. A solution of kind specification needs no interface fields, and a header may omit them only for those."""
+    template, interface_required = check.template, check.interface_required
     if entity == "solution" and rows:
+        commanded = solutions_with_a_command(read_csv(Path(check.folder) / "metrics.csv"), check.metric_command)
         if not any(r.get(key, "") in commanded for r in rows):
             return [key, *checked_fields(template, entity, False)]
     return [key, *checked_fields(template, entity, interface_required)]
@@ -221,14 +230,13 @@ def check_headers(folder: Path, template: Template, interface_required: bool = T
     """R1 problems in the header of each record file of one intent folder: a missing key or template column. A file
     with no rows (or none at all) is not reported here; the tree as a whole must have records of each type."""
     bad: List[str] = []
+    check = HeaderCheck(folder, template, interface_required, metric_command)
     for entity, (name, key) in FILES.items():
         path = Path(folder) / name
         if not path.is_file():
             continue
         header = read_header(path)
-        rows = read_csv(path)
-        commanded = solutions_with_a_command(read_csv(Path(folder) / "metrics.csv"), metric_command) if entity == "solution" and rows else set()
-        need = needed_columns(entity, key, rows, template, interface_required, commanded)
+        need = needed_columns(check, entity, key, read_csv(path))
         missing = [k for k in need if k not in header]
         if missing:
             bad.append(f"R1 {label or folder}/{name}: missing template column(s) {', '.join(missing)}"

@@ -261,6 +261,21 @@ def balance_problems(h: Hierarchy, mine: List[str], depth: Dict[str, int], lim: 
     return fan
 
 
+@dataclass(frozen=True)
+class Measures:
+    """What was measured for one intent: its solutions and uses edges, roots, depth and fan-out, paragraph, problems, code scores, recall and limits."""
+    mine: List[str]
+    inner: set
+    roots: List[str]
+    depth: Dict[str, int]
+    fan: Dict[str, int]
+    para: str
+    problems: Dict[str, List[str]]
+    scores: Dict[str, object]
+    recall: Tuple[int, Optional[float]]
+    lim: Dict[str, float]
+
+
 def intent_report(h: Hierarchy, intent, base_rate: Optional[float]) -> Dict[str, object]:
     """The coherence report of one intent: paragraph, roots, diagram, code evidence and balance."""
     lim = limits(h.cfg, intent.intent_id)   # the floors of this intent
@@ -276,8 +291,14 @@ def intent_report(h: Hierarchy, intent, base_rate: Optional[float]) -> Dict[str,
     scores = code_scores(h, checked, base_rate, lim, problems)
     recall = code_recall(h, mine)
     fan = balance_problems(h, mine, depth, lim, problems)
+    return report_row(intent, Measures(mine, inner, roots, depth, fan, para, problems, scores, recall, lim))
+
+
+def report_row(intent, m: Measures) -> Dict[str, object]:
+    """The coherence report row of one intent, from the measures taken."""
+    mine, inner, roots, depth, fan, para, problems, scores, lim = m.mine, m.inner, m.roots, m.depth, m.fan, m.para, m.problems, m.scores, m.lim
     verdicts = scores["verdicts"]
-    import_edges, recall_value = recall
+    import_edges, recall_value = m.recall
     return dict(
         intent=intent.intent_id, solutions=len(mine), uses_edges=len(inner), roots=roots,
         max_fan_out=max(fan.values() or [0]), max_depth=max(depth.values() or [0]),
