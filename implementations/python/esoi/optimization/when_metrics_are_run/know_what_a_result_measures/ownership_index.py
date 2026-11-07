@@ -6,12 +6,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
-from esoi.structure.intent_registry.config import Config, DEFAULT_STALENESS_RULE, STALENESS_RULES
+from esoi.structure.intent_registry.config import Config, STALENESS_RULES
 from esoi.structure.intent_registry.tables import glob_source, ids as cells
 
 
 RULES = STALENESS_RULES
-DEFAULT_RULE = DEFAULT_STALENESS_RULE
+DEFAULT_RULE = "import_closure"   # the arm the staleness precision metric selects (esoi select --promote); falls back per arm to component_paths and repo_wide
 SOLUTION_ID = "know-what-a-result-measures"
 
 INDEXES: Dict[str, Tuple[tuple, "Index"]] = {}

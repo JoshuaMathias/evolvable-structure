@@ -6,7 +6,8 @@ from __future__ import annotations
 
 from typing import List, Tuple
 
-from esoi.structure.intent_registry.tables import document_entries, glob_re, ids
+from esoi.structure.intent_registry.tables import glob_re, ids
+from esoi.structure.structure_check.coherence_code_evidence import document_entries
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
 from esoi.structure.structure_check.rules.modulefacts import Facts
 

@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from esoi.structure.intent_registry.import_base import import_base
 from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
-from esoi.structure.intent_registry.tables import document_entries, glob_re
+from esoi.structure.intent_registry.tables import glob_re
 from esoi.structure.structure_check.coherence_paragraph import position
 from esoi.structure.structure_check.coherence_records import ids
 
@@ -24,6 +24,16 @@ INLINE_CODE = re.compile(r"(`+)[^`\n]*?\1")
 INLINE_LINK = re.compile(r"!?\[[^\]\n]*\]\(\s*<?([^)\s>]+)")
 REFERENCE_LINK = re.compile(r"^[ \t]{0,3}\[[^\]\n]+\]:[ \t]*<?(\S+?)>?(?:[ \t]+.*)?$", re.M)
 INCLUDE = re.compile(r"\{\{#include\s+([^\s}:]+)[^}]*\}\}|\{%[-\s]*include\s+[\"']?([^\s\"'%]+)|^[ \t]*!include[ \t]+(\S+)", re.M)
+
+
+def document_entries(cell: str) -> List["tuple[str, str]"]:
+    """The ``(document path, solution id)`` pairs of a components.csv ``documents`` cell: ``path=solution-id`` entries separated by
+    ``;``. An entry with no ``=`` comes back with an empty solution id so a rule can name it."""
+    out = []
+    for entry in ids(cell):
+        path, _, solution = entry.partition("=")
+        out.append((path.strip(), solution.strip()))
+    return out
 
 
 def dotted_name(package: str, pkg_dir: Path, file: Path) -> str:

@@ -140,11 +140,6 @@ def solutions_with_a_command(metric_rows: Iterable[Dict[str, str]], pattern: str
 
 PARENT_COLUMNS = {"parent_problem_ids": "problem", "parent_ideal_ids": "ideal",
                   "overall_solution_ids": "solution", "parent_metric_ids": "metric"}
-# optional columns of an implementation in the intent layout: the sub-intent it is specified as, and the solutions
-# (in any intent) it builds on through their interfaces
-INTENT_LINK_COLUMNS = ["sub_intent", "uses_solution_ids"]
-# optional columns that tie a metric to the solution that says when it is run (see docs/explanation/when-metrics-are-run.md)
-POLICY_COLUMNS = ["governs_metric_ids", "run_policy_ids"]
 Overall = Dict[str, Set[str]]
 
 

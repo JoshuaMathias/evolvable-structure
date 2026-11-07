@@ -186,17 +186,6 @@ def read_rows(config: Config, name: str) -> List[Row]:
     return rows
 
 
-def header_union(config: Config, name: str) -> List[str]:
-    """The column names of one record file across every intent folder, first seen first."""
-    seen: Dict[str, None] = {}
-    for _, folder in folders(config):
-        path = folder / name
-        if path.is_file():
-            for column in read_header(path):
-                seen.setdefault(column, None)
-    return list(seen)
-
-
 def coherence_notes(config: Config, registry) -> List[str]:
     """One note per intent whose ``solution_coherence`` paragraph does not name every solution of the intent (by id or by name, ignoring
     case). Notes, not errors: the paragraph's wording is free, and a name may be put in other words. A blank paragraph is reported as

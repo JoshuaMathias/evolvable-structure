@@ -19,11 +19,9 @@ from typing import Dict, List, Optional, Tuple
 from esoi.optimization.leaderboard import arm_kinds, arm_selection, results_log
 from esoi.optimization.leaderboard.interface import solution_verdicts
 from esoi.structure.intent_registry.config import Config
-from esoi.structure.intent_registry.intents import header_union
+from esoi.structure.intent_registry.intents import folders
 from esoi.structure.intent_registry.records import (
-    INTENT_LINK_COLUMNS,
     PARENT_COLUMNS,
-    POLICY_COLUMNS,
     fields,
     implementation_id,
     match_implementations,
@@ -40,6 +38,22 @@ STATUS_BY_VERDICT = {"WIN": "decided-by-metric", "TIE": "tie-kept", "LOSS": "bea
                      "UNMEASURED": "no-rival-measured"}
 ALTERNATIVE_MARKERS = ("ALTERNATIVE", "ABLATION", "VALIDITY")
 Row = Dict[str, str]
+# optional columns of an implementation in the intent layout: the sub-intent it is specified as, and the solutions
+# (in any intent) it builds on through their interfaces
+INTENT_LINK_COLUMNS = ["sub_intent", "uses_solution_ids"]
+# optional columns that tie a metric to the solution that says when it is run (see docs/explanation/when-metrics-are-run.md)
+POLICY_COLUMNS = ["governs_metric_ids", "run_policy_ids"]
+
+
+def header_union(config: Config, name: str) -> List[str]:
+    """The column names of one record file across every intent folder, first seen first."""
+    seen: Dict[str, None] = {}
+    for _, folder in folders(config):
+        path = folder / name
+        if path.is_file():
+            for column in read_header(path):
+                seen.setdefault(column, None)
+    return list(seen)
 
 
 def extras(config: Config) -> Dict[str, List[str]]:
