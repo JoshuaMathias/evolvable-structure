@@ -68,25 +68,27 @@ def alternatives_step(entries: Sequence[Entry], conflicts: Sequence[Conflict], r
     return None
 
 
+def pulled_arms(conflicts: Sequence[Conflict]) -> set:
+    """The arms that pull a spec in any of the conflicts."""
+    return {arm for one in conflicts for spec, arms in one.pulls for arm in arms}
+
+
+def arms_of(entry: Entry) -> set:
+    """The arms that use a requirement entry."""
+    return {arm_of(label) for label in entry.used_by}
+
+
 def isolate_step(entries: Sequence[Entry], conflicts: Sequence[Conflict], project: Path,
                  steps: List[str]) -> Optional[Tuple[List[Entry], List[Isolated]]]:
     """Ladder step 4: move the python requirements of an arm that declares ``isolatable`` into a virtual environment of its own."""
-    boundaries: Dict[str, str] = {}
-    for entry in entries:
-        if isinstance(entry.requirement, Isolate):
-            for label in entry.used_by:
-                boundaries[arm_of(label)] = entry.requirement.boundary
-    pulled = {arm for one in conflicts for spec, arms in one.pulls for arm in arms}
-    for arm in sorted(pulled):
-        if arm not in boundaries:
-            continue
-        own = [e for e in entries if isinstance(e.requirement, Python) and arm in {arm_of(label) for label in e.used_by}]
+    boundaries = {arm_of(label): entry.requirement.boundary for entry in entries if isinstance(entry.requirement, Isolate) for label in entry.used_by}
+    for arm in sorted(pulled_arms(conflicts) & set(boundaries)):
+        own = [e for e in entries if isinstance(e.requirement, Python) and arm in arms_of(e)]
         rest = [e for e in entries if e not in own]
-        if not own or find_conflicts(rest):
-            continue
-        folder = str(project / ".esoi" / "venvs" / re.sub(r"[^A-Za-z0-9_.-]+", "-", arm))
-        steps.append(f"4. isolate: {arm} installs in its own environment at {folder} and is reached through its {boundaries[arm]} boundary")
-        return rest, [Isolated(arm, boundaries[arm], folder, tuple(merged_specs(own)))]
+        if own and not find_conflicts(rest):
+            folder = str(project / ".esoi" / "venvs" / re.sub(r"[^A-Za-z0-9_.-]+", "-", arm))
+            steps.append(f"4. isolate: {arm} installs in its own environment at {folder} and is reached through its {boundaries[arm]} boundary")
+            return rest, [Isolated(arm, boundaries[arm], folder, tuple(merged_specs(own)))]
     steps.append("4. isolate: no conflicting arm declares isolatable(...)")
     return None
 
@@ -126,6 +128,15 @@ def another_arm_step(current: List[Entry], conflicts: list, resolver: Optional[R
     return found[1], trial(found[1], resolver)[0]
 
 
+def swap_arms(current: List[Entry], conflicts: List[Conflict], tools: tuple, substitutions: List[Substitution], steps: List[str]) -> Tuple[List[Entry], List[Conflict]]:
+    """Ladder steps 2 and 3: a declared alternative distribution, else another arm of the seat."""
+    resolver, fallback = tools
+    swapped = alternatives_step(current, conflicts, resolver, steps)
+    if swapped is not None:
+        return swapped, []
+    return another_arm_step(current, conflicts, resolver, fallback, substitutions, steps)
+
+
 def make_plan(entries: Sequence[Entry], environ: Mapping[str, str], resolver: Optional[Resolver] = None,
               fallback: Optional[Fallback] = None, project: Optional[Path] = None, notes: Sequence[str] = ()) -> Plan:
     """The install plan for the entries, with the resolution ladder applied when they conflict (see the module docstring).
@@ -136,24 +147,25 @@ def make_plan(entries: Sequence[Entry], environ: Mapping[str, str], resolver: Op
     current = list(entries)
     conflicts, log = trial(current, resolver)
     steps += log
-    steps.append("1. resolver: the merged ranges coexist" if not conflicts else
-                 "1. resolver: " + "; ".join(one.text() for one in conflicts))
+    steps.append("1. resolver: " + ("; ".join(one.text() for one in conflicts) if conflicts else "the merged ranges coexist"))
     if conflicts:
-        swapped = alternatives_step(current, conflicts, resolver, steps)
-        if swapped is not None:
-            current, conflicts = swapped, []
+        current, conflicts = swap_arms(current, conflicts, (resolver, fallback), substitutions, steps)
     if conflicts:
-        current, conflicts = another_arm_step(current, conflicts, resolver, fallback, substitutions, steps)
-    if conflicts:
-        moved = isolate_step(current, conflicts, project or Path.cwd(), steps)
-        if moved is not None:
-            current = moved[0]
-            isolated += moved[1]
-            conflicts = find_conflicts(current)
-    if conflicts:
-        steps.append("5. stop: no step resolved the conflict; nothing will be installed")
+        current, conflicts, isolated = isolated_or_stop(current, conflicts, project or Path.cwd(), steps)
     scripts, binaries, missing = sort_requirements(current, environ)
     pip = () if conflicts else tuple(merged_specs(needs_install(current)))
     constraints = tuple(installed_constraints(current)) if pip else ()
     return Plan(pip, constraints, tuple(scripts), tuple(isolated), tuple(substitutions), tuple(steps),
                 tuple(one.text() for one in conflicts), tuple(options_for(conflicts)), tuple(binaries), tuple(missing), tuple(notes))
+
+
+def isolated_or_stop(current: List[Entry], conflicts: List[Conflict], project: Path, steps: List[str]) -> Tuple[List[Entry], List[Conflict], List[Isolated]]:
+    """Ladder steps 4 and 5: isolate a conflicting arm if one declares it, else stop with the conflicts unresolved."""
+    isolated: List[Isolated] = []
+    moved = isolate_step(current, conflicts, project, steps)
+    if moved is not None:
+        current, isolated = moved[0], list(moved[1])
+        conflicts = find_conflicts(current)
+    if conflicts:
+        steps.append("5. stop: no step resolved the conflict; nothing will be installed")
+    return current, conflicts, isolated

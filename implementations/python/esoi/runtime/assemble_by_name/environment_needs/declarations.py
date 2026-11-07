@@ -277,21 +277,35 @@ def declared(target: Any) -> Tuple[Requirement, ...]:
         found.append(item)
     found.extend(script_files(target))
     owned = {name for item in found if isinstance(item, Api) and item.key for name in item.key.names}
-    declared_env = getattr(target, "ENVIRON", None)
-    if isinstance(declared_env, Mapping):
-        groups: Dict[str, str] = {}
-        required: set = set()
-        for entry in getattr(target, "ENVIRON_REQUIRED", ()) or ():
-            options = (entry,) if isinstance(entry, str) else tuple(entry)
-            required.update(options)
-            if len(options) > 1:
-                groups.update({option: "|".join(options) for option in options})
-        for option, names in declared_env.items():
-            names = (names,) if isinstance(names, str) else tuple(names)
-            if not names or names[0] in owned:
-                continue
-            found.append(Env(required=option in required, name=names[0], option=option, also=names[1:], group=groups.get(option, "")))
+    found.extend(environ_requirements(target, owned))
     return tuple(found)
+
+
+def required_groups(declared_required: Iterable[Any]) -> Tuple[set, Dict[str, str]]:
+    """``(required options, group per option)`` from ``ENVIRON_REQUIRED``: a tuple entry is a group of alternatives, any one of which will do."""
+    groups: Dict[str, str] = {}
+    required: set = set()
+    for entry in declared_required:
+        options = (entry,) if isinstance(entry, str) else tuple(entry)
+        required.update(options)
+        if len(options) > 1:
+            groups.update({option: "|".join(options) for option in options})
+    return required, groups
+
+
+def environ_requirements(target: Any, owned: set) -> List["Env"]:
+    """The env requirements an arm's ``ENVIRON`` mapping declares (required ones from ``ENVIRON_REQUIRED``, alternatives grouped);
+    a variable an api requirement already owns is left out."""
+    declared_env = getattr(target, "ENVIRON", None)
+    if not isinstance(declared_env, Mapping):
+        return []
+    required, groups = required_groups(getattr(target, "ENVIRON_REQUIRED", ()) or ())
+    found: List[Env] = []
+    for option, names in declared_env.items():
+        names = (names,) if isinstance(names, str) else tuple(names)
+        if names and names[0] not in owned:
+            found.append(Env(required=option in required, name=names[0], option=option, also=names[1:], group=groups.get(option, "")))
+    return found
 
 
 @dataclass(frozen=True)
@@ -301,25 +315,23 @@ class Entry:
     used_by: Tuple[str, ...] = ()
 
 
+IDENTITY_KEYS = (
+    (Env, lambda item: ("env", item.name)),
+    (Api, lambda item: ("api", item.service)),
+    (Python, lambda item: ("python", item.module, item.distribution, item.extra or "")),
+    (Binary, lambda item: ("binary", item.name)),
+    (Service, lambda item: ("service", item.name)),
+    (Network, lambda item: ("network", item.host)),
+    (Download, lambda item: ("download", item.name)),
+    (ScriptFile, lambda item: ("file", item.path)),
+    (Isolate, lambda item: ("isolate", item.boundary)),
+)
+
+
 def identity(item: Requirement) -> Tuple[str, ...]:
-    if isinstance(item, Env):
-        return ("env", item.name)
-    if isinstance(item, Api):
-        return ("api", item.service)
-    if isinstance(item, Python):
-        return ("python", item.module, item.distribution, item.extra or "")
-    if isinstance(item, Binary):
-        return ("binary", item.name)
-    if isinstance(item, Service):
-        return ("service", item.name)
-    if isinstance(item, Network):
-        return ("network", item.host)
-    if isinstance(item, Download):
-        return ("download", item.name)
-    if isinstance(item, ScriptFile):
-        return ("file", item.path)
-    if isinstance(item, Isolate):
-        return ("isolate", item.boundary)
+    for kind, key in IDENTITY_KEYS:
+        if isinstance(item, kind):
+            return key(item)
     return ("resource", item.note)
 
 
