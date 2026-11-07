@@ -36,15 +36,21 @@ def spell(value: Any) -> str:
     return str(value).lower() if isinstance(value, bool) else str(value)
 
 
+def parameter(part: str, name: str) -> Tuple[str, str]:
+    """``(key, value)`` of one ``key=value`` piece of a name; raises ``ValueError`` when it is not one."""
+    key, equals, value = (piece.strip() for piece in part.partition("="))
+    if not (equals and KEY.match(key) and VALUE.match(value)):
+        raise ValueError(f"{part!r} in {name!r} is not key=value (key a-z0-9_ from a letter, value a-z0-9_.-)")
+    return key, value
+
+
 def words(name: str) -> Tuple[str, Dict[str, str]]:
     """``(base, parameters as written)``. Raises ``ValueError`` for a malformed or repeated parameter, so a typo in a name
     fails loudly."""
     base, mark, text = str(name).strip().partition(MARK)
     found: Dict[str, str] = {}
     for part in (p for p in text.split(",") if mark and p):
-        key, equals, value = (piece.strip() for piece in part.partition("="))
-        if not (equals and KEY.match(key) and VALUE.match(value)):
-            raise ValueError(f"{part!r} in {name!r} is not key=value (key a-z0-9_ from a letter, value a-z0-9_.-)")
+        key, value = parameter(part, name)
         if key in found:
             raise ValueError(f"{key} is given twice in {name!r}")
         found[key] = value

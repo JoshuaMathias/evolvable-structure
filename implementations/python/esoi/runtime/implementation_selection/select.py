@@ -36,7 +36,7 @@ from __future__ import annotations
 import importlib
 import importlib.util
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 Table = Mapping[str, Mapping[str, Any]]
 
@@ -63,6 +63,12 @@ def load_table(spec: str, root: Optional[Path] = None) -> Table:
     return getattr(importlib.import_module(where), attr)
 
 
+def names_record(selected: str, sid: str, iid: str, path: str, parts: Tuple[str, str, str]) -> bool:
+    """Whether a ``selected`` cell names this implementation record: by its id, or by its file (and name when given)."""
+    module, named, suffix = parts
+    return selected in (iid, f"{sid}:{selected}") or (path == module and (not named or suffix == named.strip().lower()))
+
+
 def default_name(solution: Mapping[str, str], implementations: List[Mapping[str, str]]) -> str:
     """The implementation name a solution row's ``selected`` cell stands for. ``selected`` is a name, an
     ``implementation_id`` (``solution:name``), or the filepath of an implementation (``filepath`` or ``filepath::name``); the
@@ -75,7 +81,7 @@ def default_name(solution: Mapping[str, str], implementations: List[Mapping[str,
     for record in (r for r in implementations if r.get("solution_id") == sid):
         iid, path = record.get("implementation_id", ""), (record.get("filepath") or "").strip()
         suffix = iid.partition(":")[2].strip().lower()
-        if selected in (iid, f"{sid}:{selected}") or (path == module and (not named or suffix == named.strip().lower())):
+        if names_record(selected, sid, iid, path, (module, named, suffix)):
             return suffix or selected.lower()
     if named:
         return named.strip().lower()

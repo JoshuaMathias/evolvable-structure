@@ -151,6 +151,16 @@ def explain(solution_id: str, using: Optional[str] = None, environ: Optional[Map
     return layer_values(solution_id, using, project_for(solution_id, env, where), env, where)
 
 
+def nothing_selected(solution_id: str, project: Optional[Project], where: str, known: List[str]) -> SelectionError:
+    """The error for a solution no layer of the cascade names an implementation for."""
+    solutions = sorted({sid for scoped, sid in REGISTRY if scoped == where} | {sid for sid, _ in (project.paths if project else {})})
+    return SelectionError(f"no implementation is selected for {solution_id!r}: no layer of the cascade "
+                          f"({', '.join(LAYERS)}) names one" + (f"; choices: {', '.join(known)}" if known else
+                          " and none is declared or recorded (declare one with @implementation, or find the records "
+                          f"with {ROOT_ENV})" + (f"; solutions that have implementations: {', '.join(solutions)}"
+                                                 if solutions else "")))
+
+
 def choose(solution_id: str, using: Optional[str] = None, environ: Optional[Mapping[str, str]] = None,
            scope: Optional[str] = None) -> Choice:
     """The implementation that runs for the solution now, and the layer that chose it."""
@@ -160,12 +170,7 @@ def choose(solution_id: str, using: Optional[str] = None, environ: Optional[Mapp
     layers = layer_values(solution_id, using, project, env, where)
     known = known_names(solution_id, project, where)
     if not layers:
-        solutions = sorted({sid for scoped, sid in REGISTRY if scoped == where} | {sid for sid, _ in (project.paths if project else {})})
-        raise SelectionError(f"no implementation is selected for {solution_id!r}: no layer of the cascade "
-                             f"({', '.join(LAYERS)}) names one" + (f"; choices: {', '.join(known)}" if known else
-                             " and none is declared or recorded (declare one with @implementation, or find the records "
-                             f"with {ROOT_ENV})" + (f"; solutions that have implementations: {', '.join(solutions)}"
-                                                    if solutions else "")))
+        raise nothing_selected(solution_id, project, where, known)
     layer, name, source = layers[0]
     try:
         variants.split(name)
@@ -198,19 +203,29 @@ def module_for(project: Project, relative: str) -> str:
     return ".".join(path.with_suffix("").parts)
 
 
+def recorded_module(solution_id: str, name: str, project: Optional[Project]) -> str:
+    """The dotted module the records (or the packaged snapshot) name for an implementation, or an empty string."""
+    if project is None:
+        return ""
+    if (solution_id, name) in project.paths:
+        return module_for(project, project.paths[(solution_id, name)])
+    return project.snapshot.get(solution_id, {}).get("modules", {}).get(name, "")
+
+
+def import_recorded_module(module: str, project: Optional[Project]) -> None:
+    """Import the module the records name (with the project's python path), when there is one."""
+    if not module:
+        return
+    if project.config is not None:
+        import_module_of(project, module)
+    else:
+        importlib.import_module(module)
+
+
 def fetch(solution_id: str, name: str, project: Optional[Project], scope: str = "") -> Any:
     entry = entry_of(solution_id, scope)
     if entry is None or name not in entry.implementations:
-        module = ""
-        if project is not None and (solution_id, name) in project.paths:
-            module = module_for(project, project.paths[(solution_id, name)])
-        elif project is not None:
-            module = project.snapshot.get(solution_id, {}).get("modules", {}).get(name, "")
-        if module:
-            if project.config is not None:
-                import_module_of(project, module)
-            else:
-                importlib.import_module(module)
+        import_recorded_module(recorded_module(solution_id, name, project), project)
         entry = entry_of(solution_id, scope)
     if entry is not None and name in entry.implementations:
         target = entry.implementations[name]
@@ -223,6 +238,16 @@ def fetch(solution_id: str, name: str, project: Optional[Project], scope: str = 
                          f"@implementation({solution_id!r}, {name!r}) in the module its record's `filepath` names")
 
 
+def import_recorded(solution_id: str, name: str, project: Project, config: Any) -> None:
+    """Import a recorded implementation's module under the first scope that declares it."""
+    for where in sorted({s for s, i in REGISTRY if i == solution_id} | {config.package or ""}):
+        try:
+            fetch(solution_id, name, project, where)
+            return
+        except SelectionError:
+            continue   # recorded, but its module declares no implementation of that name
+
+
 def load_declared(config: Any, solution_id: str) -> Dict[str, Any]:
     """Import every implementation the records list for a solution and return the declared ones by name. Used by the
     harness, which measures declarations without an ``impls/`` wrapper."""
@@ -231,12 +256,7 @@ def load_declared(config: Any, solution_id: str) -> Dict[str, Any]:
         raise SelectionError(f"the records of {config.root} cannot be loaded")
     for sid, name in sorted(project.paths):
         if sid == solution_id:
-            for where in sorted({s for s, i in REGISTRY if i == solution_id} | {config.package or ""}):
-                try:
-                    fetch(solution_id, name, project, where)
-                    break
-                except SelectionError:
-                    continue   # recorded, but its module declares no implementation of that name
+            import_recorded(solution_id, name, project, config)
     scopes = [s for s, i in REGISTRY if i == solution_id]
     where = config.package if (config.package or "") in scopes else (scopes[0] if scopes else "")
     return dict(REGISTRY[(where, solution_id)].implementations) if (where, solution_id) in REGISTRY else {}
