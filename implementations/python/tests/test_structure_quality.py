@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import random
+
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -646,6 +648,55 @@ def test_a_thirty_line_block_of_logic_copied_into_a_second_file_is_still_copied_
     found = duplication.measure(project.load(tmp_path), Budgets())
     assert found.parts["share_of_code_copied"] > 0.4
     assert found.score < 0.8 and any("tokens copied" in line for line in found.offenders)
+
+
+TEMPLATES = ["    a = b + {n}\n", "    if a > {n} and b:\n        a -= {n}\n", "    for item in items:\n        a += item * {n}\n", "    b = [x for x in a if x % {n}]\n",
+             "    while a < {n}:\n        a = a * 2 + b\n", "    c = a if b else {n}\n", "    try:\n        a = b / {n}\n    except ValueError:\n        a = 0\n",
+             "    d = {{'k': a, 'j': b}}\n", "    a, b = b, a - {n}\n", "    out.append((a, b, c))\n", "    a = max(a, b, {n}) - min(a, c)\n", "    b = not a or c and {n}\n"]
+SMALL = ("def is_due(last, every, now):\n    gap = now - last\n    periods = gap // every\n    remainder = gap - periods * every\n"
+         "    if remainder == 0 and periods >= 1:\n        return True\n    return gap >= every * 1.5\n")
+
+
+def filler(seed, lines=60):
+    """Distinct code per seed: random arithmetic statements, so two seeds share no run of 30 tokens."""
+    rng = random.Random(seed)
+    operators = ["+", "-", "*", "//", "%", "<", ">", "==", "and", "or"]
+    names = ["a", "b", "c", "items", "out"]
+    body = ""
+    for _ in range(lines):
+        terms = [rng.choice(names + ["7", "3.5"]) for _ in range(rng.randint(2, 6))]
+        expression = terms[0] + "".join(f" {rng.choice(operators)} {term}" for term in terms[1:])
+        body += rng.choice(["    {0} = {1}\n", "    if {1}:\n        {0} = {1}\n", "    {0} += [{1}]\n"]).format(rng.choice(names), expression)
+    return f"def work_{seed}(a, b, c, items, out):\n" + body + "    return a\n"
+
+
+def listed_and_minor(tmp_path, files):
+    write(tmp_path, {**files, **{f"{folder}/interface.py": "" for folder in {name.split("/")[0] for name in files}}})
+    found = duplication.measure(project.load(tmp_path), Budgets())
+    return found.parts["share_of_code_copied"], found.offenders, found.minor
+
+
+def test_a_small_fragment_shared_by_two_large_files_counts_in_the_score_but_is_not_listed(tmp_path):
+    share, listed, minor = listed_and_minor(tmp_path, {"a/mod.py": filler(1) + "\n\n" + SMALL, "b/mod.py": filler(2) + "\n\n" + SMALL})
+    assert 0 < share < 0.15 and not listed and len(minor) == 2
+
+
+def test_a_small_function_copied_into_three_files_is_listed(tmp_path):
+    share, listed, minor = listed_and_minor(tmp_path, {f"{u}/mod.py": filler(i) + "\n\n" + SMALL for i, u in enumerate(("a", "b", "c"))})
+    assert len(listed) == 3 and not minor
+
+
+def test_a_thirty_line_block_copied_into_a_large_file_is_listed_though_its_share_is_small(tmp_path):
+    share, listed, minor = listed_and_minor(tmp_path, {"a/mod.py": filler(1, 300) + "\n\n" + THIRTY_LINES, "b/mod.py": filler(2, 300) + "\n\n" + THIRTY_LINES})
+    assert len(listed) == 2 and share < 0.15
+
+
+def test_the_listing_bars_are_budgets_a_consumer_may_tighten_not_loosen():
+    budgets = Budgets()
+    assert (budgets.clone_list_share, budgets.clone_list_files, budgets.clone_list_tokens) == (0.15, 3, 150)
+    assert budgets.tightened(clone_list_files=2).clone_list_files == 2
+    with pytest.raises(ValueError):
+        budgets.tightened(clone_list_share=0.3)
 
 
 def test_the_minimum_stretch_and_logic_are_budgets_a_consumer_may_tighten_not_loosen():

@@ -17,7 +17,7 @@ def assess_project(project: Project, stage: int = 1, budgets: Optional[Budgets] 
                   duplication.measure(project, budgets), flow.measure(coherence), surface.measure(project, budgets), behavior.measure(project, budgets)]
     verdict = balance.balanced(dimensions)
     return {"stage": stage, "files": len(project.modules), "units": len({m.unit for m in project.modules.values()}), **verdict,
-            "dimensions": {d.name: {"score": d.score, "parts": d.parts, "offenders": d.offenders, "note": d.note} for d in dimensions}}
+            "dimensions": {d.name: {"score": d.score, "parts": d.parts, "offenders": d.offenders, "minor": d.minor, "note": d.note} for d in dimensions}}
 
 
 def assess(project: str, stage: int = 1, budgets: Optional[Budgets] = None, coherence: Optional[Dict[str, object]] = None) -> Dict[str, Any]:

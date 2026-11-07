@@ -7,7 +7,9 @@ least ``Budgets.clone_logic`` deciding, looping or computing tokens (``LOGIC``).
 attributes, argument parser or run of calls appears in many files without the same logic having been written twice. Calibration on this repository (285,000 tokens, declarations already left out): a 30 token match alone marks 229 files and 7.8 percent of the code as
 copied, a stretch of 40 tokens 115 files and 2.9 percent, and with three logic tokens as well 26 files and 0.5 percent. The merges made from the findings
 (a loop written in two places, a function body in three) all lay in stretches of 40 or more tokens with logic, and a function of seven lines copied into
-six files (44 tokens) and a 30-line block (about 250) are both still found. The score is a graded curve of the copied share (``reuse_score``). The same arithmetic written out in six places is six files sharing windows. A token
+six files (44 tokens) and a 30-line block (about 250) are both still found. A file is listed as an offender (a to do of rule S57) only when the copy matters: ``Budgets.clone_list_share`` of its tokens are copied, or a copied stretch
+appears in ``Budgets.clone_list_files`` files (one function copied around), or ``Budgets.clone_list_tokens`` of its tokens are copied (a function worth
+naming once); a smaller copy counts in the score and shows as ``minor`` in the detail. The score is a graded curve of the copied share (``reuse_score``). The same arithmetic written out in six places is six files sharing windows. A token
 covered by a window that ``Budgets.family_files`` or more files share is boilerplate (many wrappers with one body, which a table-driven helper would
 remove); the rest is accidental clones; both shares are reported and both count, through the one copied share scored by ``reuse_score``. Calls per request, the symptom of
 duplicated work at run time, need traces and are a case source of a consumer, not read here.
@@ -67,7 +69,7 @@ def covered_marks(hashes: List[int], where: Dict[int, Set[str]], n: int, tokens:
     return covered
 
 
-def copied(project: Project, n: int, family: int, run_length: int = 1, logic: int = 0):
+def copied(project: Project, n: int, family: int, run_length: int = 1, logic: int = 0, spread_files: int = 3):
     """Per file: tokens, tokens covered by any copied window, tokens covered by a window shared by ``family`` or more files (a family of same-shaped
     wrappers), and which other files the copies are shared with."""
     vocab: Dict[str, int] = {}
@@ -82,15 +84,17 @@ def copied(project: Project, n: int, family: int, run_length: int = 1, logic: in
     covered: Dict[str, int] = {}
     families: Dict[str, int] = {}
     partners: Dict[str, Counter] = {}
+    spread: Dict[str, int] = {}
     for path, hs in hashes.items():
         own = project.modules[path].tokens
         covered[path] = sum(covered_marks(hs, where, n, own, 2, run_length, logic))
         families[path] = sum(covered_marks(hs, where, n, own, family, run_length, logic))
+        spread[path] = sum(covered_marks(hs, where, n, own, spread_files, run_length, logic))
         peers: Counter = Counter()
         for h in hs:
             peers.update(where[h] - {path})
         partners[path] = peers
-    return tokens, covered, families, partners
+    return tokens, covered, families, partners, spread
 
 
 def reuse_score(ratio: float) -> float:
@@ -100,7 +104,7 @@ def reuse_score(ratio: float) -> float:
 
 
 def measure(project: Project, budgets: Budgets) -> Dimension:
-    tokens, covered, families, partners = copied(project, budgets.clone_window, budgets.family_files, budgets.clone_run, budgets.clone_logic)
+    tokens, covered, families, partners, spread = copied(project, budgets.clone_window, budgets.family_files, budgets.clone_run, budgets.clone_logic, budgets.clone_list_files)
     total = sum(tokens.values())
     if total == 0:
         return Dimension("reuse", None)
@@ -108,7 +112,9 @@ def measure(project: Project, budgets: Budgets) -> Dimension:
     boilerplate = sum(families.values()) / total
     score = reuse_score(ratio)
     worst = sorted(((covered[p], p) for p in covered if covered[p] > 0), reverse=True)
-    offenders = [f"{p}: {c} of {tokens[p]} tokens copied ({'boilerplate shared by a family of ' + str(budgets.family_files) + ' or more files, a table-driven helper would remove it' if families[p] * 2 > c else 'clones'}), "
-                 f"shared with {', '.join(q for q, _ in partners[p].most_common(3))}" for c, p in worst[:50]]
+    lines = [(p, f"{p}: {c} of {tokens[p]} tokens copied ({'boilerplate shared by a family of ' + str(budgets.family_files) + ' or more files, a table-driven helper would remove it' if families[p] * 2 > c else 'clones'}), "
+                 f"shared with {', '.join(q for q, _ in partners[p].most_common(3))}") for c, p in worst]
+    listed = lambda p: covered[p] >= budgets.clone_list_tokens or covered[p] >= budgets.clone_list_share * tokens[p] or spread[p] > 0
+    offenders, minor = [text for p, text in lines if listed(p)][:50], [text for p, text in lines if not listed(p)]
     return Dimension("reuse", score, {"share_of_code_copied": round(ratio, 4), "of_it_boilerplate_in_families": round(boilerplate, 4),
-                                      "of_it_accidental_clones": round(ratio - boilerplate, 4), "reuse_score": score}, offenders)
+                                      "of_it_accidental_clones": round(ratio - boilerplate, 4), "reuse_score": score}, offenders, minor=minor)

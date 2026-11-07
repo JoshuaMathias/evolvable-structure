@@ -41,6 +41,9 @@ class Budgets:
     clone_window: int = 30   # tokens in a window that is compared between files
     clone_run: int = 40   # tokens in one unbroken stretch of matching windows before it can count as copied code (about four lines): a shorter match is a fragment, not a function written twice
     clone_logic: int = 3   # deciding, looping or computing tokens (if, for, and, comparisons, arithmetic) the stretch must hold: a signature, an attribute list or a run of calls is shape, not logic
+    clone_list_share: float = 0.15   # a file is listed as an offender when this share of its tokens is copied ...
+    clone_list_files: int = 3   # ... or a copied stretch appears in this many files (one function copied around) ...
+    clone_list_tokens: int = 150   # ... or this many of its tokens are copied (about fifteen lines: a function worth naming once); smaller copies count in the score only
     family_files: int = 4   # files that share one copied window for it to count as boilerplate (a family of same-shaped wrappers) rather than an accidental clone
     min_cochange_support: int = 5
     min_cochange_confidence: float = 0.8
@@ -64,6 +67,7 @@ class Dimension:
     parts: Dict[str, float] = field(default_factory=dict)
     offenders: List[str] = field(default_factory=list)   # worst first
     note: str = ""
+    minor: List[str] = field(default_factory=list)   # findings too small to be a to do: they count in the score and show in the detail
 
 
 def share(good: int, total: int) -> Optional[float]:

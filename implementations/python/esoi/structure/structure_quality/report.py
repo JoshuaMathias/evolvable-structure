@@ -16,6 +16,8 @@ def dimension_lines(name: str, weight: float, dim: Dict[str, Any], shown: int) -
     out += [f"      - {text}" for text in dim["offenders"][:shown]]
     if len(dim["offenders"]) > shown:
         out.append(f"      ... and {len(dim['offenders']) - shown} more")
+    if dim.get("minor"):
+        out.append(f"      {len(dim['minor'])} smaller cop{'y' if len(dim['minor']) == 1 else 'ies'}, counted in the score and not a to do: " + "; ".join(text.split(":")[0].rsplit("/", 1)[-1] for text in dim["minor"][:shown]) + (" ..." if len(dim["minor"]) > shown else ""))
     return out
 
 

@@ -41,6 +41,10 @@ Why: [code quality is structure quality](../explanation/code-quality-is-structur
    twice. On this repository that took the copied share from 7.8 to 0.5 percent of the code, yet a function of seven lines copied into six files
    and a 30-line block copied once are both still found (`tests/test_structure_quality.py`). The two minimums are budgets (`clone_run`,
    `clone_logic`); a project may tighten them, never loosen them.
+   A copy is a to do (listed by S57 and counted in "to do") only when it matters: the file has at least 15 percent of its tokens copied
+   (`clone_list_share`), or a copied stretch appears in three or more files (`clone_list_files`, one function copied around), or at least 150 of its
+   tokens are copied (`clone_list_tokens`, about fifteen lines). Smaller copies still lower the reuse score and show in `esoi structure-quality`
+   as "smaller copies", but they are not a to do. These three are budgets too: tighten, never loosen.
 6. **Tighten, never loosen.** A library names the consumers it must not mention, and a project may tighten a budget, from code:
    ```python
    from esoi.structure.structure_quality import assess
