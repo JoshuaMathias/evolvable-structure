@@ -51,6 +51,15 @@ class Layer:
     inherited: bool = False
 
 
+def layer_line(layer: "Layer", won: bool) -> str:
+    """One layer of the report: its mark, name, source, condition, skip reason and reasons."""
+    text = f"  {'->' if won else 'skip' if layer.skipped else '  '} {layer.layer}: {layer.name}"
+    text += f" [{layer.source}]" if layer.source else ""
+    text += f" when {layer.when}" if layer.when else ""
+    text += f" ({layer.skipped})" if layer.skipped else ""
+    return text + (f"; reasons: {', '.join(layer.reasons)}" if layer.reasons else "")
+
+
 @dataclass(frozen=True)
 class Explanation:
     """Every layer that names an arm for a solution, highest priority first, and the one that wins (the first not skipped)."""
@@ -74,14 +83,7 @@ class Explanation:
         won = self.winner
         head = f"{self.solution_id}: " + (f"{won.name} (layer: {won.layer})" if won else "no layer names an arm")
         out = [head]
-        for layer in self.layers:
-            mark = "->" if layer is won else ("skip" if layer.skipped else "  ")
-            text = f"  {mark} {layer.layer}: {layer.name}"
-            text += f" [{layer.source}]" if layer.source else ""
-            text += f" when {layer.when}" if layer.when else ""
-            text += f" ({layer.skipped})" if layer.skipped else ""
-            text += f"; reasons: {', '.join(layer.reasons)}" if layer.reasons else ""
-            out.append(text)
+        out.extend(layer_line(layer, layer is won) for layer in self.layers)
         if self.overrides_parent:
             out.append(f"  overrides the parent default {self.parent_default}" +
                        ("" if won and won.reasons else "; no reason recorded"))

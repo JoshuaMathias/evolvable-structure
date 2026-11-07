@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Mapping, Tuple
+from typing import Any, Dict, Mapping, Tuple
 
 from esoi.runtime.assemble_by_name import hierarchy
 from esoi.runtime.assemble_by_name.assembly_errors import AssemblyError
@@ -41,6 +41,18 @@ def read_snapshot(package_dir: Path) -> Packaged:
     return Packaged(defaults, modules, "the packaged snapshot", evidence=evidence)
 
 
+def arm_modules(cfg: Any, loaded: Any) -> Dict[Tuple[str, str], str]:
+    """The module each implementation record names, keyed by ``(solution id, arm key)``; evaluation files are not arms."""
+    project = selection_registry.Project(config=cfg)
+    modules = {}
+    for row in loaded.implementations:
+        sid, name = row.get("implementation_id", "").split(":", 1) if ":" in row.get("implementation_id", "") else ("", "")
+        where = row.get("filepath", "").strip().split("::")[0]
+        if where.endswith(".py") and name and not where.startswith(cfg.evaluation_dir + "/"):
+            modules[(sid, selection_registry.key(name))] = selection_cascade.module_for(project, where)
+    return modules
+
+
 def read_records(root: Path) -> Packaged:
     """The records of the folder ``root`` (its ``esoi.toml`` directly: no search upward, no selection table run)."""
     file = root / "esoi.toml"
@@ -51,13 +63,7 @@ def read_records(root: Path) -> Packaged:
         loaded = registry_module.load(cfg)
         defaults = {r["solution_id"]: selection_registry.key(name) for r in loaded.every_solution()
                     if r.get("solution_id") and (name := default_name(r, loaded.implementations))}
-        project = selection_registry.Project(config=cfg)
-        modules = {}
-        for row in loaded.implementations:
-            sid, name = row.get("implementation_id", "").split(":", 1) if ":" in row.get("implementation_id", "") else ("", "")
-            where = row.get("filepath", "").strip().split("::")[0]
-            if where.endswith(".py") and name and not where.startswith(cfg.evaluation_dir + "/"):
-                modules[(sid, selection_registry.key(name))] = selection_cascade.module_for(project, where)
+        modules = arm_modules(cfg, loaded)
     except Exception as error:
         raise AssemblyError(f"the records in {root} cannot be loaded ({type(error).__name__}: {error})") from error
     try:

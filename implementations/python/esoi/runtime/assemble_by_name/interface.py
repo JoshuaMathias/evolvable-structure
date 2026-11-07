@@ -6,6 +6,8 @@ from esoi.runtime.assemble_by_name import intent_map  # noqa: F401  (re-exported
 from esoi.runtime.assemble_by_name.entry import own_runner  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 from esoi.runtime.assemble_by_name.environment_needs import checking, closure, declarations, generated_files, report  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 from esoi.runtime.assemble_by_name.installation import assembly_plan, execution, plan_report, resolution_ladder, resolvers  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.runtime.assemble_by_name import assemble, hierarchy  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.runtime.assemble_by_name.assemble import Assembler  # noqa: F401  (re-exported: other units call this unit through its interface)
 
 
 @solution("assemble-by-name", kind="event", entry="names", example="structure-check")

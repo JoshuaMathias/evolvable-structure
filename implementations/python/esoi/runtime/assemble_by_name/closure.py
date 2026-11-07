@@ -19,6 +19,9 @@ def closure(assembler: Any, config: Optional[AssemblyConfig] = None, provided: O
     members: List[Member] = []
     seen: Set[Tuple[str, str]] = set()
 
+    def filled_by(need: str) -> Any:
+        return assembler.pick(need, None, cfg) if need not in given and assembler.known_solution(need) else None
+
     def visit(sid: str, name: Optional[str], reason: str) -> None:
         for one in ([name] if name else assembler.names(sid)):
             if (sid, one) in seen:
@@ -33,9 +36,7 @@ def closure(assembler: Any, config: Optional[AssemblyConfig] = None, provided: O
             if not every_arm:
                 lazy = assembler.lazy_needs_of(target)
                 for param, need in needs.items():
-                    if param in lazy:    # built on first use: its requirements are asked for then, not up front
-                        continue
-                    picked = assembler.pick(need, None, cfg) if need not in given and assembler.known_solution(need) else None
+                    picked = None if param in lazy else filled_by(need)   # a Lazy need is built on first use: asked for then, not up front
                     if picked is not None:
                         visit(need, picked.name, f"needed by {sid}:{one}")
 

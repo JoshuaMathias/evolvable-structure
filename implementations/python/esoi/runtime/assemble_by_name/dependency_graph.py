@@ -54,6 +54,17 @@ def need_problems(row: Mapping[str, str], rows: Mapping[str, Mapping[str, str]],
     return bad
 
 
+def default_edges(rows: Mapping[str, Mapping[str, str]], implementations: Sequence[Mapping[str, str]], needs: Mapping[str, Set[str]]) -> Dict[str, Set[str]]:
+    """The needs of each solution's default arm, as edges between solutions."""
+    default = {sid: s.get("selected", "").strip() for sid, s in rows.items()}
+    edges: Dict[str, Set[str]] = {}
+    for row in implementations:
+        sid = row["solution_id"]
+        if default.get(sid) and row["implementation_id"].partition(":")[2] == default[sid]:
+            edges.setdefault(sid, set()).update(needs.get(row["implementation_id"], set()))
+    return edges
+
+
 def problems(solutions: Sequence[Mapping[str, str]], implementations: Sequence[Mapping[str, str]],
              needs: Mapping[str, Set[str]]) -> List[str]:
     """Every way the records and the declared needs disagree. Empty means the graph is sound. ``needs`` is
@@ -63,16 +74,9 @@ def problems(solutions: Sequence[Mapping[str, str]], implementations: Sequence[M
     tags = {sid: {t["tag"] for t in parse_tags(s.get("tags", ""))} for sid, s in rows.items()}
     for row in implementations:
         bad += need_problems(row, rows, tags, needs)
-    for sid, tag in tags.items():
-        if CONSUMER_PROVIDED in tag and rows[sid].get("selected", "").strip():
-            bad.append(f"{sid}: tagged {CONSUMER_PROVIDED} but has a default arm ({rows[sid]['selected']})")
-    default = {sid: s.get("selected", "").strip() for sid, s in rows.items()}
-    edges: Dict[str, Set[str]] = {}
-    for row in implementations:
-        sid = row["solution_id"]
-        if default.get(sid) and row["implementation_id"].partition(":")[2] == default[sid]:
-            edges.setdefault(sid, set()).update(needs.get(row["implementation_id"], set()))
-    ring = cycle_of(edges)
+    bad += [f"{sid}: tagged {CONSUMER_PROVIDED} but has a default arm ({rows[sid]['selected']})"
+            for sid, tag in tags.items() if CONSUMER_PROVIDED in tag and rows[sid].get("selected", "").strip()]
+    ring = cycle_of(default_edges(rows, implementations, needs))
     if ring:
         bad.append("default arms form a cycle: " + " -> ".join(ring))
     return bad

@@ -14,6 +14,17 @@ from esoi.runtime.assemble_by_name.installation.resolution_ladder import make_pl
 from esoi.runtime.assemble_by_name.installation.resolvers import Resolver
 
 
+def first_free(assembler: Any, scene: tuple, sid: str, alternatives: Sequence[str]) -> Optional[Tuple[str, List[Member], List[Entry]]]:
+    """The first alternative arm for ``sid`` whose closure has no conflict: ``(arm, closure members, entries)``, or None."""
+    base, names, solutions, every_arm = scene
+    for alternative in alternatives:
+        members = assembler.closure(replace(base, names={**names, sid: alternative}), None, solutions, every_arm)
+        found = gather(members_pairs(members, []))
+        if not find_conflicts(found):
+            return alternative, members, found
+    return None
+
+
 def assembly_plan(assembler: Any, config: Any, environ: Mapping[str, str], solutions: Sequence[str] = (), every_arm: bool = False,
                   resolver: Optional[Resolver] = None, rank: Optional[Callable[[str, str], Sequence[str]]] = None,
                   lead: Optional[Callable[[str], Optional[float]]] = None, project: Optional[Path] = None
@@ -48,16 +59,15 @@ def assembly_plan(assembler: Any, config: Any, environ: Mapping[str, str], solut
         seats.sort(key=lambda label: (lead(label.split(":", 1)[0]) if lead else metric_lead(label.split(":", 1)[0], label.split(":", 1)[1])) or 0.0)
         for label in seats:
             sid, name = label.split(":", 1)
-            for alternative in [a for a in (rank(sid, name) if rank else metric_rank(sid, name)) if a != name]:
-                trial_config = replace(base, names={**names, sid: alternative})
-                members = assembler.closure(trial_config, None, solutions, every_arm)
-                found = gather(members_pairs(members, []))
-                if not find_conflicts(found):
-                    others = sorted(pulled - {label})
-                    because = f"{name} conflicts with {', '.join(others) or 'the other requirements'} ({conflicts[0].reason} for {conflicts[0].distribution})"
-                    names[sid] = alternative
-                    state["members"] = members
-                    return Substitution(sid, name, alternative, because), found
+            ranked = [a for a in (rank(sid, name) if rank else metric_rank(sid, name)) if a != name]
+            free = first_free(assembler, (base, names, solutions, every_arm), sid, ranked)
+            if free is not None:
+                alternative, members, found = free
+                others = sorted(pulled - {label})
+                because = f"{name} conflicts with {', '.join(others) or 'the other requirements'} ({conflicts[0].reason} for {conflicts[0].distribution})"
+                names[sid] = alternative
+                state["members"] = members
+                return Substitution(sid, name, alternative, because), found
         return None
 
     chosen = make_plan(entries, environ, resolver, fallback, project, notes)

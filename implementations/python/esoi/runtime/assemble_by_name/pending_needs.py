@@ -69,11 +69,15 @@ def pending_line(assembler: Any, config: AssemblyConfig, sid: str, arm: str, che
     except Exception as error:
         return f"{sid} ({arm}): cannot be loaded ({error}); install what it needs or pass provided={{{sid!r}: ...}}"
     options = {**config.options.get(sid, {}), **environ_fill(target, config.options.get(sid, {}), config.consumer_environ)}
-    missing = missing_arguments(target, needs, options)
-    lacking = environ_lacking(target, config.options.get(sid, {}), config.consumer_environ)
-    remedy = unmet_requirement_remedy(target, config, sid)
     lazy = assembler.lazy_needs_of(target)
-    unmet = [need for param, need in needs.items() if param not in lazy and not check(need)]
+    return blocked_line(sid, arm, (environ_lacking(target, config.options.get(sid, {}), config.consumer_environ),
+                                   unmet_requirement_remedy(target, config, sid), missing_arguments(target, needs, options),
+                                   [need for param, need in needs.items() if param not in lazy and not check(need)]))
+
+
+def blocked_line(sid: str, arm: str, found: tuple) -> str:
+    """The first reason that applies, in order: a variable to set, an unmet requirement, a missing option, a seat it waits on."""
+    lacking, remedy, missing, unmet = found
     if lacking:
         return (f"{sid} ({arm}): set " + "; ".join(f"{' or '.join(names)} (option {' or '.join(repr(o) for o in group)})"
                 for group, names in lacking.items()) + f" in the environ mapping you pass, or pass options={{{sid!r}: {{...}}}}")

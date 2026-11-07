@@ -8,6 +8,23 @@ from esoi.runtime.assemble_by_name.intent_map import intent_target, packaged_map
 from esoi.runtime.implementation_selection import selection_registry
 
 
+def packaged_target(scope: Any, target: str) -> Optional[Target]:
+    """What the packaged intent map of a scope without records says about the id, or None."""
+    packaged = packaged_map(scope) or {}
+    if target in packaged.get("intents", {}):
+        info = packaged["intents"][target]
+        return Target(target, info["root"], "intent", info.get("arm", ""))
+    return Target(target, target, "solution") if target in packaged.get("scopes", {}) else None
+
+
+def records_target(root: Any, target: str) -> Optional[Target]:
+    """What the records folder says about the id, or None."""
+    found, solutions, _ = tree(root)
+    if target in found:
+        return intent_target(target, root)
+    return Target(target, target, "solution") if target in solutions else None
+
+
 def locate(assembler: Any, target: str) -> Target:
     """A solution id the Assembler (or a parent) knows, or an intent id of the package's records or packaged intent map."""
     assembler.prepare()
@@ -15,19 +32,9 @@ def locate(assembler: Any, target: str) -> Target:
         return Target(target, target, "solution")
     for one in assembler.chain():
         root = records_root(one)
-        if root is None:
-            packaged = packaged_map(one) or {}
-            if target in packaged.get("intents", {}):
-                info = packaged["intents"][target]
-                return Target(target, info["root"], "intent", info.get("arm", ""))
-            if target in packaged.get("scopes", {}):
-                return Target(target, target, "solution")
-            continue
-        found, solutions, _ = tree(root)
-        if target in found:
-            return intent_target(target, root)
-        if target in solutions:
-            return Target(target, target, "solution")
+        reached = packaged_target(one, target) if root is None else records_target(root, target)
+        if reached is not None:
+            return reached
     raise EntryError(f"{target!r} is neither a solution nor an intent of {assembler.scope}"
                      + "".join(f" or {p.scope}" for p in assembler.chain()[1:]))
 

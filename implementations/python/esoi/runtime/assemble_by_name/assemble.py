@@ -332,19 +332,23 @@ class Assembler:
                 self.seal()
                 entry = selection_registry.REGISTRY.get((self.scope, solution_id))
             target = entry.implementations.get(picked) if entry else None
-            if target is None:
-                raise AssemblyError(f"{solution_id!r} lists {picked!r}{' (module ' + module + ')' if module else ''} but no declaration "
-                                    f"of that name was found; declare it with @implementation({solution_id!r}, {picked!r})")
-            if isinstance(target, str):
-                raise AssemblyError(f"{picked!r} for {solution_id!r} is an import reference, which an Assembler never loads; "
-                                    "register the object itself")
-            sealed = self.sealed.get((solution_id, picked))
-            recorded = (solution_id, picked) in self.packaged().modules
-            if (sealed is not None and not same_declaration(target, sealed)) or (recorded and not self.owned(target)):
-                raise AssemblyError(f"{picked!r} is declared by the {self.scope} package for {solution_id!r} but another object was "
-                                    f"registered under it (declare.register with replace=True); remedy: register your own under a "
-                                    f"name you own with Assembler.register")
+            self.reject_unloadable(solution_id, picked, target, module)
             return target
+
+    def reject_unloadable(self, solution_id: str, picked: str, target: Any, module: str) -> None:
+        """Raise ``AssemblyError`` for a name with no declaration, an import reference, or a packaged arm that was registered over."""
+        if target is None:
+            raise AssemblyError(f"{solution_id!r} lists {picked!r}{' (module ' + module + ')' if module else ''} but no declaration "
+                                f"of that name was found; declare it with @implementation({solution_id!r}, {picked!r})")
+        if isinstance(target, str):
+            raise AssemblyError(f"{picked!r} for {solution_id!r} is an import reference, which an Assembler never loads; "
+                                "register the object itself")
+        sealed = self.sealed.get((solution_id, picked))
+        recorded = (solution_id, picked) in self.packaged().modules
+        if (sealed is not None and not same_declaration(target, sealed)) or (recorded and not self.owned(target)):
+            raise AssemblyError(f"{picked!r} is declared by the {self.scope} package for {solution_id!r} but another object was "
+                                f"registered under it (declare.register with replace=True); remedy: register your own under a "
+                                f"name you own with Assembler.register")
 
     def resolve(self, solution_id: str, name: Optional[str] = None, config: Optional[AssemblyConfig] = None) -> Any:
         """The chosen implementation object of a solution (a class is not instantiated), looked up when called."""

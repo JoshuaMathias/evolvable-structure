@@ -52,20 +52,24 @@ def selected_uses(solutions: Mapping[str, Mapping[str, str]], implementations: S
     return out
 
 
+def root_solutions(intent_id: str, solutions: Dict[str, Any], implementations: Any) -> List[str]:
+    """The intent's solutions that none of its other solutions use, on the selected implementations."""
+    mine = sorted(s for s, r in solutions.items() if r["intent_id"] == intent_id)
+    uses = selected_uses(solutions, implementations)
+    used = {t for s in mine for t in uses[s] if t in mine}
+    return [s for s in mine if s not in used]
+
+
 def intent_target(intent_id: str, root: Path) -> Target:
     """The solution an intent's one line runs: its single root, else the parent solution with the arm the intent is."""
     found, solutions, implementations = tree(root)
     intent = found[intent_id]
-    mine = sorted(s for s, r in solutions.items() if r["intent_id"] == intent_id)
-    uses = selected_uses(solutions, implementations)
-    used = {t for s in mine for t in uses[s] if t in mine}
-    roots = [s for s in mine if s not in used]
+    roots = root_solutions(intent_id, solutions, implementations)
     if len(roots) == 1:
         return Target(intent_id, roots[0], "intent")
     implements = (intent.row.get("implements") or "").strip()
     if implements and ":" in implements and not implements.startswith("@"):
-        sid, arm = implements.split(":", 1)
-        return Target(intent_id, sid, "intent", arm)
+        return Target(intent_id, implements.split(":", 1)[0], "intent", implements.split(":", 1)[1])
     raise EntryError(f"intent {intent_id} has {len(roots)} root solutions ({', '.join(roots) or 'none'}) and implements no local "
                      "solution, so no one solution is its entry; give it one root (metric-solution-coherence reports it)")
 

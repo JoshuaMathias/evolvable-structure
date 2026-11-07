@@ -60,11 +60,16 @@ def candidate_versions(specs: Iterable[str]) -> List[Any]:
     return sorted(found)
 
 
+def exact_pins(given: Sequence[str]) -> set:
+    """The versions pinned with a plain ``==`` (not ``===``, not inside a range)."""
+    return {spec[2:] for spec in given if spec.startswith("==") and not spec.startswith("===") and "," not in spec}
+
+
 def satisfiable(specs: Sequence[str]) -> Tuple[bool, str]:
     """``(ok, reason)``: whether one version can satisfy every specifier. With ``packaging``, the intersection is tested over
     versions around every bound; without it, only two different exact pins are found."""
     given = [spec for spec in specs if spec]
-    pins = {spec[2:] for spec in given if spec.startswith("==") and not spec.startswith("===") and "," not in spec}
+    pins = exact_pins(given)
     if len(pins) > 1:
         return False, "two different exact pins: " + ", ".join(sorted(pins))
     parts = packaging_parts()
