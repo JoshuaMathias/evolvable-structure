@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from esoi.runtime.implementation_selection import variants
-from esoi.runtime.assemble_by_name.name_check import check_name
+from esoi.structure.intent_registry.name_check import check_name
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.intents import read_rows
 from esoi.structure.intent_registry.tables import ids

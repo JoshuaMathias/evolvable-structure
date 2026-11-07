@@ -1,7 +1,7 @@
 """A tiny git repository for the staleness evaluations, built in a temp directory from ``staleness_precision/datasets/fixture.json``.
 
 ``decide(rule, step, component)`` builds the repository (once per step), records a result for each component at the first
-commit, applies the step (a commit, an uncommitted edit, a rename) and asks the live ``esoi.optimization.measurement_harness.stale_reasons.stale_reason`` under the
+commit, applies the step (a commit, an uncommitted edit, a rename) and asks the live ``esoi.optimization.when_metrics_are_run.know_what_a_result_measures.stale_reasons.stale_reason`` under the
 named staleness rule whether that component's result still counts. No model, no network, nothing outside the temp directory.
 """
 from __future__ import annotations

@@ -5,32 +5,13 @@ import datetime
 import subprocess
 from typing import Dict, Optional
 
-from esoi.optimization.leaderboard import circumstances
+from esoi.structure.intent_registry import circumstances
 from esoi.optimization.leaderboard.case_identity import cases_digest
-from esoi.optimization.leaderboard.results_log import is_partial
-from esoi.optimization.measurement_harness.code_provenance import changed_since, external_code_paths, parse_code_shas
-from esoi.optimization.measurement_harness.per_case_log import read_per_case
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import ownership_index, staleness
-from esoi.runtime.consumer_check import foundation
+from esoi.optimization.leaderboard.results_log import is_partial, per_case_rows
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import builds_on
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.code_changed import code_changed_reason
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.code_provenance import external_code_paths, parse_code_shas
 from esoi.structure.intent_registry.config import Config
-
-
-def code_changed_reason(config: Config, component: str, row: Dict[str, str]) -> str:
-    """Why the code a row measured changed since its commit, naming the changed file and who owns it, or an empty string. The
-    files that count are the ones the staleness rule says the arm measures (``esoi.optimization.when_metrics_are_run.know_what_a_result_measures.staleness``); under ``repo_wide`` any file
-    of the measured folders."""
-    from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import attest
-    sha = attest.covered_base(config, component, row.get("impl", ""), row["git_sha"])   # an attested range is not counted
-    if ownership_index.rule_for(config) == "repo_wide":
-        changed = changed_since(config, sha)
-        return f"the measured code changed since its commit {sha} ({changed[0]}{' and others' if len(changed) > 1 else ''})" if changed else ""
-    found = staleness.explain(config, component, row.get("impl", ""), sha)
-    if not found or not found["counts"]:
-        return ""
-    counts, rule, note = found["counts"], found["rule"][0], found["rule"][1]
-    more = f" and {len(counts) - 1} more" if len(counts) > 1 else ""
-    fallback = f"; {rule} rule, {note}" if note else f"; {rule} rule"
-    return f"the measured code changed since its commit {sha} ({counts[0]}{more}{fallback})"
 
 
 def external_reason(config: Config, row: Dict[str, str]) -> str:
@@ -85,7 +66,7 @@ def stale_reason(config: Config, component: str, row: Optional[Dict[str, str]], 
         return "it has no recorded result"
     return (defect_reason(config, component, row) or other_cases_reason(config, component, row) or circumstances_stale(config, component, row)
             or (code_reason(config, component, row) if strict else "")
-            or foundation.stale_reason(config, component, row)   # a foundation this row builds on changed (esoi.runtime.consumer_check.foundation)
+            or builds_on.stale_reason(config, component, row)   # a foundation this row builds on changed (esoi.runtime.consumer_check.foundation)
             or (external_reason(config, row) if strict else ""))
 
 
@@ -101,7 +82,7 @@ def circumstances_stale(config: Config, component: str, row: Dict[str, str]) -> 
     if not circs:
         return ""
     wanted = (component, row.get("impl", ""), row.get("cases_sha", ""), (row.get("sample") or "").strip())
-    mine = [r for r in read_per_case(config) if (r["component"], r["impl"], r["cases_sha"], r["sample"]) == wanted]
+    mine = [r for r in per_case_rows(config) if (r["component"], r["impl"], r["cases_sha"], r["sample"]) == wanted]
     if not any(r["circumstances_sha"] == circumstances.digest(circs) for r in mine):
         return "its slice rows and per-case log were not derived from the current circumstances.csv (re-run it to derive them)"
     return ""

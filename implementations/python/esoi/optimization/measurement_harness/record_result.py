@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from esoi.optimization.leaderboard.case_identity import cases_digest
-from esoi.optimization.measurement_harness import code_provenance
-from esoi.optimization.measurement_harness.code_provenance import code_shas, external_code_paths
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import code_provenance
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.code_provenance import code_shas, external_code_paths
 from esoi.optimization.measurement_harness.run_cost import run_cost
 from esoi.structure.intent_registry.config import Config
 

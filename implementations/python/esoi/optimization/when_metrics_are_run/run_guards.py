@@ -31,7 +31,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from esoi.optimization.when_metrics_are_run.public_evidence import evidence_records
 from esoi.optimization.leaderboard import arm_kinds, case_identity, results_log
-from esoi.optimization.measurement_harness import run_log
+from esoi.optimization.when_metrics_are_run import run_log
 from esoi.runtime.implementation_selection import variants
 from esoi.structure.intent_registry.config import Config
 

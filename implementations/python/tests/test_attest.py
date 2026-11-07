@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT / "evaluation" / "components"))
 
 from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import attest
 from esoi.structure.intent_registry import config as config_module
-from esoi.optimization.measurement_harness import stale_reasons
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import stale_reasons
 from esoi.optimization.leaderboard import board_report
 import staleness_fixture  # noqa: E402
 

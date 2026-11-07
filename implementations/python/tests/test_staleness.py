@@ -20,7 +20,7 @@ from esoi.optimization.measurement_harness import call_meter
 from esoi.optimization.measurement_harness import case_loading
 from esoi.optimization.measurement_harness import offline_guard
 from esoi.optimization.measurement_harness import run_errors
-from esoi.optimization.measurement_harness import stale_reasons
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import stale_reasons
 from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import import_scan, import_world, ownership_index, stale_scope, staleness
 import staleness_fixture  # noqa: E402
 

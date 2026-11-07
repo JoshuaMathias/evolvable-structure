@@ -12,10 +12,12 @@ from esoi.optimization.measurement_harness import case_loading
 from esoi.optimization.measurement_harness import component_folder
 from esoi.optimization.measurement_harness import run_component
 from esoi.optimization.measurement_harness import run_errors
-from esoi.optimization.measurement_harness import stale_reasons
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import stale_reasons
 from esoi.optimization.leaderboard import cascade_stages, stage_standings
 from esoi.structure.intent_registry import config as config_module
-from esoi.runtime.consumer_check import foundation
+from esoi.optimization.leaderboard import inherited_gate
+from esoi.optimization.measurement_harness import foundation_parts
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import builds_on
 
 COUNTER = itertools.count()
 GIT = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.org", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@example.org")
@@ -152,16 +154,16 @@ def test_a_sampled_run_scores_the_consumers_own_cases_only(world):
 def test_shares_must_leave_the_consumer_something(world):
     path = world["app"] / "esoi.toml"
     path.write_text(path.read_text().replace("share = 0.6", "share = 1.0"))
-    found = foundation.problems(config_module.load(world["app"]))
+    found = builds_on.problems(config_module.load(world["app"]))
     assert any("between 0 and 1" in line for line in found) and any("add up to" in line for line in found)
 
 
 def test_blend_weights_shares_and_renormalises_over_the_parts_present():
-    cfg = [foundation.Foundation("c", "a", None, "t", 0.5), foundation.Foundation("c", "b", None, "t", 0.25)]
+    cfg = [builds_on.Foundation("c", "a", None, "t", 0.5), builds_on.Foundation("c", "b", None, "t", 0.25)]
     own = dict(cases=2, passed=2, model_calls=0, tokens_in=0, tokens_out=0, seconds=0.0, dev="2/2", heldout="0/0")
-    both = foundation.blend(own, 0.0, [foundation.Part("a", "x", 4, 2), foundation.Part("b", "y", 4, 4)], cfg, None)
+    both = foundation_parts.blend(own, 0.0, [foundation_parts.Part("a", "x", 4, 2), foundation_parts.Part("b", "y", 4, 4)], cfg, None)
     assert both["passed"] == round((0.5 * 0.5 + 0.25 * 1.0 + 0.25 * 1.0) * 10)
-    alone = foundation.blend(dict(own, cases=0, passed=0), 0.0, [foundation.Part("a", "x", 4, 2)], cfg, None)
+    alone = foundation_parts.blend(dict(own, cases=0, passed=0), 0.0, [foundation_parts.Part("a", "x", 4, 2)], cfg, None)
     assert alone["passed"] == 2                           # one part present: its share renormalises to the whole
 
 
@@ -186,11 +188,11 @@ def test_the_inherited_gate_reads_the_foundations_cascade_and_results(world):
         "metric_id,solution_ids,command,cascading_conditionals\n"
         f'm1,s1,"esoi run {fname} --impl good",offline [sample=full | real=no | gate=all-pass] > whole [sample=full | real=no]\n')
     commit(lib)
-    gate = foundation.inherited_gate(world["aconf"], world["own"], "good")
+    gate = inherited_gate.inherited_gate(world["aconf"], world["own"], "good")
     stage = cascade_stages.parse("offline [inherits=offline] > mine [sample=full | gate=all-pass]")[0][0]
     met, why = gate(stage)
     assert not met and "not every case passed" in why      # the recorded foundation arm passes 2 of 4, so its all-pass gate is not met
-    other = foundation.inherited_gate(world["aconf"], world["own"], "plain")
+    other = inherited_gate.inherited_gate(world["aconf"], world["own"], "plain")
     assert other(stage)[0] is False and "no foundation" in other(stage)[1]
 
 
@@ -232,5 +234,5 @@ def test_a_configured_prefix_names_the_foundation_arm_of_a_delegating_arm(world)
     path.write_text(path.read_text() + 'arm_prefix = "lib_"\n')
     (world["app"] / "evaluation" / "components" / world["own"] / "impls" / "lib_good.py").write_text(ARM)
     config = config_module.load(world["app"])
-    assert foundation.declared_arms(config, world["own"], "lib_good") == {"core": "good"}
-    assert foundation.declared_arms(config, world["own"], "plain") == {}
+    assert builds_on.declared_arms(config, world["own"], "lib_good") == {"core": "good"}
+    assert builds_on.declared_arms(config, world["own"], "plain") == {}

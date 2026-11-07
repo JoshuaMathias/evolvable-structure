@@ -76,7 +76,7 @@ adds, on top, only what is consumer-specific: its own source access and its own 
 
 The harness (`esoi.optimization.measurement_harness.run_component`, which composes a run), the results and per-case logs it reuses, `esoi.optimization.when_metrics_are_run.know_what_a_result_measures.staleness` (the foundation's own staleness
 decides reuse), the cascade (`esoi.optimization.leaderboard.cascade_stages`, the `inherits` key) and the balance (`esoi.optimization.measurement_harness.balance`, `esoi.optimization.measurement_harness.access`). The mechanism is
-`esoi.runtime.consumer_check.foundation`. It extends the idea of [overriding only what differs](override-only-what-differs.md) and [following the parent's check with
+`esoi.optimization.measurement_harness.foundation_parts`. It extends the idea of [overriding only what differs](override-only-what-differs.md) and [following the parent's check with
 your own metric](follow-the-parent-check-with-your-own-metric.md) from selections to measurements. A cascade still runs one criterion
 ([a cascade runs one criterion](a-cascade-runs-one-criterion.md)): the foundation's cases are a case source of the consumer's one number, never a
 second leaderboard.

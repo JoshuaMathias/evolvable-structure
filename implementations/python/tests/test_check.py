@@ -370,7 +370,7 @@ def test_a_row_with_no_git_sha_is_a_malformed_record_and_stays_a_problem(cfg):
 
 
 def test_changed_circumstances_and_a_dirty_row_inform_but_do_not_fail(cfg):
-    from esoi.optimization.measurement_harness import stale_reasons
+    from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import stale_reasons
     row = {r["impl"]: r for r in tables.read_csv(cfg.results_path)}["live"]
     row["git_sha"] = "abc1234-dirty"
     assert stale_reasons.defect_reason(cfg, "greet_a_person", row) == ""            # dirty is a fact about the tree, not a defect

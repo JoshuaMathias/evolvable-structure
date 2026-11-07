@@ -5,9 +5,10 @@ import importlib
 import pytest
 
 from esoi.optimization.leaderboard import cascade_stages, stage_standings
-from esoi.optimization.measurement_harness import run_log
+from esoi.optimization.when_metrics_are_run import run_log
 from esoi.optimization.leaderboard import case_identity
-from esoi.optimization.measurement_harness import code_provenance, component_folder
+from esoi.optimization.measurement_harness import component_folder
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import code_provenance
 from esoi.optimization.when_metrics_are_run import paid_gating
 from esoi.optimization.measurement_harness import run_component
 from esoi.optimization.measurement_harness import run_errors

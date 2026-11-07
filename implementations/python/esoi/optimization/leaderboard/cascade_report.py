@@ -4,7 +4,8 @@ from __future__ import annotations
 import datetime
 from typing import Callable, List, Optional, Tuple
 
-from esoi.optimization.leaderboard import arm_selection, results_log
+from esoi.optimization.leaderboard import arm_selection, inherited_gate, results_log
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.stale_reasons import stale_reason
 from esoi.optimization.leaderboard.results_log import Row
 from esoi.optimization.leaderboard.cascade_stages import Stage, expectation_notes, load_stages
 from esoi.optimization.leaderboard.stage_standings import decide, next_stage, standings
@@ -60,10 +61,9 @@ def report_standings(config, stages, standing, component: str, chosen: str, say:
 
 def report_next_stages(config, stages, standing, component: str, chosen: str, say: Callable[[str], None]) -> None:
     """Print, per implementation, the next stage worth running and the command for it."""
-    from esoi.runtime.consumer_check import foundation
     selected = standing.get(chosen)
     for impl, s in sorted(standing.items()):
-        gate = foundation.inherited_gate(config, component, impl) if any(st.inherited for st in stages) else None
+        gate = inherited_gate.inherited_gate(config, component, impl) if any(st.inherited for st in stages) else None
         index, why = next_stage(stages, s, selected, config.evaluation, gate)
         if index is None:
             say(f"  next for {impl}: nothing ({why})")
@@ -84,7 +84,6 @@ def metric_arm(config, loaded, metric: dict, owners: List[str]) -> Tuple[str, st
 
 def report_metric(config, loaded, metric: dict, stages, errors, owners: List[str], graded, history: dict, today, say: Callable[[str], None]) -> int:
     """Print one metric's cascade; returns 1 when its choice differs from the selected implementation."""
-    from esoi.optimization.measurement_harness import interface as harness
     say(f"{metric.get('metric_id', '')}: {' > '.join(s.name for s in stages) or '(no valid stage)'}")
     for line in errors:
         say(f"  problem: {line}")
@@ -96,7 +95,7 @@ def report_metric(config, loaded, metric: dict, stages, errors, owners: List[str
     if not stages or not component or component not in history:
         say("  no results yet: every stage is not run" if stages else "  fix the list to read it")
         return 0
-    standing = standings(stages, history[component], today, lambda row: harness.stale_reason(config, component, row, True), config.evaluation)
+    standing = standings(stages, history[component], today, lambda row: stale_reason(config, component, row, True), config.evaluation)
     behind = report_standings(config, stages, standing, component, chosen, say)
     report_next_stages(config, stages, standing, component, chosen, say)
     return behind

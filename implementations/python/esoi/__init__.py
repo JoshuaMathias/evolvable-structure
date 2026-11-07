@@ -43,7 +43,7 @@ AFTER esoi.optimization.keep_metric_record.metric_meter
 Assembler esoi.runtime.assemble_by_name.assemble
 Assembly esoi.runtime.assemble_by_name.assembly
 AssemblyConfig esoi.runtime.assemble_by_name.assembly_config
-AssemblyError esoi.runtime.assemble_by_name.assembly_errors
+AssemblyError esoi.structure.intent_registry.assembly_errors
 BEFORE esoi.optimization.keep_metric_record.metric_meter
 BudgetExceeded esoi.optimization.when_metrics_are_run.paid_gating
 CallMeter esoi.optimization.measurement_harness.call_meter
@@ -99,7 +99,7 @@ load esoi.structure.intent_registry.registry
 load_cases esoi.optimization.measurement_harness.case_loading
 load_template esoi.structure.intent_registry.records
 meters_from_names esoi.optimization.keep_metric_record.metric_meter
-own_code_paths esoi.optimization.measurement_harness.code_provenance
+own_code_paths esoi.optimization.when_metrics_are_run.know_what_a_result_measures.code_provenance
 parse_tags esoi.structure.intent_registry.fields
 payload_of esoi.optimization.keep_metric_record.metric_results
 read_csv esoi.structure.intent_registry.tables
@@ -135,12 +135,12 @@ evidence esoi.optimization.when_metrics_are_run.public_evidence.evidence_ranking
 evidence esoi.optimization.when_metrics_are_run.public_evidence.evidence_records EvidenceError,implementation_candidates,load,load_for
 evidence_table esoi.optimization.leaderboard.evidence_table cell,cost_label,public_label,rate_label,seconds_label
 expect esoi.optimization.measurement_harness.expect aggregate_by_kind,check,score_kind_case
-foundation esoi.runtime.consumer_check.foundation declared,declared_arms,problems
+foundation esoi.optimization.when_metrics_are_run.know_what_a_result_measures.builds_on declared,declared_arms,problems
 harness esoi.optimization.leaderboard.case_identity cases_digest
 harness esoi.optimization.measurement_harness.arm_loading load_impl
 harness esoi.optimization.measurement_harness.call_meter CallMeter
 harness esoi.optimization.measurement_harness.case_loading load_cases
-harness esoi.optimization.measurement_harness.code_provenance current_sha
+harness esoi.optimization.when_metrics_are_run.know_what_a_result_measures.code_provenance current_sha
 harness esoi.optimization.measurement_harness.component_folder prepare_path
 harness esoi.optimization.measurement_harness.record_result record_result
 harness esoi.optimization.measurement_harness.record_slices record_slices

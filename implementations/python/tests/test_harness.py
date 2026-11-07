@@ -8,7 +8,7 @@ import pytest
 from esoi.optimization.measurement_harness import arm_loading
 from esoi.optimization.measurement_harness import call_meter
 from esoi.optimization.measurement_harness import case_loading
-from esoi.optimization.measurement_harness import code_provenance
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import code_provenance
 from esoi.optimization.measurement_harness import component_folder
 from esoi.optimization.measurement_harness import offline_guard
 from esoi.optimization.when_metrics_are_run import paid_gating
@@ -17,7 +17,7 @@ from esoi.optimization.measurement_harness import rerun_stale
 from esoi.optimization.measurement_harness import run_command
 from esoi.optimization.measurement_harness import run_component
 from esoi.optimization.measurement_harness import run_errors
-from esoi.optimization.measurement_harness import stale_reasons
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import stale_reasons
 from esoi.structure.intent_registry.config import Config
 
 BUILD = 'def build(meter):\n    def run(kind, args):\n        meter.record()\n        return {"n": args["n"]}\n    return run\n'

@@ -1,4 +1,4 @@
-"""Variants, circumstances, derived slice rows and the per-case log (esoi.runtime.implementation_selection.variants, esoi.optimization.leaderboard.circumstances, esoi.optimization.measurement_harness.record_slices)."""
+"""Variants, circumstances, derived slice rows and the per-case log (esoi.runtime.implementation_selection.variants, esoi.structure.intent_registry.circumstances, esoi.optimization.measurement_harness.record_slices)."""
 import csv
 import importlib
 import json
@@ -11,7 +11,8 @@ from pathlib import Path
 import pytest
 
 from esoi.structure.structure_check import check
-from esoi.optimization.leaderboard import circumstances, results_log, verdict_labels
+from esoi.optimization.leaderboard import results_log, verdict_labels
+from esoi.structure.intent_registry import circumstances
 from esoi.optimization.measurement_harness import arm_loading
 from esoi.optimization.measurement_harness import call_meter
 from esoi.optimization.measurement_harness import component_folder
@@ -21,7 +22,7 @@ from esoi.optimization.measurement_harness import record_slices
 from esoi.optimization.measurement_harness import rerun_stale
 from esoi.optimization.measurement_harness import run_component
 from esoi.optimization.measurement_harness import run_errors
-from esoi.optimization.measurement_harness import stale_reasons
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import stale_reasons
 from esoi.runtime.implementation_selection import declare, selection_cascade, selection_registry, variants
 from esoi.structure.intent_registry import config as config_module
 from esoi.runtime.implementation_selection.selection_registry import SelectionError

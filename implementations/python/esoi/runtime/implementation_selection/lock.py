@@ -35,113 +35,20 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
-from esoi.runtime.assemble_by_name.environment_needs import checking, closure, declarations
-from esoi.runtime.assemble_by_name.assemble import Assembler
-from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
-from esoi.runtime.assemble_by_name.assembly_errors import LockError
+from esoi.optimization.leaderboard.interface import lock_evidence
+from esoi.runtime.assemble_by_name.interface import Assembler, AssemblyConfig, checking, closure, declarations, lock_file
+from esoi.structure.intent_registry.assembly_errors import LockError
+
+read, locked_arm, CACHE, SCHEMA = lock_file.read, lock_file.locked_arm, lock_file.CACHE, lock_file.SCHEMA
+records_evidence, attach_evidence = lock_evidence.records_evidence, lock_evidence.attach_evidence
 
 __all__ = ["LockError", "Change", "Result", "SCHEMA", "STATUS_SCHEMA", "DEFAULT_FILE", "write", "update", "diff", "status", "read",
            "latest", "locked_arm", "records_evidence", "EXIT_CURRENT", "EXIT_ERROR", "EXIT_SAFE", "EXIT_BLOCKED"]
 
-SCHEMA = "esoi.lock/1"
 STATUS_SCHEMA = "esoi.runtime.implementation_selection.lock.status/1"
 DEFAULT_FILE = "esoi.lock.json"
 POLICIES = ("latest", "safe")
 EXIT_CURRENT, EXIT_ERROR, EXIT_SAFE, EXIT_BLOCKED = 0, 2, 3, 4   # esoi lock --status
-
-
-# reading
-
-CACHE: Dict[Tuple[str, int, int], Dict[str, Any]] = {}
-
-
-def check_arms(found: Dict[str, Any], where: str) -> None:
-    """Raise ``LockError`` for a solution entry that names no arm."""
-    for sid, entry in found["solutions"].items():
-        if not isinstance(entry, dict) or not str(entry.get("arm", "")).strip():
-            raise LockError(f"{where}: solution {sid!r} names no arm; remedy: esoi lock --update --solution {sid}")
-
-
-def read(source: Any) -> Dict[str, Any]:
-    """The lock as a dict, from a path or a mapping. Raises ``LockError`` for a file that is missing, unreadable or of another schema."""
-    if isinstance(source, Mapping):
-        found: Any = dict(source)
-        where = "the lock mapping"
-    else:
-        path = Path(source)
-        where = str(path)
-        try:
-            stat = path.stat()
-        except OSError as error:
-            raise LockError(f"the lock {where} cannot be read ({error}); remedy: esoi lock --file {where} writes it") from error
-        key = (str(path.resolve()), stat.st_mtime_ns, stat.st_size)
-        if key in CACHE:
-            return CACHE[key]
-        try:
-            found = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError) as error:
-            raise LockError(f"the lock {where} cannot be read ({error}); remedy: restore it from version control, or esoi lock --file {where} writes a new one") from error
-    if not isinstance(found, dict) or not str(found.get("schema", "")).startswith("esoi.lock/") or not isinstance(found.get("solutions"), dict):
-        raise LockError(f"{where} is not an esoi lock (schema {SCHEMA!r} with a solutions table); remedy: esoi lock writes one")
-    if str(found["schema"]) != SCHEMA:
-        raise LockError(f"{where} has schema {found['schema']!r}, this esoi reads {SCHEMA!r}; remedy: esoi lock --update rewrites it")
-    check_arms(found, where)
-    if not isinstance(source, Mapping):
-        CACHE[key] = found
-    return found
-
-
-def locked_arm(assembler: Assembler, source: Any, solution_id: str) -> Optional[Tuple[str, str]]:
-    """``(arm, where)`` the lock names for a solution, or ``None`` when it is not locked. Used by the assembler's cascade."""
-    found = read(source)
-    entry = found["solutions"].get(solution_id)
-    return (str(entry["arm"]).strip().lower(), "the lock mapping" if isinstance(source, Mapping) else str(source)) if entry else None
-
-
-# evidence
-
-def attach_evidence(config: Any, snapshot: Dict[str, Any]) -> None:
-    """Add to each solution of a snapshot the ``evidence`` (``verdict``, ``detail``, ``p``) the results log gives it, which ``esoi lock`` records beside the arm it locks."""
-    for sid, found in records_evidence(config).items():
-        if sid in snapshot:
-            snapshot[sid]["evidence"] = found
-
-
-def incumbent_p_values(config: Any, loaded: Any, row: Dict[str, str], results: Dict[str, Any], history: Dict[str, Any], per_case: Any) -> List[float]:
-    """The p-values that the solution's selected arm beats each rival, from the rival decisions."""
-    from esoi.optimization.leaderboard import arm_selection, rival_decisions, switching_policy
-    component, impl = arm_selection.selected_arm(config, row, "", loaded)
-    rows = results.get(component, {})
-    if impl not in rows:
-        return []
-    decided = rival_decisions.decisions(rows, impl, config.evaluation, history.get(component), per_case,
-                                        switching_policy.policy_for(config, row.get("solution_id", ""), component, per_case))
-    return [d.p_incumbent for d in decided if d.p_incumbent is not None]
-
-
-def records_evidence(config: Any, loaded: Any = None) -> Dict[str, Dict[str, Any]]:
-    """``{solution_id: {"verdict", "detail", "p"}}`` from the records and the results log of ``config`` (an ``esoi.structure.intent_registry.config.Config``):
-    the leaderboard's verdict on each evaluated solution's selected arm, and the smallest Holm-adjusted p-value that the selected
-    arm is better than a rival (``None`` when no test was possible). Solutions with no results are left out."""
-    from esoi.optimization.leaderboard import results_log, verdict_labels
-    from esoi.structure.intent_registry import registry as registry_module
-    loaded = loaded or registry_module.load(config)
-    if not config.results_path.is_file():
-        return {}
-    history = results_log.all_results(config.results_path)
-    results = {comp: {impl: rows[-1] for impl, rows in impls.items()} for comp, impls in history.items()}
-    per_case = results_log.per_case_rows(config)
-    solutions = loaded.every_solution()
-    verdicts = verdict_labels.solution_verdicts(config, solutions, results, history, loaded, per_case)
-    out: Dict[str, Dict[str, Any]] = {}
-    for row in solutions:
-        sid = row.get("solution_id", "")
-        found = verdicts.get(sid)
-        if not found or not found["component"]:
-            continue
-        ps = incumbent_p_values(config, loaded, row, results, history, per_case)
-        out[sid] = {"verdict": found["verdict"], "detail": found["detail"], "p": round(min(ps), 6) if ps else None}
-    return out
 
 
 # the latest selections

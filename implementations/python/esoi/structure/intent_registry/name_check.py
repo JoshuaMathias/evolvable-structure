@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from esoi.runtime.assemble_by_name.assembly_errors import AssemblyError
+from esoi.structure.intent_registry.assembly_errors import AssemblyError
 
 
 NAME_PATTERN = "^[a-z0-9][a-z0-9_-]*$"

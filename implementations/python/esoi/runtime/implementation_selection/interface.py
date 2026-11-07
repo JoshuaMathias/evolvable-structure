@@ -4,7 +4,7 @@ from typing import Any, Dict, Protocol, runtime_checkable
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.runtime.implementation_selection.lock_command import run_lock  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 
-__all__ = ["ImplementationSelecting", "attach_evidence", "implementation", "run_lock", "solution"]
+__all__ = ["ImplementationSelecting", "implementation", "run_lock", "solution"]
 
 
 @solution("implementation-selection", kind="event", entry="choose", example="structure-check")
@@ -22,9 +22,3 @@ class Declarations:
     def choose(self, solution_id: str) -> Any:
         from esoi.runtime.implementation_selection import selection_cascade
         return selection_cascade.choose(solution_id)
-
-
-def attach_evidence(config: Any, snapshot: Dict[str, Any]) -> None:
-    """Add the results log's verdict on each solution's selected arm to a selection snapshot (the evidence ``esoi lock`` records)."""
-    from esoi.runtime.implementation_selection import lock
-    lock.attach_evidence(config, snapshot)

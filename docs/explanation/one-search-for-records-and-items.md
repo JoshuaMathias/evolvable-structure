@@ -42,7 +42,7 @@ the cue to define a solution rather than to look for one.
 ## Not the same as choosing an implementation
 
 This module finds records. Choosing among implementations by their measured result is `esoi select`, `esoi cascade` and
-`esoi.runtime.implementation_selection.declare`; circumstance slices and `name@key=value` variants belong to that side (`esoi.optimization.leaderboard.circumstances`,
+`esoi.runtime.implementation_selection.declare`; circumstance slices and `name@key=value` variants belong to that side (`esoi.structure.intent_registry.circumstances`,
 `esoi.runtime.implementation_selection.variants`). The two meet only in that the strategies here are implementations of the solution `spec-search`, chosen
 the same way as any other.
 

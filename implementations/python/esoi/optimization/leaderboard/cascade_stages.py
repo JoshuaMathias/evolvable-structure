@@ -15,7 +15,7 @@ the condition for moving on, joined by `` | ``::
   ``competitive`` (the selected implementation does not have a strictly better result at this stage). ``min-pass-rate`` (a fraction)
   adds a floor. Every stage but the last needs a gate or a floor, since nothing else says when to move on (a stage with ``inherits`` takes the
   foundation's gate and needs none).
-* ``inherits``: the name of a stage of the foundation metric this one builds on (``[builds_on]``, ``esoi.runtime.consumer_check.foundation``). The stage is passed only
+* ``inherits``: the name of a stage of the foundation metric this one builds on (``[builds_on]``, ``esoi.optimization.leaderboard.inherited_gate``). The stage is passed only
   when the foundation's stage of that name passed for the foundation arm the consumer's arm names, by the foundation's own gate, so the consumer
   inherits the gate instead of re-proving it. A gate or floor written beside ``inherits`` tightens the inherited one and never loosens it (S47).
 * A stage named ``public`` (with ``real=no``; ``when`` is free text) stands for public evidence others measured
@@ -40,7 +40,7 @@ The rules this module carries out, from the skill:
 * A result expires when the measured implementation or the cases changed since it was recorded (the harness's staleness
   test), or when it is older than the stage's ``max-age-days``. An expired result counts as not run.
 * A stage that was run for an implementation version is not run again for a later stage: ``esoi run`` reuses the cases already run
-  for the same implementation and cases (``esoi.optimization.measurement_harness.run_log.reusable``), and runs them again only when the implementation changed.
+  for the same implementation and cases (``esoi.optimization.when_metrics_are_run.run_log.reusable``), and runs them again only when the implementation changed.
   ``expectation_notes`` says when a list departs from the expected order (a free first stage, cases growing among the stages that call a model, the last stage no narrower than they are).
 * Downstream users take the implementation with the highest result at the latest stage that has ever been run, unless
   another implementation scored higher at an earlier stage the two share and has not yet been run at the latest one: that
@@ -89,7 +89,7 @@ class Stage:
 
     @property
     def inherited(self) -> bool:
-        """A stage that takes its gate from the foundation metric's stage of that name (``esoi.runtime.consumer_check.foundation``): it is passed only when the
+        """A stage that takes its gate from the foundation metric's stage of that name (``esoi.optimization.leaderboard.inherited_gate``): it is passed only when the
         foundation's stage passed. With no gate of its own and no sample or model of its own it is a pure inheritance and holds no results
         row; with a gate of its own the gate TIGHTENS the inherited one (it can never loosen it: rule S47)."""
         return bool(self.inherits)

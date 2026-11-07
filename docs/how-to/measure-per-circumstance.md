@@ -8,7 +8,7 @@ extra model call. It does not select anything: a slice verdict is a proposal for
 | Part | What it is |
 |---|---|
 | Variant, `name@key=value` | The same implementation with other parameters (`esoi.runtime.implementation_selection.variants`). The string is the `impl` cell of a results row, a `--impl` value, a `using=` value and a `selected` cell, so everything that compares `impl` strings works unchanged. Keys are sorted and values written as what they read as (`true`, `false`, whole numbers, decimals), so one variant has one spelling (`k=01` is `k=1`). |
-| `circumstances.csv` | One row per situation: `circumstance_id`, `case_filter`, `run_filter`, `problem_ids`, `solution_ids`. Every cell is an id, a link or a condition a machine reads (`esoi.optimization.leaderboard.circumstances`). The id is a name (lower case letters, digits, `_`, `-`): the rule of `esoi.runtime.assemble_by_name.assemble`. A row that cannot be read stops the run. |
+| `circumstances.csv` | One row per situation: `circumstance_id`, `case_filter`, `run_filter`, `problem_ids`, `solution_ids`. Every cell is an id, a link or a condition a machine reads (`esoi.structure.intent_registry.circumstances`). The id is a name (lower case letters, digits, `_`, `-`): the rule of `esoi.runtime.assemble_by_name.assemble`. A row that cannot be read stops the run. |
 | Slice rows | `esoi run --record` appends one derived row per circumstance, `sample` = `slice:<id>`. They are left out of the default verdict. |
 | `per_case.csv` | The per-case log beside the results log: one row per case of the newest run of each arm and sample. Appended, then compacted through a temporary file, so two recorders do not lose each other's rows, and rows of older cases are pruned. |
 

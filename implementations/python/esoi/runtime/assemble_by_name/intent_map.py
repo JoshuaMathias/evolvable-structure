@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from esoi.runtime.assemble_by_name.entry_types import EntryError, Target
 from esoi.runtime.implementation_selection import selection_cascade
-from esoi.runtime.implementation_selection.interface import attach_evidence
+from esoi.optimization.leaderboard.interface import lock_evidence
 from esoi.runtime.implementation_selection import selection_registry
 
 
@@ -93,7 +93,7 @@ def snapshot(config: Any) -> Dict[str, Any]:
     ``run("<intent id>")`` without its records. ``esoi select --snapshot`` writes this."""
     out = selection_cascade.snapshot(config)
     try:
-        attach_evidence(config, out)
+        lock_evidence.attach_evidence(config, out)
     except Exception:
         pass   # a snapshot without evidence is still a snapshot
     try:

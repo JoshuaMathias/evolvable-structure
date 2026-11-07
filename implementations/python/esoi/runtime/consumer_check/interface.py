@@ -3,10 +3,9 @@ from typing import Any, Dict, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.runtime.consumer_check import consumer, follow  # noqa: F401  (re-exported: the command line calls this unit through its interface)
-from esoi.runtime.consumer_check import foundation  # noqa: F401  (re-exported: other units call this unit through its interface)
 from esoi.runtime.consumer_check.consumer import Options  # noqa: F401  (re-exported: other units call this unit through its interface)
 
-__all__ = ["ConsumerChecking", "Options", "consumer", "follow", "foundation"]
+__all__ = ["ConsumerChecking", "Options", "consumer", "follow"]
 
 
 @solution("consumer-check", kind="event", entry="known_ids", example="esoi")

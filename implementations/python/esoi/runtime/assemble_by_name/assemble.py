@@ -66,13 +66,13 @@ from esoi.runtime.assemble_by_name.arm_inspection import builder_of, protocol_me
 from esoi.runtime.assemble_by_name.arm_ranking import metric_order
 from esoi.runtime.assemble_by_name.assembly import Assembly
 from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
-from esoi.runtime.assemble_by_name.assembly_errors import AssemblyError
+from esoi.structure.intent_registry.assembly_errors import AssemblyError
 from esoi.runtime.assemble_by_name.cascade_layers import layers
 from esoi.runtime.assemble_by_name.build_parts import assemble, assemble_defaults
 from esoi.runtime.assemble_by_name.closure import closure
 from esoi.runtime.assemble_by_name.declared_needs import declared_needs, sync_uses, uses_problems
 from esoi.runtime.assemble_by_name.lazy_need import Lazy
-from esoi.runtime.assemble_by_name.name_check import check_name
+from esoi.structure.intent_registry.name_check import check_name
 from esoi.runtime.assemble_by_name.packaged_records import Packaged, read_records, read_snapshot
 from esoi.runtime.assemble_by_name.pending_needs import pending_needs
 from esoi.runtime.implementation_selection import declare

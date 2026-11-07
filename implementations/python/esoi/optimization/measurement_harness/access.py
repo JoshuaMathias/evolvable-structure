@@ -11,7 +11,7 @@ and declared where the balance is: a ``[balance.<component>.source_access]`` tab
 
 An arm reports a read with ``meter.read(records=.., bytes=.., calls=.., scope=.., full_scan=..)``. The price of each read is added to the
 run's cost, and a request (one case) that breaks a limit FAILS, with the reason in its note: the limits are gates, not prices. A consumer
-that builds on a foundation (``esoi.runtime.consumer_check.foundation``) inherits the foundation's table and may TIGHTEN it, never loosen it: ``loosening`` names every
+that builds on a foundation (``esoi.optimization.when_metrics_are_run.know_what_a_result_measures.builds_on``) inherits the foundation's table and may TIGHTEN it, never loosen it: ``loosening`` names every
 limit of the consumer's table that is looser than the foundation's (rule S47). Standard library only.
 """
 from __future__ import annotations

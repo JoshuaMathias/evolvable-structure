@@ -36,7 +36,7 @@ from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.stale_sc
 
 
 def measured_paths(config: Config) -> List[str]:
-    from esoi.optimization.measurement_harness.code_provenance import own_code_paths
+    from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.code_provenance import own_code_paths
     return [*own_code_paths(config), config.evaluation_dir, f":(exclude){config.results}", f":(exclude){config.per_case}",
             f":(exclude){config.runs_log}"]
 
@@ -80,7 +80,7 @@ def count_stale(config: Config, rule: str) -> Dict[str, str]:
     """``{component/impl: reason}`` for every latest whole-run row that the rule calls stale because measured code changed (a row
     stale for another reason is left out); how a rule would judge the rows now, whatever the repository configured."""
     from esoi.optimization.leaderboard import results_log
-    from esoi.optimization.measurement_harness.interface import stale_reason
+    from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.stale_reasons import stale_reason
     saved = config.staleness_rule
     config.staleness_rule = rule
     try:

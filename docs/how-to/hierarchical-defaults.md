@@ -79,7 +79,7 @@ layer `choice` returns. `system.explain(sid)` does the same for a built assembly
 
 A layer value may be `name@key=value,...`, or a list of them for selections and the explicit name. In an Assembler the parameters are
 conditions on `AssemblyConfig.circumstances`, the caller's mapping (keys and values as in `esoi.runtime.implementation_selection.variants`, compared as
-`esoi.optimization.leaderboard.circumstances` compares: numbers as numbers, text ignoring case). The first entry whose conditions all hold wins; one that does
+`esoi.structure.intent_registry.circumstances` compares: numbers as numbers, text ignoring case). The first entry whose conditions all hold wins; one that does
 not hold stays in `explain`, marked skipped, and a key the caller did not give never matches.
 
 ```python

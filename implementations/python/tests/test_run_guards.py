@@ -6,7 +6,8 @@ import pytest
 
 from esoi.optimization.measurement_harness import component_folder
 from esoi.optimization.measurement_harness import record_result
-from esoi.optimization.measurement_harness import rerun_stale, stale_reasons
+from esoi.optimization.measurement_harness import rerun_stale
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import stale_reasons
 from esoi.optimization.measurement_harness import run_command
 from esoi.optimization.when_metrics_are_run import run_guards
 from esoi.structure.intent_registry.config import Config

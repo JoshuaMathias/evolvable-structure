@@ -37,30 +37,18 @@ arm (``inherited_gate``), so the consumer inherits the gate instead of re-provin
 """
 from __future__ import annotations
 
-import ast
 import importlib
 import time
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from esoi.optimization.leaderboard import case_identity, results_log, cascade_stages, stage_standings
-from esoi.structure.intent_registry import config as config_module
-from esoi.runtime.implementation_selection import variants
+from esoi.optimization.leaderboard import case_identity, results_log
+from esoi.optimization.measurement_harness import arm_loading, balance, case_loading, component_folder, run_errors
+from esoi.optimization.when_metrics_are_run.interface import BudgetExceeded
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.builds_on import Foundation, declared, declared_arms, identity, load_config
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.code_provenance import current_sha
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.stale_reasons import stale_reason
 from esoi.structure.intent_registry.config import Config
-
-ON_STALE = ("run", "report")
-
-
-@dataclass(frozen=True)
-class Foundation:
-    component: str      # the consumer's component
-    name: str           # what the consumer calls this foundation
-    root: Path          # the foundation's repository
-    target: str         # the foundation's component
-    share: float
-    on_stale: str = "run"
-    arm_prefix: str = ""   # the consumer's arms named <prefix><foundation arm> ARE that foundation arm (they delegate to it without adding code)
 
 
 @dataclass
@@ -83,153 +71,14 @@ class Part:
     per_case: List[Dict[str, Any]] = field(default_factory=list)
 
 
-def declared(config: Config, component: str = "") -> List[Foundation]:
-    """The foundations a component builds on, from ``[builds_on.<component>.<name>]`` (every component when none is named)."""
-    out: List[Foundation] = []
-    for comp, table in (config.builds_on or {}).items():
-        if component and comp != component:
-            continue
-        for name, entry in (table or {}).items():
-            out.append(Foundation(comp, name, (config.root / str(entry.get("repo", ""))).resolve(), str(entry.get("component", "")),
-                                  float(entry.get("share", 0)), str(entry.get("on_stale", "run")), str(entry.get("arm_prefix", ""))))
-    return out
-
-
-def problems(config: Config) -> List[str]:
-    """What is wrong with the ``[builds_on]`` tables: a missing repository or component, a share outside (0, 1) or shares that leave the
-    consumer's own cases nothing, an unknown ``on_stale``, a consumer component that does not exist."""
-    out: List[str] = []
-    for comp in sorted({f.component for f in declared(config)}):
-        mine = declared(config, comp)
-        if not (config.evaluation / comp / "score.py").is_file():
-            out.append(f"builds_on.{comp}: the consumer has no component {comp} (no {config.evaluation_dir}/{comp}/score.py)")
-        if sum(f.share for f in mine) >= 1:
-            out.append(f"builds_on.{comp}: the shares add up to {sum(f.share for f in mine):g}, so the consumer's own cases carry nothing (they must stay below 1)")
-        for f in mine:
-            out.extend(foundation_problems(f, f"builds_on.{comp}.{f.name}"))
-    return out
-
-
-def foundation_problems(f: "Foundation", tag: str) -> List[str]:
-    """What is wrong with one declared foundation: its share, its stale policy and whether its results can be read."""
-    out: List[str] = []
-    if not 0 < f.share < 1:
-        out.append(f"{tag}: share {f.share:g} is not between 0 and 1")
-    if f.on_stale not in ON_STALE:
-        out.append(f"{tag}: on_stale {f.on_stale!r} is not one of {', '.join(ON_STALE)}")
-    if not (f.root / config_module.CONFIG_NAME).is_file() and not (f.root / "pyproject.toml").is_file():
-        out.append(f"{tag}: {f.root.name} has no esoi configuration, so its results cannot be read")
-    elif not (f.root / "evaluation" / "components" / f.target / "score.py").is_file() and not has_score(f):
-        out.append(f"{tag}: {f.root.name} has no component {f.target}")
-    return out
-
-
-def has_score(f: Foundation) -> bool:
-    try:
-        return (load_config(f).evaluation / f.target / "score.py").is_file()
-    except config_module.ConfigError:
-        return False
-
-
-def load_config(f: Foundation) -> Config:
-    return config_module.load(f.root)
-
-
-def declared_arms(config: Config, component: str, impl: str) -> Dict[str, str]:
-    """{foundation name: foundation arm} an arm names with ``FOUNDATION_ARMS = {...}`` (or ``FOUNDATION_ARM = "x"`` for a single foundation)."""
-    path = config.evaluation / component / "impls" / f"{variants.base_of(impl)}.py"
-    try:
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-    except (OSError, SyntaxError, UnicodeDecodeError):
-        return {}
-    found: Dict[str, str] = {}
-    names = [f.name for f in declared(config, component)]
-    for node in tree.body:
-        found.update(assigned_arms(node, names))
-    base = variants.base_of(impl)
-    for f in declared(config, component):   # a configured prefix names the arm when the module declares nothing for this foundation
-        if f.arm_prefix and f.name not in found and base.startswith(f.arm_prefix) and len(base) > len(f.arm_prefix):
-            found[f.name] = base[len(f.arm_prefix):]
-    return found
-
-
-def literal_or_none(node: ast.AST) -> Any:
-    """The literal value of an expression, or None when it is computed."""
-    try:
-        return ast.literal_eval(node)
-    except ValueError:
-        return None
-
-
-def assigned_arms(node: ast.AST, names: List[str]) -> Dict[str, str]:
-    """The foundation arms one module-level statement declares (``FOUNDATION_ARMS`` or the single ``FOUNDATION_ARM``), or none."""
-    if not (isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)):
-        return {}
-    value = literal_or_none(node.value)
-    target = node.targets[0].id
-    if target == "FOUNDATION_ARMS" and isinstance(value, dict):
-        return {str(k): str(v) for k, v in value.items()}
-    if target == "FOUNDATION_ARM" and isinstance(value, str) and len(names) == 1:
-        return {names[0]: value}
-    return {}
-
-
-def identity(f: Foundation, arm: str, git_sha: str, cases_sha: str) -> str:
-    return f"{f.name}={f.target}:{arm}@{git_sha}/{cases_sha}"
-
-
-def parse_identity(cell: str) -> List[Tuple[str, str, str, str, str]]:
-    """``(name, component, arm, git_sha, cases_sha)`` for each entry of a row's ``builds_on`` cell."""
-    out = []
-    for part in (cell or "").split(";"):
-        try:
-            name, rest = part.split("=", 1)
-            target, rest = rest.split(":", 1)
-            arm, rest = rest.rsplit("@", 1)
-            sha, cases = rest.split("/", 1)
-        except ValueError:
-            continue
-        out.append((name, target, arm, sha, cases))
-    return out
-
-
-def code_reason(fconf: Config, target: str, arm: str, git_sha: str, cases_sha: str) -> str:
-    """Why a foundation arm measured at ``git_sha`` on ``cases_sha`` no longer describes the foundation, or an empty string."""
-    from esoi.optimization.measurement_harness import interface as harness
-    now = case_identity.cases_digest(target, fconf.evaluation)
-    if cases_sha != now:
-        return f"the foundation's cases changed (measured on {cases_sha or 'blank'}, now {now})"
-    if not git_sha:
-        return "the foundation's code has no known commit"
-    if git_sha.endswith("-dirty"):
-        return "it was measured on uncommitted foundation code"
-    return harness.code_changed_reason(fconf, target, {"impl": arm, "git_sha": git_sha})
-
-
-def stale_reason(config: Config, component: str, row: Dict[str, str]) -> str:
-    """Why a composed row no longer counts because a foundation it builds on changed, or an empty string (a row that builds on nothing)."""
-    cell = row.get("builds_on", "")
-    if not cell:
-        return ""
-    known = {f.name: f for f in declared(config, component)}
-    for name, target, arm, sha, cases in parse_identity(cell):
-        f = known.get(name)
-        if f is None:
-            return f"its row builds on {name!r}, which [builds_on.{component}] no longer declares"
-        if why := code_reason(load_config(f), target, arm, sha, cases):
-            return f"the foundation {name} changed since this row was composed: {why}"
-    return ""
-
-
 def recorded_part(f: Foundation, arm: str) -> Tuple[Optional[Part], str]:
     """The foundation's latest whole-set row for ``arm`` as a part, or ``(None, why it cannot be reused)``."""
-    from esoi.optimization.measurement_harness import interface as harness
     fconf = load_config(f)
     rows = [r for r in results_log.all_results(fconf.results_path).get(f.target, {}).get(arm, []) if not (r.get("sample") or "").strip()]
     if not rows:
         return None, f"the foundation has no recorded whole-set result for {arm}"
     row = rows[-1]
-    if why := harness.stale_reason(fconf, f.target, row):
+    if why := stale_reason(fconf, f.target, row):
         return None, why
     return part_from_row(f, arm, row, fconf), ""
 
@@ -248,11 +97,10 @@ def part_from_row(f: Foundation, arm: str, row: Dict[str, str], fconf: Config) -
 
 def score_one(score: Any, fn: Callable, case: Dict[str, Any], meter: Any) -> Dict[str, Any]:
     """One foundation case through the foundation's scorer; a case that raises fails and the run goes on (a budget stop does not)."""
-    from esoi.optimization.when_metrics_are_run import interface as gating
     before, t0 = meter.calls, time.time()
     try:
         row = score.score_case(fn, case)
-    except gating.BudgetExceeded:
+    except BudgetExceeded:
         raise
     except Exception as exc:
         row = dict(ok=False, note=f"{type(exc).__name__}: {exc}")
@@ -275,19 +123,18 @@ def run_part(f: Foundation, arm: str, consumer_fn: Callable, adapter: Optional[C
              reason: str) -> Optional[Part]:
     """Run the foundation's cases through the foundation's own scorer. With a named foundation arm it is the foundation's own build of that arm;
     without one the consumer's ``adapter(name, fn)`` turns the consumer's arm into what the foundation's scorer calls."""
-    from esoi.optimization.measurement_harness import interface as harness
     fconf = load_config(f)
-    harness.prepare_path(fconf)
-    cases = harness.load_cases(f.target, fconf)
+    component_folder.prepare_path(fconf)
+    cases = case_loading.load_cases(f.target, fconf)
     score = importlib.import_module(f"{f.target}.score")
-    fn = harness.load_impl(arm, f.target, fconf)(meter) if arm else adapter(f.name, consumer_fn) if adapter is not None else None
+    fn = arm_loading.load_impl(arm, f.target, fconf)(meter) if arm else adapter(f.name, consumer_fn) if adapter is not None else None
     if fn is None:
         return None
     say(f"{f.name}: running {len(cases)} foundation case(s) through {f.root.name}'s {f.target} scorer ({reason})")
     spent = dict(calls=meter.calls, tin=meter.tokens_in, tout=meter.tokens_out, cost=meter.cost_usd)
     started = time.time()
     rows = [score_one(score, fn, case, meter) for case in cases]
-    sha = harness.current_sha(fconf, f.target, arm) if arm else harness.current_sha(fconf)
+    sha = current_sha(fconf, f.target, arm) if arm else current_sha(fconf)
     ident = identity(f, arm or "(consumer arm)", sha, case_identity.cases_digest(f.target, fconf.evaluation))
     return run_summary(f, arm or "(consumer arm)", rows, (meter, spent, started), ident, reason)
 
@@ -295,7 +142,6 @@ def run_part(f: Foundation, arm: str, consumer_fn: Callable, adapter: Optional[C
 def measure(config: Config, component: str, impl: str, consumer_fn: Callable, adapter: Optional[Callable], meter: Any,
             say: Callable[[str], None]) -> List[Part]:
     """The part each foundation contributes for this arm: reuse a current recorded result, else the policy's choice (see the module docstring)."""
-    from esoi.optimization.measurement_harness import interface as harness
     named, parts = declared_arms(config, component, impl), []
     for f in declared(config, component):
         arm = named.get(f.name, "")
@@ -307,7 +153,7 @@ def measure(config: Config, component: str, impl: str, consumer_fn: Callable, ad
             say(f"{f.name}: reused {found.cases} case(s) of {f.root.name}'s {f.target} for {arm} ({found.identity}); none run again")
             parts.append(found)
         elif f.on_stale == "report":
-            raise harness.RunError(f"the foundation {f.name} cannot be reused: {why} (on_stale = report, so nothing is run; "
+            raise run_errors.RunError(f"the foundation {f.name} cannot be reused: {why} (on_stale = report, so nothing is run; "
                                    f"re-record {arm or 'the foundation arm'} in {f.root.name} and run again)")
         elif (ran := run_part(f, arm, consumer_fn, adapter, meter, say, why)) is not None:
             parts.append(ran)
@@ -346,7 +192,6 @@ def totals(own: Dict[str, Any], own_cost: Any, parts: List[Part], passed: float,
 def blend(own: Dict[str, Any], own_cost: Any, parts: List[Part], foundations: List[Foundation], table: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     """The composed summary fields: parts and the consumer's own cases weighted by share (shares renormalised over the parts present), then
     folded by the consumer's ``[balance.<component>]``. ``own`` is the consumer's own run summary (``cases``, ``passed``, ``seconds`` ...)."""
-    from esoi.optimization.measurement_harness import interface as harness
     shares = part_shares(own, parts, foundations)
     cases = own["cases"] + sum(p.cases for p in parts)
     accuracy = weighted_per_case(shares, own["cases"], own["passed"], parts, lambda p: p.passed)
@@ -355,7 +200,7 @@ def blend(own: Dict[str, Any], own_cost: Any, parts: List[Part], foundations: Li
     seconds_pc = weighted_per_case(shares, own["cases"], own["seconds"], parts, lambda p: p.seconds)
     out = totals(own, own_cost, parts, accuracy * cases, cases)
     if cost_pc is not None:
-        out.update(harness.balanced(accuracy * cases, cases, cost_pc * cases, seconds_pc * cases, table))
+        out.update(balance.balanced(accuracy * cases, cases, cost_pc * cases, seconds_pc * cases, table))
     return out
 
 
@@ -374,50 +219,3 @@ def note_for(part: Part, share: float) -> str:
     accuracy = part.passed / part.cases if part.cases else 0.0
     how = "reused, none run again" if part.how == "reused" else f"run through the foundation's scorer ({part.reason})"
     return f"builds on {part.name} at share {share:g}: {part.cases} cases, accuracy {accuracy:.3f}, {how}"
-
-
-def inherited_gate(config: Config, component: str, impl: str) -> Callable[[cascade_stages.Stage], Tuple[bool, str]]:
-    """``gate(stage) -> (met, why)``: whether the foundation stage a consumer stage ``inherits`` has passed for the foundation arm this arm names,
-    by the foundation's own stage definition (gate, floor, expiry and staleness all the foundation's)."""
-    named, foundations = declared_arms(config, component, impl), declared(config, component)
-
-    def gate(stage: cascade_stages.Stage) -> Tuple[bool, str]:
-        checked: List[Tuple[bool, str]] = []
-        for f in foundations:
-            if named.get(f.name):
-                checked += foundation_stage_checks(f, named[f.name], stage)
-        if not checked:
-            return False, f"no foundation has a stage {stage.inherits!r} for this arm"
-        failed = [why for met, why in checked if not met]
-        return (not failed), "; ".join(failed)
-    return gate
-
-
-def foundation_stage_checks(f: Foundation, arm: str, stage: cascade_stages.Stage) -> List[Tuple[bool, str]]:
-    """``(met, why)`` for the stage ``stage`` inherits, in each of the foundation's metrics that runs its component."""
-    from esoi.structure.intent_registry import registry as registry_module
-    fconf = load_config(f)
-    loaded = registry_module.load(fconf)
-    checked: List[Tuple[bool, str]] = []
-    for metric in loaded.metrics:
-        if f.target not in [c for c, _ in registry_module.harness_arms(fconf, metric.get("command", ""))]:
-            continue
-        stages, errors = cascade_stages.load_stages(fconf, metric)
-        theirs = next((i for i, s in enumerate(stages) if s.name == stage.inherits), None)
-        if theirs is not None and not errors:
-            checked.append(stage_check(f, arm, stage, fconf, stages, theirs))
-    return checked
-
-
-def stage_check(f: Foundation, arm: str, stage: cascade_stages.Stage, fconf: Config, stages: List[cascade_stages.Stage], theirs: int) -> Tuple[bool, str]:
-    """Whether the foundation's own stage ``theirs`` passed for ``arm``, by the foundation's gate, floor, expiry and staleness."""
-    from esoi.optimization.measurement_harness import interface as harness
-    history = results_log.all_results(fconf.results_path).get(f.target, {}).get(arm, [])
-    standing = stage_standings.standings(stages, {arm: history}, None, lambda row, c=fconf: harness.stale_reason(c, f.target, row, True),
-                                         fconf.evaluation).get(arm)
-    row = standing.rows.get(theirs) if standing else None
-    if row is None:
-        why = "expired or stale" if standing and theirs in standing.expired else "not run"
-        return False, f"{f.name}: {arm} at {stage.inherits} is {why}"
-    met, why = stage_standings.gate_met(stages[theirs], row, None, fconf.evaluation)
-    return met, f"{f.name}: {arm} at {stage.inherits}: {why or 'passed'}"

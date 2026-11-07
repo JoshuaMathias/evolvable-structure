@@ -94,7 +94,7 @@ code. Modules that were later split into several files keep their first name as 
 | `hermetic.py` | `optimization/measurement_harness/hermetic.py` |
 | `expect.py` | `optimization/measurement_harness/expect.py` |
 | `cassette.py` | `optimization/measurement_harness/cassette.py` |
-| `run_log.py` | `optimization/measurement_harness/run_log.py` |
+| `run_log.py` | `optimization/when_metrics_are_run/run_log.py` |
 | `balance.py` | `optimization/measurement_harness/balance.py` |
 | `access.py` | `optimization/measurement_harness/access.py` |
 | `run_guards.py` | `optimization/when_metrics_are_run/run_guards.py` |
@@ -121,7 +121,7 @@ code. Modules that were later split into several files keep their first name as 
 | `installer.py` | `runtime/assemble_by_name/installer.py` |
 | `consumer.py` | `runtime/consumer_check/consumer.py` |
 | `follow.py` | `runtime/consumer_check/follow.py` |
-| `foundation.py` | `runtime/consumer_check/foundation.py` |
+| `foundation.py` | `optimization/measurement_harness/foundation_parts.py`, `optimization/when_metrics_are_run/know_what_a_result_measures/builds_on.py` and `optimization/leaderboard/inherited_gate.py` |
 | `runtime.py` | `runtime/implementation_selection/declare.py` |
 | `rules/` | `structure/structure_check/rules/` |
 

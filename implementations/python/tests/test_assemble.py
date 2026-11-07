@@ -18,13 +18,13 @@ import pytest
 import esoi
 from esoi.runtime.assemble_by_name import assemble
 from esoi.runtime.assemble_by_name.dependency_graph import problems
-from esoi.runtime.assemble_by_name.name_check import check_name
+from esoi.structure.intent_registry.name_check import check_name
 from esoi.runtime.implementation_selection import declare
 from esoi.runtime.implementation_selection import selection_cascade
 from esoi.runtime.implementation_selection import selection_registry
 from esoi.runtime.assemble_by_name.assemble import Assembler
 from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
-from esoi.runtime.assemble_by_name.assembly_errors import AssemblyError
+from esoi.structure.intent_registry.assembly_errors import AssemblyError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "evaluation" / "components"))
 import assemble_fixture  # noqa: E402
@@ -179,7 +179,7 @@ marker, attacker = {marker!r}, {attacker!r}
 {setup}
 from pathlib import Path
 from esoi.runtime.assemble_by_name.assemble import Assembler
-from esoi.runtime.assemble_by_name.assembly_errors import AssemblyError
+from esoi.structure.intent_registry.assembly_errors import AssemblyError
 parts = Assembler("esoitoy", Path({site!r}) / "esoitoy", ("esoitoy.solutions",))
 {after}
 try:
@@ -250,14 +250,16 @@ def test_selection_environ_is_the_only_control(toy):
             parts.choice(STORE, config=AssemblyConfig(selection_environ=bad))
 
 
-ASSEMBLY_MODULES = ("arm_inspection", "arm_ranking", "assemble", "assembly", "assembly_config", "assembly_errors", "build_parts", "cascade_layers",
-                    "closure", "declared_needs", "dependency_graph", "environ_options", "lazy_need", "name_check", "packaged_records", "pending_needs")
+ASSEMBLY_MODULES = ("arm_inspection", "arm_ranking", "assemble", "assembly", "assembly_config", "build_parts", "cascade_layers",
+                    "closure", "declared_needs", "dependency_graph", "environ_options", "lazy_need", "lock_file", "packaged_records", "pending_needs")
 
 
 def test_the_modules_read_no_environment_and_import_no_consumer():
     allowed = set(sys.stdlib_module_names) | {"esoi"}
-    for name in ASSEMBLY_MODULES:
-        tree = ast.parse((Path(assemble.__file__).parent / f"{name}.py").read_text())
+    paths = [Path(assemble.__file__).parent / f"{name}.py" for name in ASSEMBLY_MODULES] + [Path(sys.modules[check_name.__module__].__file__), Path(sys.modules[AssemblyError.__module__].__file__)]
+    for path in paths:
+        name = path.name
+        tree = ast.parse(path.read_text())
         for node in ast.walk(tree):
             if isinstance(node, ast.Attribute):
                 assert node.attr not in ("environ", "getenv", "putenv"), (name, node.lineno)
@@ -557,7 +559,7 @@ def test_r3_nothing_routes_around_shadowing(tmp_path):
         from esoi import selection as runtime
         from esoi.runtime.implementation_selection import selection_registry
         from esoi.runtime.assemble_by_name.assemble import Assembler
-        from esoi.runtime.assemble_by_name.assembly_errors import AssemblyError
+        from esoi.structure.intent_registry.assembly_errors import AssemblyError
         import esoitoy
         class Mine:
             put = get = lambda *a: None
@@ -595,7 +597,7 @@ def test_declared_sees_arms_defined_in_the_package_init_and_refuses_to_shadow_or
         from pathlib import Path
         from esoi import selection as runtime
         from esoi.runtime.assemble_by_name.assemble import Assembler
-        from esoi.runtime.assemble_by_name.assembly_errors import AssemblyError
+        from esoi.structure.intent_registry.assembly_errors import AssemblyError
         import esoitoy
         parts = Assembler("esoitoy", Path(SITE) / "esoitoy")
         found = parts.declared("toy-init")

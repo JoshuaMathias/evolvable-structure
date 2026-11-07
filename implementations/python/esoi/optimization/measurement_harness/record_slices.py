@@ -3,13 +3,13 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from esoi.optimization.leaderboard import circumstances
+from esoi.structure.intent_registry import circumstances
 from esoi.optimization.leaderboard.case_identity import cases_digest
 from esoi.optimization.measurement_harness import balance
 from esoi.optimization.measurement_harness.per_case_log import write_per_case
 from esoi.optimization.measurement_harness.record_result import record_result
 from esoi.optimization.measurement_harness.run_cost import run_cost
-from esoi.runtime.assemble_by_name.name_check import check_name
+from esoi.structure.intent_registry.name_check import check_name
 from esoi.structure.intent_registry.config import Config
 
 

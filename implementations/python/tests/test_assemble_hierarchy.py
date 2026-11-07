@@ -19,7 +19,7 @@ from esoi.structure.intent_registry import config as config_module
 from esoi.structure.intent_registry import tables
 from esoi.runtime.assemble_by_name.assemble import Assembler
 from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
-from esoi.runtime.assemble_by_name.assembly_errors import AssemblyError
+from esoi.structure.intent_registry.assembly_errors import AssemblyError
 
 STORE, INDEX = "hub-store", "hub-index"
 HUB_SOLUTIONS = '''

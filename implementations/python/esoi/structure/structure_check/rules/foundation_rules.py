@@ -1,4 +1,4 @@
-"""Rule S47: a metric that builds on a foundation metric (``[builds_on]``, ``esoi.runtime.consumer_check.foundation``) keeps its declaration readable and inherits the
+"""Rule S47: a metric that builds on a foundation metric (``[builds_on]``, ``esoi.optimization.when_metrics_are_run.know_what_a_result_measures.builds_on``) keeps its declaration readable and inherits the
 foundation's gates without loosening them.
 
 * the ``[builds_on.<component>.<name>]`` tables name an existing foundation repository and component, a share between 0 and 1 (all shares
@@ -17,7 +17,7 @@ from typing import List
 
 from esoi.optimization.measurement_harness.interface import access
 from esoi.optimization.leaderboard import cascade_stages
-from esoi.runtime.consumer_check.interface import foundation
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import builds_on as foundation
 from esoi.structure.intent_registry import registry as registry_module
 from esoi.structure.intent_registry.config import ConfigError
 from esoi.structure.structure_check.rules.base import Context, RuleGroup

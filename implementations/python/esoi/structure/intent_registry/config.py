@@ -100,7 +100,7 @@ class Config:
     evidence: Dict[str, Any] = field(default_factory=dict)   # [evidence] file = "path.csv" and [evidence.aliases] candidate = "implementation" (esoi.optimization.when_metrics_are_run.public_evidence.evidence_records)
     readme: Dict[str, Any] = field(default_factory=dict)   # [readme] layout = "glance" | "full" | "links": the README layout (esoi.understanding.readable_records.readme)
     harness: Dict[str, Any] = field(default_factory=dict)   # [harness] cassette = "dir": record and replay model calls (esoi.optimization.measurement_harness.cassette); off by default
-    builds_on: Dict[str, Any] = field(default_factory=dict)   # [builds_on.<component>.<name>] repo, component, share, on_stale: metrics this one builds on (esoi.runtime.consumer_check.foundation)
+    builds_on: Dict[str, Any] = field(default_factory=dict)   # [builds_on.<component>.<name>] repo, component, share, on_stale: metrics this one builds on (esoi.optimization.when_metrics_are_run.know_what_a_result_measures.builds_on)
     adopts: Dict[str, Any] = field(default_factory=dict)   # [adopts.<library>] repo, url: libraries whose solutions this repository adopts (esoi.structure.library_adoption.resolve)
     source: Optional[Path] = None
 
@@ -163,7 +163,7 @@ class Config:
 
     @property
     def runs_log(self) -> str:
-        """The log of every run, finished or stopped, beside the results log (``esoi.optimization.measurement_harness.run_log``). The leaderboard never reads it."""
+        """The log of every run, finished or stopped, beside the results log (``esoi.optimization.when_metrics_are_run.run_log``). The leaderboard never reads it."""
         return str(Path(self.results).with_name("runs.csv"))
 
     @property

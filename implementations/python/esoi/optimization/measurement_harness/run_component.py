@@ -33,12 +33,12 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from esoi.optimization.leaderboard import circumstances
+from esoi.structure.intent_registry import circumstances
 from esoi.optimization.leaderboard.case_identity import cases_digest
 from esoi.optimization.measurement_harness import balance
 from esoi.optimization.measurement_harness import cassette as cassettes
-from esoi.optimization.measurement_harness import code_provenance
-from esoi.optimization.measurement_harness import run_log
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import code_provenance
+from esoi.optimization.when_metrics_are_run import run_log
 from esoi.optimization.measurement_harness.arm_loading import load_impl
 from esoi.optimization.measurement_harness.call_meter import CallMeter
 from esoi.optimization.measurement_harness.case_loading import load_cases, sample_label
@@ -53,7 +53,8 @@ from esoi.optimization.measurement_harness.run_cost import run_cost
 from esoi.optimization.measurement_harness.run_errors import RunError
 from esoi.optimization.when_metrics_are_run import run_guards
 from esoi.optimization.when_metrics_are_run.paid_gating import SIMULATED_MODEL, declared_live, declares_simulated, impl_path
-from esoi.runtime.consumer_check import foundation
+from esoi.optimization.measurement_harness import foundation_parts
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import builds_on
 from esoi.runtime.implementation_selection import variants
 from esoi.structure.intent_registry.config import Config
 
@@ -114,7 +115,7 @@ def score_summary(summary: Dict[str, Any], config: Config, component: str, parts
     """Add the balanced score (blended with the foundation's parts when there are any); returns (passed, total, cost)."""
     cost = run_cost(config, summary, summary["model"])
     if parts:
-        summary.update(foundation.blend(summary, cost, parts, builds, config.balance.get(component)))
+        summary.update(foundation_parts.blend(summary, cost, parts, builds, config.balance.get(component)))
         return summary["passed"], summary["cases"], run_cost(config, summary, summary["model"])
     summary.update(balance.balanced(summary["passed"], len(rows), cost, summary["seconds"], config.balance.get(component)))
     return summary["passed"], len(rows), cost
@@ -127,7 +128,7 @@ def say_totals(summary: Dict[str, Any], component: str, arm: str, passed: int, t
         f"{summary['heldout']}), {summary['model_calls']} model calls, {summary['tokens_in']} in / {summary['tokens_out']} out tokens, "
         f"cost {'$' + str(cost) if cost != '' else 'unknown (no price for the model in `prices`)'}, {summary['seconds']}s")
     if parts:   # the composed headline weights each part by its share, so its counts are not the raw ones that dev and held-out add up
-        raw = foundation.sum_ratio([summary["dev"], summary["heldout"]])
+        raw = foundation_parts.sum_ratio([summary["dev"], summary["heldout"]])
         say(f"note: {passed}/{total} is the share-weighted equivalent (accuracy times cases); the raw counts are {raw} cases passed, "
             f"dev {summary['dev']} and held-out {summary['heldout']}")
     if not summary["model_calls"] and cost not in ("", 0, 0.0):
@@ -161,7 +162,7 @@ def run_notes(meter: CallMeter, reused: Dict[str, Any], parts: list, builds: lis
                      "not part of this row's spend)")
     if reused["cases"]:
         notes.append(f"reused {reused['cases']} case(s) already run for this implementation version")
-    notes.extend(foundation.note_for(p, next(f.share for f in builds if f.name == p.name)) for p in parts)
+    notes.extend(foundation_parts.note_for(p, next(f.share for f in builds if f.name == p.name)) for p in parts)
     if meter.reads.calls or meter.reads.records:
         notes.append(f"source reads: {meter.reads.records} records, {meter.reads.bytes} bytes, {meter.reads.calls} calls")
     return notes
@@ -223,7 +224,7 @@ def open_run(component: str, argv: List[str], config: Config, say: Callable[[str
 
 def foundations_to_compose(config: Config, component: str, args: Any, say: Callable[[str], None]) -> list:
     """The foundations whose parts the run composes: only a whole-set run composes them."""
-    declared = foundation.declared(config, component)
+    declared = builds_on.declared(config, component)
     if declared and (args.only or args.sample is not None):
         say("note: a sampled or --only run scores the consumer's own cases only; the foundation parts are not composed")
         return []
@@ -245,7 +246,7 @@ def measure_run(scene: tuple, work: tuple, tools: tuple, options: tuple) -> tupl
         rows, reused, stopped = run_cases(cases, scorer, fn, meter, reuse, log, say, not (args.keep_going or args.record))
         own_at = (meter.calls, meter.tokens_in, meter.tokens_out, meter.cost_usd, time.time())   # the consumer's own spend, before the foundation part
         if builds and not stopped:   # the foundation's part: reused when current, else run through the foundation's own scorer
-            parts = foundation.measure(config, component, impl, fn, getattr(score, "foundation_fn", None), meter, say)
+            parts = foundation_parts.measure(config, component, impl, fn, getattr(score, "foundation_fn", None), meter, say)
     except BaseException as exc:   # Ctrl-C, a spent call budget or a crash
         log.end(f"stopped: {type(exc).__name__}")
         raise

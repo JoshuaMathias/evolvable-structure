@@ -5,7 +5,7 @@ import argparse
 from typing import Callable, List
 
 from esoi.optimization.leaderboard import results_log
-from esoi.optimization.measurement_harness import stale_reasons
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import stale_reasons
 from esoi.optimization.measurement_harness.run_errors import RunError
 from esoi.optimization.when_metrics_are_run import run_guards
 from esoi.optimization.when_metrics_are_run.paid_gating import paid_reason

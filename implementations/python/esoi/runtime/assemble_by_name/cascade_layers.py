@@ -3,10 +3,10 @@ from __future__ import annotations
 
 from typing import Any, List, Optional
 
-from esoi.runtime.assemble_by_name import hierarchy
+from esoi.runtime.assemble_by_name import hierarchy, lock_file
 from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
-from esoi.runtime.assemble_by_name.assembly_errors import AssemblyError, LockError
-from esoi.runtime.assemble_by_name.name_check import check_name
+from esoi.structure.intent_registry.assembly_errors import AssemblyError, LockError
+from esoi.structure.intent_registry.name_check import check_name
 from esoi.runtime.implementation_selection import selection_cascade
 from esoi.runtime.implementation_selection import variants
 
@@ -54,8 +54,7 @@ def given_layers(assembler: Any, solution_id: str, available: List[str], cfg: As
 
 def lock_layers(assembler: Any, solution_id: str, available: List[str], cfg: AssemblyConfig) -> List[hierarchy.Layer]:
     """The lock's layer for the solution, or none; a locked arm the scope no longer lists raises."""
-    from esoi.runtime.implementation_selection import lock as lock_module
-    locked = lock_module.locked_arm(assembler, cfg.lock, solution_id)
+    locked = lock_file.locked_arm(assembler, cfg.lock, solution_id)
     if not locked:
         return []
     arm, where = locked

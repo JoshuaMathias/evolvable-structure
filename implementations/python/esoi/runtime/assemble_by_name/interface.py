@@ -8,8 +8,10 @@ from esoi.runtime.assemble_by_name.environment_needs import checking, closure, d
 from esoi.runtime.assemble_by_name.installation import assembly_plan, execution, plan_report, resolution_ladder, resolvers  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 from esoi.runtime.assemble_by_name import assemble, hierarchy  # noqa: F401  (re-exported: other units call this unit through its interface)
 from esoi.runtime.assemble_by_name.assemble import Assembler  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.runtime.assemble_by_name import lock_file  # noqa: F401  (re-exported: other units call this unit through its interface)
 
-__all__ = ["Assembler", "AssemblingByName", "assemble", "assembly_plan", "checking", "closure", "declarations", "execution", "generated_files", "hierarchy", "intent_map", "own_runner", "plan_report", "report", "resolution_ladder", "resolvers"]
+__all__ = ["Assembler", "AssemblingByName", "AssemblyConfig", "assemble", "assembly_plan", "checking", "closure", "declarations", "execution", "generated_files", "hierarchy", "intent_map", "lock_file", "own_runner", "plan_report", "report", "resolution_ladder", "resolvers"]
 
 
 @solution("assemble-by-name", kind="event", entry="names", example="structure-check")

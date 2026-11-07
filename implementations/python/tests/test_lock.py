@@ -15,7 +15,7 @@ from esoi.runtime.assemble_by_name import intent_map
 from esoi.runtime.implementation_selection import selection_registry
 from esoi.runtime.assemble_by_name.assemble import Assembler
 from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
-from esoi.runtime.assemble_by_name.assembly_errors import LockError
+from esoi.structure.intent_registry.assembly_errors import LockError
 
 COUNTER = itertools.count()
 ARMS = '''

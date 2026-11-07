@@ -7,7 +7,7 @@ parts of that which are plain data and have no Assembler in them:
 * ``Layer`` and ``Explanation``: one line per layer of the cascade of one solution (value, source, scope, reasons), the winner
   named. ``Assembler.explain`` returns one across the child and its parents.
 * ``entries``: a layer value is ``name`` or ``name@key=value,...``. In an Assembler the parameters are *conditions* on the
-  caller's circumstance mapping (the parser is ``esoi.runtime.implementation_selection.variants``, the comparison is ``esoi.optimization.leaderboard.circumstances.holds``): the entry
+  caller's circumstance mapping (the parser is ``esoi.runtime.implementation_selection.variants``, the comparison is ``esoi.structure.intent_registry.circumstances.holds``): the entry
   applies only when every ``key=value`` holds, and a layer value may be a list, the first entry that applies winning.
 * ``check_reasons``: why a child differs from its parent is a list of ids of the child's own problem, ideal or metric records,
   or ``unconfirmed: <text>`` (recorded and shown, never enough for rule S35).
@@ -123,7 +123,7 @@ def entries(value: Any) -> List[Tuple[str, str, Dict[str, str]]]:
 
 def met(conditions: Mapping[str, str], facts: Mapping[str, Any]) -> str:
     """'' when every ``key=value`` holds in the caller's circumstance mapping, else which one does not."""
-    from esoi.optimization.leaderboard.circumstances import holds
+    from esoi.structure.intent_registry.circumstances import holds
     for key, value in conditions.items():
         if not holds((key, "=", [value]), facts):
             return f"circumstance {key}={value} not met" + ("" if key in facts else f" ({key} not given)")
