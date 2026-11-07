@@ -16,6 +16,8 @@ from __future__ import annotations
 import re
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from esoi.optimization.measurement_harness.expect import pass_counts
+
 FLAGS = re.I | re.S
 
 
@@ -57,10 +59,7 @@ def principle_order(label: str) -> int:
 
 def aggregate(rows: List[Dict[str, Any]]) -> str:
     """Pass counts per primary principle; with a judge, also where the regexes and the judge disagree."""
-    kinds: Dict[Any, Tuple[int, int]] = {}
-    for r in rows:
-        passed, total = kinds.get(r.get("got"), (0, 0))
-        kinds[r.get("got")] = (passed + bool(r.get("ok")), total + 1)
+    kinds = pass_counts(rows)
     text = ", ".join(f"{k} {p}/{t}" for k, (p, t) in sorted(kinds.items(), key=lambda kv: principle_order(str(kv[0]))))
     if any(r.get("judged") for r in rows):
         regex_pass = sum(bool(r.get("regex_ok")) for r in rows)

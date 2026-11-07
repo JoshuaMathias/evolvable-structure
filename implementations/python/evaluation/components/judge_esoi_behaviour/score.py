@@ -3,6 +3,8 @@
 import csv
 from pathlib import Path
 
+from esoi.optimization.measurement_harness import expect
+
 HERE = Path(__file__).resolve().parent
 BEHAVIOR_CASES = HERE.parent / "behave_by_esoi" / "cases.csv"
 COLUMNS = ["id", "case_id", "side", "area", "expected", "human_verdict", "heldout"]
@@ -34,10 +36,7 @@ def score_case(fn, case):
 
 
 def aggregate(rows):
-    sides = {}
-    for r in rows:
-        passed, total = sides.get(r.get("got"), (0, 0))
-        sides[r.get("got")] = (passed + bool(r.get("ok")), total + 1)
+    sides = expect.pass_counts(rows)
     good, bad = sides.get("good", (0, 0)), sides.get("bad", (0, 0))
     human = sum(bool(r.get("human")) for r in rows)
     return (f"agreement {good[0] + bad[0]}/{good[1] + bad[1]}; good replies passed {good[0]}/{good[1]} "

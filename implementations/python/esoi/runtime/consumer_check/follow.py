@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
-from esoi.runtime.assemble_by_name.interface import OVERRIDES_FILE, UNCONFIRMED, check_reasons, parent_defaults
+from esoi.runtime.assemble_by_name.interface import OVERRIDES_FILE, UNCONFIRMED, check_reasons, package_assembler, parent_defaults
 from esoi.optimization.measurement_harness import interface as harness
 from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import stale_reason
 from esoi.optimization.when_metrics_are_run import interface as gating
@@ -119,13 +119,9 @@ def clean(found: Dict[str, str]) -> Dict[str, str]:
 def from_package(name: str, label: str, own: bool = False) -> Dict[str, str]:
     """The selections of a package's Assembler: its own (``own`` False) or its parents' (``own`` True), nearest parent first."""
     try:
-        module = importlib.import_module(name)
+        assembler = package_assembler(name)
     except ImportError as error:
         raise ValueError(f"{label!r} is neither a path nor an importable package ({error})") from error
-    found = getattr(module, "assembler", None) or getattr(module, "ASSEMBLER", None)
-    assembler = found() if callable(found) else found
-    if assembler is None:
-        raise ValueError(f"{name} has no assembler() or ASSEMBLER")
     chain = list(assembler.chain())
     out: Dict[str, str] = {}
     for one in (chain[1:] if own else chain[:1]):

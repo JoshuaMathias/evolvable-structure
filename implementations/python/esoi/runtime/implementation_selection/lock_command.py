@@ -8,16 +8,11 @@ import sys
 
 def find_assembler(config, args: argparse.Namespace):
     """The consumer's assembler, from its package's ``assembler()`` or ``ASSEMBLER``."""
-    import importlib
+    from esoi.runtime.assemble_by_name.interface import package_assembler
     name = args.package or args.scope or config.package
     if not name:
         raise ValueError("name a package with --package (or --scope), or set `package` in the configuration")
-    module = importlib.import_module(name)
-    found = getattr(module, "assembler", None) or getattr(module, "ASSEMBLER", None)
-    assembler = found() if callable(found) else found
-    if assembler is None:
-        raise ValueError(f"{name} has no assembler() or ASSEMBLER")
-    return assembler
+    return package_assembler(name)
 
 
 def print_step(step: dict, with_human: bool) -> None:
@@ -84,7 +79,7 @@ def run_lock(config, args: argparse.Namespace) -> int:
     Exit codes: 0 done (--status: up to date), 2 error, and for --status only 3 (safe updates available) and 4 (blocked by requirements)."""
     import os
     from esoi.runtime.implementation_selection import lock
-    from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
+    from esoi.runtime.assemble_by_name.interface import AssemblyConfig
     try:
         assembler = find_assembler(config, args)
         cfg = AssemblyConfig(consumer_environ=dict(os.environ))

@@ -42,14 +42,9 @@ def run_consumer(config, args: argparse.Namespace) -> int:
 
 def assembly_closure(args: argparse.Namespace, environ):
     """``(assembler, members, config)`` for ``--package``: the closure follows the assembly (selected arms, the arms filling their needs)."""
-    import importlib
-    from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
+    from esoi.runtime.assemble_by_name.interface import AssemblyConfig, package_assembler
     solutions = tuple(getattr(args, "solution", None) or ())
-    module = importlib.import_module(args.package)
-    found = getattr(module, "assembler", None) or getattr(module, "ASSEMBLER", None)
-    assembler = found() if callable(found) else found
-    if assembler is None:
-        raise ValueError(f"{args.package} has no assembler() or ASSEMBLER")
+    assembler = package_assembler(args.package)
     arms = dict(item.split("=", 1) for item in (getattr(args, "arm", None) or ()) if "=" in item)
     cfg = AssemblyConfig(solutions=solutions, names=arms, consumer_environ=environ)
     return assembler, assembler.closure(cfg, None, solutions, getattr(args, "all_arms", False)), cfg

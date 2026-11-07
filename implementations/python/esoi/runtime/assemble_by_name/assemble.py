@@ -469,3 +469,13 @@ class Assembler:
     def assemble(self, config: Optional[AssemblyConfig] = None, provided: Optional[Mapping[str, Any]] = None) -> Assembly:
         """Build the solutions a consumer uses, in dependency order, once; the result is frozen (see ``build_parts.assemble``)."""
         return assemble(self, config, provided)
+
+
+def package_assembler(name: str) -> Assembler:
+    """The Assembler a package offers through ``assembler()`` or ``ASSEMBLER``; ``ImportError`` when the package cannot be imported."""
+    module = importlib.import_module(name)
+    found = getattr(module, "assembler", None) or getattr(module, "ASSEMBLER", None)
+    assembler = found() if callable(found) else found
+    if assembler is None:
+        raise ValueError(f"{name} has no assembler() or ASSEMBLER")
+    return assembler

@@ -28,6 +28,11 @@ def is_partial(row: Row) -> bool:
 READ: Dict[tuple, Dict[str, Dict[str, List[Row]]]] = {}   # (path, modification time, size, slices) -> what that read of the log found
 
 
+def latest_by_impl(history: Dict[str, Dict[str, List[Row]]]) -> Dict[str, Rows]:
+    """Per component, each implementation's newest row of a history from ``all_results``."""
+    return {comp: {impl: rows[-1] for impl, rows in impls.items()} for comp, impls in history.items()}
+
+
 def all_results(path: Path, slices: bool = False) -> Dict[str, Dict[str, List[Row]]]:
     """{component: {impl: [rows, oldest first]}}: every row of the results log, in date order (file order within a date).
     Derived slice rows are left out unless ``slices`` is true (``slice_results`` reads those). The log is read again only after it

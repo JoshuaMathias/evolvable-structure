@@ -36,7 +36,7 @@ def records_evidence(config: Any, loaded: Any = None) -> Dict[str, Dict[str, Any
     if not config.results_path.is_file():
         return {}
     history = results_log.all_results(config.results_path)
-    results = {comp: {impl: rows[-1] for impl, rows in impls.items()} for comp, impls in history.items()}
+    results = results_log.latest_by_impl(history)
     per_case = results_log.per_case_rows(config)
     solutions = loaded.every_solution()
     verdicts = verdict_labels.solution_verdicts(config, solutions, results, history, loaded, per_case)

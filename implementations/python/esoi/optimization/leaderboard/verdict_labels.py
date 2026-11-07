@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.registry import Registry
 from esoi.optimization.leaderboard.arm_selection import selected_arm
-from esoi.optimization.leaderboard.results_log import Row, Rows, all_results, as_whole, per_case_rows
+from esoi.optimization.leaderboard.results_log import Row, Rows, all_results, as_whole, latest_by_impl, per_case_rows
 from esoi.optimization.leaderboard.rival_decisions import best_guess, decisions
 from esoi.optimization.leaderboard.rival_pairing import rival_pairs
 from esoi.optimization.leaderboard.switching_policy import Policy, policy_for
@@ -66,7 +66,7 @@ def solution_verdicts(config: Config, solutions: List[Row], results: Optional[Di
     first harness arm of its ``metric_command`` (the primary metric; later arms are listed on the board)."""
     if results is None:
         history = all_results(config.results_path)
-        results = {comp: {impl: rows[-1] for impl, rows in impls.items()} for comp, impls in history.items()}
+        results = latest_by_impl(history)
     per_case = per_case_rows(config) if per_case is None else per_case
     return {row["solution_id"]: solution_verdict(config, row, results, history, registry, per_case) for row in solutions}
 

@@ -79,11 +79,17 @@ def score_kind_case(fn: Callable[[str, dict], Any], case: Dict[str, Any]) -> Dic
     return dict(ok=not problems, got=case["kind"], note="ok" if not problems else "; ".join(problems))
 
 
-def aggregate_by_kind(rows: List[Dict[str, Any]]) -> str:
-    """``kind: passed/total`` per case kind, so a weak area shows in the headline."""
-    kinds: Dict[str, tuple] = {}
+def pass_counts(rows: List[Dict[str, Any]], missing: Any = None) -> Dict[Any, tuple]:
+    """``(passed, total)`` per ``got`` value of the scored rows (a row with no ``got`` is counted under ``missing``)."""
+    kinds: Dict[Any, tuple] = {}
     for r in rows:
-        k = r.get("got") or "?"
+        k = r.get("got") or missing
         p, t = kinds.get(k, (0, 0))
         kinds[k] = (p + bool(r.get("ok")), t + 1)
+    return kinds
+
+
+def aggregate_by_kind(rows: List[Dict[str, Any]]) -> str:
+    """``kind: passed/total`` per case kind, so a weak area shows in the headline."""
+    kinds = pass_counts(rows, "?")
     return ", ".join(f"{k} {p}/{t}" for k, (p, t) in sorted(kinds.items()))

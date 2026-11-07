@@ -16,7 +16,7 @@ from esoi.optimization.leaderboard.arm_kinds import arm_kind, invariant_reason
 from esoi.optimization.leaderboard.arm_selection import selected_impls
 from esoi.optimization.leaderboard.case_identity import describe_cases, unverified
 from esoi.optimization.leaderboard.ranking import cost_known, rank, tokens_label
-from esoi.optimization.leaderboard.results_log import Row, Rows, all_results, per_case_rows
+from esoi.optimization.leaderboard.results_log import Row, Rows, all_results, latest_by_impl, per_case_rows
 from esoi.optimization.leaderboard.rival_decisions import best_guess, challengers
 from esoi.optimization.leaderboard.rival_pairing import incomparable_rivals, rival_pairs, stale_rivals
 from esoi.optimization.leaderboard.switching_policy import policies
@@ -157,7 +157,7 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
     rests on a rival recorded before the measured code changed (``stale`` is ``stale_reasons.stale_reason``; without it
     only the cases are compared)."""
     history = all_results(config.results_path)
-    results = {comp: {impl: rows[-1] for impl, rows in impls.items()} for comp, impls in history.items()}
+    results = latest_by_impl(history)
     selected = selected_impls(config, registry.solutions, registry)
     per_case = per_case_rows(config)
     chosen = policies(config, registry, per_case)
