@@ -186,15 +186,15 @@ def conformance_problems(cls: Any, port: Any) -> List[str]:
             continue
         if any(p.kind is inspect.Parameter.VAR_KEYWORD for p in got.parameters.values()):
             continue
-        accepted = set(got.parameters)
-        for pname, param in wanted.parameters.items():
-            if pname in ("self", "cls") or param.kind in (inspect.Parameter.VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL):
-                continue
-            if param.default is not inspect.Parameter.empty:
-                continue
-            if pname not in accepted:
-                problems.append(f"{name} does not accept parameter {pname!r}")
+        problems.extend(f"{name} does not accept parameter {pname!r}" for pname in required_parameters(wanted) if pname not in got.parameters)
     return problems
+
+
+def required_parameters(wanted: inspect.Signature) -> List[str]:
+    """The names of the parameters a port method requires: not self or cls, not variadic, no default."""
+    skipped = (inspect.Parameter.VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL)
+    return [pname for pname, param in wanted.parameters.items()
+            if pname not in ("self", "cls") and param.kind not in skipped and param.default is inspect.Parameter.empty]
 
 
 def read_pin(requirements: Path, options: Options) -> Optional[str]:
@@ -271,6 +271,21 @@ def check_call_row(row: Dict[str, str], rid: str, kind: str, p: str, report: Con
             report.problems.append(f"C4 {rid}: module {row['module']} does not import ({type(exc).__name__}: {exc})")
 
 
+def check_status_and_tests(row: Dict[str, str], rid: str, root: Path, report: ConsumerReport) -> None:
+    """C6 and C7: the row's status, its gap and action, its metric, and the tests it names."""
+    status = row["status"].strip()
+    has_gap = bool(row["gap"].strip() and row["action"].strip())
+    if status not in STATUSES:
+        report.problems.append(f"C6 {rid}: status {status!r} is not one of {', '.join(STATUSES)}")
+    elif status != "done" and not has_gap:
+        report.problems.append(f"C6 {rid}: status {status} needs both a gap and an action")
+    if not row["metric"].strip() and not has_gap:
+        report.problems.append(f"C6 {rid}: no metric, so the gap and the action must say what proof is missing")
+    for test in [t.strip() for t in row["tests"].split(";") if t.strip()]:
+        if not (root / test.split("::")[0]).exists():
+            report.problems.append(f"C7 {rid}: test {test} does not exist under {root}")
+
+
 def check_row(row: Dict[str, str], root: Path, solutions: set, options: Options, report: ConsumerReport) -> None:
     """Run C2 to C7 on one registry row."""
     p = options.column_prefix
@@ -289,17 +304,7 @@ def check_row(row: Dict[str, str], root: Path, solutions: set, options: Options,
         check_call_row(row, rid, kind, p, report)
     elif not row["action"].strip():
         report.problems.append(f"C5 {rid}: a duplicate row must state the action that removes it")
-    status = row["status"].strip()
-    has_gap = bool(row["gap"].strip() and row["action"].strip())
-    if status not in STATUSES:
-        report.problems.append(f"C6 {rid}: status {status!r} is not one of {', '.join(STATUSES)}")
-    elif status != "done" and not has_gap:
-        report.problems.append(f"C6 {rid}: status {status} needs both a gap and an action")
-    if not row["metric"].strip() and not has_gap:
-        report.problems.append(f"C6 {rid}: no metric, so the gap and the action must say what proof is missing")
-    for test in [t.strip() for t in row["tests"].split(";") if t.strip()]:
-        if not (root / test.split("::")[0]).exists():
-            report.problems.append(f"C7 {rid}: test {test} does not exist under {root}")
+    check_status_and_tests(row, rid, root, report)
 
 
 def cases_hash(files: List[str], root: Path) -> str:
@@ -326,6 +331,11 @@ def used_solutions(report: ConsumerReport, rows: List[Dict[str, str]], sols: dic
     return used
 
 
+def has_provenance(row: Dict[str, str]) -> bool:
+    """Whether a recorded result names the git sha and the cases hash it was measured at."""
+    return bool(row.get("git_sha", "").strip() and row.get("cases_sha", "").strip())
+
+
 def check_recorded_result(report: ConsumerReport, sid: str, sol: Dict[str, str], res: Optional[Dict[str, str]], root: Path) -> None:
     """C9 and C10: a selected implementation, and a recorded result with provenance that still matches the metric files."""
     if not sol.get("selected", "").strip():
@@ -333,7 +343,7 @@ def check_recorded_result(report: ConsumerReport, sid: str, sol: Dict[str, str],
     if res is None:
         report.problems.append(f"C10 {sid}: no recorded result")
         return
-    if not res.get("git_sha", "").strip() or not res.get("cases_sha", "").strip():
+    if not has_provenance(res):
         report.problems.append(f"C10 {sid}: the latest result lacks a git sha or a cases hash")
     if res.get("passed", "") != res.get("cases", "x"):
         report.notes.append(f"{sid}: latest result {res.get('passed')}/{res.get('cases')} is not all passing")
@@ -348,13 +358,12 @@ def check_component_run(report: ConsumerReport, sid: str, sol: Dict[str, str], r
     comp, impl = sol.get("component", "").strip(), sol.get("component_impl", "").strip()
     if not comp and not impl:
         return   # no component run is declared for this solution
-    row = next((r for r in reversed(result_rows) if r.get("kind") == "component"
-                and r.get("solution_id") == sid and r.get("component") == comp and r.get("impl") == impl), None)
+    row = next((r for r in reversed(result_rows) if (r.get("kind"), r.get("solution_id"), r.get("component"), r.get("impl")) == ("component", sid, comp, impl)), None)
     if not comp or not impl:
         report.problems.append(f"C11 {sid}: a solution that names a component run names both component and component_impl")
     elif row is None:
         report.problems.append(f"C11 {sid}: no recorded component run for {comp}/{impl}")
-    elif not row.get("git_sha", "").strip() or not row.get("cases_sha", "").strip():
+    elif not has_provenance(row):
         report.problems.append(f"C11 {sid}: the component run {comp}/{impl} lacks a git sha or a cases hash")
 
 
@@ -375,6 +384,17 @@ def check_solutions(report: ConsumerReport, rows: List[Dict[str, str]], solution
     report.notes.append(f"{len(used)} solutions carry integration points; {len(sols) - len(used)} defined without one")
 
 
+def read_registry(registry: Path, options: Options, report: ConsumerReport) -> Optional[List[Dict[str, str]]]:
+    """The registry's rows, or None (with the problem noted) when a required column is missing."""
+    with registry.open(newline="", encoding="utf-8-sig") as handle:
+        reader = csv.DictReader(handle)
+        missing = [c for c in options.required_columns if c not in (reader.fieldnames or [])]
+        if missing:
+            report.problems.append(f"C1 {registry}: missing columns {', '.join(missing)}")
+            return None
+        return [{k: (v or "") for k, v in row.items() if k} for row in reader]
+
+
 def check_consumer(registry: Path, root: Path, options: Options, requirements: Optional[Path] = None,
                    solutions: Optional[Path] = None, results: Optional[Path] = None) -> ConsumerReport:
     """Check every row of a consumer registry against the installed library; optionally report pin lag."""
@@ -385,13 +405,9 @@ def check_consumer(registry: Path, root: Path, options: Options, requirements: O
     if not Path(registry).is_file():
         report.problems.append(f"C1 {registry}: registry file not found")
         return report
-    with Path(registry).open(newline="", encoding="utf-8-sig") as handle:
-        reader = csv.DictReader(handle)
-        missing = [c for c in options.required_columns if c not in (reader.fieldnames or [])]
-        if missing:
-            report.problems.append(f"C1 {registry}: missing columns {', '.join(missing)}")
-            return report
-        rows = [{k: (v or "") for k, v in row.items() if k} for row in reader]
+    rows = read_registry(Path(registry), options, report)
+    if rows is None:
+        return report
     known, full = known_solution_ids(options)
     if not full:
         report.notes.append("the library's solutions.csv was not found next to it; solution ids checked against its selection table only")
