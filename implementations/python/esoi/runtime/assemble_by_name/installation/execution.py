@@ -12,7 +12,7 @@ from typing import Iterable, List, Mapping, Optional, Sequence
 from esoi.runtime.assemble_by_name.environment_needs.closure import Member
 from esoi.runtime.assemble_by_name.installation.command_running import Outcome, PIP_TIMEOUT, Runner, SCRIPT_TIMEOUT, run_command, tail
 from esoi.runtime.assemble_by_name.installation.install_lock import InstallLock, InstallLocked
-from esoi.runtime.assemble_by_name.installation.plan import Plan
+from esoi.runtime.assemble_by_name.installation.plan import Isolated, Plan
 
 
 def externally_managed() -> bool:
@@ -73,6 +73,26 @@ def execute(selected: Plan, roots: Sequence[Path], environ: Mapping[str, str], r
             lock_folder: Optional[Path] = None, pip_timeout: float = PIP_TIMEOUT, script_timeout: float = SCRIPT_TIMEOUT) -> Result:
     """Run the plan, in the current environment only, stopping at the first failure. Called only on ``--yes``."""
     result = Result()
+    if (stopped := preflight(selected, roots, result)) is not None:
+        return stopped
+    if not in_virtualenv():
+        result.warnings.append("not inside a virtualenv: packages will go into this interpreter's own environment")
+    try:
+        with InstallLock(lock_folder):
+            return run_locked(selected, roots, environ, run, result, pip_timeout, script_timeout)
+    except InstallLocked as error:
+        result.code = 1
+        result.reports.append(str(error))
+        return result
+
+
+def uses_pip(selected: Plan) -> bool:
+    """Whether the plan would run pip: an install set, an isolated environment or a requirements file."""
+    return bool(selected.pip or selected.isolated or any(role == "requirements" for role, p in selected.scripts))
+
+
+def preflight(selected: Plan, roots: Sequence[Path], result: Result) -> Optional[Result]:
+    """The result to return before anything runs (a conflict, nothing to do, a refused script, an externally managed python), or None."""
     if selected.conflicts:
         result.code = 1
         result.reports.append("refusing to install: unresolved conflict; " + "; ".join(selected.options or ("see the conflicts above",)))
@@ -86,63 +106,74 @@ def execute(selected: Plan, roots: Sequence[Path], environ: Mapping[str, str], r
             result.code = 1
             result.reports.append(f"refused {role} file: {refusal}; keep install files inside the package directory")
             return result
-    if (selected.pip or selected.isolated or any(role == "requirements" for role, p in selected.scripts)) and externally_managed():
+    if uses_pip(selected) and externally_managed():
         result.code = 1
         result.reports.append("this Python is externally managed (PEP 668), so pip would refuse; create or activate a virtualenv "
                               "(python -m venv .venv && . .venv/bin/activate) and run again. --break-system-packages is never used")
         return result
-    if not in_virtualenv():
-        result.warnings.append("not inside a virtualenv: packages will go into this interpreter's own environment")
-    try:
-        with InstallLock(lock_folder):
-            return run_locked(selected, roots, environ, run, result, pip_timeout, script_timeout)
-    except InstallLocked as error:
-        result.code = 1
-        result.reports.append(str(error))
-        return result
+    return None
 
 
 def run_locked(selected: Plan, roots: Sequence[Path], environ: Mapping[str, str], run: Runner, result: Result,
                pip_timeout: float, script_timeout: float) -> Result:
-    if selected.pip:
-        step = "python -m pip install " + " ".join(selected.pip)
-        command = [sys.executable, "-m", "pip", "install", *selected.pip]
-        outcome = run(command, None, pip_timeout)   # one call for the whole set, so resolution is atomic
-        if outcome.code:
-            return fail(result, step, outcome, environ, "read the pip message above; widen the range it rejects or deselect that arm")
-        result.reports.append(f"ok {step}")
-        checked = run([sys.executable, "-m", "pip", "check"], None, pip_timeout)
-        if checked.code:
-            result.code = 1
-            result.reports.append("pip check found conflicts after installing:\n" + tail(checked.output, environ)
-                                  + "\nremedy: widen one of the ranges above or deselect an arm; the installed set is unchanged by this check")
-            return result
-        result.reports.append("ok pip check")
+    if selected.pip and (failed := install_set(selected, environ, run, result, pip_timeout)) is not None:
+        return failed
     for one in selected.isolated:
-        made = run([sys.executable, "-m", "venv", one.folder], None, pip_timeout)
-        if made.code:
-            return fail(result, f"python -m venv {one.folder}", made, environ, "check that the venv module is installed and the folder is writable")
-        inner = Path(one.folder) / ("Scripts" if os.name == "nt" else "bin") / "python"
-        outcome = run([str(inner), "-m", "pip", "install", *one.specs], None, pip_timeout)
-        if outcome.code:
-            return fail(result, f"isolated install for {one.arm}", outcome, environ, "see the pip message; the isolated environment is separate from yours")
-        result.reports.append(f"ok isolated {one.arm} ({one.boundary}) in {one.folder}")
+        if (failed := install_isolated(one, environ, run, result, pip_timeout)) is not None:
+            return failed
     for role, path in selected.scripts:
-        folder = str(Path(path).resolve().parent)
-        if role == "shell":
-            if not shutil_which("sh"):
-                return fail(result, f"sh {path}", Outcome(127, "sh not found"), environ,
-                            "no sh on this system (Windows?): use WSL or Git Bash, or run the steps in the file yourself")
-            command = ["sh", path]
-        elif role == "requirements":
-            command = [sys.executable, "-m", "pip", "install", "-r", path]
-        else:
-            command = [sys.executable, path]
-        outcome = run(command, folder, script_timeout)
-        if outcome.code:
-            return fail(result, " ".join(command), outcome, environ, f"fix {path}, or remove it and declare the need with REQUIRES")
-        result.reports.append(f"ok {' '.join(command)}" + (("\n" + tail(outcome.output, environ, 3)) if outcome.output.strip() else ""))
+        if (failed := run_script(role, path, environ, run, result, script_timeout)) is not None:
+            return failed
     return result
+
+
+def install_set(selected: Plan, environ: Mapping[str, str], run: Runner, result: Result, pip_timeout: float) -> Optional[Result]:
+    """One pip install for the whole set (so resolution is atomic), then ``pip check``; the failed result, or None."""
+    step = "python -m pip install " + " ".join(selected.pip)
+    outcome = run([sys.executable, "-m", "pip", "install", *selected.pip], None, pip_timeout)
+    if outcome.code:
+        return fail(result, step, outcome, environ, "read the pip message above; widen the range it rejects or deselect that arm")
+    result.reports.append(f"ok {step}")
+    checked = run([sys.executable, "-m", "pip", "check"], None, pip_timeout)
+    if checked.code:
+        result.code = 1
+        result.reports.append("pip check found conflicts after installing:\n" + tail(checked.output, environ)
+                              + "\nremedy: widen one of the ranges above or deselect an arm; the installed set is unchanged by this check")
+        return result
+    result.reports.append("ok pip check")
+    return None
+
+
+def install_isolated(one: Isolated, environ: Mapping[str, str], run: Runner, result: Result, pip_timeout: float) -> Optional[Result]:
+    """Create one isolated environment and install its specs; the failed result, or None."""
+    made = run([sys.executable, "-m", "venv", one.folder], None, pip_timeout)
+    if made.code:
+        return fail(result, f"python -m venv {one.folder}", made, environ, "check that the venv module is installed and the folder is writable")
+    inner = Path(one.folder) / ("Scripts" if os.name == "nt" else "bin") / "python"
+    outcome = run([str(inner), "-m", "pip", "install", *one.specs], None, pip_timeout)
+    if outcome.code:
+        return fail(result, f"isolated install for {one.arm}", outcome, environ, "see the pip message; the isolated environment is separate from yours")
+    result.reports.append(f"ok isolated {one.arm} ({one.boundary}) in {one.folder}")
+    return None
+
+
+def run_script(role: str, path: str, environ: Mapping[str, str], run: Runner, result: Result, script_timeout: float) -> Optional[Result]:
+    """Run one install script in its own folder; the failed result, or None."""
+    folder = str(Path(path).resolve().parent)
+    if role == "shell":
+        if not shutil_which("sh"):
+            return fail(result, f"sh {path}", Outcome(127, "sh not found"), environ,
+                        "no sh on this system (Windows?): use WSL or Git Bash, or run the steps in the file yourself")
+        command = ["sh", path]
+    elif role == "requirements":
+        command = [sys.executable, "-m", "pip", "install", "-r", path]
+    else:
+        command = [sys.executable, path]
+    outcome = run(command, folder, script_timeout)
+    if outcome.code:
+        return fail(result, " ".join(command), outcome, environ, f"fix {path}, or remove it and declare the need with REQUIRES")
+    result.reports.append(f"ok {' '.join(command)}" + (("\n" + tail(outcome.output, environ, 3)) if outcome.output.strip() else ""))
+    return None
 
 
 def shutil_which(name: str) -> Optional[str]:
