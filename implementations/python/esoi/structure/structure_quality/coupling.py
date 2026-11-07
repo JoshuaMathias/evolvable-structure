@@ -62,6 +62,13 @@ def targets(project: Project, base: str, names: Tuple[str, ...]) -> List[str]:
     return [project.index[base]] if base in project.index else []
 
 
+def names_of(project: Project, base: str, names: Tuple[str, ...], target: str) -> Tuple[str, ...]:
+    """The names an import takes from one target file: for ``from pkg import a, b`` where each is a submodule, a target takes only its own name
+    (``a`` from ``pkg/a.py``), not the sibling's, else every name."""
+    own = tuple(n for n in names if project.index.get(f"{base}.{n}") == target)
+    return own or names
+
+
 def cross_edges(project: Project) -> List[Tuple[str, str, str, str, Tuple[str, ...]]]:
     """``(from unit, to unit, from file, to file, names)`` for every import that crosses from one unit into another."""
     edges = []
@@ -70,7 +77,7 @@ def cross_edges(project: Project) -> List[Tuple[str, str, str, str, Tuple[str, .
             for target in targets(project, base, names):
                 other = project.modules.get(target)
                 if other is not None and other.unit != module.unit:
-                    edges.append((module.unit, other.unit, module.path, target, names))
+                    edges.append((module.unit, other.unit, module.path, target, names_of(project, base, names, target)))
     return edges
 
 
@@ -160,11 +167,39 @@ def entry_edges(project: Project) -> List[Tuple[str, str, str, str, Tuple[str, .
             continue
         for base, names in module.imports:
             for target in targets(project, base, names):
-                for final, taken in landings(project, target, names):
+                for final, taken in landings(project, target, names_of(project, base, names, target)):
                     other = project.modules.get(final)
                     if other is not None and other.unit != module.unit:
                         edges.append((module.unit, other.unit, module.path, final, taken))
     return edges
+
+
+def attribute_takes(project: Project, edges: List[Tuple[str, str, str, str, Tuple[str, ...]]]) -> List[Tuple[str, str, str, str, Tuple[str, ...]]]:
+    """The names an importer takes from a module it imports whole (``from pkg import module``, then ``module.name``): the names it mentions that the module defines.
+    An import by module name states no name, so without this a name every unit reaches by attribute would look like one only the by-name importers use."""
+    out = []
+    for from_unit, to_unit, from_file, to_file, taken in edges:
+        if PurePosixPath(to_file).stem in taken:
+            used = project.modules[from_file].names & top_level_names(project.modules[to_file])
+            out.append((from_unit, to_unit, from_file, to_file, tuple(sorted(used))))
+    return out
+
+
+def owner_takes(project: Project, edges: List[Tuple[str, str, str, str, Tuple[str, ...]]]) -> List[Tuple[str, str, str, str, Tuple[str, ...]]]:
+    """The names an import takes that the target's own unit also reads somewhere in its code. A name its owner reads is used by two units, the owner
+    and the importer, so moving it into the importer would make the owner import it back."""
+    loaded: Dict[str, Set[str]] = {}
+    in_unit: Dict[str, List[str]] = defaultdict(list)
+    for path, module in project.modules.items():
+        in_unit[module.unit].append(path)
+    for path, module in project.modules.items():
+        loaded[path] = {node.id for node in ast.walk(module.tree) if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)} if module.tree is not None else set()
+    out = []
+    for from_unit, to_unit, from_file, to_file, taken in edges:
+        used = tuple(n for n in taken if any(n in loaded[path] for path in in_unit[to_unit]))
+        if used:
+            out.append((to_unit, to_unit, to_file, to_file, used))
+    return out
 
 
 def classified(project: Project, budgets: Budgets) -> Tuple[List[Tuple[Tuple[str, str, str, str, Tuple[str, ...]], str]], Set[str], Set[str]]:
@@ -173,13 +208,14 @@ def classified(project: Project, budgets: Budgets) -> Tuple[List[Tuple[Tuple[str
     entries = declared_entries(project)
     entry = lambda path: is_entry(project, path, entries)
     kernel = foundation.kernels(project, edges, entry, budgets, targets)
-    takers = foundation.shared_names(edges)
+    takers = foundation.shared_names(edges + attribute_takes(project, edges) + owner_takes(project, edges))
     out = []
     for edge in edges:
         if entry(edge[3]):
             out.append((edge, "entry"))
         elif edge[3] in kernel:
-            out.append((edge, "kernel_one_unit" if foundation.single_unit_names(edge, takers) and not is_package_root(project, edge[2]) else "kernel"))
+            only = foundation.single_unit_names(edge, takers)
+            out.append(((*edge[:4], tuple(only)), "kernel_one_unit") if only and not is_package_root(project, edge[2]) else (edge, "kernel"))
         else:
             out.append((edge, "reach_in"))
     return out, entries, kernel

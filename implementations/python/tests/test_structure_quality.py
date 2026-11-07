@@ -581,6 +581,30 @@ def test_a_unit_that_takes_a_name_from_the_shared_kernel_that_only_it_uses_is_st
     assert [line for line in lines if "DOOR_ONLY" in line and "app/a/interface.py" in line]
 
 
+def offences(tmp_path, files):
+    write(tmp_path, {"app/solutions.csv": "id\n", "app/common/solutions.csv": "id\n", "app/common/base.py": "SHARED = 1\nOWN = 2\nLONELY = 3\n\n\ndef used_inside():\n    return OWN\n",
+                     "app/common/other.py": "VALUE = 1\n", **{f"app/{unit}/interface.py": "from app.common.base import SHARED\n" for unit in ("a", "b", "c")}, **files})
+    loaded = project.load(tmp_path)
+    return coupling.offending_imports(loaded, *coupling.classified(loaded, balance.Budgets())[:2])
+
+
+def test_a_name_reached_as_an_attribute_of_a_module_import_counts_as_taken_by_that_unit(tmp_path):
+    lines = offences(tmp_path, {"app/a/interface.py": "from app.common import base\nprint(base.SHARED, base.LONELY)\n",
+                                "app/b/interface.py": "from app.common import base\nprint(base.SHARED, base.LONELY)\n"})
+    assert not [line for line in lines if "LONELY" in line]
+
+
+def test_a_name_the_kernel_module_reads_itself_is_used_by_two_units(tmp_path):
+    lines = offences(tmp_path, {"app/a/interface.py": "from app.common.base import SHARED, OWN, LONELY\n"})
+    assert not [line for line in lines if "OWN" in line]
+    assert [line for line in lines if "takes LONELY from" in line]
+
+
+def test_importing_sibling_modules_together_does_not_credit_each_with_the_others_name(tmp_path):
+    lines = offences(tmp_path, {"app/a/interface.py": "from app.common import base, other\nprint(base.SHARED, other.VALUE)\n"})
+    assert not [line for line in lines if "base, other" in line or "other, base" in line]
+
+
 TABLE_TEXT = "NAMES = {\n" + "".join(f'    "name{i}": ("module.{i}", "attr{i}"),\n' for i in range(40)) + "}\nLIST = [" + ", ".join(f'"item{i}"' for i in range(40)) + "]\n"
 LOGIC_TEXT = ("def total(rows, rate):\n    out = 0\n    for row in rows:\n        if row.get('kind') == 'paid':\n            out += row['amount'] * rate\n"
               "        elif row.get('kind') == 'refund':\n            out -= row['amount']\n    return round(out, 2)\n" * 6)
