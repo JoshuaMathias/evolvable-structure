@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import csv
 from pathlib import PurePosixPath
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 from esoi.structure.structure_quality.balance import Budgets, Dimension, combine, share
 from esoi.structure.structure_quality.project import Project
@@ -54,17 +54,26 @@ def size_offenders(project: Project, budgets: Budgets, functions: list, long_mod
     return offenders
 
 
+def wide_intents(project: Project, budgets: Budgets) -> Tuple[list, list]:
+    """Every intent folder with its count of child solutions, and those over the budget."""
+    children = intent_children(project)
+    return children, [(f, n) for f, n in children if n > budgets.children_per_intent]
+
+
+def crowded_folders(project: Project, budgets: Budgets) -> Tuple[Dict[str, int], int]:
+    """The folders holding more files than the budget, and how many files lie past the budget in all of them."""
+    crowded = {f: n for f, n in project.folder_files().items() if n > budgets.files_per_folder}
+    return crowded, sum(n - budgets.files_per_folder for n in crowded.values())
+
+
 def measure(project: Project, budgets: Budgets) -> Dimension:
     modules = list(project.modules.values())
     functions = [(m.path, name, line, length, decisions, outermost) for m in modules for name, line, length, decisions, outermost in m.functions]
     outermost = [f for f in functions if f[5]]
     long_modules = sorted((m for m in modules if m.lines > budgets.module_lines), key=lambda m: -m.lines)
-    counts = project.folder_files()
-    crowded = {f: n for f, n in counts.items() if n > budgets.files_per_folder}
-    files_in_crowded = sum(n - budgets.files_per_folder for n in crowded.values())   # the files past the budget
+    crowded, files_in_crowded = crowded_folders(project, budgets)
     deep = [m for m in modules if len(PurePosixPath(m.path).parts) - 1 > budgets.depth]
-    children = intent_children(project)
-    wide = [(f, n) for f, n in children if n > budgets.children_per_intent]
+    children, wide = wide_intents(project, budgets)
     parts = {"function_lines_within_budget": within([f[3] for f in outermost], budgets.function_lines),
              "module_lines_within_budget": within([m.lines for m in modules], budgets.module_lines),
              "decisions_within_complexity_budget": within([f[4] for f in functions], budgets.complexity),

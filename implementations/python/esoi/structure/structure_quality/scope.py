@@ -13,7 +13,7 @@ from __future__ import annotations
 import ast
 import csv
 from collections import defaultdict
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from esoi.structure.intent_registry.parsed_source import nodes_of
 from esoi.structure.structure_quality.adopted import adopted_projects, installed_classes
@@ -93,12 +93,10 @@ def base_index(arm: ast.ClassDef, module, index: Dict[str, object], adopted_inde
     out = index
     if any(getattr(b, "id", getattr(b, "attr", "")) == arm.name for b in arm.bases) and arm.name in adopted_index:
         out = {**out, arm.name: adopted_index[arm.name]}
-    if module.tree is not None:
-        for node in nodes_of(module.tree):
-            if isinstance(node, ast.ImportFrom):
-                for alias in node.names:
-                    if alias.asname and alias.name in adopted_index and alias.asname not in out:
-                        out = {**out, alias.asname: adopted_index[alias.name]}
+    for node in nodes_of(module.tree) if module.tree is not None else ():
+        if isinstance(node, ast.ImportFrom):
+            renamed = {a.asname: adopted_index[a.name] for a in node.names if a.asname and a.name in adopted_index and a.asname not in out}
+            out = {**out, **renamed}
     return out
 
 
@@ -112,10 +110,14 @@ def imported_class(node: ast.ImportFrom, module, project: Project, wanted: set) 
         base = resolved[0][0] if len(resolved) == 1 else resolved[position][0]
         target = project.index.get(f"{base}.{alias.name}") or project.index.get(base)
         if target in project.modules:
-            for found, node_class in classes(project):
-                if found.path == project.modules[target].path and node_class.name == alias.name:
-                    found_classes[alias.asname or alias.name] = node_class
+            for node_class in classes_named(project, project.modules[target].path, alias.name):
+                found_classes[alias.asname or alias.name] = node_class
     return found_classes
+
+
+def classes_named(project: Project, path: str, name: str) -> List[ast.ClassDef]:
+    """The classes called ``name`` that the module at ``path`` defines."""
+    return [node_class for found, node_class in classes(project) if found.path == path and node_class.name == name]
 
 
 def imported_bases(arm: ast.ClassDef, module, project: Project, index: Dict[str, object]) -> Dict[str, object]:
@@ -155,13 +157,20 @@ def own_module_names(project: Project, path: str) -> set:
     out = set()
     for node in nodes_of(module.tree) if module.tree is not None else ():
         if isinstance(node, (ast.Import, ast.ImportFrom)):
-            resolved = resolve_import(node, path)
-            bases = [b for b, _ in resolved] if isinstance(node, ast.Import) else [resolved[0][0]] * len(node.names)
-            for base, alias in zip(bases, node.names):
-                full = base if isinstance(node, ast.Import) else f"{base}.{alias.name}"
-                target = project.index.get(full) or project.index.get(base)
-                if target in project.modules and project.modules[target].unit == module.unit:
-                    out.add((alias.asname or alias.name).split(".")[0])
+            out |= own_unit_bindings(project, module, path, node)
+    return out
+
+
+def own_unit_bindings(project: Project, module, path: str, node: ast.AST) -> set:
+    """The local names one import binds to a module of the importing module's own unit."""
+    resolved = resolve_import(node, path)
+    bases = [b for b, _ in resolved] if isinstance(node, ast.Import) else [resolved[0][0]] * len(node.names)
+    out = set()
+    for base, alias in zip(bases, node.names):
+        full = base if isinstance(node, ast.Import) else f"{base}.{alias.name}"
+        target = project.index.get(full) or project.index.get(base)
+        if target in project.modules and project.modules[target].unit == module.unit:
+            out.add((alias.asname or alias.name).split(".")[0])
     return out
 
 
@@ -222,17 +231,28 @@ def measure(project: Project, budgets: Budgets) -> Dimension:
     off = [r for r in rows if r[3]]
     unit_protocols = protocols_per_unit(project)
     split = {u: n for u, n in unit_protocols.items() if len(n) > budgets.protocols_per_unit}
-    purposes = {sid: texts for sid, texts in arm_purposes(project).items() if sid and len(texts) >= 3}
-    unfocused = {sid: round(mean_overlap(texts), 3) for sid, texts in purposes.items() if mean_overlap(texts) < ARMS_SHARE_LITTLE}
+    purposes, unfocused = unfocused_purposes(project)
     hollow = pass_through_arms(project)
     severity = {(r[0], r[1]): arm_severity(r) for r in full_rows}
     severity.update({(h[0], h[1]): 1.0 for h in hollow})   # one part, so a new check does not dilute the others in the geometric mean; a pass-through arm lacks all of its own work
     parts = {"arms_on_interface": interface_score(None if not rows else round(1 - sum(severity.values()) / len(rows), 4)),
              "protocols_within_budget": share(len(unit_protocols) - len(split), len(unit_protocols)),
              "arms_share_one_purpose": share(len(purposes) - len(unfocused), len(purposes))}
+    offenders = scope_offenders(off, hollow, split, unfocused)
+    return Dimension("scope", combine(list(parts.values())), {k: v for k, v in parts.items() if v is not None}, offenders)
+
+
+def unfocused_purposes(project: Project) -> Tuple[Dict[str, List[str]], Dict[str, float]]:
+    """The purposes of each solution that has three or more arms, and the mean overlap of those whose arms share little."""
+    purposes = {sid: texts for sid, texts in arm_purposes(project).items() if sid and len(texts) >= 3}
+    return purposes, {sid: round(mean_overlap(texts), 3) for sid, texts in purposes.items() if mean_overlap(texts) < ARMS_SHARE_LITTLE}
+
+
+def scope_offenders(off: list, hollow: list, split: Dict[str, List[str]], unfocused: Dict[str, float]) -> List[str]:
+    """The offender lines of the scope dimension: arms off the interface, pass-through arms, crowded units, arms of little shared purpose."""
     offenders = [arm_line(p, c, s, m) for p, c, s, m in off]
     offenders += [f"{p}: arm {c} of {s} passes every call on unchanged ({', '.join(m)}): it adds no work of its own, so the solution may be split finer than its job"
                   for p, c, s, m in hollow]
     offenders += [f"{u}: {len(n)} Protocols ({', '.join(n[:4])}) signal more than one job" for u, n in sorted(split.items(), key=lambda kv: -len(kv[1]))]
     offenders += [f"{s}: its arms share little purpose (mean overlap {v})" for s, v in unfocused.items()]
-    return Dimension("scope", combine(list(parts.values())), {k: v for k, v in parts.items() if v is not None}, offenders)
+    return offenders

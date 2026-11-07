@@ -85,6 +85,13 @@ def combine(values: List[Optional[float]]) -> Optional[float]:
     return round(product ** (1 / len(kept)), 4)
 
 
+def verdict_of(score: Optional[float]) -> str:
+    """Where a score stands against the reference line."""
+    if score is None:
+        return "unmeasured"
+    return "at_reference" if score >= REFERENCE_LINE else "below_reference"
+
+
 def balanced(dimensions: List[Dimension]) -> Dict[str, object]:
     """``{score, measured_weight, measured, not_measured, weak, flagged, verdict}`` from the dimensions: the weighted mean over those measured, each
     measured dimension weighing its fixed weight divided by the measured weight (so the weight of a dimension that could not be measured is shared
@@ -93,7 +100,7 @@ def balanced(dimensions: List[Dimension]) -> Dict[str, object]:
     weight = sum(WEIGHTS[d.name] for d in measured)
     score = round(sum(WEIGHTS[d.name] * d.score for d in measured) / weight, 4) if weight else None
     weak = [d.name for d in measured if d.score < LOW_DIMENSION]
-    verdict = "unmeasured" if score is None else ("at_reference" if score >= REFERENCE_LINE else "below_reference")
+    verdict = verdict_of(score)
     flagged = [d.name for d in dimensions if d.offenders]
     return {"score": score, "measured_weight": round(weight, 4), "measured": [d.name for d in measured],
             "not_measured": [d.name for d in dimensions if d.score is None], "weak": weak, "flagged": flagged, "verdict": verdict}

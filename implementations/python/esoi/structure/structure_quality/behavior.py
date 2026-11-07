@@ -49,16 +49,18 @@ def metric_cases(project: Project) -> Dict[str, bool]:
     return out
 
 
+def contract_test_held(project: Project, keys: List[str], names: List[str]) -> bool:
+    """Whether a test names the solution and either runs all its arms or loops over them."""
+    return any(any(k in text for k in keys) and (all(n in text for n in names) or LOOPS.search(text)) for text in project.tests.values())
+
+
 def measure(project: Project, budgets: Budgets) -> Dimension:
     arms = {sid: names for sid, names in arms_by_solution(project).items() if len(names) >= 2}
     protocols = protocol_names(project)
     cases = metric_cases(project)
     missing = []
     for sid, names in sorted(arms.items()):
-        keys = [sid, protocols.get(sid, sid)]
-        held = cases.get(sid, False) or any(
-            any(k in text for k in keys) and (all(n in text for n in names) or LOOPS.search(text)) for text in project.tests.values())
-        if not held:
+        if not (cases.get(sid, False) or contract_test_held(project, [sid, protocols.get(sid, sid)], names)):
             missing.append(f"{sid}: {len(names)} arms and no contract test or shared cases that run them all")
     value = share(len(arms) - len(missing), len(arms))
     return Dimension("behavior", value, {"solutions_with_a_contract": value} if value is not None else {}, missing)

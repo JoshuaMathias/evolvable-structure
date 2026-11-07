@@ -17,7 +17,7 @@ from __future__ import annotations
 import ast
 from collections import defaultdict
 from pathlib import PurePosixPath
-from typing import Dict, Optional, Set
+from typing import Dict, List, Optional, Set
 
 from esoi.structure.intent_registry.parsed_source import nodes_of
 from esoi.structure.structure_quality.conformance import decorator_id, is_protocol, protocol_members
@@ -122,21 +122,32 @@ def members_used(project: Project, used: Dict[str, Set[str]]) -> Dict[str, tuple
     return out
 
 
-def measure(project: Project, budgets: Budgets) -> Dimension:
-    surface = exported(project)
+def used_names(project: Project) -> Dict[str, Set[str]]:
+    """For each unit the names other units take from it, by import or by being served."""
     used: Dict[str, Set[str]] = defaultdict(set)
     for from_unit, to_unit, _, _, names in cross_edges(project):
         used[to_unit] |= set(names)
     for unit, names in served_names(project).items():
         used[unit] |= names
+    return used
+
+
+def unused_member_lines(protocols: Dict[str, tuple], member_shares: Dict[str, float]) -> List[str]:
+    """One offender line per Protocol whose declared members are not all called, the least used first."""
+    return [f"{k.split('::')[0]}: Protocol {k.split('::')[1]} declares {len(protocols[k][0])} members, callers use {len(protocols[k][1])} "
+            f"({', '.join(sorted(protocols[k][0] - protocols[k][1])[:5])} unused), so every arm writes members nobody calls"
+            for k, v in sorted(member_shares.items(), key=lambda kv: kv[1]) if v < 1.0]
+
+
+def measure(project: Project, budgets: Budgets) -> Dimension:
+    surface = exported(project)
+    used = used_names(project)
     scored = {u: names for u, names in surface.items() if names and used.get(u)}
     shares = {u: len(names & used[u]) / len(names) for u, names in scored.items()}
     offenders = [f"{u}: exports {len(scored[u])} names, other units use {len(scored[u] & used[u])} ({', '.join(sorted(scored[u] - used[u])[:5])} unused)"
                  for u, v in sorted(shares.items(), key=lambda kv: kv[1]) if v < 1.0]
     protocols = members_used(project, used)
     member_shares = {k: len(called) / len(members) for k, (members, called) in protocols.items()}
-    offenders += [f"{k.split('::')[0]}: Protocol {k.split('::')[1]} declares {len(protocols[k][0])} members, callers use {len(protocols[k][1])} "
-                  f"({', '.join(sorted(protocols[k][0] - protocols[k][1])[:5])} unused), so every arm writes members nobody calls"
-                  for k, v in sorted(member_shares.items(), key=lambda kv: kv[1]) if v < 1.0]
+    offenders += unused_member_lines(protocols, member_shares)
     parts = {"exported_names_used": mean([round(v, 4) for v in shares.values()]), "protocol_members_used": mean([round(v, 4) for v in member_shares.values()])}
     return Dimension("surface", combine(list(parts.values())), {k: v for k, v in parts.items() if v is not None}, offenders)

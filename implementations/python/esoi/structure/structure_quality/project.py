@@ -155,6 +155,18 @@ def read_module(root: Path, path: str, markers: Set[str]) -> Module:
     return replace(held, unit=unit_of(path, markers))
 
 
+def note_node(module: Module, node: ast.AST, path: str, inner: set) -> None:
+    """Record what one syntax node adds to the module: a function, an import, or a name used."""
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        module.functions.append((node.name, node.lineno, (node.end_lineno or node.lineno) - node.lineno + 1, cyclomatic(node), id(node) not in inner))
+    elif isinstance(node, (ast.Import, ast.ImportFrom)):
+        module.imports.extend(resolve_import(node, path))
+    elif isinstance(node, ast.Name):
+        module.names.add(node.id)
+    elif isinstance(node, ast.Attribute):
+        module.names.add(node.attr)
+
+
 def parse_module(root: Path, path: str, text: str) -> Module:
     module = Module(path, "", text.count("\n") + 1)
     tree = tree_of(root / path)
@@ -164,14 +176,7 @@ def parse_module(root: Path, path: str, text: str) -> Module:
     inner = {id(sub) for node in nodes_of(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
              for sub in ast.walk(node) if sub is not node and isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef))}
     for node in nodes_of(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            module.functions.append((node.name, node.lineno, (node.end_lineno or node.lineno) - node.lineno + 1, cyclomatic(node), id(node) not in inner))
-        elif isinstance(node, (ast.Import, ast.ImportFrom)):
-            module.imports.extend(resolve_import(node, path))
-        elif isinstance(node, ast.Name):
-            module.names.add(node.id)
-        elif isinstance(node, ast.Attribute):
-            module.names.add(node.attr)
+        note_node(module, node, path, inner)
     module.tokens = normalized_tokens(text, skipped_lines(tree))
     return module
 

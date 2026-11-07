@@ -58,21 +58,31 @@ class Groups:
         self.parent[self.find(first)] = self.find(second)
 
 
+def implemented_by(arm: ast.ClassDef, names: List[str], implemented: List[str]) -> List[str]:
+    """The Protocols an arm implements: those it extends and those its own solution declares."""
+    extended = {getattr(b, "id", getattr(b, "attr", "")) for b in arm.bases}
+    return [n for n in names if n in extended or n in implemented]
+
+
 def join_by_arms(groups: Groups, names: List[str], protocols, arms) -> Dict[str, Set[str]]:
     """Join the Protocols one arm takes as a need to those its own solution declares; returns the arms that implement each Protocol."""
     implementers: Dict[str, Set[str]] = {n: set() for n in names}
     for _, arm, sid in arms:
-        extended = {getattr(b, "id", getattr(b, "attr", "")) for b in arm.bases}
         implemented = [n for n in names if protocols[n][1] == sid]
-        for name in names:
-            if name in extended or name in implemented:
-                implementers[name].add(arm.name)
+        for name in implemented_by(arm, names, implemented):
+            implementers[name].add(arm.name)
         taken = [n for n in names if n in annotation_needs(arm)]
         if len(taken) == 1:
-            for owner in implemented:
-                if owner != taken[0]:
-                    groups.join(owner, taken[0])
+            for owner in [o for o in implemented if o != taken[0]]:
+                groups.join(owner, taken[0])
     return implementers
+
+
+def join_equal_implementers(groups: Groups, names: List[str], implementers: Dict[str, Set[str]]) -> None:
+    """Join Protocols that the same non-empty set of arms implements."""
+    for position, first in enumerate(names):
+        for second in [s for s in names[position + 1:] if implementers[first] and implementers[first] == implementers[s]]:
+            groups.join(first, second)
 
 
 def group_protocols(protocols: Dict[str, List[Tuple[str, str]]], arms: List[Tuple[str, ast.ClassDef, str]],
@@ -83,14 +93,10 @@ def group_protocols(protocols: Dict[str, List[Tuple[str, str]]], arms: List[Tupl
     names = sorted(protocols)
     groups = Groups(names)
     for name in names:
-        for base in (extends or {}).get(name, ()):
-            if base in groups.parent and base != name:
-                groups.join(name, base)
+        for base in [b for b in (extends or {}).get(name, ()) if b in groups.parent and b != name]:
+            groups.join(name, base)
     implementers = join_by_arms(groups, names, protocols, arms)
-    for position, first in enumerate(names):
-        for second in names[position + 1:]:
-            if implementers[first] and implementers[first] == implementers[second]:
-                groups.join(first, second)
+    join_equal_implementers(groups, names, implementers)
     found: Dict[str, List[str]] = {}
     for name in names:
         found.setdefault(groups.find(name), []).append(name)

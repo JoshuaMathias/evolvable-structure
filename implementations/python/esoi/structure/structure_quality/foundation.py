@@ -46,14 +46,20 @@ def closure(start: str, deps: Dict[str, Set[str]]) -> Set[str]:
     return seen
 
 
-def kernels(project: Project, edges: List[Edge], is_entry: Callable[[str], bool], budgets: Budgets,
-            targets: Callable[[Project, str, Tuple[str, ...]], List[str]]) -> Set[str]:
-    """The modules of the project's shared kernel (see the module docstring)."""
+def fan_counts(edges: List[Edge]) -> Tuple[Dict[str, Set[str]], Dict[str, Set[str]]]:
+    """For each file the units that import it, and for each file the units it imports."""
     fan_in: Dict[str, Set[str]] = defaultdict(set)
     fan_out: Dict[str, Set[str]] = defaultdict(set)
     for from_unit, to_unit, from_file, to_file, _ in edges:
         fan_in[to_file].add(from_unit)
         fan_out[from_file].add(to_unit)
+    return fan_in, fan_out
+
+
+def kernels(project: Project, edges: List[Edge], is_entry: Callable[[str], bool], budgets: Budgets,
+            targets: Callable[[Project, str, Tuple[str, ...]], List[str]]) -> Set[str]:
+    """The modules of the project's shared kernel (see the module docstring)."""
+    fan_in, fan_out = fan_counts(edges)
     found = {path for path, units in fan_in.items()
              if len(units) >= budgets.min_kernel_importers and len(fan_out[path]) / (len(units) + len(fan_out[path])) <= budgets.kernel_instability}
     deps = file_dependencies(project, targets)

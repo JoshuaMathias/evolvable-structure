@@ -36,19 +36,24 @@ def commits(root: Path, limit: int) -> List[List[str]]:
     return groups
 
 
+def change_counts(project: Project, history: List[List[str]]) -> Tuple[Counter, Counter]:
+    """How often each project module changed, and each pair of modules changed together, over the commits that are not bulk edits."""
+    changed: Counter = Counter()
+    together: Counter = Counter()
+    for files in history:
+        known = sorted({f for f in files if f in project.modules})
+        if len(known) <= BULK:
+            changed.update(known)
+            together.update(combinations(known, 2))
+    return changed, together
+
+
 def mine(project: Project, budgets: Budgets) -> Optional[Dict[str, object]]:
     """``{commits, pairs, hidden, explained_share}``, or None when there is no history to read."""
     history = commits(project.root, budgets.history_commits)
     if len(history) < budgets.min_cochange_support:
         return None
-    changed: Counter = Counter()
-    together: Counter = Counter()
-    for files in history:
-        known = sorted({f for f in files if f in project.modules})
-        if len(known) > BULK:
-            continue
-        changed.update(known)
-        together.update(combinations(known, 2))
+    changed, together = change_counts(project, history)
     joined: Set[Tuple[str, str]] = set()
     for a, b, _, _, _ in cross_edges(project):
         joined.add((a, b))

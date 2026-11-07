@@ -62,9 +62,12 @@ def installed_classes(project: Project, wanted: set) -> Dict[str, ast.ClassDef]:
         for base, names in module.imports:
             if not set(names) & wanted or base in project.index:
                 continue
-            path = installed_source(base)
-            tree = tree_of(path) if path else None
-            for node in nodes_of(tree) if tree else ():
-                if isinstance(node, ast.ClassDef) and node.name in wanted and node.name not in out:
-                    out[node.name] = node
+            for node in wanted_classes(installed_source(base), wanted):
+                out.setdefault(node.name, node)
     return out
+
+
+def wanted_classes(path, wanted: set) -> List[ast.ClassDef]:
+    """The classes in ``wanted`` that an installed source file defines (none when it has no readable source)."""
+    tree = tree_of(path) if path else None
+    return [n for n in nodes_of(tree) if isinstance(n, ast.ClassDef) and n.name in wanted] if tree else []

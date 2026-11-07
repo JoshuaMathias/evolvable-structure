@@ -77,15 +77,20 @@ def sole_call(function: ast.AST) -> Optional[ast.Call]:
     return call if isinstance(call.func, ast.Attribute) and call.func.attr == function.name else None
 
 
+def call_root(owner: ast.AST) -> ast.AST:
+    """The object a chain of attributes and calls is rooted in (``own_runner().assembler.names(...)`` is rooted in ``own_runner``)."""
+    while isinstance(owner, (ast.Attribute, ast.Call)):
+        owner = owner.func if isinstance(owner, ast.Call) else owner.value
+    return owner
+
+
 def passes_through(function: ast.AST, own_modules: Set[str]) -> bool:
     """Whether a method is one call of a same-named method on another object with its own parameters handed on unchanged; ``own_modules`` are the
     local names bound to modules of the arm's own unit (a call into them is the arm's own work)."""
     call = sole_call(function)
     if call is None:
         return False
-    owner = call.func.value
-    while isinstance(owner, (ast.Attribute, ast.Call)):   # own_runner().assembler.names(...) is rooted in own_runner
-        owner = owner.func if isinstance(owner, ast.Call) else owner.value
+    owner = call_root(call.func.value)
     if isinstance(owner, ast.Name) and owner.id in own_modules:
         return False
     params = [a.arg for a in [*function.args.posonlyargs, *function.args.args] if a.arg not in ("self", "cls")]

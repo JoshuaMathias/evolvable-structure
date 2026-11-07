@@ -128,26 +128,32 @@ def number(value: Optional[float]) -> str:
     return "not measured" if value is None else f"{value:.3f}"
 
 
+def dimension_row(name: str, weight: float, a: Optional[float], b: Optional[float]) -> str:
+    """One dimension's score before and after, with the change when both were measured."""
+    change = "" if a is None or b is None else f"  {b - a:+.3f}"
+    return f"  {name:<9}{number(a):>14}{number(b):>14}{change}  weight {weight:.2f}"
+
+
+def capped(header: str, items: List[str], shown: int) -> List[str]:
+    """A header, the first ``shown`` items, and a line counting the rest."""
+    out = [header, *items[:shown]]
+    if len(items) > shown:
+        out.append(f"  ... and {len(items) - shown} more")
+    return out
+
+
 def lines(result: Dict[str, Any], shown: int = SHOWN) -> List[str]:
     first, second = result["before"], result["after"]
     out = [f"structure quality before {number(first['score'])} after {number(second['score'])}; over the {len(result['common_dimensions'])} dimensions measured on "
            f"both sides: before {number(result['common_before'])} after {number(result['common_after'])}"]
     for name, weight in WEIGHTS.items():
-        a, b = first["dimensions"][name]["score"], second["dimensions"][name]["score"]
-        change = "" if a is None or b is None else f"  {b - a:+.3f}"
-        out.append(f"  {name:<9}{number(a):>14}{number(b):>14}{change}  weight {weight:.2f}")
+        out.append(dimension_row(name, weight, first["dimensions"][name]["score"], second["dimensions"][name]["score"]))
     for label, key in (("offenders fixed", "fixed"), ("offenders introduced", "introduced")):
         every = [(n, o) for n, os in result[key].items() for o in os]
-        out.append(f"{label}: {len(every)}")
-        out += [f"  {n}: {o}" for n, o in every[:shown]]
-        if len(every) > shown:
-            out.append(f"  ... and {len(every) - shown} more")
+        out += capped(f"{label}: {len(every)}", [f"  {n}: {o}" for n, o in every], shown)
     for label, rows in (("scope per solution (arms that implement the whole interface)", result["scope_by_solution"]),
                         ("coupling per unit (imports of other units that land on an entry point or the shared kernel)", result["coupling_by_unit"])):
-        out.append(f"{label}: {len(rows)} changed")
-        out += [f"  {k}: {number(a)} -> {number(b)}" for k, a, b in rows[:shown]]
-        if len(rows) > shown:
-            out.append(f"  ... and {len(rows) - shown} more")
+        out += capped(f"{label}: {len(rows)} changed", [f"  {k}: {number(a)} -> {number(b)}" for k, a, b in rows], shown)
     out.append("keep the change: the number holds or rises" if result["holds"] else
                "the number falls: keep the change only with the reason stated in the commit (what the lower number does not see, and why the structure is better)")
     return out

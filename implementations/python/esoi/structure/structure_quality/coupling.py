@@ -93,16 +93,20 @@ def through_front_door(project: Project, door: str, names: Tuple[str, ...], dept
         return [door]
     found: List[str] = []
     for name in names:
-        origin = [door]
-        for base, taken in project.modules[door].imports:
-            if name in taken:
-                hits = targets(project, base, (name,))
-                origin = []
-                for hit in hits:
-                    origin += through_front_door(project, hit, (name,), depth - 1) if is_front_door(project, hit) and hit != door else [hit]
-                break
+        origin = followed_origin(project, door, name, depth)
         found += origin if origin and origin != [door] else through_star(project, door, name)
     return found
+
+
+def followed_origin(project: Project, door: str, name: str, depth: int) -> List[str]:
+    """Where one name taken from a front door comes from by the door's first import that brings it in; the door when no import does."""
+    for base, taken in project.modules[door].imports:
+        if name in taken:
+            origin: List[str] = []
+            for hit in targets(project, base, (name,)):
+                origin += through_front_door(project, hit, (name,), depth - 1) if is_front_door(project, hit) and hit != door else [hit]
+            return origin
+    return [door]
 
 
 def top_level_names(module) -> Set[str]:
@@ -217,19 +221,29 @@ def components(graph: Dict[str, Set[str]]) -> List[List[str]]:
             if advanced:
                 continue
             work.pop()
-            if work:
-                low[work[-1][0]] = min(low[work[-1][0]], low[node])
+            lower_parent(low, work, node)
             if low[node] == index[node]:
-                group = []
-                while True:
-                    member = stack.pop()
-                    on.discard(member)
-                    group.append(member)
-                    if member == node:
-                        break
+                group = pop_group(stack, on, node)
                 if len(group) > 1:
                     out.append(sorted(group))
     return out
+
+
+def lower_parent(low: Dict[str, int], work: list, node: str) -> None:
+    """Carry a finished node's low link up to the node that was exploring it."""
+    if work:
+        low[work[-1][0]] = min(low[work[-1][0]], low[node])
+
+
+def pop_group(stack: List[str], on: Set[str], node: str) -> List[str]:
+    """Pop the stack down to ``node``: the members of the component that ``node`` roots."""
+    group = []
+    while True:
+        member = stack.pop()
+        on.discard(member)
+        group.append(member)
+        if member == node:
+            return group
 
 
 def names_consumer(project: Project, unit: str, consumers: Tuple[str, ...]) -> List[str]:
@@ -282,22 +296,37 @@ def kernel_note(kernel: Set[str], edges, budgets: Budgets) -> str:
             f"({', '.join(PurePosixPath(p).name for p in shared[:5])}{', ...' if len(shared) > 5 else ''})")
 
 
+def consumer_lines(named: Dict[str, List[str]]) -> List[str]:
+    """One offender line per place a library names its consumer."""
+    return [f"a library names its consumer: {line}" for lines in named.values() for line in lines]
+
+
+def unnamed_share(units: set, named: dict, budgets: Budgets) -> Optional[float]:
+    """The share of units that do not name a consumer; None when no consumers are configured."""
+    return share(len(units) - len(named), len(units)) if budgets.consumers else None
+
+
+def hidden_change_lines(cochange: Dict[str, object]) -> List[str]:
+    """One offender line per pair of files that change together with no import between their units."""
+    return [f"changes together without an import: {a} and {b} ({n} commits)" for a, b, n in cochange.get("hidden", [])]
+
+
 def measure(project: Project, budgets: Budgets, cochange: Optional[Dict[str, object]] = None) -> Dimension:
     verdicts, entries, kernel = classified(project, budgets)
     edges = [e for e, _ in verdicts]
     through = [e for e, verdict in verdicts if verdict in ("entry", "kernel")]
     units = {m.unit for m in project.modules.values()}
     cycles = unit_cycles(units, edges, kernel)
-    cyclic = {u for group in cycles for u in group}
     named = consumer_mentions(project, units, budgets.consumers)
-    parts = {"cross_calls_through_entries_or_kernel": share(len(through), len(edges)), "units_outside_cycles": share(len(units) - len(cyclic), len(units)),
-             "units_not_naming_consumers": share(len(units) - len(named), len(units)) if budgets.consumers else None}
+    parts = {"cross_calls_through_entries_or_kernel": share(len(through), len(edges)),
+             "units_outside_cycles": share(len(units) - len({u for group in cycles for u in group}), len(units)),
+             "units_not_naming_consumers": unnamed_share(units, named, budgets)}
     offenders = offending_imports(project, verdicts, entries)
     offenders += [f"cycle between units: {', '.join(g)}" for g in cycles]
-    offenders += [f"a library names its consumer: {line}" for lines in named.values() for line in lines]
+    offenders += consumer_lines(named)
     note = kernel_note(kernel, edges, budgets)
     if cochange is not None:
         parts["changes_explained_by_imports"] = cochange.get("explained_share")
-        offenders += [f"changes together without an import: {a} and {b} ({n} commits)" for a, b, n in cochange.get("hidden", [])]
+        offenders += hidden_change_lines(cochange)
         note = "; ".join(filter(None, [note, f"stage 2: {cochange.get('commits', 0)} commits read"]))
     return Dimension("coupling", combine(list(parts.values())), {k: v for k, v in parts.items() if v is not None}, offenders, note)
