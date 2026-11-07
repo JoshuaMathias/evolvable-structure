@@ -103,6 +103,15 @@ def implementation_files(index: Index, solutions: List[str]) -> List[str]:
     return files
 
 
+def shared_with_others(index: Index, code_folder, solutions: List[str], host: Path) -> bool:
+    """Whether code of a solution outside ``solutions`` lies inside the host folder."""
+    for r in index.implementations:
+        where = code_folder(r)
+        if r.get("solution_id") not in solutions and where is not None and host in [where, *where.parents]:
+            return True
+    return False
+
+
 def beside_folders(config: Config, index: Index, solutions: List[str]) -> List[str]:
     """The beside-code folder of a solution, when the records live beside the code and its code is alone in that folder."""
     from esoi.structure.intent_registry import besidecode
@@ -119,16 +128,8 @@ def beside_folders(config: Config, index: Index, solutions: List[str]) -> List[s
         return index.code_folders[id(row)]
     found = []
     for sid in solutions:
-        folders = [code_folder(r) for r in index.implementations if r.get("solution_id") == sid]
-        folders = [f for f in folders if f is not None]
+        folders = [f for f in (code_folder(r) for r in index.implementations if r.get("solution_id") == sid) if f is not None]
         host = besidecode.host_for(allowed, besidecode.common(folders), root) if folders else None
-        if host is None or host == root:
-            continue
-        shared = False
-        for r in index.implementations:
-            where = code_folder(r)
-            if r.get("solution_id") not in solutions and where is not None and host in [where, *where.parents]:
-                shared = True
-        if not shared:
+        if host is not None and host != root and not shared_with_others(index, code_folder, solutions, host):
             found.append(host.relative_to(root).as_posix())
     return found

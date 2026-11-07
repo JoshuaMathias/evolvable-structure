@@ -56,13 +56,20 @@ def import_base(here: Path, roots: List[Path]) -> Optional[List[str]]:
     return None
 
 
+def relative_prefix(level: int, base: Optional[List[str]]) -> Optional[List[str]]:
+    """The package path a relative import of ``level`` dots starts from; none when it climbs out of the roots (an absolute import has an empty one)."""
+    if not level:
+        return []
+    if base is None or level - 1 > len(base):
+        return None
+    return base[:len(base) - (level - 1)]
+
+
 def from_import_names(node: ast.ImportFrom, base: Optional[List[str]]) -> Set[str]:
     """The dotted names a ``from ... import ...`` brings in (the module and each imported name beneath it)."""
-    prefix: List[str] = []
-    if node.level:
-        if base is None or node.level - 1 > len(base):
-            return set()
-        prefix = base[:len(base) - (node.level - 1)]
+    prefix = relative_prefix(node.level, base)
+    if prefix is None:
+        return set()
     module = ".".join(prefix + ([node.module] if node.module else [])) if (node.level or node.module) else ""
     if module:
         return {module} | {f"{module}.{alias.name}" for alias in node.names}
@@ -125,6 +132,35 @@ def relative_in(root: Path, path: Path) -> Optional[str]:
     return RELATIVE[key]
 
 
+def names_of(here: Path, roots: List[Path]) -> Optional[Tuple[Set[str], bool]]:
+    """``(imported names, complete)`` of a file, kept until the file changes; None when it cannot be parsed."""
+    info = here.stat()
+    key = (str(here), info.st_mtime_ns, info.st_size, tuple(map(str, roots)))
+    if key not in NAMES:
+        tree = tree_of(here)
+        NAMES[key] = import_names(tree, here, roots) if tree is not None else None
+    return NAMES[key]
+
+
+def wanted_file(root: Path, p: Path, seen: Dict[Path, None], skip) -> bool:
+    """Whether an imported file is inside the repository, not yet seen and not skipped."""
+    inside = relative_in(root, p)
+    return p not in seen and inside is not None and not (skip is not None and skip(inside))
+
+
+def scanned_names(here: Path, roots: List[Path], seen: Dict[Path, None]) -> Optional[Tuple[Set[str], bool]]:
+    """Mark a Python file as seen and give its imported names; None for a file that is not Python or cannot be parsed."""
+    if here.suffix != ".py":
+        return None
+    seen[here] = None
+    return names_of(here, roots)
+
+
+def repo_paths(root: Path, seen: Dict[Path, None]) -> Set[str]:
+    """The seen files as paths relative to the repository root."""
+    return {relative_in(root, p) or p.relative_to(root).as_posix() for p in seen}
+
+
 def closure_of(config: Config, starts: List[Path], skip=None) -> Tuple[Set[str], bool]:
     """``(files, complete)``: the repository files the start files import, transitively, from their source, and whether the scan was
     complete. It is not when a file cannot be read, is not Python, or imports a module by a computed name; the files found so far
@@ -138,24 +174,11 @@ def closure_of(config: Config, starts: List[Path], skip=None) -> Tuple[Set[str],
         here = queue.pop()
         if here in seen or not here.is_file():
             continue
-        if here.suffix != ".py":
-            complete = False
-            continue
-        seen[here] = None
-        info = here.stat()
-        key = (str(here), info.st_mtime_ns, info.st_size, tuple(map(str, roots)))
-        if key not in NAMES:
-            tree = tree_of(here)
-            NAMES[key] = import_names(tree, here, roots) if tree is not None else None
-        found = NAMES[key]
+        found = scanned_names(here, roots, seen)
         if found is None:
             complete = False
             continue
         names, whole = found
         complete = complete and whole
-        for dotted in names:
-            for p in module_files(roots, dotted):
-                inside = relative_in(root, p)
-                if p not in seen and inside is not None and not (skip is not None and skip(inside)):
-                    queue.append(p)
-    return {relative_in(root, p) or p.relative_to(root).as_posix() for p in seen}, complete
+        queue += [p for dotted in names for p in module_files(roots, dotted) if wanted_file(root, p, seen, skip)]
+    return repo_paths(root, seen), complete

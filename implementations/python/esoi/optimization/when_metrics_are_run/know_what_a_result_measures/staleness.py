@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from esoi.structure.intent_registry.config import Config
 from esoi.runtime.implementation_selection.declare import implementation, solution
@@ -123,6 +123,16 @@ def import_closure(project: str) -> Dict[str, str]:
     return stale_by("import_closure", project)
 
 
+def say_changes(found: Dict[str, Any], say) -> None:
+    """The files that count and the ones that are ignored, or the note that nothing it measures changed."""
+    for line in found["counts"]:
+        say(f"  counts: {line}")
+    for line in found["ignored"]:
+        say(f"  ignored: {line}")
+    if not found["counts"]:
+        say("  nothing it measures changed")
+
+
 def explain_cli(config: Config, component: str, say=print, rule: str = "") -> int:
     """``esoi stale --explain COMPONENT [--rule RULE]``: for each recorded arm of the component, the rule in force, the files changed
     since its row's commit that count and who owns them, and the ones that are ignored and who owns those."""
@@ -138,10 +148,5 @@ def explain_cli(config: Config, component: str, say=print, rule: str = "") -> in
             say(f"{component}/{impl}: recorded at {sha or 'no commit'}, which is not known here, so no file can be compared")
             continue
         say(f"{component}/{impl}: recorded at {sha}; rule {found['rule'][0]}" + (f" ({found['rule'][1]})" if found["rule"][1] else ""))
-        for line in found["counts"]:
-            say(f"  counts: {line}")
-        for line in found["ignored"]:
-            say(f"  ignored: {line}")
-        if not found["counts"]:
-            say("  nothing it measures changed")
+        say_changes(found, say)
     return 0

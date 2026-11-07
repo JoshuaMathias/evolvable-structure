@@ -86,18 +86,24 @@ def author_of(config: Config) -> str:
     return f"{name} <{email}>" if name and email else name or email or getpass.getuser()
 
 
-def attestable_range(config: Config, component: str, impl: str, row: Row, through: str, staleness: Any):
-    """``(base, end, what changed inside)`` of the commit range an attestation covers, or raise ``AttestError`` when none can be attested."""
-    sha = row.get("git_sha", "").strip()
-    if not sha or sha.endswith("-dirty"):
-        raise AttestError(f"its latest row was recorded {'on uncommitted code' if sha else 'with no commit'}, so there is no commit range to attest; re-run it with --record")
-    base = covered_base(config, component, impl, sha)
+def range_end(config: Config, base: str, through: str) -> str:
+    """The commit an attestation runs through: ``through`` (default HEAD), which must be a commit descending from ``base``."""
     code, end = git(config, "rev-parse", "--short", through or "HEAD")
     if code != 0 or not end:
         raise AttestError(f"{through or 'HEAD'} is not a commit here")
     code, _ = git(config, "merge-base", "--is-ancestor", base, end)
     if code != 0:
         raise AttestError(f"{end} does not descend from {base}, the commit the result stands on")
+    return end
+
+
+def attestable_range(config: Config, component: str, impl: str, row: Row, through: str, staleness: Any):
+    """``(base, end, what changed inside)`` of the commit range an attestation covers, or raise ``AttestError`` when none can be attested."""
+    sha = row.get("git_sha", "").strip()
+    if not sha or sha.endswith("-dirty"):
+        raise AttestError(f"its latest row was recorded {'on uncommitted code' if sha else 'with no commit'}, so there is no commit range to attest; re-run it with --record")
+    base = covered_base(config, component, impl, sha)
+    end = range_end(config, base, through)
     inside = staleness.explain(config, component, impl, base, until=end)
     if inside is None:
         raise AttestError(f"the commit {base} is not known here, so no change can be compared")

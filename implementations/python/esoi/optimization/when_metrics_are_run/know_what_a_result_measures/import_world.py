@@ -115,15 +115,20 @@ def world_of(config: Config, index: Index) -> World:
     return world
 
 
+def recorded_files(index: Index, impl: str, solutions: List[str]) -> List[str]:
+    """The files the records name for the implementation (else for the solution's implementations), without references to other records."""
+    named = [r for r in index.implementations if r.get("solution_id") in solutions]
+    mine = [r for r in named if normal(r.get("implementation_id", "")) == normal(impl)] or named
+    files = [(r.get("filepath") or "").partition("::")[0].strip() for r in mine]
+    return [f for f in files if f and not f.startswith("@")]
+
+
 def start_files(config: Config, index: Index, component: str, impl: str, solutions: List[str]) -> Optional[List[Path]]:
     """The arm's own implementation files: the wrapper in ``impls/`` when there is one, and the files its records name (those of the
     implementation of that name, else of the solution's implementations). None when it has neither, or a record names a file that is
     not Python and there is no wrapper."""
     wrapper = config.evaluation / component / "impls" / f"{impl}.py"
-    named = [r for r in index.implementations if r.get("solution_id") in solutions]
-    mine = [r for r in named if normal(r.get("implementation_id", "")) == normal(impl)] or named
-    files = [(r.get("filepath") or "").partition("::")[0].strip() for r in mine]
-    files = [f for f in files if f and not f.startswith("@")]
+    files = recorded_files(index, impl, solutions)
     if wrapper.is_file():
         return [wrapper] + [config.root / f for f in files if f.endswith(".py")]
     if not files or any(not f.endswith(".py") for f in files):
