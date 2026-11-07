@@ -17,22 +17,54 @@ from esoi.runtime.implementation_selection import variants
 log = logging.getLogger("esoi.runtime.assemble_by_name.assemble")
 
 
-def check_arguments(sid: str, arm: str, target: Any, kwargs: Mapping[str, Any], options: Mapping[str, Any], chain: List[Tuple[str, str]]) -> None:
-    """Raise ``AssemblyError`` when the options name a parameter the arm lacks, or a required parameter has neither a need nor an option."""
-    builder = builder_of(target)
-    params = inspect.signature(builder).parameters if builder is not None else {}
+def reject_unknown(sid: str, arm: str, params: Mapping[str, inspect.Parameter], kwargs: Mapping[str, Any], options: Mapping[str, Any]) -> None:
+    """Raise ``AssemblyError`` when an option names a parameter the arm lacks or one already filled by a need."""
     extra = [k for k in options if k not in params or k in kwargs]
     if extra:
         raise AssemblyError(f"{sid} ({arm}) has no option(s) {', '.join(extra)}; its parameters: "
                             f"{', '.join(p for p in params if p != 'self' and p not in kwargs) or 'none'}")
-    missing = [name for name, par in params.items()
-               if name != "self" and name not in kwargs and name not in options and par.default is par.empty
-               and par.kind not in (par.VAR_POSITIONAL, par.VAR_KEYWORD)]
+
+
+def check_arguments(sid: str, arm: str, target: Any, kwargs: Mapping[str, Any], options: Mapping[str, Any], chain: List[Tuple[str, str]]) -> None:
+    """Raise ``AssemblyError`` when the options name a parameter the arm lacks, or a required parameter has neither a need nor an option."""
+    builder = builder_of(target)
+    params = inspect.signature(builder).parameters if builder is not None else {}
+    reject_unknown(sid, arm, params, kwargs, options)
+    missing = [name for name, par in params.items() if name != "self" and name not in kwargs and name not in options and required(par)]
     if missing:
         chain_text = " -> ".join([p for p, a in chain] + [sid])
         raise AssemblyError(f"{sid} ({arm}) needs option(s) {', '.join(missing)} (chain: {chain_text}); remedy: "
                             f"pass options={{{sid!r}: {{{', '.join(repr(m) + ': ...' for m in missing)}}}}} or "
                             f"provided={{{sid!r}: ...}}")
+
+
+def required(par: inspect.Parameter) -> bool:
+    """Whether a parameter must be given: no default and not variadic."""
+    return par.default is par.empty and par.kind not in (par.VAR_POSITIONAL, par.VAR_KEYWORD)
+
+
+def construct(assembler: Any, cfg: AssemblyConfig, sid: str, picked: Any, chain: List[Tuple[str, str]], build: Any) -> Tuple[Any, Any, str]:
+    """``(target, object, reason)`` for one picked arm: its options filled from the variant and the environment, its needs built
+    (lazily where declared) and injected, a class or factory called, anything else taken as the instance."""
+    base, variant_options = variants.split(picked.name)    # a selected variant (arm@option=value) is its base arm with options
+    target = assembler.load(sid, base)
+    options = {**variant_options, **dict(cfg.options.get(sid, {}))}
+    filled = environ_fill(target, options, cfg.consumer_environ)
+    options.update({option: str(cfg.consumer_environ[variable]).strip() for option, variable in filled.items()})
+    lazy = assembler.lazy_needs_of(target)
+    below = chain + [(sid, picked.name)]
+    kwargs = {param: (LazyNeed(need, lambda need=need, below=below: build(need, below)) if param in lazy else build(need, below))
+              for param, need in assembler.needs_of(target).items()}
+    if inspect.isclass(target) or inspect.isfunction(target):   # a class or factory is built; anything else is an instance
+        check_arguments(sid, picked.name, target, kwargs, options, chain)
+        obj = target(**kwargs, **options)
+    else:
+        obj = target
+    from_env = ", options from consumer environ: " + ", ".join(f"{o} <- {v}" for o, v in filled.items()) if filled else ""
+    why = ", reasons: " + "; ".join(picked.reasons) if picked.reasons else ""
+    reason = (f"{sid} -> {picked.name} (layer: {picked.layer}, package version {package_version(target)}, "
+              f"config hash {config_hash(options)}{from_env}{why})")
+    return target, obj, reason
 
 
 def assemble_defaults(assembler: Any, config: Optional[AssemblyConfig] = None, provided: Optional[Mapping[str, Any]] = None) -> Assembly:
@@ -86,22 +118,7 @@ def assemble(assembler: Any, config: Optional[AssemblyConfig] = None, provided: 
         picked = assembler.pick(sid, None, cfg)
         if picked is None:
             raise need_error(chain, sid)
-        base, variant_options = variants.split(picked.name)    # a selected variant (arm@option=value) is its base arm with options
-        target = assembler.load(sid, base)
-        options = {**variant_options, **dict(cfg.options.get(sid, {}))}
-        filled = environ_fill(target, options, cfg.consumer_environ)
-        options.update({option: str(cfg.consumer_environ[variable]).strip() for option, variable in filled.items()})
-        lazy = assembler.lazy_needs_of(target)
-        below = chain + [(sid, picked.name)]
-        kwargs = {param: (LazyNeed(need, lambda need=need, below=below: build(need, below)) if param in lazy else build(need, below))
-                  for param, need in assembler.needs_of(target).items()}
-        if inspect.isclass(target) or inspect.isfunction(target):   # a class or factory is built; anything else is an instance
-            check_arguments(sid, picked.name, target, kwargs, options, chain)
-            obj = target(**kwargs, **options)
-        else:
-            obj = target
-        reason = (f"{sid} -> {picked.name} (layer: {picked.layer}, package version {package_version(target)}, "
-                  f"config hash {config_hash(options)}{', options from consumer environ: ' + ', '.join(f'{o} <- {v}' for o, v in filled.items()) if filled else ''}{', reasons: ' + '; '.join(picked.reasons) if picked.reasons else ''})")
+        target, obj, reason = construct(assembler, cfg, sid, picked, chain, lambda need, below: build(need, below))
         built[sid] = (obj, reason, picked, target)
         return obj
 

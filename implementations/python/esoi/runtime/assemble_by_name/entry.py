@@ -83,19 +83,33 @@ def run(target: Any, input: Any = None, *, assembler: Any, environ: Optional[Map
     if handle_only:
         return build_handle(assembler, sid, env, chosen, options, provided, lock)
     if not inspect.isclass(entry.interface):     # a function solution is its own entry
-        scope = next(one.scope for one in assembler.chain() if selection_registry.REGISTRY.get((one.scope, sid)) is entry)
-        if input is None and entry.example is None:
-            raise EntryError(f"{sid} takes an input")
-        return call_entry(declare.resolve(sid, chosen.get(sid), environ=env, scope=scope), input)
+        return run_function(assembler, sid, entry, env, chosen, input)
+    handle = interface_handle(assembler, sid, entry, env, chosen, (options, provided, lock))
+    return handle if entry.kind == "store" and input is None else entry_answer(sid, entry, handle, input)
+
+
+def interface_handle(assembler: Any, sid: str, entry: Any, env: Mapping[str, str], chosen: Mapping[str, str], rest: tuple) -> Any:
+    """The ready handle of a solution declared on an interface class; it must declare its kind and entry."""
     if not entry.kind or not entry.entry:
         raise EntryError(f"{sid} declares no kind or entry: add kind=\"event\"|\"evaluate\"|\"store\" and entry=\"<method>\" to its "
                          f"@solution on {entry.interface.__name__} (rule S37)", code="no-entry")
-    handle = build_handle(assembler, sid, env, chosen, options, provided, lock)
-    if entry.kind == "store" and input is None:
-        return handle
+    options, provided, lock = rest
+    return build_handle(assembler, sid, env, chosen, options, provided, lock)
+
+
+def entry_answer(sid: str, entry: Any, handle: Any, input: Any) -> Any:
+    """What the entry method answers for the input; an ``evaluate`` entry needs an artifact to evaluate."""
     if entry.kind == "evaluate" and input is None:
         raise EntryError(f"{sid} evaluates an artifact: pass it as the input (for example {entry.example!r})")
     return call_entry(getattr(handle, entry.entry), input)
+
+
+def run_function(assembler: Any, sid: str, entry: Any, env: Mapping[str, str], chosen: Mapping[str, str], input: Any) -> Any:
+    """Run a solution that is a function: it is its own entry, resolved from the scope that registered it."""
+    scope = next(one.scope for one in assembler.chain() if selection_registry.REGISTRY.get((one.scope, sid)) is entry)
+    if input is None and entry.example is None:
+        raise EntryError(f"{sid} takes an input")
+    return call_entry(declare.resolve(sid, chosen.get(sid), environ=env, scope=scope), input)
 
 
 def call_entry(method: Callable[..., Any], input: Any) -> Any:
