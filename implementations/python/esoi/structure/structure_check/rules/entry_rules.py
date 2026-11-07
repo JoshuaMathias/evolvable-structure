@@ -15,7 +15,7 @@ S37  entry: every solution with an implementation in the package's code names in
      ``<package>.run(`` runs (and, with ``[rules.S37] installed = true``, from an installed wheel).
 S38  coherence: every intent passes metric-solution-coherence's first stage (``esoi.structure.structure_check.coherence``): paragraph, roots, diagram, code
      precision, coverage and lift at the floors of ``[rules.S38]`` (per intent in ``[rules.S38.floors.<intent-id>]``), fan-out and depth.
-S39  ratchet: the trend of the waiver sets, the enabled rules and the floors and ceilings against a base commit (``esoi.structure.structure_budget.ratchet``).
+S39  ratchet: the trend of the waiver sets, the enabled rules and the floors and ceilings against a base commit (``esoi.structure.structure_check.ratchet``).
 S50  flow first: the intent's paragraph says how its solutions fit, and the flow it describes is written first, in the medium of the
      implementation (here, for code: the entry-point calls from each solution to the ones it uses). It informs when a solution the records
      say is used has an implementation but no caller shows it (nothing in the code of any solution that uses it imports, types or names
@@ -101,29 +101,39 @@ def real_text(row: Dict[str, str], field: str, own_id: str) -> bool:
     return bool(text) and text != own_id and not MARKER.match(text)
 
 
+def first_twelve(items: List[str]) -> str:
+    """The first twelve ids comma-joined, with an ellipsis when there are more."""
+    return ", ".join(items[:12]) + ("..." if len(items) > 12 else "")
+
+
+def links_up(table: Dict[str, Dict[str, str]], column: str, goal: Set[str], start: str) -> bool:
+    """Whether following ``column`` from ``start`` reaches one of the goal ids."""
+    seen, stack = set(), [start]
+    while stack:
+        x = stack.pop()
+        if x in goal:
+            return True
+        if x in seen:
+            continue
+        seen.add(x)
+        stack += ids(table.get(x, {}).get(column, ""))
+    return False
+
+
 def linked_up_problems(ctx: Context, top, sid: str, entity: str, table: Dict[str, Dict[str, str]], column: str, goal: Set[str]) -> List[str]:
     """S36 for the records of one kind that do not link up to the root's through ``column``, or link up with no real text."""
     def reaches(start: str) -> bool:
-        seen, stack = set(), [start]
-        while stack:
-            x = stack.pop()
-            if x in goal:
-                return True
-            if x in seen:
-                continue
-            seen.add(x)
-            stack += ids(table.get(x, {}).get(column, ""))
-        return False
+        return links_up(table, column, goal, start)
     bad: List[str] = []
     loose = [rid for rid in table if not reaches(rid) and not ctx.waived("S36", rid)]
     if loose:
         bad.append(f"S36 {top.intent_id}: {len(loose)} {entity}(s) do not link up to {sid}'s through {column}: "
-                   f"{', '.join(loose[:12])}{'...' if len(loose) > 12 else ''}; next: set {column} on each to the id of the root's {entity}")
+                   f"{first_twelve(loose)}; next: set {column} on each to the id of the root's {entity}")
     linked = [rid for rid in table if rid in goal or reaches(rid)]
     thin = [rid for rid in linked if not real_text(table[rid], TEXT_FIELD[entity], rid) and not ctx.waived("S36", rid)]
     if thin:
         bad.append(f"S36 {top.intent_id}: {len(thin)} {entity}(s) linked to {sid}'s have no real {TEXT_FIELD[entity]} text "
-                   f"(empty, its own id, or only an unconfirmed marker): {', '.join(thin[:12])}{'...' if len(thin) > 12 else ''}; "
+                   f"(empty, its own id, or only an unconfirmed marker): {first_twelve(thin)}; "
                    f"next: write the {TEXT_FIELD[entity]} from what the project owner decided")
     return bad
 
@@ -148,6 +158,20 @@ def authoritative_metric(root: Dict[str, str], metrics: Dict[str, Dict[str, str]
     return (root.get("authoritative_metric_id") or "").strip() or next((m for m, r in metrics.items() if sid in ids(r.get("solution_ids", ""))), "")
 
 
+def many_roots_line(top, roots: List[str]) -> str:
+    """The S36 line for a top intent whose solutions do not have exactly one root."""
+    return (f"S36 {top.intent_id}: {len(roots)} root solutions; the solution the repository implements is the one root "
+            f"of its top intent ({', '.join(roots[:8])}{'...' if len(roots) > 8 else ''}); next: make one solution the "
+            "one the others are used by, through uses_solution_ids")
+
+
+def root_lacks(ctx: Context, sid: str, problems: List[str], ideals: List[str], metric) -> List[str]:
+    """What the root solution still lacks: a problem, an ideal, an authoritative metric, a second implementation."""
+    arms = [r for r in ctx.registry.implementations if r.get("solution_id") == sid]
+    return [what for what, ok in (("a problem", problems), ("an ideal", ideals), ("an authoritative metric", metric),
+                                  ("an alternative implementation beside the selected one", len(arms) >= 2)) if not ok]
+
+
 def overall_network(ctx: Context) -> List[str]:
     found = [i for i in intents.discover(ctx.config) if i.is_top]
     if not found:
@@ -158,21 +182,19 @@ def overall_network(ctx: Context) -> List[str]:
         return [r for r in rows if r.get("intent_id", top.intent_id) == top.intent_id]
     solutions = {r["solution_id"]: r for r in mine(ctx.registry.authored())}
     roots = root_solutions(ctx, solutions)
-    bad: List[str] = []
     if len(roots) != 1:
-        if not ctx.waived("S36", top.intent_id):
-            bad.append(f"S36 {top.intent_id}: {len(roots)} root solutions; the solution the repository implements is the one root "
-                       f"of its top intent ({', '.join(roots[:8])}{'...' if len(roots) > 8 else ''}); next: make one solution the "
-                       "one the others are used by, through uses_solution_ids")
-        return bad
-    root = solutions[roots[0]]
+        return [] if ctx.waived("S36", top.intent_id) else [many_roots_line(top, roots)]
+    return root_network_problems(ctx, top, solutions[roots[0]], mine)
+
+
+def root_network_problems(ctx: Context, top, root: Dict[str, str], mine) -> List[str]:
+    """S36 for the one root solution: what it lacks, and the problems, ideals and metrics that do not link up to it."""
+    bad: List[str] = []
     sid = root["solution_id"]
     problems, ideals = ids(root.get("problem_ids", "")), ids(root.get("ideal_ids", ""))
     metrics = {r["metric_id"]: r for r in mine(ctx.registry.metrics)}
     metric = authoritative_metric(root, metrics)
-    arms = [r for r in ctx.registry.implementations if r.get("solution_id") == sid]
-    lacking = [what for what, ok in (("a problem", problems), ("an ideal", ideals), ("an authoritative metric", metric),
-                                     ("an alternative implementation beside the selected one", len(arms) >= 2)) if not ok]
+    lacking = root_lacks(ctx, sid, problems, ideals, metric)
     if lacking and not ctx.waived("S36", sid):
         bad.append(f"S36 {sid}: the solution this repository implements lacks {'; '.join(lacking)}; next: add it to the records of {sid}")
     for entity, rows, key, column, goal in (
@@ -190,13 +212,21 @@ def interface_problems(row: Dict[str, str], names: List[str], found: Dict[str, o
         problems.append(f"interface_name is {row.get('interface_name', '')!r}, not {found['name']}")
     if found["kind"] not in KINDS and (found["is_class"] or found["kind"]):
         problems.append(f"kind= is {found['kind']!r}, not one of {', '.join(KINDS)}")
-    if found["is_class"] and not found["entry"]:
-        problems.append("no entry= method")
-    elif found["is_class"] and found["entry"] not in found["methods"] and not [b for b in found["bases"] if "Protocol" not in b]:
-        problems.append(f"entry {found['entry']!r} is not a method of {found['name']}")
+    problems += entry_problems(found)
     if not found["example"]:
         problems.append("no example= input")
     return problems
+
+
+def entry_problems(found: Dict[str, object]) -> List[str]:
+    """What is wrong with the entry= method a class-based @solution names."""
+    if not found["is_class"]:
+        return []
+    if not found["entry"]:
+        return ["no entry= method"]
+    if found["entry"] not in found["methods"] and not [b for b in found["bases"] if "Protocol" not in b]:
+        return [f"entry {found['entry']!r} is not a method of {found['name']}"]
+    return []
 
 
 def in_package_code(record: Dict[str, str], package_dir: str, evaluation: str) -> bool:
@@ -214,19 +244,20 @@ def interfaces(ctx: Context) -> List[str]:
     for row in ctx.every_solution():
         sid = row.get("solution_id", "")
         in_code = [r for r in ctx.registry.implementations if r.get("solution_id") == sid and in_package_code(r, package_dir, evaluation)]
-        if not in_code or ctx.waived("S37", sid):
-            continue
-        names = ids(row.get("interface_name", ""))
-        found = declared.get(sid)
-        if found is None:
-            bad.append(f"S37 {sid}: has code ({in_code[0]['filepath']}) but no @solution({sid!r}, kind=, entry=, example=) declares "
-                       f"its interface{' (interface_name says ' + ', '.join(names) + ', which no @solution declares)' if names else ''}; next: "
-                       f"declare it where it lives")
-            continue
-        problems = interface_problems(row, names, found)
-        if problems:
-            bad.append(f"S37 {sid}: {found['file']}: " + "; ".join(problems) + "; next: fix the @solution declaration")
+        if in_code and not ctx.waived("S37", sid):
+            bad += interface_finding(row, sid, in_code[0]["filepath"], declared.get(sid))
     return bad
+
+
+def interface_finding(row: Dict[str, str], sid: str, filepath: str, found: Optional[Dict[str, object]]) -> List[str]:
+    """The S37 line for one solution that has code: undeclared, or declared with problems; empty when sound."""
+    names = ids(row.get("interface_name", ""))
+    if found is None:
+        return [f"S37 {sid}: has code ({filepath}) but no @solution({sid!r}, kind=, entry=, example=) declares "
+                f"its interface{' (interface_name says ' + ', '.join(names) + ', which no @solution declares)' if names else ''}; next: "
+                f"declare it where it lives"]
+    problems = interface_problems(row, names, found)
+    return [f"S37 {sid}: {found['file']}: " + "; ".join(problems) + "; next: fix the @solution declaration"] if problems else []
 
 
 def child_json(ctx: Context, args: List[str]) -> object:
@@ -264,12 +295,18 @@ def imported_package_names(ctx: Context) -> set:
     package_dir = (ctx.config.package_dir or "").rstrip("/") + "/"
     for rel in ctx.files:
         if rel.startswith(package_dir) and rel.endswith(".py"):
-            tree = tree_of(ctx.root / rel)
-            for node in nodes_of(tree) if tree is not None else []:
-                if isinstance(node, ast.Import):
-                    wanted.update(a.name.split(".")[0] for a in node.names)
-                elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
-                    wanted.add(node.module.split(".")[0])
+            wanted |= top_level_imports(tree_of(ctx.root / rel))
+    return wanted
+
+
+def top_level_imports(tree) -> set:
+    """The top-level package names one syntax tree imports (none for a file that did not parse)."""
+    wanted: set = set()
+    for node in nodes_of(tree) if tree is not None else []:
+        if isinstance(node, ast.Import):
+            wanted.update(a.name.split(".")[0] for a in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+            wanted.add(node.module.split(".")[0])
     return wanted
 
 
@@ -372,21 +409,27 @@ NEXT_COHERENCE = {"paragraph": "edit the intent's solution_coherence so each use
                   "balance": "group solutions so no implementation uses more than max_fan_out"}
 
 
-def intent_flow_lines(r: Dict[str, object], waived) -> List[str]:
-    """S50 lines for one intent of a coherence report."""
-    from esoi.structure.structure_check.coherence import STRONG
-    out: List[str] = []
+def edge_callers(verdicts: Dict[str, str], strong) -> Tuple[Dict[str, List[str]], List[str]]:
+    """For each used solution the users whose edge shows strong evidence, and the edges whose evidence is not strong."""
     callers: Dict[str, List[str]] = {}
     unseen: List[str] = []
-    for edge, evidence in sorted(r.get("verdicts", {}).items()):
+    for edge, evidence in sorted(verdicts.items()):
         user, _, used = edge.partition("->")
         if evidence == "n/a" or not used:
             continue
         callers.setdefault(used, [])
-        if evidence in STRONG:
+        if evidence in strong:
             callers[used].append(user)
         else:
             unseen.append(edge)
+    return callers, unseen
+
+
+def intent_flow_lines(r: Dict[str, object], waived) -> List[str]:
+    """S50 lines for one intent of a coherence report."""
+    from esoi.structure.structure_check.coherence import STRONG
+    out: List[str] = []
+    callers, unseen = edge_callers(r.get("verdicts", {}), STRONG)
     for used, who in sorted(callers.items()):
         if not who and not waived(used) and not waived(f"{r['intent']}:{used}"):
             users = ", ".join(sorted(e.partition("->")[0] for e in unseen if e.endswith("->" + used)))
@@ -413,7 +456,7 @@ def flow(ctx: Context) -> List[str]:
 
 def ratchet(ctx: Context) -> List[str]:
     """The trend against the base commit. Every moved item is listed with its direction; none of it fails a check."""
-    from esoi.structure.structure_budget import ratchet as ratchet_module
+    from esoi.structure.structure_check import ratchet as ratchet_module
     moves, note = ratchet_module.trend(ctx.config)
     if note:
         return [f"S39 {note}"]

@@ -24,15 +24,20 @@ def position(sid: str, row: Dict[str, str], text: str) -> int:
     best = found.start() if found else -1
     name = " ".join((row.get("name") or "").split())
     if name:
-        masked = text
-        for other, longer in SOLUTION_NAMES.items():
-            longer = " ".join(longer.split())
-            if other != sid and len(longer) > len(name) and name.lower() in longer.lower():
-                masked = phrase(longer).sub(lambda hit: " " * len(hit.group(0)), masked)
-        hit = phrase(name).search(masked)
+        hit = phrase(name).search(masked_by_longer_names(sid, name, text))
         if hit and (best < 0 or hit.start() < best):
             best = hit.start()
     return best
+
+
+def masked_by_longer_names(sid: str, name: str, text: str) -> str:
+    """The text with every longer solution name that contains this name blanked out, so a name inside another name is not found."""
+    masked = text
+    for other, longer in SOLUTION_NAMES.items():
+        longer = " ".join(longer.split())
+        if other != sid and len(longer) > len(name) and name.lower() in longer.lower():
+            masked = phrase(longer).sub(lambda hit: " " * len(hit.group(0)), masked)
+    return masked
 
 
 def sentences(text: str) -> List[str]:
@@ -90,16 +95,24 @@ def naming_problems(para: str, mine: List[str], every_solution, uses, host_sid: 
     missing = [s for s in mine if position(s, every_solution[s], para) < 0]
     if missing:
         found.append(f"names {len(mine) - len(missing)} of {len(mine)} solutions; missing: {', '.join(missing)}")
-    allowed = set(mine) | {b for a in mine for b in uses[a]} | host_uses | {host_sid} | {
-        s for s in every_solution if any(h in mine for h in uses[s])}
-    stray = [s for s in every_solution if s not in allowed and position(s, every_solution[s], para) >= 0]
+    stray = stray_solutions(para, mine, every_solution, uses, host_sid, host_uses)
     if stray:
         found.append(f"names solutions of other intents no edge reaches: {', '.join(stray)}")
+    return found + crowded_sentences(para, every_solution, max_names)
+
+
+def stray_solutions(para: str, mine: List[str], every_solution, uses, host_sid: str, host_uses) -> List[str]:
+    """The solutions the paragraph names that no edge of the intent (or its host) reaches."""
+    allowed = set(mine) | {b for a in mine for b in uses[a]} | host_uses | {host_sid} | {
+        s for s in every_solution if any(h in mine for h in uses[s])}
+    return [s for s in every_solution if s not in allowed and position(s, every_solution[s], para) >= 0]
+
+
+def crowded_sentences(para: str, every_solution, max_names: int) -> List[str]:
+    """The problem line for sentences that name more than ``max_names`` solutions; empty when none do."""
     counted = [(len(named_in(s, every_solution, every_solution)), s) for s in sentences(para)]
     crowded = [f"{n} in \"{s[:60]}...\"" for n, s in counted if n > max_names]
-    if crowded:
-        found.append(f"sentences naming more than {max_names} solutions: {'; '.join(crowded)}")
-    return found
+    return [f"sentences naming more than {max_names} solutions: {'; '.join(crowded)}"] if crowded else []
 
 
 def stated_edges(parts: List[str], inner, mine: List[str], every_solution) -> Dict[str, str]:
@@ -108,17 +121,23 @@ def stated_edges(parts: List[str], inner, mine: List[str], every_solution) -> Di
     subject = clause_subjects(parts, every_solution, mine)
     for a, b in sorted(inner):
         for i, c in enumerate(parts):
-            pa, pb = position(a, every_solution[a], c), position(b, every_solution[b], c)
-            if pa < 0 and re.match(r"^\s*It\b", c) and subject[i] == a:
-                pa = 0
-            if 0 <= pa < pb or (pa == 0 and pb > 0):
-                names = [x for x in (a, b, every_solution[a].get("name", ""), every_solution[b].get("name", "")) if x]
-                named_here = [sid for sid in every_solution if position(sid, every_solution[sid], c) >= 0]
-                named_here += [every_solution[sid].get("name", "") for sid in named_here if every_solution[sid].get("name", "")]
-                if other_words(c[max(pa, 0):pb], names + named_here) >= MIN_CLAUSE_WORDS:   # the words that join them
-                    stated[f"{a}->{b}"] = c
-                    break
+            if clause_states(a, b, c, subject[i], every_solution):
+                stated[f"{a}->{b}"] = c
+                break
     return stated
+
+
+def clause_states(a: str, b: str, c: str, subject: str, every_solution) -> bool:
+    """Whether one clause names ``a`` before ``b`` (or opens with "It" for ``a``) with words of their own between them."""
+    pa, pb = position(a, every_solution[a], c), position(b, every_solution[b], c)
+    if pa < 0 and re.match(r"^\s*It\b", c) and subject == a:
+        pa = 0
+    if not (0 <= pa < pb or (pa == 0 and pb > 0)):
+        return False
+    names = [x for x in (a, b, every_solution[a].get("name", ""), every_solution[b].get("name", "")) if x]
+    named_here = [sid for sid in every_solution if position(sid, every_solution[sid], c) >= 0]
+    named_here += [every_solution[sid].get("name", "") for sid in named_here if every_solution[sid].get("name", "")]
+    return other_words(c[max(pa, 0):pb], names + named_here) >= MIN_CLAUSE_WORDS   # the words that join them
 
 
 def templated_problem(stated: Dict[str, str], every_solution) -> List[str]:

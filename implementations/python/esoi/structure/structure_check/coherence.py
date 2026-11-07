@@ -184,15 +184,23 @@ def diagram_problems(h: Hierarchy, intent, mine: List[str], problems: Dict[str, 
     unlabelled = sorted({b for b, _ in all_edges if not (h.every_solution[b].get("outputs") or "").strip()})
     if unlabelled:
         problems["diagram"].append(f"edges with no label (the provider's outputs is empty): {', '.join(unlabelled)}")
+    stale = diagram_page_problem(h, intent)
+    if stale:
+        problems["diagram"].append(stale)
+
+
+def diagram_page_problem(h: Hierarchy, intent) -> str:
+    """Why the intent's diagram page is not current, or an empty string when it is."""
     try:
         from esoi.understanding.readable_records import diagram as esoi_diagram
         from esoi.structure.intent_registry.registry import load as load_registry
         page = intent.folder / esoi_diagram.FILE
         want_text = esoi_diagram.render(load_registry(h.cfg), intent)
         if want_text and (not page.is_file() or page.read_text(encoding="utf-8") != want_text):
-            problems["diagram"].append(f"{page.relative_to(h.cfg.root)} is not current (run `esoi diagram`)")
+            return f"{page.relative_to(h.cfg.root)} is not current (run `esoi diagram`)"
     except ImportError:
-        problems["diagram"].append("this esoi has no `esoi diagram` (template version 4 and later)")
+        return "this esoi has no `esoi diagram` (template version 4 and later)"
+    return ""
 
 
 def floor_problems(scores: Dict[str, object], lim: Dict[str, float], problems: Dict[str, List[str]]) -> None:
@@ -289,6 +297,11 @@ def intent_report(h: Hierarchy, intent, base_rate: Optional[float]) -> Dict[str,
     return report_row(intent, mine, inner, roots, depth, fan, para, problems, scores, recall, lim)
 
 
+def largest(report: List[Dict[str, object]], key: str) -> int:
+    """The largest value of ``key`` over the reports, 0 when there are none."""
+    return max([r[key] for r in report] or [0])
+
+
 def summarize(report: List[Dict[str, object]], overall: Dict[str, float], base: Counter, base_rate: Optional[float]) -> Dict[str, object]:
     """The repository-wide measures over the reports of every intent."""
     n = len(report) or 1
@@ -297,7 +310,7 @@ def summarize(report: List[Dict[str, object]], overall: Dict[str, float], base: 
         m2_precision=[r["code_precision"] for r in report], m2_coverage=[r["code_coverage"] for r in report],
         m2_base_rate=base_rate, m2_base_pairs=sum(base.values()), m2_base_evidence=dict(base), m2_lift=[r["code_lift"] for r in report],
         m3_diagram_share=round(sum(r["diagram_ok"] for r in report) / n, 3),
-        m4_max_fan_out=max([r["max_fan_out"] for r in report] or [0]), m4_max_depth=max([r["max_depth"] for r in report] or [0]),
+        m4_max_fan_out=largest(report, "max_fan_out"), m4_max_depth=largest(report, "max_depth"),
         roots=sum(len(r["roots"]) for r in report), passed=all(not r["problems"] for r in report))
 
 
