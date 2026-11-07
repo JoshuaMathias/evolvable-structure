@@ -37,6 +37,7 @@ Standard library only.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
@@ -230,6 +231,256 @@ def check_headers(folder: Path, template: Template, interface_required: bool = T
     return bad
 
 
+@dataclass
+class RecordSet:
+    """The records being checked, by entity and id, with the ids whose own checks are relaxed and the problems found so far."""
+    tables: Dict[str, List[Dict[str, str]]]
+    keys: Dict[str, str]
+    waived: Set[str]
+    adopted: Set[str]
+    index: Dict[str, Dict[str, Dict[str, str]]] = field(default_factory=dict)
+    specified: Set[str] = field(default_factory=set)
+    bad: List[str] = field(default_factory=list)
+
+    def skipped(self, entity: str, row: Dict[str, str]) -> bool:
+        """True for a record whose solution is waived (its records are still to be written)."""
+        if entity in ("solution", "implementation"):
+            return row.get("solution_id") in self.waived
+        if entity == "metric":
+            owners = ids(row.get("solution_ids", ""))
+            return bool(owners) and all(s in self.waived for s in owners)
+        return False
+
+    def specification_only(self, entity: str, row: Dict[str, str]) -> bool:
+        """True for a solution that is a specification, and for a metric that measures only specifications."""
+        if entity == "solution":
+            return row.get("solution_id") in self.specified
+        if entity == "metric":
+            owners = ids(row.get("solution_ids", ""))
+            return bool(owners) and all(s in self.specified for s in owners)
+        return False
+
+    def unknown(self, owner: str, column: str, targets: Iterable[str], where: Dict[str, Dict[str, str]]) -> None:
+        """R3 for each target of a link column that is not a record of ``where``."""
+        self.bad += [f"R3 {owner}: {column} names {target!r}, which is not a record" for target in targets if target not in where]
+
+
+def read_tables(struct: Path, tables: Optional[Dict[str, List[Dict[str, str]]]]) -> Dict[str, List[Dict[str, str]]]:
+    """The rows of every record file of ``struct`` (upgraded to the current columns), unless the caller already merged them."""
+    if tables is not None:
+        return tables
+    return {entity: upgrade_rows(entity, read_csv(Path(struct) / name)) for entity, (name, _) in FILES.items()}
+
+
+def index_tables(rs: RecordSet, overall: Optional[Overall]) -> None:
+    """Index each table by id; R1 for an id that appears twice and for a table with no records (a problem or ideal table may be empty under an overall network)."""
+    for entity, rows in rs.tables.items():
+        seen: Dict[str, Dict[str, str]] = {}
+        for row in rows:
+            rid = row.get(rs.keys[entity], "")
+            if rid in seen:
+                rs.bad.append(f"R1 {FILES[entity][0]} {rid}: id appears more than once")
+            seen[rid] = row
+        rs.index[entity] = seen
+        if not rows and not (overall is not None and entity in ("problem", "ideal")):
+            rs.bad.append(f"R1 {FILES[entity][0]}: no records")
+
+
+def check_template_fields(rs: RecordSet, template: Template, interface_required: bool, merged: bool,
+                          approved: Optional[Dict[str, Set[str]]]) -> None:
+    """R1 for missing columns (a merged tree has its headers checked by ``check_headers``) and R2 for each required field left empty."""
+    for entity, rows in rs.tables.items():
+        need = checked_fields(template, entity, interface_required)
+        if rows and not merged:
+            name = FILES[entity][0]
+            missing = [k for k in [rs.keys[entity], *need] if k not in rows[0]]
+            if missing:
+                rs.bad.append(f"R1 {name}: missing template column(s) {', '.join(missing)} (run `esoi template sync`, then fill them)")
+            rs.bad += renamed_column_problems(name, rows[0], name)
+            rs.bad += unapproved_column_problems(name, rows[0], template, name, approved)
+        for row in rows:
+            if rs.skipped(entity, row) or (entity == "solution" and row.get("solution_id") in rs.adopted):
+                continue
+            wanted = checked_fields(template, entity, False) if rs.specification_only(entity, row) else need
+            empty = [k for k in wanted if k in row and not row[k].strip() and k not in MAY_BE_EMPTY.get(entity, ())]
+            if empty:
+                rs.bad.append(f"R2 {row.get(rs.keys[entity], '')}: template field(s) not filled: {', '.join(empty)}")
+
+
+def check_problem_links(rs: RecordSet, related_problem_ids: Optional[Set[str]]) -> None:
+    """R3 for each problem: its solutions and ideals are records, there is at least one of each, and each lists the problem back."""
+    problems, ideals, solutions = rs.index["problem"], rs.index["ideal"], rs.index["solution"]
+    for pid, row in problems.items():
+        rs.unknown(pid, "solution_ids", ids(row.get("solution_ids", "")), solutions)
+        rs.unknown(pid, "ideal_ids", ids(row.get("ideal_ids", "")), ideals)
+        if not ids(row.get("solution_ids", "")):
+            rs.bad.append(f"R3 {pid}: no solution addresses this problem")
+        if not ids(row.get("ideal_ids", "")):
+            rs.bad.append(f"R3 {pid}: no ideal opposes this problem")
+        for sid in ids(row.get("solution_ids", "")):
+            if sid in solutions and pid not in ids(solutions[sid].get("problem_ids", "")) and sid not in rs.waived and sid not in rs.adopted:
+                rs.bad.append(f"R3 {pid}: lists solution {sid} but {sid} does not list it in problem_ids")
+        for iid in ids(row.get("ideal_ids", "")):
+            if iid in ideals and pid not in ids(ideals[iid].get("problem_ids", "")):
+                rs.bad.append(f"R3 {pid}: lists ideal {iid} but {iid} does not list it in problem_ids")
+    if related_problem_ids is not None:
+        for pid, row in problems.items():
+            rs.bad += [f"R3 {pid}: related_problem_ids names {other!r}, which is not a problem of the related registry"
+                       for other in ids(row.get("related_problem_ids", "")) if other not in related_problem_ids]
+
+
+def check_ideal_links(rs: RecordSet) -> None:
+    """R3 for each ideal: the problems it opposes are records, it opposes one, and each lists the ideal back."""
+    problems = rs.index["problem"]
+    for iid, row in rs.index["ideal"].items():
+        rs.unknown(iid, "problem_ids", ids(row.get("problem_ids", "")), problems)
+        if not ids(row.get("problem_ids", "")):
+            rs.bad.append(f"R3 {iid}: opposes no problem")
+        for pid in ids(row.get("problem_ids", "")):
+            if pid in problems and iid not in ids(problems[pid].get("ideal_ids", "")):
+                rs.bad.append(f"R3 {iid}: lists problem {pid} but {pid} does not list it in ideal_ids")
+
+
+def check_solution_has(rs: RecordSet, sid: str, row: Dict[str, str]) -> None:
+    """R3 for a solution that addresses no problem (or none of its own intent), has no ideal or no metric; an adopted solution inherits these."""
+    inherits = sid in rs.adopted   # the library says what the solution is for
+    problem_ids = ids(row.get("problem_ids", ""))
+    has_problem = bool(problem_ids or ids(row.get("parent_problem_ids", "")))
+    if not has_problem and not inherits:
+        rs.bad.append(f"R3 {sid}: addresses no problem")
+    own = row.get("intent_id", "")
+    if own and not inherits and has_problem and not any(rs.index["problem"].get(pid, {}).get("intent_id", "") == own for pid in problem_ids):
+        rs.bad.append(f"R3 {sid}: addresses no problem of its own intent {own} (it may also link problems of other intents, "
+                      "but is motivated by at least one of its own)")
+    if not ids(row.get("ideal_ids", "")) and not ids(row.get("parent_ideal_ids", "")) and not inherits:
+        rs.bad.append(f"R3 {sid}: has no ideal")
+    if not ids(row.get("metric_ids", "")) and not inherits:
+        rs.bad.append(f"R3 {sid}: has no metric")
+
+
+def check_solution_back_links(rs: RecordSet, sid: str, row: Dict[str, str]) -> None:
+    """R3 for a problem or metric a solution lists that does not list the solution back."""
+    problems, metrics = rs.index["problem"], rs.index["metric"]
+    for pid in ids(row.get("problem_ids", "")):
+        if pid in problems and sid not in ids(problems[pid].get("solution_ids", "")):
+            rs.bad.append(f"R3 {sid}: lists problem {pid} but {pid} does not list it in solution_ids")
+    for mid in ids(row.get("metric_ids", "")):
+        if mid in metrics and sid not in ids(metrics[mid].get("solution_ids", "")):
+            rs.bad.append(f"R3 {sid}: lists metric {mid} but {mid} does not list it in solution_ids")
+
+
+def check_solution_implementations(rs: RecordSet, sid: str, row: Dict[str, str]) -> None:
+    """R3 for an implementation the solution's cell names without a record, and a record its cell does not name."""
+    mine = {i: r for i, r in rs.index["implementation"].items() if r.get("solution_id") == sid}
+    claimed, unclaimed = match_implementations(sid, ids(row.get("implementations", "")), mine)
+    rs.bad += [f"R3 {sid}: implementation {implementation_id(sid, entry)} has no record in implementations.csv"
+               for entry, rid in claimed.items() if not rid]
+    rs.bad += [f"R3 {sid}: implementations.csv record {iid} is not in the solution's implementations cell" for iid in unclaimed]
+
+
+def check_solution_links(rs: RecordSet) -> None:
+    """R3 for each solution that is not waived: its problems, ideals and metrics, the links back, and its implementations."""
+    for sid, row in rs.index["solution"].items():
+        if sid in rs.waived:
+            continue
+        rs.unknown(sid, "problem_ids", ids(row.get("problem_ids", "")), rs.index["problem"])
+        rs.unknown(sid, "ideal_ids", ids(row.get("ideal_ids", "")), rs.index["ideal"])
+        rs.unknown(sid, "metric_ids", ids(row.get("metric_ids", "")), rs.index["metric"])
+        check_solution_has(rs, sid, row)
+        check_solution_back_links(rs, sid, row)
+        check_solution_implementations(rs, sid, row)
+
+
+def check_authoritative_metric(rs: RecordSet) -> None:
+    """R6 for an authoritative metric that is not one of the solution's, and for a solution with several metrics and no authoritative one."""
+    for sid, row in rs.index["solution"].items():
+        mine = [mid for mid, m in rs.index["metric"].items() if sid in ids(m.get("solution_ids", ""))]
+        chosen = row.get("authoritative_metric_id", "").strip()
+        if chosen and chosen not in mine:
+            rs.bad.append(f"R6 {sid}: authoritative_metric_id {chosen!r} is not one of the solution's metrics")
+        elif len(mine) > 1 and not chosen and sid not in rs.waived:
+            rs.bad.append(f"R6 {sid}: has {len(mine)} metrics, so authoritative_metric_id names the one that decides "
+                          "which implementation is best")
+
+
+def check_run_policies(rs: RecordSet) -> None:
+    """R3 for a solution's ``governs_metric_ids`` and the metrics' ``run_policy_ids``, which must agree both ways."""
+    solutions, metrics = rs.index["solution"], rs.index["metric"]
+    for sid, row in solutions.items():
+        for mid in ids(row.get("governs_metric_ids", "")):
+            if mid not in metrics:
+                rs.bad.append(f"R3 {sid}: governs_metric_ids names {mid!r}, which is not a metric")
+            elif sid not in ids(metrics[mid].get("run_policy_ids", "")):
+                rs.bad.append(f"R3 {sid}: governs metric {mid} but {mid} does not list it in run_policy_ids")
+    for mid, row in metrics.items():
+        for sid in ids(row.get("run_policy_ids", "")):
+            if sid not in solutions:
+                rs.bad.append(f"R3 {mid}: run_policy_ids names {sid!r}, which is not a solution")
+            elif mid not in ids(solutions[sid].get("governs_metric_ids", "")):
+                rs.bad.append(f"R3 {mid}: lists run policy {sid} but {sid} does not list it in governs_metric_ids")
+
+
+def check_implementations_and_metrics(rs: RecordSet, require_command: bool) -> None:
+    """R3 for an implementation of no solution and a metric that measures none; R2 for a metric without a command where one is required."""
+    solutions = rs.index["solution"]
+    for iid, row in rs.index["implementation"].items():
+        if row.get("solution_id") not in solutions:
+            rs.bad.append(f"R3 {iid}: solution_id {row.get('solution_id')!r} is not a solution")
+    for mid, row in rs.index["metric"].items():
+        rs.unknown(mid, "solution_ids", ids(row.get("solution_ids", "")), solutions)
+        if not ids(row.get("solution_ids", "")):
+            rs.bad.append(f"R3 {mid}: measures no solution")
+        if require_command and not rs.skipped("metric", row) and not rs.specification_only("metric", row) \
+                and not row.get("command", "").strip():
+            rs.bad.append(f"R2 {mid}: command is empty")
+
+
+def parent_link_problems(rid: str, row: Dict[str, str], overall: Optional[Overall], retired: Set[str], scope: str) -> Tuple[bool, List[str]]:
+    """Whether a record names any parent record, and R5 for each parent id that is retired, unconfigured or not in the overall network."""
+    named = False
+    bad: List[str] = []
+    for column, kind in PARENT_COLUMNS.items():
+        for target in ids(row.get(column, "")):
+            named = True
+            if column in retired:
+                bad.append(f"R5 {rid}: {column} is retired in the intent layout; a solution is recorded in the intent "
+                           "it serves, and an implementation lists the solutions it builds on in uses_solution_ids")
+            elif overall is None:
+                bad.append(f"R5 {rid}: {column} names {target!r} but no overall network is configured")
+            elif target not in overall.get(kind, set()):
+                bad.append(f"R5 {rid}: {column} names {target!r}, which is not a {kind} of {scope}")
+    return named, bad
+
+
+def check_parent_links(rs: RecordSet, overall: Optional[Overall], retired: Set[str], scope: str, require_parent: bool) -> None:
+    """R5 for each parent link that does not resolve, and with ``require_parent`` for a solution that names none."""
+    for entity, rows in rs.tables.items():
+        for row in rows:
+            rid = row.get(rs.keys[entity], "")
+            named, found = parent_link_problems(rid, row, overall, retired, scope)
+            rs.bad += found
+            if require_parent and entity == "solution" and not named and row.get(rs.keys[entity]) not in rs.waived:
+                rs.bad.append(f"R5 {rid}: names no parent problem, ideal, metric or area of the overall solution")
+
+
+def check_problem_phrasing(rs: RecordSet) -> None:
+    """R4 for a problem phrased as a task, identical to a solution's text, or naming its own solution."""
+    solutions = rs.index["solution"]
+    solution_texts = {re.sub(r"\W+", " ", row.get(k, "").lower()).strip()
+                      for row in solutions.values() for k in ("name", "purpose", "approach", "milestones") if row.get(k)}
+    for pid, row in rs.index["problem"].items():
+        text = row.get("problem", "").strip()
+        if not text:
+            continue
+        first = re.sub(r"[^a-z]", "", text.split()[0].lower())
+        if first in IMPERATIVE:
+            rs.bad.append(f"R4 {pid}: the problem reads as a task ({text.split()[0]!r} ...); the template says a problem "
+                          "is a difficulty someone has, never a task or recommendation")
+        if re.sub(r"\W+", " ", text.lower()).strip() in solution_texts:
+            rs.bad.append(f"R4 {pid}: the problem is identical to a solution's text")
+        rs.bad += [f"R4 {pid}: the problem names its own solution {sid}" for sid in solutions if sid in text]
+
+
 def check_records(struct: Path, template: Template, waived: Optional[Set[str]] = None,
                   interface_required: bool = True, related_problem_ids: Optional[Set[str]] = None,
                   overall: Optional[Overall] = None, require_command: bool = True,
@@ -250,185 +501,17 @@ def check_records(struct: Path, template: Template, waived: Optional[Set[str]] =
     the link should have resolved. ``adopted`` holds the ids of solutions adopted from a library: the library says what they are
     for, so their template fields, problems, ideals and metric are not required here, while their metrics, implementations
     and every id that points at them are checked like any solution's."""
-    waived = waived or set()
-    adopted = adopted or set()
-    bad: List[str] = []
-    merged = tables is not None
-    retired = retired or set()
-    tables = tables if merged else {entity: upgrade_rows(entity, read_csv(Path(struct) / name)) for entity, (name, _) in FILES.items()}
-    keys = {entity: key for entity, (_, key) in FILES.items()}
-    index: Dict[str, Dict[str, Dict[str, str]]] = {}
-    for entity, rows in tables.items():
-        seen: Dict[str, Dict[str, str]] = {}
-        for row in rows:
-            rid = row.get(keys[entity], "")
-            if rid in seen:
-                bad.append(f"R1 {FILES[entity][0]} {rid}: id appears more than once")
-            seen[rid] = row
-        index[entity] = seen
-        if not rows and not (overall is not None and entity in ("problem", "ideal")):
-            bad.append(f"R1 {FILES[entity][0]}: no records")
-
-    commanded = solutions_with_a_command(index["metric"].values(), metric_command)
-    specified = {rid for rid in index["solution"] if rid not in commanded}
-
-    def skipped(entity: str, row: Dict[str, str]) -> bool:
-        if entity == "solution":
-            return row.get("solution_id") in waived
-        if entity == "implementation":
-            return row.get("solution_id") in waived
-        if entity == "metric":
-            return bool(ids(row.get("solution_ids", ""))) and all(s in waived for s in ids(row.get("solution_ids", "")))
-        return False
-
-    def specification_only(entity: str, row: Dict[str, str]) -> bool:
-        if entity == "solution":
-            return row.get("solution_id") in specified
-        if entity == "metric":
-            return bool(ids(row.get("solution_ids", ""))) and all(s in specified for s in ids(row.get("solution_ids", "")))
-        return False
-
-    for entity, rows in tables.items():
-        need = checked_fields(template, entity, interface_required)
-        if rows and not merged:
-            missing = [k for k in [keys[entity], *need] if k not in rows[0]]
-            if missing:
-                bad.append(f"R1 {FILES[entity][0]}: missing template column(s) {', '.join(missing)}"
-                           " (run `esoi template sync`, then fill them)")
-            bad += renamed_column_problems(FILES[entity][0], rows[0], FILES[entity][0])
-            bad += unapproved_column_problems(FILES[entity][0], rows[0], template, FILES[entity][0], approved)
-        for row in rows:
-            if skipped(entity, row) or (entity == "solution" and row.get("solution_id") in adopted):
-                continue
-            wanted = checked_fields(template, entity, False) if specification_only(entity, row) else need
-            empty = [k for k in wanted if k in row and not row[k].strip() and k not in MAY_BE_EMPTY.get(entity, ())]
-            if empty:
-                bad.append(f"R2 {row.get(keys[entity], '')}: template field(s) not filled: {', '.join(empty)}")
-
-    problems, ideals, solutions = index["problem"], index["ideal"], index["solution"]
-
-    def unknown(owner: str, column: str, targets: Iterable[str], where: Dict[str, Dict[str, str]]) -> None:
-        for target in targets:
-            if target not in where:
-                bad.append(f"R3 {owner}: {column} names {target!r}, which is not a record")
-
-    for pid, row in problems.items():
-        unknown(pid, "solution_ids", ids(row.get("solution_ids", "")), solutions)
-        unknown(pid, "ideal_ids", ids(row.get("ideal_ids", "")), ideals)
-        if not ids(row.get("solution_ids", "")):
-            bad.append(f"R3 {pid}: no solution addresses this problem")
-        if not ids(row.get("ideal_ids", "")):
-            bad.append(f"R3 {pid}: no ideal opposes this problem")
-        for sid in ids(row.get("solution_ids", "")):
-            if sid in solutions and pid not in ids(solutions[sid].get("problem_ids", "")) and sid not in waived and sid not in adopted:
-                bad.append(f"R3 {pid}: lists solution {sid} but {sid} does not list it in problem_ids")
-        for iid in ids(row.get("ideal_ids", "")):
-            if iid in ideals and pid not in ids(ideals[iid].get("problem_ids", "")):
-                bad.append(f"R3 {pid}: lists ideal {iid} but {iid} does not list it in problem_ids")
-    if related_problem_ids is not None:
-        for pid, row in problems.items():
-            for other in ids(row.get("related_problem_ids", "")):
-                if other not in related_problem_ids:
-                    bad.append(f"R3 {pid}: related_problem_ids names {other!r}, which is not a problem of the related registry")
-    for iid, row in ideals.items():
-        unknown(iid, "problem_ids", ids(row.get("problem_ids", "")), problems)
-        if not ids(row.get("problem_ids", "")):
-            bad.append(f"R3 {iid}: opposes no problem")
-        for pid in ids(row.get("problem_ids", "")):
-            if pid in problems and iid not in ids(problems[pid].get("ideal_ids", "")):
-                bad.append(f"R3 {iid}: lists problem {pid} but {pid} does not list it in ideal_ids")
-    for sid, row in solutions.items():
-        if sid in waived:
-            continue
-        unknown(sid, "problem_ids", ids(row.get("problem_ids", "")), problems)
-        unknown(sid, "ideal_ids", ids(row.get("ideal_ids", "")), ideals)
-        unknown(sid, "metric_ids", ids(row.get("metric_ids", "")), index["metric"])
-        inherits = sid in adopted   # the library says what the solution is for
-        if not ids(row.get("problem_ids", "")) and not ids(row.get("parent_problem_ids", "")) and not inherits:
-            bad.append(f"R3 {sid}: addresses no problem")
-        own = row.get("intent_id", "")
-        if own and not inherits and (ids(row.get("problem_ids", "")) or ids(row.get("parent_problem_ids", ""))) and not any(
-                problems.get(pid, {}).get("intent_id", "") == own for pid in ids(row.get("problem_ids", ""))):
-            bad.append(f"R3 {sid}: addresses no problem of its own intent {own} (it may also link problems of other intents, "
-                       "but is motivated by at least one of its own)")
-        if not ids(row.get("ideal_ids", "")) and not ids(row.get("parent_ideal_ids", "")) and not inherits:
-            bad.append(f"R3 {sid}: has no ideal")
-        if not ids(row.get("metric_ids", "")) and not inherits:
-            bad.append(f"R3 {sid}: has no metric")
-        for pid in ids(row.get("problem_ids", "")):
-            if pid in problems and sid not in ids(problems[pid].get("solution_ids", "")):
-                bad.append(f"R3 {sid}: lists problem {pid} but {pid} does not list it in solution_ids")
-        for mid in ids(row.get("metric_ids", "")):
-            if mid in index["metric"] and sid not in ids(index["metric"][mid].get("solution_ids", "")):
-                bad.append(f"R3 {sid}: lists metric {mid} but {mid} does not list it in solution_ids")
-        mine = {i: r for i, r in index["implementation"].items() if r.get("solution_id") == sid}
-        claimed, unclaimed = match_implementations(sid, ids(row.get("implementations", "")), mine)
-        for entry, rid in claimed.items():
-            if not rid:
-                bad.append(f"R3 {sid}: implementation {implementation_id(sid, entry)} has no record in implementations.csv")
-        for iid in unclaimed:
-            bad.append(f"R3 {sid}: implementations.csv record {iid} is not in the solution's implementations cell")
-    for sid, row in solutions.items():
-        mine = [mid for mid, m in index["metric"].items() if sid in ids(m.get("solution_ids", ""))]
-        chosen = row.get("authoritative_metric_id", "").strip()
-        if chosen and chosen not in mine:
-            bad.append(f"R6 {sid}: authoritative_metric_id {chosen!r} is not one of the solution's metrics")
-        elif len(mine) > 1 and not chosen and sid not in waived:
-            bad.append(f"R6 {sid}: has {len(mine)} metrics, so authoritative_metric_id names the one that decides "
-                       "which implementation is best")
-    for sid, row in solutions.items():
-        for mid in ids(row.get("governs_metric_ids", "")):
-            if mid not in index["metric"]:
-                bad.append(f"R3 {sid}: governs_metric_ids names {mid!r}, which is not a metric")
-            elif sid not in ids(index["metric"][mid].get("run_policy_ids", "")):
-                bad.append(f"R3 {sid}: governs metric {mid} but {mid} does not list it in run_policy_ids")
-    for mid, row in index["metric"].items():
-        for sid in ids(row.get("run_policy_ids", "")):
-            if sid not in solutions:
-                bad.append(f"R3 {mid}: run_policy_ids names {sid!r}, which is not a solution")
-            elif mid not in ids(solutions[sid].get("governs_metric_ids", "")):
-                bad.append(f"R3 {mid}: lists run policy {sid} but {sid} does not list it in governs_metric_ids")
-    for iid, row in index["implementation"].items():
-        if row.get("solution_id") not in solutions:
-            bad.append(f"R3 {iid}: solution_id {row.get('solution_id')!r} is not a solution")
-    for mid, row in index["metric"].items():
-        unknown(mid, "solution_ids", ids(row.get("solution_ids", "")), solutions)
-        if not ids(row.get("solution_ids", "")):
-            bad.append(f"R3 {mid}: measures no solution")
-        if require_command and not skipped("metric", row) and not specification_only("metric", row) \
-                and not row.get("command", "").strip():
-            bad.append(f"R2 {mid}: command is empty")
-
-    for entity, rows in tables.items():
-        for row in rows:
-            rid = row.get(keys[entity], "")
-            named = False
-            for column, kind in PARENT_COLUMNS.items():
-                for target in ids(row.get(column, "")):
-                    named = True
-                    if column in retired:
-                        bad.append(f"R5 {rid}: {column} is retired in the intent layout; a solution is recorded in the intent "
-                                   "it serves, and an implementation lists the solutions it builds on in uses_solution_ids")
-                    elif overall is None:
-                        bad.append(f"R5 {rid}: {column} names {target!r} but no overall network is configured")
-                    elif target not in overall.get(kind, set()):
-                        bad.append(f"R5 {rid}: {column} names {target!r}, which is not a {kind} of {scope}")
-            if require_parent and entity == "solution" and not named and row.get(keys[entity]) not in waived:
-                bad.append(f"R5 {rid}: names no parent problem, ideal, metric or area of the overall solution")
-
-    solution_texts = {re.sub(r"\W+", " ", row.get(k, "").lower()).strip()
-                      for row in solutions.values() for k in ("name", "purpose", "approach", "milestones") if row.get(k)}
-    for pid, row in problems.items():
-        text = row.get("problem", "").strip()
-        if not text:
-            continue
-        first = re.sub(r"[^a-z]", "", text.split()[0].lower()) if text.split() else ""
-        if first in IMPERATIVE:
-            bad.append(f"R4 {pid}: the problem reads as a task ({text.split()[0]!r} ...); the template says a problem "
-                       "is a difficulty someone has, never a task or recommendation")
-        if re.sub(r"\W+", " ", text.lower()).strip() in solution_texts:
-            bad.append(f"R4 {pid}: the problem is identical to a solution's text")
-        for sid in solutions:
-            if sid in text:
-                bad.append(f"R4 {pid}: the problem names its own solution {sid}")
-    return bad
+    rs = RecordSet(read_tables(struct, tables), {entity: key for entity, (_, key) in FILES.items()}, waived or set(), adopted or set())
+    index_tables(rs, overall)
+    commanded = solutions_with_a_command(rs.index["metric"].values(), metric_command)
+    rs.specified = {rid for rid in rs.index["solution"] if rid not in commanded}
+    check_template_fields(rs, template, interface_required, tables is not None, approved)
+    check_problem_links(rs, related_problem_ids)
+    check_ideal_links(rs)
+    check_solution_links(rs)
+    check_authoritative_metric(rs)
+    check_run_policies(rs)
+    check_implementations_and_metrics(rs, require_command)
+    check_parent_links(rs, overall, retired or set(), scope, require_parent)
+    check_problem_phrasing(rs)
+    return rs.bad

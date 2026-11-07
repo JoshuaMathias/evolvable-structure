@@ -12,8 +12,9 @@ rule S17 reads it, and it is never a second source of truth for anything but tho
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from esoi.optimization.leaderboard import arm_kinds, arm_selection, results_log, verdict_labels
 from esoi.structure.intent_registry.config import Config
@@ -131,108 +132,161 @@ def selection_table(config: Config) -> Optional[Table]:
         return None
 
 
-def build(config: Config, registry: Registry, template=None) -> Dict[str, List[Row]]:
-    """The five tabs, from the first-class records (problems, solutions, implementations, ideals, metrics)."""
+@dataclass
+class Sources:
+    """What the five tabs are built from: the registry, the template columns, the results log and the lookups over them."""
+    config: Config
+    registry: Registry
+    template: Dict[str, List[Row]]
+    extra: Dict[str, List[str]]
+    cols: Dict[str, List[str]]
+    table: Optional[Table]
+    results: Dict[tuple, Row]
+    verdicts: Dict[str, Row]
+    impl_records: Dict[str, Row]
+    metric_by_id: Dict[str, Row]
+    sol_by_id: Dict[str, Row]
+    by_solution: Dict[str, List[str]]
+
+    def command_of(self, s: Row) -> str:
+        """The metric commands of a solution, joined."""
+        return SEP.join(self.metric_by_id[m]["command"] for m in ids(s.get("metric_ids", "")) if m in self.metric_by_id)
+
+
+def load_sources(config: Config, registry: Registry, template=None) -> Sources:
+    """Gather everything ``build`` reads."""
     template = template or load_for(config)
     extra = extras(config)
-    cols = columns(template, extra)
-    table = selection_table(config)
-    results = {(c, i): row for c, rows in results_log.latest_results(config.results_path).items() for i, row in rows.items()}
-    every = registry.every_solution()
-    verdicts = verdict_labels.solution_verdicts(config, registry.solutions, registry=registry)
-    impl_records = {r["implementation_id"]: r for r in registry.implementations}
-    metric_by_id = {m["metric_id"]: m for m in registry.metrics}
-    sol_by_id = {s["solution_id"]: s for s in every}
     by_solution: Dict[str, List[str]] = {}
     for comp in registry.components:
         for sid in ids(comp["solutions"]):
             by_solution.setdefault(sid, []).append(comp["component_id"])
+    return Sources(
+        config, registry, template, extra, columns(template, extra), selection_table(config),
+        {(c, i): row for c, rows in results_log.latest_results(config.results_path).items() for i, row in rows.items()},
+        verdict_labels.solution_verdicts(config, registry.solutions, registry=registry),
+        {r["implementation_id"]: r for r in registry.implementations}, {m["metric_id"]: m for m in registry.metrics},
+        {s["solution_id"]: s for s in registry.every_solution()}, by_solution)
 
-    def command_of(s: Row) -> str:
-        return SEP.join(metric_by_id[m]["command"] for m in ids(s.get("metric_ids", "")) if m in metric_by_id)
 
-    problems, sol_rows, impls, ideals, metrics = [], [], [], [], []
+def problem_rows(src: Sources) -> List[Row]:
+    """One row per problem, with the components that serve it and whether every solution of it is measured."""
+    rows = []
+    for p in src.registry.problems:
+        linked = [src.sol_by_id[s] for s in ids(p.get("solution_ids", "")) if s in src.sol_by_id]
+        open_ones = [s["solution_id"] for s in linked if not is_command(src.command_of(s), src.config.metric_command)]
+        rows.append({**{k: p.get(k, "") for k in src.cols["problems"]},
+                     "component_ids": SEP.join(sorted({c for s in linked for c in src.by_solution.get(s["solution_id"], [])})),
+                     "auto_status": "open: unmeasured " + ", ".join(open_ones) if open_ones else "served"})
+    return rows
+
+
+def implementation_rows(src: Sources, s: Row, comp: str, chosen_impl: str) -> Tuple[List[Row], List[str], str]:
+    """The implementation rows of one solution, their ids, and the id of the selected one."""
+    sid = s["solution_id"]
+    rows, impl_ids, selected_id = [], [], ""
+    chosen = selected_path(src.config, s, src.table)
+    entries = ids(s.get("implementations", ""))
+    claimed, _ = match_implementations(sid, entries, {i: r for i, r in src.impl_records.items() if r.get("solution_id") == sid})
+    for path in entries:
+        iid = claimed.get(path) or implementation_id(sid, path)
+        impl_ids.append(iid)
+        is_sel = is_selected_path(path, chosen, s.get("selected", ""))
+        selected_id = iid if is_sel else selected_id
+        res = src.results.get((comp, stem(path))) if comp else None
+        rec = src.impl_records.get(iid, {})
+        rows.append({
+            "implementation_id": iid, "solution_id": sid, "filepath": path,
+            **{k: rec.get(k, "") for k in src.extra["implementations"]},
+            **{k: rec.get(k, "") for k in fields(src.template, "implementation", True)}, "kind": kind_of(src.config, path),
+            "selected": "yes" if is_sel else "",
+            "latest_result": f"{res.get('passed', '')}/{res.get('cases', '')}" if res else "",
+            "latest_cost_usd": res.get("cost_usd", "") if res else "",
+            "cases_sha": res.get("cases_sha", "") if res else "",
+            "auto_status": "selected" if is_sel else ("measured" if res else "unmeasured")})
+    return rows, impl_ids, selected_id
+
+
+def solution_row(src: Sources, s: Row, impl_ids: List[str], selected_id: str, has_metric: bool, measured: bool) -> Row:
+    """The solution tab row: its fields, its implementations, its verdict and its status."""
+    sid = s["solution_id"]
+    verdict = src.verdicts.get(sid, {})
+    return {
+        **{k: s.get(k, "") for k in src.extra["solutions"]},
+        **{k: s.get(k, "") for k in ["solution_id"] + fields(src.template, "solution", True)
+           + ["problem_ids", "ideal_ids", "metric_ids", "interface_name", "authoritative_metric_id"]},
+        "implementation_ids": SEP.join(impl_ids), "selected_implementation_id": selected_id,
+        "verdict": verdict.get("verdict", ""), "verdict_detail": verdict.get("detail", ""),
+        "component_ids": SEP.join(src.by_solution.get(sid, [])),
+        "auto_status": "specification" if not has_metric
+        else (STATUS_BY_VERDICT.get(verdict.get("verdict", ""), "decided-by-hand") if measured else "decided-by-hand")}
+
+
+def solution_and_implementation_rows(src: Sources) -> Tuple[List[Row], List[Row], Dict[str, List[tuple]]]:
+    """The solution and implementation rows, and for each metric the solutions that use it with their selected run."""
+    sol_rows, impls = [], []
     metric_users: Dict[str, List[tuple]] = {}
-    for p in registry.problems:
-        linked = [sol_by_id[s] for s in ids(p.get("solution_ids", "")) if s in sol_by_id]
-        open_ones = [s["solution_id"] for s in linked if not is_command(command_of(s), config.metric_command)]
-        problems.append({**{k: p.get(k, "") for k in cols["problems"]},
-                         "component_ids": SEP.join(sorted({c for s in linked for c in by_solution.get(s["solution_id"], [])})),
-                         "auto_status": "open: unmeasured " + ", ".join(open_ones) if open_ones else "served"})
-    for s in every:
-        sid = s["solution_id"]
-        command = command_of(s)
-        has_metric = is_command(command, config.metric_command)
-        comp, chosen_impl = arm_selection.selected_arm(config, {**s, "metric_command": command}, "", registry)
-        impl_ids, selected_id = [], ""
-        chosen = selected_path(config, s, table)
-        entries = ids(s.get("implementations", ""))
-        claimed, _ = match_implementations(sid, entries, {i: r for i, r in impl_records.items() if r.get("solution_id") == sid})
-        for path in entries:
-            iid = claimed.get(path) or implementation_id(sid, path)
-            impl_ids.append(iid)
-            is_sel = is_selected_path(path, chosen, s.get("selected", ""))
-            selected_id = iid if is_sel else selected_id
-            res = results.get((comp, stem(path))) if comp else None
-            rec = impl_records.get(iid, {})
-            impls.append({
-                "implementation_id": iid, "solution_id": sid, "filepath": path,
-                **{k: rec.get(k, "") for k in extra["implementations"]},
-                **{k: rec.get(k, "") for k in fields(template, "implementation", True)}, "kind": kind_of(config, path),
-                "selected": "yes" if is_sel else "",
-                "latest_result": f"{res.get('passed', '')}/{res.get('cases', '')}" if res else "",
-                "latest_cost_usd": res.get("cost_usd", "") if res else "",
-                "cases_sha": res.get("cases_sha", "") if res else "",
-                "auto_status": "selected" if is_sel else ("measured" if res else "unmeasured")})
-        sel_res = results.get((comp, chosen_impl)) if comp else None
-        verdict = verdicts.get(sid, {})
-        sol_rows.append({
-            **{k: s.get(k, "") for k in extra["solutions"]},
-            **{k: s.get(k, "") for k in ["solution_id"] + fields(template, "solution", True)
-               + ["problem_ids", "ideal_ids", "metric_ids", "interface_name",
-                                                                  "authoritative_metric_id"]},
-            "implementation_ids": SEP.join(impl_ids), "selected_implementation_id": selected_id,
-            "verdict": verdict.get("verdict", ""), "verdict_detail": verdict.get("detail", ""),
-            "component_ids": SEP.join(by_solution.get(sid, [])),
-            "auto_status": "specification" if not has_metric
-            else (STATUS_BY_VERDICT.get(verdict.get("verdict", ""), "decided-by-hand") if sel_res else "decided-by-hand")})
+    for s in src.registry.every_solution():
+        command = src.command_of(s)
+        has_metric = is_command(command, src.config.metric_command)
+        comp, chosen_impl = arm_selection.selected_arm(src.config, {**s, "metric_command": command}, "", src.registry)
+        rows, impl_ids, selected_id = implementation_rows(src, s, comp, chosen_impl)
+        impls += rows
+        sel_res = src.results.get((comp, chosen_impl)) if comp else None
+        sol_rows.append(solution_row(src, s, impl_ids, selected_id, has_metric, bool(sel_res)))
         for mid in ids(s.get("metric_ids", "")):
-            if mid in metric_by_id:
+            if mid in src.metric_by_id:
                 metric_users.setdefault(mid, []).append((s, sel_res, has_metric))
-    for mid, users in metric_users.items():   # one row per metric, however many solutions it serves
-        m = metric_by_id[mid]
+    return sol_rows, impls, metric_users
+
+
+def metric_rows(src: Sources, metric_users: Dict[str, List[tuple]]) -> List[Row]:
+    """One row per metric, however many solutions it serves."""
+    rows = []
+    for mid, users in metric_users.items():
+        m = src.metric_by_id[mid]
         many = len(users) > 1
-
-        def across(texts: List[str]) -> str:
-            return " ".join(t for t in texts if t) if many else (texts[0] if texts else "")
-
-        metrics.append({
-            **{k: m.get(k, "") for k in extra["metrics"]},
-            **{k: m.get(k, "") for k in ["metric_id"] + fields(template, "metric", True) + ["solution_ids", "command"]},
-            "latest_result": across([(f"{u[0]['solution_id']}: " if many else "") + f"{u[1].get('passed', '')}/{u[1].get('cases', '')}"
-                                     for u in users if u[1]]),
+        texts = [(f"{u[0]['solution_id']}: " if many else "") + f"{u[1].get('passed', '')}/{u[1].get('cases', '')}" for u in users if u[1]]
+        rows.append({
+            **{k: m.get(k, "") for k in src.extra["metrics"]},
+            **{k: m.get(k, "") for k in ["metric_id"] + fields(src.template, "metric", True) + ["solution_ids", "command"]},
+            "latest_result": " ".join(t for t in texts if t) if many else (texts[0] if texts else ""),
             "auto_status": "specification" if not any(u[2] for u in users)
             else "measured" if any(u[1] for u in users)
             else ("needs_run" if any(u[2] for u in users) else "needs_metric")})
+    return rows
+
+
+def ideal_rows(src: Sources) -> List[Row]:
+    """One row per ideal of the solutions, then one per principle of the whole repository."""
     solutions_of_ideal: Dict[str, List[str]] = {}
-    for s in every:
+    for s in src.registry.every_solution():
         for iid in ids(s.get("ideal_ids", "")):
             solutions_of_ideal.setdefault(iid, []).append(s["solution_id"])
-    for i in registry.ideals:
+    rows = []
+    for i in src.registry.ideals:
         sids = solutions_of_ideal.get(i["ideal_id"], [])
-        measured = any(first_arm(config, command_of(sol_by_id[sid]))[0] for sid in sids)
-        ideals.append({**{k: i.get(k, "") for k in extra["ideals"]},
-                       **{k: i.get(k, "") for k in ["ideal_id"] + fields(template, "ideal", True) + ["problem_ids"]},
-                       "scope": "solution", "solution_ids": SEP.join(sids),
-                       "metric_ids": SEP.join(m for sid in sids for m in ids(sol_by_id[sid].get("metric_ids", ""))),
-                       "auto_status": "measured" if measured else "unmeasured"})
-    for p in registry.principles:
-        ideals.append({"ideal_id": p["principle_id"].lower(), "scope": "principle", "name": p.get("name", ""),
-                       "principle": p.get("statement", ""), "state_description": "",
-                       "hints_of_measurement": p.get("how_measured", ""), "problem_ids": "",
-                       "solution_ids": "the whole repo", "metric_ids": "",
-                       "auto_status": "enforced-by-check" if "(S" in p.get("how_measured", "") else "behaviour-eval"})
-    return {"problems": problems, "solutions": sol_rows, "implementations": impls, "ideals": ideals, "metrics": metrics}
+        measured = any(first_arm(src.config, src.command_of(src.sol_by_id[sid]))[0] for sid in sids)
+        rows.append({**{k: i.get(k, "") for k in src.extra["ideals"]},
+                     **{k: i.get(k, "") for k in ["ideal_id"] + fields(src.template, "ideal", True) + ["problem_ids"]},
+                     "scope": "solution", "solution_ids": SEP.join(sids),
+                     "metric_ids": SEP.join(m for sid in sids for m in ids(src.sol_by_id[sid].get("metric_ids", ""))),
+                     "auto_status": "measured" if measured else "unmeasured"})
+    for p in src.registry.principles:
+        rows.append({"ideal_id": p["principle_id"].lower(), "scope": "principle", "name": p.get("name", ""),
+                     "principle": p.get("statement", ""), "state_description": "",
+                     "hints_of_measurement": p.get("how_measured", ""), "problem_ids": "",
+                     "solution_ids": "the whole repo", "metric_ids": "",
+                     "auto_status": "enforced-by-check" if "(S" in p.get("how_measured", "") else "behaviour-eval"})
+    return rows
+
+
+def build(config: Config, registry: Registry, template=None) -> Dict[str, List[Row]]:
+    """The five tabs, from the first-class records (problems, solutions, implementations, ideals, metrics)."""
+    src = load_sources(config, registry, template)
+    sol_rows, impls, metric_users = solution_and_implementation_rows(src)
+    return {"problems": problem_rows(src), "solutions": sol_rows, "implementations": impls,
+            "ideals": ideal_rows(src), "metrics": metric_rows(src, metric_users)}
 
 
 def merge_tracking(config: Config, tab: str, rows: List[Row], key: str) -> List[Row]:

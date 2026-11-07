@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 MIN_CLAUSE_WORDS = 3          # words between the user and the used, names aside ("a uses b" has one: not enough)
 WORD = re.compile(r"[A-Za-z][A-Za-z'-]*")
@@ -64,86 +64,119 @@ def reaches(uses: Dict[str, List[str]], start: str, goal: str) -> bool:
     return False
 
 
+def named_in(text: str, every_solution: Dict[str, Dict[str, str]], candidates) -> List[Tuple[int, str]]:
+    """(position, id) of each candidate solution that ``text`` names, in the order they appear."""
+    return sorted((position(sid, every_solution[sid], text), sid) for sid in candidates
+                  if position(sid, every_solution[sid], text) >= 0)
+
+
+def clause_subjects(parts: List[str], every_solution: Dict[str, Dict[str, str]], candidates) -> List[str]:
+    """The solution each clause speaks of: the first it names; a clause opening with "It" keeps the subject of the clause before it."""
+    subjects: List[str] = []
+    for i, c in enumerate(parts):
+        if re.match(r"^\s*It\b", c) and i and subjects[i - 1]:
+            subjects.append(subjects[i - 1])
+        else:
+            named_at = named_in(c, every_solution, candidates)
+            subjects.append(named_at[0][1] if named_at else "")
+    return subjects
+
+
+def naming_problems(para: str, mine: List[str], every_solution, uses, host_sid: str, host_uses, max_names: int) -> List[str]:
+    """Problems with which solutions the paragraph names: several paragraphs, solutions missing, solutions of other intents, crowded sentences."""
+    found: List[str] = []
+    if re.search(r"\n\s*\n", para):
+        found.append("more than one paragraph")
+    missing = [s for s in mine if position(s, every_solution[s], para) < 0]
+    if missing:
+        found.append(f"names {len(mine) - len(missing)} of {len(mine)} solutions; missing: {', '.join(missing)}")
+    allowed = set(mine) | {b for a in mine for b in uses[a]} | host_uses | {host_sid} | {
+        s for s in every_solution if any(h in mine for h in uses[s])}
+    stray = [s for s in every_solution if s not in allowed and position(s, every_solution[s], para) >= 0]
+    if stray:
+        found.append(f"names solutions of other intents no edge reaches: {', '.join(stray)}")
+    crowded = []
+    for s in sentences(para):
+        n = len(named_in(s, every_solution, every_solution))
+        if n > max_names:
+            crowded.append(f"{n} in \"{s[:60]}...\"")
+    if crowded:
+        found.append(f"sentences naming more than {max_names} solutions: {'; '.join(crowded)}")
+    return found
+
+
+def stated_edges(parts: List[str], inner, mine: List[str], every_solution) -> Dict[str, str]:
+    """The clause that states each uses edge: the user first, then the used, with words of their own between them."""
+    stated: Dict[str, str] = {}
+    subject = clause_subjects(parts, every_solution, mine)
+    for a, b in sorted(inner):
+        for i, c in enumerate(parts):
+            pa, pb = position(a, every_solution[a], c), position(b, every_solution[b], c)
+            if pa < 0 and re.match(r"^\s*It\b", c) and subject[i] == a:
+                pa = 0
+            if 0 <= pa < pb or (pa == 0 and pb > 0):
+                names = [x for x in (a, b, every_solution[a].get("name", ""), every_solution[b].get("name", "")) if x]
+                named_here = [sid for sid in every_solution if position(sid, every_solution[sid], c) >= 0]
+                named_here += [every_solution[sid].get("name", "") for sid in named_here if every_solution[sid].get("name", "")]
+                if other_words(c[max(pa, 0):pb], names + named_here) >= MIN_CLAUSE_WORDS:   # the words that join them
+                    stated[f"{a}->{b}"] = c
+                    break
+    return stated
+
+
+def templated_problem(stated: Dict[str, str], every_solution) -> List[str]:
+    """A problem when four or more clauses state edges and over half of them share one wording once the names are taken out."""
+    def skeleton(c: str) -> tuple:
+        names = sorted([x for sid in every_solution if position(sid, every_solution[sid], c) >= 0
+                        for x in (sid, every_solution[sid].get("name", "")) if x], key=len, reverse=True)
+        return tuple(w.lower() for w in WORD.findall(re.sub("|".join(re.escape(x) for x in names) or "$^", " ", c)))
+    distinct = set(stated.values())
+    skeletons = Counter(skeleton(c) for c in distinct)
+    if len(distinct) >= 4 and skeletons and skeletons.most_common(1)[0][1] * 2 > len(distinct):
+        top = skeletons.most_common(1)[0]
+        return [f"templated: {top[1]} of {len(distinct)} clauses that state edges share the words {' '.join(top[0])!r}"]
+    return []
+
+
+def claimed_problem(parts: List[str], every_solution, uses, host_sid: str, host_uses) -> List[str]:
+    """A problem for each relation the paragraph states between two solutions that no uses path of the records joins."""
+    subject_any = clause_subjects(parts, every_solution, every_solution)
+    walk = {s: list(t) for s, t in uses.items()}
+    if host_sid:
+        walk.setdefault(host_sid, []).extend(host_uses)
+    claimed = []
+    for i, c in enumerate(parts):
+        named_at = named_in(c, every_solution, every_solution)
+        if re.match(r"^\s*It\b", c) and i and subject_any[i - 1]:
+            first, start = subject_any[i - 1], 0
+        elif named_at:
+            start, first = named_at[0]
+        else:
+            continue
+        for at, sid in named_at:
+            if sid == first or at <= start:
+                continue
+            names = [x for x in (first, sid, every_solution[first].get("name", ""), every_solution[sid].get("name", "")) if x]
+            present = {other for _, other in named_at}
+            named_here = [x for other in every_solution if other in present for x in (other, every_solution[other].get("name", "")) if x]
+            if other_words(c[max(start, 0):at], names + named_here) >= MIN_CLAUSE_WORDS and not reaches(walk, first, sid):
+                claimed.append(f"{first}->{sid} in \"{c[:80]}\"")
+    if not claimed:
+        return []
+    return ["states a relation the records do not hold (no uses path from the first to the second): " + "; ".join(dict.fromkeys(claimed))]
+
+
 def check_paragraph(para: str, problems, mine, every_solution, uses, host_sid, host_uses, inner, max_names) -> None:
     """Append to ``problems["paragraph"]`` every way ``para`` fails to state the intent's solutions and uses edges."""
-    stated: Dict[str, str] = {}
+    found = problems["paragraph"]
     if not para:
-        problems["paragraph"].append("solution_coherence is empty")
-    else:
-        if re.search(r"\n\s*\n", para):
-            problems["paragraph"].append("more than one paragraph")
-        missing = [s for s in mine if position(s, every_solution[s], para) < 0]
-        if missing:
-            problems["paragraph"].append(f"names {len(mine) - len(missing)} of {len(mine)} solutions; missing: {', '.join(missing)}")
-        allowed = set(mine) | {b for a in mine for b in uses[a]} | host_uses | {host_sid} | {
-            s for s in every_solution if any(h in mine for h in uses[s])}
-        stray = [s for s in every_solution if s not in allowed and position(s, every_solution[s], para) >= 0]
-        if stray:
-            problems["paragraph"].append(f"names solutions of other intents no edge reaches: {', '.join(stray)}")
-        crowded = []
-        for s in sentences(para):
-            n = sum(1 for sid in every_solution if position(sid, every_solution[sid], s) >= 0)
-            if n > max_names:
-                crowded.append(f"{n} in \"{s[:60]}...\"")
-        if crowded:
-            problems["paragraph"].append(f"sentences naming more than {max_names} solutions: {'; '.join(crowded)}")
-        parts = clauses(para)
-        subject: List[str] = []     # a clause opening with "It" speaks of the first solution the clause before it names
-        for i, c in enumerate(parts):
-            named_at = sorted((position(sid, every_solution[sid], c), sid) for sid in mine
-                              if position(sid, every_solution[sid], c) >= 0)
-            if re.match(r"^\s*It\b", c) and i and subject[i - 1]:
-                subject.append(subject[i - 1])
-            else:
-                subject.append(named_at[0][1] if named_at else "")
-        subject_any: List[str] = []
-        for i, c in enumerate(parts):
-            every_named = sorted((position(sid, every_solution[sid], c), sid) for sid in every_solution
-                                 if position(sid, every_solution[sid], c) >= 0)
-            subject_any.append(subject_any[i - 1] if re.match(r"^\s*It\b", c) and i and subject_any[i - 1]
-                               else (every_named[0][1] if every_named else ""))
-        for a, b in sorted(inner):
-            for i, c in enumerate(parts):
-                pa, pb = position(a, every_solution[a], c), position(b, every_solution[b], c)
-                if pa < 0 and re.match(r"^\s*It\b", c) and subject[i] == a:
-                    pa = 0
-                if 0 <= pa < pb or (pa == 0 and pb > 0):
-                    names = [x for x in (a, b, every_solution[a].get("name", ""), every_solution[b].get("name", "")) if x]
-                    named_here = [sid for sid in every_solution if position(sid, every_solution[sid], c) >= 0]
-                    named_here += [every_solution[sid].get("name", "") for sid in named_here if every_solution[sid].get("name", "")]
-                    if other_words(c[max(pa, 0):pb], names + named_here) >= MIN_CLAUSE_WORDS:   # the words that join them
-                        stated[f"{a}->{b}"] = c
-                        break
-        skeletons = Counter(tuple(w.lower() for w in WORD.findall(re.sub("|".join(re.escape(x) for x in sorted(
-            [x for sid in every_solution if position(sid, every_solution[sid], c) >= 0 for x in (sid, every_solution[sid].get("name", "")) if x], key=len, reverse=True)) or "$^", " ", c)))
-            for c in set(stated.values()))
-        if len(set(stated.values())) >= 4 and skeletons and skeletons.most_common(1)[0][1] * 2 > len(set(stated.values())):
-            problems["paragraph"].append(f"templated: {skeletons.most_common(1)[0][1]} of {len(set(stated.values()))} clauses "
-                                         f"that state edges share the words {' '.join(skeletons.most_common(1)[0][0])!r}")
-        walk = {s: list(t) for s, t in uses.items()}
-        if host_sid:
-            walk.setdefault(host_sid, []).extend(host_uses)
-        claimed = []
-        for i, c in enumerate(parts):
-            named_at = sorted((position(sid, every_solution[sid], c), sid) for sid in every_solution
-                              if position(sid, every_solution[sid], c) >= 0)
-            if re.match(r"^\s*It\b", c) and i and subject_any[i - 1]:
-                first, start = subject_any[i - 1], 0
-            elif named_at:
-                start, first = named_at[0]
-            else:
-                continue
-            for at, sid in named_at:
-                if sid == first or at <= start:
-                    continue
-                names = [x for x in (first, sid, every_solution[first].get("name", ""), every_solution[sid].get("name", "")) if x]
-                named_here = [x for other in every_solution if position(other, every_solution[other], c) >= 0 for x in (other, every_solution[other].get("name", "")) if x]
-                if other_words(c[max(start, 0):at], names + named_here) >= MIN_CLAUSE_WORDS and not reaches(walk, first, sid):
-                    claimed.append(f"{first}->{sid} in \"{c[:80]}\"")
-        if claimed:
-            problems["paragraph"].append("states a relation the records do not hold (no uses path from the first to the second): "
-                                         + "; ".join(dict.fromkeys(claimed)))
-        unstated = sorted(f"{a}->{b}" for a, b in inner if f"{a}->{b}" not in stated)
-        if unstated:
-            problems["paragraph"].append("uses edges not stated user first in one clause with words of its own: "
-                                         + ", ".join(unstated))
+        found.append("solution_coherence is empty")
+        return
+    found += naming_problems(para, mine, every_solution, uses, host_sid, host_uses, max_names)
+    parts = clauses(para)
+    stated = stated_edges(parts, inner, mine, every_solution)
+    found += templated_problem(stated, every_solution)
+    found += claimed_problem(parts, every_solution, uses, host_sid, host_uses)
+    unstated = sorted(f"{a}->{b}" for a, b in inner if f"{a}->{b}" not in stated)
+    if unstated:
+        found.append("uses edges not stated user first in one clause with words of its own: " + ", ".join(unstated))
