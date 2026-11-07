@@ -57,7 +57,7 @@ Across the three stages that is about 43 case runs per arm, about 580,000 input 
 - After committing a change to measured code or cases: `esoi run --stale --plan` says which recorded results no longer describe the code (the
   changed file and the component that owns it) and why each is or is not re-run. A changed file only informs. Re-record when a decision or
   release depends on the result (`esoi run --stale --for-decision`) or when you name the arm (`--include`), then commit the results log.
-  `esoi check --strict` lists the stale results as advice; it never fails.
+  `esoi check` prints one information line with the count of stale results (outside its to-do count); `esoi check --findings` or `--strict` lists each, and `esoi check --for-decision` makes them to dos when a decision or release depends on them. None fails the check.
 - This repository runs no continuous integration workflow (an example for other projects: `docs/how-to/run-the-check-in-ci.md`). No
   commit hook and no CI step runs metrics, and expiration is never unless a metric or the project declares one.
 - Iterating on a paid arm: with a cassette (`--cassette DIR`) an unchanged prompt is replayed from the file instead of calling the

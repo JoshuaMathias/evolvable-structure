@@ -12,7 +12,7 @@ def run_check(config, args: argparse.Namespace) -> int:
     from esoi.structure.structure_check.interface import check_run_cli
     from esoi.structure.intent_registry import intents
     with intents.session():
-        return check_run_cli(config, args.strict, args.write_docs, findings=args.findings)
+        return check_run_cli(config, args.strict, args.write_docs, findings=args.findings, for_decision=args.for_decision)
 
 
 def run_rules(config, args: argparse.Namespace) -> int:
@@ -186,6 +186,7 @@ def run_hygiene(config, args: argparse.Namespace) -> int:
 TABLE = """
 check | | run every rule
     --strict | action=store_true | also reject results recorded on uncommitted code
+    --for-decision | action=store_true | a decision or release depends on the recorded results now: a result that describes older code is then a to-do
     --findings | action=store_true | list every finding of the opt-in rules S36 to S39 with a count per rule (exit 0; they never fail the check)
     --write-docs | action=store_true | regenerate the generated files first
 rules | | list the rules

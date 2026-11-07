@@ -199,8 +199,9 @@ safer, coarser rules.
 component that owns it, and re-runs only what is worth running: a selected arm that was never measured, a selected arm whose
 metric (or the project) declares an expiration that has passed, a selected arm a pending decision or release depends on
 (`--for-decision`), or an arm a person names (`--include`). Rival arms and rows nothing depends on are listed as not re-run.
-`--all` is the older behaviour, re-running every stale arm. `esoi check` reports a changed file or a missing row as advice: it never
-fails the check and never blocks a commit.
+`--all` is the older behaviour, re-running every stale arm. `esoi check` counts a stale row as a to do only where the situation makes it matter (its metric's
+expiration has passed, or `esoi check --for-decision` says a decision or release depends on the results); every other stale row is one
+information line with a count, outside the to-do count, and none fails the check or blocks a commit.
 
 **Expiration is a separate thing.** A result that is still current can be asked for again after a time: a metric's optional
 `expiration` field (`never`, or a number of days), a project default in `[expiration]`, or a stage's `max-age-days`, the most
@@ -250,6 +251,6 @@ change). The first two are counted by hand or from the results log; the third is
 
 ## Tools
 
-The Python implementation reports a stale result and the file behind it (`esoi check --strict` as advice, `esoi run --stale --plan`,
+The Python implementation reports a stale result and the file behind it (`esoi check` as one information line with a count, each row listed by `esoi check --findings` or `--strict`, `esoi run --stale --plan`,
 `esoi stale --explain <component>`), re-runs and re-records what is worth running (`esoi run --stale`), runs a staged sample with a budget (`esoi run <component> --impl <name> --sample 3 --max-calls N`), and
 records the time the check itself takes. See [apply-with-tools.md](../how-to/apply-with-tools.md).

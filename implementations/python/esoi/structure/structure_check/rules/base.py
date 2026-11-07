@@ -56,6 +56,8 @@ class Context:
     history: Dict[str, Dict[str, List[Dict[str, str]]]] = field(default_factory=dict)   # every results row, oldest first
     table_error: str = ""
     strict: bool = False
+    for_decision: bool = False   # a decision or release depends on the selected results now: a stale one is a to-do (``esoi check --for-decision``)
+    stale_info: List[str] = field(default_factory=list)   # S20 stale results nothing depends on: information (a count), not to do
     used_waivers: Set[Tuple[str, str]] = field(default_factory=set)
     modules: Optional[Cache] = None
     advisory: List[str] = field(default_factory=list)   # findings of opt-in rules that are not strict: to do, never a failure

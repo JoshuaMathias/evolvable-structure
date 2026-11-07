@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **`esoi check` no longer counts a stale recorded result as a to do unless the situation makes it matter.** S20 findings used to appear under "to do: N finding(s) of the advisory rules" after almost every code change, though the metric run policy says a stale row only informs. Now a stale result (other cases, changed or uncommitted code, changed circumstances, a rival recorded earlier) is one line, `info: N recorded result(s) describe older code; `esoi run --stale --plan` lists them`, outside the to-do count, and `esoi check --findings` and `--strict` list each in full under it. It is a to do only when its metric's `expiration` (or the project's `[expiration] default`; never by default, and never in this repository) has passed, or when `esoi check --for-decision` says a decision or release depends on the results (the same idea as `esoi run --stale --for-decision`). A malformed row (no `git_sha`, no `cases_sha`, unreadable `circumstances.csv`) still fails. New: `check.check_report` returns `(problems, advisory, information)`; `check_all` is unchanged. Docs updated (choose-when-a-result-is-stale, when-metrics-are-run, apply-with-tools, attest, the metric run policy, rules S20).
+
 - **More modules moved to the unit that owns them, the `esoi.foundation` namespace resolves to `builds_on`, and the offline arm no longer lets a repository's own `esoi/` folder shadow the package (a minor bump when released, planned 0.5.0).** Importers of the old module paths change to the new ones; there are no aliases. Together with the two moves described above (`name_check`, `assembly_errors`, `circumstances`, `run_log`, `stale_reasons`, `code_provenance` and the split of `foundation.py`), the paths are:
 
   | Was `esoi.` | Is `esoi.` |

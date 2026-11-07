@@ -40,7 +40,7 @@ Only a person can know a change kept the measurement, so the command never guess
 
 ## Staleness informs
 
-Stale or attested, a row only informs. It does not fail `esoi check`, does not start a re-run (`esoi run --stale` re-runs only what is
+Stale or attested, a row only informs. It does not fail `esoi check` and is not a to do there (one information line counts the stale rows), does not start a re-run (`esoi run --stale` re-runs only what is
 worth running and says why), and `esoi leaderboard` ranks every row it holds. The one place a stale row is set aside is promotion
 (`esoi select --promote` counts only current results, so a verdict never rests on a result of other code); an attestation, like a
 re-run, is how an arm whose code changed counts again.

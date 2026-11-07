@@ -161,10 +161,11 @@ def test_results_rules_s10_s16_s20(cfg):
     for r in rows:
         r["cases_sha"] = ""
     tables.write_csv(results, cols, rows)
-    problems, advice = check.check_all(cfg)
+    problems, advice, info = check.check_report(cfg)
     assert any(line.startswith("S16") for line in problems)   # a row with no cases_sha is malformed: still a problem
     assert not any(line.startswith("S20") for line in problems)   # the cases it was run on are a fact, so S20 informs
-    assert any(line.startswith("S20") and "other cases" in line for line in advice)
+    assert any(line.startswith("S20") and "other cases" in line for line in info)   # information, not a to-do
+    assert not any(line.startswith("S20") for line in advice)
 
 
 def test_strict_mode_rejects_a_result_recorded_on_dirty_code(cfg):
@@ -174,9 +175,9 @@ def test_strict_mode_rejects_a_result_recorded_on_dirty_code(cfg):
         r["git_sha"] = "abc1234-dirty"
     tables.write_csv(results, cols, rows)
     assert check.check(cfg) == []
-    problems, advice = check.check_all(cfg, strict=True)   # code that changed or was recorded dirty informs: advice, never a problem
-    assert not any(line.startswith("S20") for line in problems)
-    assert any(line.startswith("S20") and "uncommitted" in line for line in advice)
+    problems, advice, info = check.check_report(cfg, strict=True)   # code that changed or was recorded dirty informs, never a problem
+    assert not any(line.startswith("S20") for line in problems + advice)
+    assert any(line.startswith("S20") and "uncommitted" in line for line in info)
 
 
 def test_s21_names_an_orphan_evaluation_folder_and_s25_a_missing_baseline(cfg):
@@ -304,9 +305,9 @@ def stale_rival_repo(cfg):
 def test_strict_flags_a_verdict_resting_on_a_stale_rival(cfg):
     stale_rival_repo(cfg)
     assert check.check(cfg) == []
-    problems, advice = check.check_all(cfg, strict=True)
-    assert not any(line.startswith("S20") for line in problems)
-    assert any(line.startswith("S20 greet-a-person") and "rival shout" in line and "changed since" in line for line in advice)
+    problems, advice, info = check.check_report(cfg, strict=True)
+    assert not any(line.startswith("S20") for line in problems + advice)
+    assert any(line.startswith("S20 greet-a-person") and "rival shout" in line and "changed since" in line for line in info)
     tables.write_csv(cfg.structure / "waivers.csv", ["rule", "path", "reason"],
                      [dict(rule="S20", path="greet-a-person:shout", reason="The rival is a fixed baseline.")])
     assert check.check(cfg, strict=True) == []
@@ -353,11 +354,46 @@ def change_cases(cfg):
 
 def test_a_changed_case_file_is_advice_with_the_next_action_never_a_problem(cfg):
     change_cases(cfg)
-    problems, advice = check.check_all(cfg)   # non-strict: the move or commit that edits a case file is not blocked
-    assert problems == []
-    found = [line for line in advice if line.startswith("S20 greet-a-person")]
+    problems, advice, info = check.check_report(cfg)   # non-strict: the move or commit that edits a case file is not blocked
+    assert problems == [] and advice == []   # nothing depends on the result: not a to-do
+    found = [line for line in info if line.startswith("S20 greet-a-person")]
     assert found and "other cases" in found[0] and "esoi run greet_a_person --impl live --record" in found[0]
     assert check.run_cli(cfg, strict=False, write=False, say=lambda text: None) == 0
+
+
+def test_a_stale_result_is_one_info_line_outside_the_to_do_count(cfg):
+    change_cases(cfg)
+    said = []
+    assert check.run_cli(cfg, strict=False, write=False, say=said.append) == 0
+    assert any(line.startswith("info: 1 recorded result(s) describe older code") and "esoi run --stale --plan" in line for line in said)
+    assert not any(line.startswith("to do:") or line.startswith("  S20") for line in said)
+    listed = []
+    check.run_cli(cfg, strict=False, write=False, say=listed.append, findings=True)
+    assert any(line.startswith("  S20 greet-a-person") and "other cases" in line for line in listed)
+    strict = []
+    check.run_cli(cfg, strict=True, write=False, say=strict.append)
+    assert any(line.startswith("  S20 greet-a-person") for line in strict)
+
+
+def test_a_stale_result_is_a_to_do_when_a_decision_depends_on_it(cfg):
+    change_cases(cfg)
+    problems, advice, info = check.check_report(cfg, for_decision=True)
+    assert problems == [] and info == []
+    assert any(line.startswith("S20 greet-a-person") and "a decision or release depends on it" in line for line in advice)
+    said = []
+    assert check.run_cli(cfg, strict=False, write=False, say=said.append, for_decision=True) == 0
+    assert any(line.startswith("to do: 1 finding(s)") and "S20 1" in line for line in said)
+
+
+def test_a_passed_expiration_makes_a_result_a_to_do_even_when_its_code_is_unchanged(cfg):
+    cfg.expiration = {"default": "1 days"}
+    rows, cols = tables.read_csv(cfg.results_path), tables.read_header(cfg.results_path)
+    for r in rows:
+        r["date"] = "2020-01-01"
+    tables.write_csv(cfg.results_path, cols, rows)
+    problems, advice, info = check.check_report(cfg)
+    assert not any(line.startswith("S20") for line in problems)
+    assert any(line.startswith("S20 greet-a-person") and "expiration" in line for line in advice)
 
 
 def test_a_row_with_no_git_sha_is_a_malformed_record_and_stays_a_problem(cfg):

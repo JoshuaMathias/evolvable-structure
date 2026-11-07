@@ -84,11 +84,12 @@ esoi check                                # before committing
 git commit ...                            # measured code and cases committed
 esoi run --stale --plan                   # which recorded results no longer describe the code, which file and owner, and why each is or is not re-run
 esoi run --stale --for-decision           # when a decision or release depends on the selected arms: re-run and record those that are stale
-esoi check --strict                       # advice: the recorded results that are stale (never a failure)
+esoi check --strict                       # lists each stale recorded result as advice (plain `esoi check` prints one info line with the count; never a failure)
+esoi check --for-decision                 # when a decision or release depends on the results: a stale one is then a to do
 ```
 
 `esoi run --stale` reports a row whose measured code changed and re-runs only what is worth running (a selected arm never measured, an expiration that has passed, `--for-decision`, `--include`; `--all` re-runs every stale arm); which files count as measured code is the staleness rule ([Choose when a result is stale](choose-when-a-result-is-stale.md)). `esoi run --stale --plan` lists what would run and why, and runs nothing; a real `--stale` pass can be killed and run again, because the recorded rows are the progress and it starts at the arm that was in flight. `esoi run --stale` re-runs the selected arm of each solution and the rivals recorded beside it (a verdict that rests on a rival
-recorded before the measured code changed is flagged by `esoi check --strict`, waive one as `S20 <solution>:<implementation>`),
+recorded before the measured code changed is listed by `esoi check --strict`, waive one as `S20 <solution>:<implementation>`),
 on the sample the selected arm's latest row used (`--full` runs the whole set), so a re-record stays comparable; a rival
 recorded on another sample is not stale, it is not comparable, and is re-run too. It never runs an arm that may spend money: one that declares `PAID = True`, is listed in `paid_arms`, or whose last run called a
 model (unless it declares `SIMULATED = True`, a deterministic stand-in that counts calls and spends nothing). Those are listed as skipped with the command to run them; opt in with `--include <component>/<impl>` or `--include-paid`. An arm included with `--include-paid` is still skipped, with the reason, when another arm already passed every case on the same cases and sample at no higher cost (or, with a balanced score, when it cannot win on cost or time either); naming it with `--include` runs it.

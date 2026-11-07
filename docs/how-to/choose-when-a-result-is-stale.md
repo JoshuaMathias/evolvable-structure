@@ -49,10 +49,18 @@ either narrow rule. An arm that does this (a plugin loader, an implementation ch
 
 Nothing, until it is worth acting on. `esoi run --stale` reports it as measured code changed and re-runs only a selected arm that was
 never measured, a selected arm whose declared expiration has passed, the selected arms a pending decision or release depends on
-(`--for-decision`), or arms you name (`--include component/impl`). `--all` re-runs every stale arm. `esoi check` gives every staleness fact as
-advice and never fails on it: a changed case file ("recorded on other cases"), changed measured code, a row recorded on uncommitted
-code, circumstances changed since the slice rows were derived. Each line names the reason and the next action
-(`esoi run <component> --impl <arm> --record` when a decision depends on it), and `esoi check --findings` lists them. So editing a case file
+(`--for-decision`), or arms you name (`--include component/impl`). `--all` re-runs every stale arm. `esoi check` never fails on a staleness fact
+(a changed case file, "recorded on other cases"; changed measured code; a row recorded on uncommitted code; circumstances changed since
+the slice rows were derived). Whether one is a to do depends on the situation:
+
+| Situation | What `esoi check` prints |
+|---|---|
+| The result's metric (or the project's `[expiration] default`) declares an expiration and it has passed | a to do (`S20 ...: its metric declares an expiration of N days ...`), even when the code is unchanged |
+| A decision or release depends on the results and you say so with `esoi check --for-decision` | a to do for each stale selected result, naming the re-run command |
+| Anything else (the default: expiration is never) | one line outside the to-do count, such as `info: 21 recorded result(s) describe older code; esoi run --stale --plan lists them` |
+
+`esoi check --findings` and `--strict` list every stale result in full under that line, each with its reason and the next action
+(`esoi run <component> --impl <arm> --record` when a decision depends on it). So editing a case file
 never blocks a move, a commit or the check. A malformed row stays a problem: one with no `git_sha` (it cannot say what it measured),
 one with no `cases_sha` (S16), or an unreadable `circumstances.csv`. No commit hook and no CI step runs metrics.
 

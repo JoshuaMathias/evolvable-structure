@@ -10,11 +10,11 @@ from __future__ import annotations
 import ast
 import re
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from esoi.optimization.leaderboard import arm_selection, case_identity, results_log, rival_decisions, switching_policy
 from esoi.optimization.leaderboard.interface import selection_view, incomparable_rivals, stale_rivals
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import defect_reason, stale_reason
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import defect_reason, stale_reason, stale_reasons
 from esoi.optimization.when_metrics_are_run.interface import declares_simulated
 from esoi.structure.intent_registry.records import FILES
 from esoi.structure.intent_registry.registry import adopts
@@ -37,9 +37,10 @@ SUMMARIES = {
            "selected or measured implementation must be live, or waived.",
     "S16": "The latest results row of every implementation carries a cases_sha, or a waiver says why not.",
     "S20": "Every solution has a problem, an ideal, a metric, implementations, a selected implementation and a "
-           "recorded run on the current cases with a git_sha (a solution whose metrics record no run is a specification and is not checked here). With --strict a run on code that "
-           "changed since is advice only (it informs, never fails the check or blocks a commit), and so is a rival it was compared "
-           "with (waive one rival as `<solution>:<implementation>`).",
+           "recorded run on the current cases with a git_sha (a solution whose metrics record no run is a specification and is not checked here). A run on code or cases that "
+           "changed since is information, never a failure: one count line (`--findings` and `--strict` list each, and so for a rival it was "
+           "compared with; waive one rival as `<solution>:<implementation>`); it is a to-do only when its metric's expiration has passed or "
+           "`esoi check --for-decision` says a decision or release depends on it.",
     "S21": "Every evaluation folder is named by some solution's metric command, or is listed as shared.",
     "S22": "No score, percentage, dollar amount or case count in a waiver reason or a record field (a solution's milestones may state target values); "
            "numbers live in the results log.",
@@ -285,17 +286,17 @@ def empty_solution_fields(ctx: Context, r: Dict[str, str]) -> List[str]:
 
 
 def rival_advice(ctx: Context, sid: str, comp: str, sel: str) -> None:
-    """Advice (--strict only) on rivals the verdict compares with that are stale or not comparable."""
+    """Advice (listed by --strict and --findings) on rivals the verdict compares with that are stale or not comparable."""
     results = ctx.results.get(comp, {})
     for impl, rival_why in stale_rivals(ctx.config, comp, results, sel, stale_reason, ctx.history.get(comp)):
         waived = ctx.waived("S20", f"{sid}:{impl}")   # in use now, though only --strict reports the finding
         if ctx.strict and not waived:   # information: a changed file never fails the check or blocks a commit
-            ctx.advisory.append(f"S20 {sid}: the verdict compares {sel} with rival {impl}, but {rival_why}; "
+            ctx.stale_info.append(f"S20 {sid}: the verdict compares {sel} with rival {impl}, but {rival_why}; "
                                 f"re-run `esoi run {comp} --impl {impl} --record` when a decision depends on the comparison")
     for impl, rival_why in incomparable_rivals(results, sel, ctx.config.evaluation, ctx.history.get(comp)):
         waived = ctx.waived("S20", f"{sid}:{impl}")
         if ctx.strict and not waived:
-            ctx.advisory.append(f"S20 {sid}: rival {impl} is not comparable with {sel} ({rival_why}); "
+            ctx.stale_info.append(f"S20 {sid}: rival {impl} is not comparable with {sel} ({rival_why}); "
                                 f"record both on the same sample when a decision depends on the comparison")
 
 
@@ -313,9 +314,24 @@ def recorded_run_problems(ctx: Context, r: Dict[str, str]) -> List[str]:
     defect = defect_reason(ctx.config, comp, row)   # a malformed row (no commit, unreadable circumstances) is a problem
     if defect:
         return [] if ctx.waived("S20", sid) else [f"S20 {sid}: {defect}; re-run `esoi run {comp} --impl {sel} --record` on committed code"]
-    changed = stale_reason(ctx.config, comp, row, True)   # other cases, other circumstances, changed or dirty code: advice, never a problem
-    if changed and not ctx.waived("S20", sid):
-        ctx.advisory.append(f"S20 {sid}: {changed}; re-run `esoi run {comp} --impl {sel} --record` when a decision or release depends on it")
+    return stale_findings(ctx, sid, (comp, sel), row)
+
+
+def stale_findings(ctx: Context, sid: str, arm: Tuple[str, str], row: Dict[str, str]) -> List[str]:
+    """S20 for a well-formed row of a solution's selected arm: a to do when its expiration passed or a decision depends on it
+    (``esoi check --for-decision``), else information (``ctx.stale_info``). Never a problem."""
+    comp, sel = arm
+    rerun = f"`esoi run {comp} --impl {sel} --record`"
+    expired = stale_reasons.expired_reason(ctx.config, comp, row)   # an expiration the metric or project declares and that has passed
+    changed = stale_reason(ctx.config, comp, row, True)   # other cases, other circumstances, changed or dirty code
+    if not (expired or changed) or ctx.waived("S20", sid):   # a waiver counts as used only where it hides a finding
+        return []
+    if expired:
+        ctx.advisory.append(f"S20 {sid}: {expired}; re-run {rerun}")   # to do: the metric itself says the result goes out of date
+    elif ctx.for_decision:
+        ctx.advisory.append(f"S20 {sid}: {changed}; a decision or release depends on it, so re-run {rerun}")   # to do: it matters now
+    else:
+        ctx.stale_info.append(f"S20 {sid}: {changed}; re-run {rerun} when a decision or release depends on it")   # information only
     return []
 
 

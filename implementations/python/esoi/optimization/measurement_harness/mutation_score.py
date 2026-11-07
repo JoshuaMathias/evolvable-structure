@@ -14,7 +14,7 @@ def scale_row(out, want):
 
 def advice_row(out, case, want):
     problems = out["problems"]
-    hits = [p for p in out.get("advisory", []) if p.startswith(want["rule"] + " ") and want.get("contains", "") in p]
+    hits = [p for p in out.get("advisory", []) + out.get("information", []) if p.startswith(want["rule"] + " ") and want.get("contains", "") in p]
     ok = bool(hits) and not any(p.startswith(want["rule"] + " ") for p in problems)   # advice, never a problem
     return dict(ok=ok, got=f"{case['kind']}:{want['rule']}",
                 note="ok" if ok else f"{want['rule']} {want.get('contains', '')!r} not given as advice, or it is a problem")

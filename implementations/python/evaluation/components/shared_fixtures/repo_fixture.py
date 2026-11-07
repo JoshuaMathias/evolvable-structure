@@ -17,7 +17,7 @@ import tempfile
 from pathlib import Path
 from typing import Dict, List
 
-from esoi.structure.structure_check.interface import check_all, write_docs
+from esoi.structure.structure_check.interface import check_report, write_docs
 from esoi.structure.intent_registry import config
 from esoi.understanding.the_standard.interface import init
 
@@ -240,10 +240,11 @@ def fresh_repo(edits: List[dict], kind: str = "repo") -> Path:
 
 
 def report(root: Path, strict: bool = False) -> Dict[str, object]:
-    """Run the live checker over a fixture and return its verdict: exit code, the problem lines and the advisory lines (which never change the exit code)."""
+    """Run the live checker over a fixture and return its verdict: exit code, the problem lines, the to-do advisory lines and the information lines (neither changes the exit code)."""
     advisory: List[str] = []
+    information: List[str] = []
     try:
-        problems, advisory = check_all(config.load(root), strict)
+        problems, advisory, information = check_report(config.load(root), strict)
     except Exception as exc:
         problems = [f"CRASH {type(exc).__name__}: {exc}"]
-    return {"exit": 1 if problems else 0, "problems": problems, "advisory": advisory}
+    return {"exit": 1 if problems else 0, "problems": problems, "advisory": advisory, "information": information}

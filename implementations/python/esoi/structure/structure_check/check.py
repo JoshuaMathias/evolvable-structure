@@ -6,7 +6,9 @@
 apply: rule S9) and the results log. The rules themselves are listed by ``esoi rules``; a repository adds its own
 through ``plugins`` in its configuration (``esoi.structure.structure_check.rules.base``).
 
-``--strict`` also rejects results recorded on uncommitted code. ``--write-docs`` first regenerates the generated
+``--strict`` also lists results recorded on uncommitted code. A recorded result that describes older code is information (one
+count line outside the to do count; ``--findings`` and ``--strict`` list each) unless its metric's expiration has passed or
+``--for-decision`` says a decision or release depends on the results. ``--write-docs`` first regenerates the generated
 files (``COMPONENTS.md``, the tracker tabs, and anything a plugin's ``write_docs(ctx)`` produces).
 """
 from __future__ import annotations
@@ -31,7 +33,7 @@ from esoi.runtime.implementation_selection.select import load_table
 from esoi.structure.intent_registry.tables import repo_files
 
 
-def build_context(config: Config, strict: bool = False, files: Optional[List[str]] = None) -> Context:
+def build_context(config: Config, strict: bool = False, files: Optional[List[str]] = None, for_decision: bool = False) -> Context:
     registry = load_registry(config)
     table, error = None, ""
     if config.selection_table:
@@ -42,7 +44,7 @@ def build_context(config: Config, strict: bool = False, files: Optional[List[str
     return Context(config=config, registry=registry, files=repo_files(config.root) if files is None else files,
                    template=template.load_for(config), results=results_log.latest_results(config.results_path),
                    history=results_log.all_results(config.results_path),
-                   table=table, table_error=error, strict=strict)
+                   table=table, table_error=error, strict=strict, for_decision=for_decision)
 
 
 def rule_id(line: str) -> str:
@@ -58,8 +60,14 @@ def check(config: Config, strict: bool = False, files: Optional[List[str]] = Non
 def check_all(config: Config, strict: bool = False, files: Optional[List[str]] = None) -> Tuple[List[str], List[str]]:
     """``(problems, advisory)``: the problem lines that fail the check, and the to-do lines of enabled opt-in rules that are not
     strict (each says its next action)."""
+    return check_report(config, strict, files)[:2]
+
+
+def check_report(config: Config, strict: bool = False, files: Optional[List[str]] = None, for_decision: bool = False) -> Tuple[List[str], List[str], List[str]]:
+    """``(problems, advisory, information)``: ``check_all`` plus the stale recorded results nothing depends on (S20 lines that are
+    not to do: the result describes older code, but its metric declares no passed expiration and no decision needs it now)."""
     with intents.session():   # the record folders are found once for the whole check (finding them globs the tree)
-        return check_in_session(config, strict, files)
+        return check_in_session(config, strict, files, for_decision)
 
 
 def waiver_problems(ctx: Context) -> List[str]:
@@ -75,9 +83,9 @@ def waiver_problems(ctx: Context) -> List[str]:
     return bad
 
 
-def check_in_session(config: Config, strict: bool, files: Optional[List[str]]) -> Tuple[List[str], List[str]]:
-    """``check_all`` inside an open ``intents.session``."""
-    ctx = build_context(config, strict, files)
+def check_in_session(config: Config, strict: bool, files: Optional[List[str]], for_decision: bool = False) -> Tuple[List[str], List[str], List[str]]:
+    """``check_report`` inside an open ``intents.session``."""
+    ctx = build_context(config, strict, files, for_decision)
     entry_rules.start_background(ctx)   # the entry checks wait on child processes: they run beside the other rules
     bad: List[str] = []
     for group in rules.all_groups(config):
@@ -89,7 +97,7 @@ def check_in_session(config: Config, strict: bool, files: Optional[List[str]]) -
         bad += waiver_problems(ctx)
     if ctx.modules is not None:
         ctx.modules.save(keep=set(ctx.files))
-    return bad, list(ctx.advisory)
+    return bad, list(ctx.advisory), list(ctx.stale_info)
 
 
 LEGACY_NOTE = ("note: this repository uses the legacy two-level layout (`overall` and detailed records); the intent layout "
@@ -151,15 +159,27 @@ def advisory_lines(advisory: List[str], findings: bool) -> List[str]:
     return [head] + (["  " + line for line in advisory] if findings else ["  list them with `esoi check --findings`"])
 
 
-def run_cli(config: Config, strict: bool, write: bool, say: Callable[[str], None] = print, findings: bool = False) -> int:
-    """Print the problems (they decide the exit code), then the findings of the opt-in rules S36 to S39: a count per rule, and with
-    ``findings`` every line. Those findings are information: they never change the exit code."""
+def information_lines(information: List[str], listed: bool) -> List[str]:
+    """One short line with the count of stale results nothing depends on (never part of the to-do count), then each one when ``listed``."""
+    if not information:
+        return []
+    head = f"info: {len(information)} recorded result(s) describe older code; `esoi run --stale --plan` lists them"
+    return [head] + (["  " + line for line in information] if listed else [])
+
+
+def run_cli(config: Config, strict: bool, write: bool, say: Callable[[str], None] = print, findings: bool = False,
+            for_decision: bool = False) -> int:
+    """Print the problems (they decide the exit code), then the to-do findings of the advisory rules: a count per rule, and with
+    ``findings`` every line, then one information line for stale results nothing depends on (each listed with ``findings`` or
+    ``strict``). Findings and information never change the exit code."""
     if write:
         write_docs(config, say)
-    bad, advisory = check_all(config, strict)
+    bad, advisory, information = check_report(config, strict, None, for_decision)
     for line in bad:
         say(line)
     for line in advisory_lines(advisory, findings):
+        say(line)
+    for line in information_lines(information, findings or strict):
         say(line)
     for line in notes(config):
         say(line)

@@ -1,7 +1,7 @@
 """The ``esoi`` command line. Each subcommand is a thin call into the module that owns the behaviour.
 
     esoi init [DIR] [--package NAME]       scaffold a passing example repository
-    esoi check [--strict] [--findings] [--write-docs]   run every rule (esoi rules lists them)
+    esoi check [--strict] [--findings] [--for-decision] [--write-docs]   run every rule (esoi rules lists them)
     esoi rules [--markdown]                list the rules and what each one means
     esoi template sync|check               keep the parsed intent template in step with its source
     esoi skill sync|check|install          the public copy of the author's skill: generate, verify, install
