@@ -34,7 +34,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from esoi.structure.intent_registry.template_sync import versioning
+from esoi.structure.intent_registry.template_sync.interface import read_version_stamp, render_stamp, skill_section, source_identity, stamp_path
 from esoi.structure.intent_registry.config import Config
 
 SOURCE_ENV = "ESOI_SKILL_SOURCE"
@@ -274,17 +274,17 @@ def copy_folders(config: Config, settings: Settings) -> List[Path]:
 
 def wanted_stamp(config: Config, folder: Path, settings: Settings, wanted: Dict[str, str]) -> Optional[str]:
     """The text of the version stamp after a sync from ``folder``, or None when this repository keeps no stamp."""
-    path = versioning.stamp_path(config)
+    path = stamp_path(config)
     if path is None:
         return None
-    stamp = versioning.read_stamp(path)
-    identity = versioning.source_identity(folder, sorted(wanted))
-    stamp["skill"] = versioning.skill_section(stamp, identity, (folder / SKILL_FILE).read_text(encoding="utf-8"), wanted)
-    return versioning.render_stamp(stamp)
+    stamp = read_version_stamp(path)
+    identity = source_identity(folder, sorted(wanted))
+    stamp["skill"] = skill_section(stamp, identity, (folder / SKILL_FILE).read_text(encoding="utf-8"), wanted)
+    return render_stamp(stamp)
 
 
 def stamp_differs(config: Config, text: Optional[str]) -> bool:
-    path = versioning.stamp_path(config)
+    path = stamp_path(config)
     return text is not None and path is not None and (not path.is_file() or path.read_text(encoding="utf-8") != text)
 
 
@@ -323,7 +323,7 @@ def sync(config: Config, source: Optional[str] = None, check: bool = False, say:
         return 1 if stale else 0
     write_copies(copy_folders(config, settings), wanted)
     if stamp is not None:
-        versioning.stamp_path(config).write_text(stamp, encoding="utf-8")
+        stamp_path(config).write_text(stamp, encoding="utf-8")
     say(f"wrote {len(wanted)} file(s) to {len(copy_folders(config, settings))} folder(s)")
     return 0
 

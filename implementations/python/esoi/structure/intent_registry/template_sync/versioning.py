@@ -37,8 +37,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from esoi.structure.intent_registry.config import Config
 
-__version__ = "0.4.0"   # the package's version: pyproject.toml carries the same number (a test keeps them equal)
-
 STAMP_FILE = "skill_version.json"
 BUNDLED_STAMP = Path(__file__).resolve().parents[3] / "data" / STAMP_FILE
 FORMAT = 1
@@ -258,11 +256,11 @@ def note(config: Config) -> List[str]:
             f"version {version} ([records] {RECORD_KEY} in esoi.toml), so a later template change is reported (rule S34)"]
 
 
-def report(config: Optional[Config]) -> List[str]:
-    """The lines of ``esoi version``."""
+def report(config: Optional[Config], package_version: str) -> List[str]:
+    """The lines of ``esoi version``; the caller names the package version (the front door ``esoi/__init__.py`` holds it)."""
     stamp = bundled_stamp()
     skill, template = stamp.get("skill", {}), stamp.get("template", {})
-    lines = [f"esoi {__version__}"]
+    lines = [f"esoi {package_version}"]
     if skill:
         state = "" if skill.get("committed") else ", source had uncommitted changes"
         lines.append(f"skill: commit {skill.get('commit', '')[:7] or 'unknown'} ({skill.get('date', '')}{state}), "

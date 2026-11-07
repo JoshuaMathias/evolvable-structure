@@ -5,8 +5,9 @@ from esoi.runtime.implementation_selection.declare import implementation, soluti
 from esoi.structure.intent_registry.registry import load_project
 from esoi.structure.intent_registry.template_sync.templates import sync
 from esoi.structure.intent_registry.template_sync.versioning import VersionError, record, report as versioning_report
+from esoi.structure.intent_registry.template_sync.versioning import bundled_stamp, describe as describe_version, note as version_note, read_stamp as read_version_stamp, recorded_version, render_stamp, since as versions_since, skill_section, source_identity, stamp_path, template_version
 
-__all__ = ["VersionError", "record", "sync", "versioning_report"]
+__all__ = ["VersionError", "bundled_stamp", "describe_version", "read_version_stamp", "record", "recorded_version", "render_stamp", "version_note", "versions_since", "skill_section", "source_identity", "stamp_path", "sync", "template_version", "versioning_report"]
 
 
 @solution("template-sync", kind="evaluate", entry="fields", example=".")

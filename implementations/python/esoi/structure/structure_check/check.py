@@ -19,7 +19,8 @@ from esoi.structure.intent_registry import intents
 from esoi.optimization.leaderboard import results_log
 from esoi.understanding.readable_records.interface import readme_write
 from esoi.structure.structure_check import rules
-from esoi.structure.intent_registry.template_sync import template, versioning
+from esoi.structure.intent_registry.template_sync import template
+from esoi.structure.intent_registry.template_sync.interface import version_note
 from esoi.understanding.review_tracker.interface import tracker_write
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.registry import load as load_registry
@@ -98,7 +99,7 @@ LEGACY_NOTE = ("note: this repository uses the legacy two-level layout (`overall
 
 def notes(config: Config) -> List[str]:
     """Lines that are information, not violations: they never change the exit code."""
-    return ([LEGACY_NOTE] if config.overall and not config.intent_mode else []) + versioning.note(config) + cascade_notes(config) + coherence_notes(config)
+    return ([LEGACY_NOTE] if config.overall and not config.intent_mode else []) + version_note(config) + cascade_notes(config) + coherence_notes(config)
 
 
 def coherence_notes(config: Config) -> List[str]:

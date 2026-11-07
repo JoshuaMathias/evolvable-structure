@@ -14,6 +14,8 @@ from esoi.structure.intent_registry import config
 from esoi.understanding.the_standard.skill_distribution import skill
 from esoi.structure.intent_registry.template_sync import templates, versioning
 from esoi.structure.intent_registry.config import Config
+from esoi.structure.structure_check.rules import version_rules
+from esoi.understanding.the_standard import scaffold
 from test_skill import TABLE
 from test_templates import SKILL, make
 
@@ -154,7 +156,8 @@ def newer(monkeypatch, versions):
     history = [{"version": v, "sha256": f"h{v}", "date": f"2026-11-0{v}", "skill_commit": f"c{v}abcdef", "changes": [f"solution.f{v}: added (required)"]}
                for v in range(1, versions + 1)]
     stamp = {"template": history[-1], "history": history[:-1]}
-    monkeypatch.setattr(versioning, "bundled_stamp", lambda: stamp)
+    for module in (versioning, version_rules, scaffold):   # each one that took the name from the unit's interface holds its own binding
+        monkeypatch.setattr(module, "bundled_stamp", lambda: stamp)
 
 
 def forget(repo):

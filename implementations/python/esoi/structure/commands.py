@@ -159,7 +159,7 @@ def run_version(config, args: argparse.Namespace) -> int:
             print(f"esoi: {exc}", file=sys.stderr)
             return 2
         return 0
-    for line in versioning_report(config):
+    for line in versioning_report(config, args.package_version):
         print(line)
     return 0
 

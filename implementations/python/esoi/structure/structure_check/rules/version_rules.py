@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import List
 
 from esoi.structure.intent_registry import fields, intents
-from esoi.structure.intent_registry.template_sync import versioning
+from esoi.structure.intent_registry.template_sync.interface import bundled_stamp, describe_version, recorded_version, versions_since, template_version
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
 
 SUMMARIES = {
@@ -20,18 +20,18 @@ SUMMARIES = {
 
 
 def run(ctx: Context) -> List[str]:
-    recorded, problem = versioning.recorded_version(ctx.config)
+    recorded, problem = recorded_version(ctx.config)
     if problem:
         return [f"S34 esoi.toml: {problem}"]
-    stamp = versioning.bundled_stamp()
-    current = versioning.template_version(stamp)
+    stamp = bundled_stamp()
+    current = template_version(stamp)
     if recorded is None or not current or recorded == current:
         return []
     if recorded > current:
         return [f"S34 esoi.toml: the records follow template version {recorded}, but this esoi carries version {current}; "
                 "upgrade esoi"]
     bad = [f"S34 esoi.toml: the records follow template version {recorded}; this esoi carries {current}. "
-           + versioning.describe(entry) for entry in versioning.since(stamp, recorded)]
+           + describe_version(entry) for entry in versions_since(stamp, recorded)]
     pending = fields.migrate_tree([folder for _, folder in intents.folders(ctx.config)], False) if ctx.config.intent_mode else []
     bad.append("S34 esoi.toml: " + ("run `esoi fields migrate --apply`, then " if pending else "update the records by hand where a "
                "change above affects them, then ") + f"run `esoi version --record` to record version {current}")

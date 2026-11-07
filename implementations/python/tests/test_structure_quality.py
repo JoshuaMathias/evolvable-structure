@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / "evaluation" / "components"))
 from shared_fixtures import structure_fixture
 from esoi.structure.structure_check.rules import structure_quality_rules
 from esoi.structure.intent_registry import parsed_source
-from esoi.structure.structure_quality import assess, balance, compare, expert_review, interface, overlap, project, report as report_module, scope
+from esoi.structure.structure_quality import assess, balance, compare, coupling, expert_review, interface, overlap, project, report as report_module, scope
 from esoi.structure.structure_quality.balance import Budgets
 
 
@@ -556,3 +556,26 @@ def test_a_compare_leaves_no_temporary_checkout_behind_also_when_scoring_raises_
     assert checkouts_left() == before
     listed = subprocess.run(["git", "-C", str(tmp_path), "worktree", "list"], capture_output=True, text=True, check=True).stdout.strip().splitlines()
     assert len(listed) == 1
+
+
+def kernel_project(tmp_path, door_text):
+    """Three units that import two shared names from a base module, and a package root that carries records (so it is a unit too) beside its command line."""
+    files = {"app/solutions.csv": "id\n", "app/common/solutions.csv": "id\n", "app/common/base.py": "SHARED = 1\nOTHER = 2\nDOOR_ONLY = 3\n", "app/__main__.py": "import app\n", "app/__init__.py": door_text}
+    for unit in ("a", "b", "c"):
+        files[f"app/{unit}/interface.py"] = "from app.common.base import SHARED, OTHER\n"
+    write(tmp_path, files)
+    return project.load(tmp_path)
+
+
+def test_the_package_front_door_may_take_a_name_from_the_shared_kernel_that_no_unit_uses_but_it(tmp_path):
+    loaded = kernel_project(tmp_path, "from app.common.base import DOOR_ONLY\n")
+    lines = coupling.offending_imports(loaded, *coupling.classified(loaded, balance.Budgets())[:2])
+    assert not [line for line in lines if "DOOR_ONLY" in line]
+
+
+def test_a_unit_that_takes_a_name_from_the_shared_kernel_that_only_it_uses_is_still_an_offender(tmp_path):
+    loaded = kernel_project(tmp_path, "")
+    write(tmp_path, {"app/a/interface.py": "from app.common.base import SHARED, OTHER, DOOR_ONLY\n"})
+    loaded = project.load(tmp_path)
+    lines = coupling.offending_imports(loaded, *coupling.classified(loaded, balance.Budgets())[:2])
+    assert [line for line in lines if "DOOR_ONLY" in line and "app/a/interface.py" in line]

@@ -56,7 +56,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="esoi", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--config", default=None, help="the config file, or the folder that holds it")
     parser.add_argument("--version", action="version", version=f"esoi {__version__}")
-    parser.set_defaults(needs_config=True)
+    parser.set_defaults(needs_config=True, package_version=__version__)   # the front door names the version; a command reads it from args
     sub = parser.add_subparsers(dest="cmd", required=True)
     for container in CONTAINERS:
         container.register(sub)

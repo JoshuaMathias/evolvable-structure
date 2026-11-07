@@ -75,12 +75,18 @@ def cross_edges(project: Project) -> List[Tuple[str, str, str, str, Tuple[str, .
 
 
 def is_front_door(project: Project, path: str) -> bool:
-    """A project's front door: an ``api.py`` (its public API), a ``__main__.py`` (its command line), or the ``__init__.py`` of a top package (one whose parent folder is not itself a package)."""
+    """A project's front door: an ``api.py`` (its public API), a ``__main__.py`` (its command line), the ``__init__.py`` of a top package (one whose parent folder is not itself a package)."""
     pure = PurePosixPath(path)
     if pure.name in FRONT_DOOR_NAMES:
         return True
     # a solution folder's own __init__.py is that unit's entry even when no package __init__.py sits above it
     return pure.name == "__init__.py" and str(pure.parent.parent / "__init__.py") not in project.modules and str(pure.parent) not in project.markers
+
+
+def is_package_root(project: Project, path: str) -> bool:
+    """The ``__init__.py`` beside a ``__main__.py``: the package front door, which names the library's public API and so takes names from wherever they live."""
+    pure = PurePosixPath(path)
+    return pure.name == "__init__.py" and str(pure.parent / "__main__.py") in project.modules
 
 
 def is_entry(project: Project, path: str, entries: Set[str]) -> bool:
@@ -173,7 +179,7 @@ def classified(project: Project, budgets: Budgets) -> Tuple[List[Tuple[Tuple[str
         if entry(edge[3]):
             out.append((edge, "entry"))
         elif edge[3] in kernel:
-            out.append((edge, "kernel_one_unit" if foundation.single_unit_names(edge, takers) else "kernel"))
+            out.append((edge, "kernel_one_unit" if foundation.single_unit_names(edge, takers) and not is_package_root(project, edge[2]) else "kernel"))
         else:
             out.append((edge, "reach_in"))
     return out, entries, kernel

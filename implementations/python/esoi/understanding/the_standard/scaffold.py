@@ -23,7 +23,7 @@ from typing import Dict, List
 
 from esoi.structure.structure_check.interface import write_docs
 from esoi.optimization.leaderboard import case_identity
-from esoi.structure.intent_registry.template_sync import versioning
+from esoi.structure.intent_registry.template_sync.interface import bundled_stamp, template_version
 from esoi.structure.intent_registry.config import DEFAULT_STRUCTURE_DIR, Config, from_mapping
 from esoi.structure.intent_registry.fields import format_tags
 from esoi.structure.intent_registry.records import FILES, TEMPLATE_DATA, fields, load_template
@@ -300,7 +300,7 @@ def files_for(package: str, template) -> Dict[str, str]:
          for c in components])
     out[f"{structure}/waivers.csv"] = render_csv(["rule", "path", "reason"], [])
     out[f"{structure}/esoi_template.csv"] = TEMPLATE_DATA.read_text(encoding="utf-8")
-    out["esoi.toml"] = CONFIG.format(package=package, version=max(versioning.template_version(versioning.bundled_stamp()), 1))
+    out["esoi.toml"] = CONFIG.format(package=package, version=max(template_version(bundled_stamp()), 1))
     out[".gitignore"] = "__pycache__/\n.esoi_cache/\n"
     out[f"{package}/__init__.py"] = INIT.format(package=package)
     out[f"{package}/greet.py"] = GREET
