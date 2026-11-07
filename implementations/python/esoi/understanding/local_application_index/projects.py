@@ -23,6 +23,7 @@ argument; the command line is the one place that reads ``ESOI_HOME``. Standard l
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Mapping, Optional, Tuple
 
@@ -183,9 +184,23 @@ def location_base(location: str, path: Optional[Path]) -> str:
     return location.rstrip("/").rsplit("/", 1)[-1]
 
 
-def project_row(location: str, project_id: str, name: str, vision: str, kind: str, specifications: str, start_here: str,
-                relations: str, notes: str) -> Row:
+@dataclass(frozen=True)
+class Flags:
+    """What the command line said about a project; an empty value is filled from the project's own folder."""
+    project_id: str = ""
+    name: str = ""
+    vision: str = ""
+    kind: str = ""
+    specifications: str = ""
+    start_here: str = ""
+    relations: str = ""
+    notes: str = ""
+
+
+def project_row(location: str, flags: Flags) -> Row:
     """The index row of a project: what the flags say, completed from the project's own folder when it is a local one."""
+    project_id, name, vision, kind, specifications, start_here, relations, notes = (
+        flags.project_id, flags.name, flags.vision, flags.kind, flags.specifications, flags.start_here, flags.relations, flags.notes)
     path = local_path(location)
     path = path.resolve() if path is not None and path.exists() else path
     stored = stored_location(location, path)
@@ -206,7 +221,7 @@ def add(home: Path, location: str, project_id: str = "", name: str = "", vision:
     project without one (a URL, a board, a legacy project) gets them from the flags, the name defaulting to the folder
     name."""
     home = Path(home)
-    row = project_row(location, project_id, name, vision, kind, specifications, start_here, relations, notes)
+    row = project_row(location, Flags(project_id, name, vision, kind, specifications, start_here, relations, notes))
     rows = read_projects(home)
     same = [i for i, r in enumerate(rows) if r["project_id"] == row["project_id"]]
     if same and not replace:

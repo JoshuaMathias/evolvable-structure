@@ -32,7 +32,7 @@ import re
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from esoi.structure.intent_registry.template_sync import versioning
 from esoi.structure.intent_registry.config import Config
@@ -228,8 +228,19 @@ def resolves(rel: str, token: str, files: Dict[str, str]) -> bool:
     return here in files or os.path.normpath(token) in files
 
 
-def line_leaks(rel: str, number: int, line: str, names: set, top: set, private_dirs, files: Dict[str, str], denylist) -> List[Finding]:
+@dataclass(frozen=True)
+class Copy:
+    """The copy being scanned: its files, their names and top folders, the private folders and the deny list."""
+    files: Dict[str, str]
+    names: set
+    top: set
+    private_dirs: Any
+    denylist: Any
+
+
+def line_leaks(copy: Copy, rel: str, number: int, line: str) -> List[Finding]:
     """Every leak on one line of a copied file."""
+    names, top, private_dirs, files, denylist = copy.names, copy.top, copy.private_dirs, copy.files, copy.denylist
     found: List[Finding] = []
     for kind, rx in (("absolute-path", ABSOLUTE_PATH), ("email", EMAIL)):
         found.extend(Finding(rel, number, kind, m.group(0)) for m in rx.finditer(line))
@@ -249,10 +260,11 @@ def scan(files: Dict[str, str], denylist: List[Tuple[str, "re.Pattern[str]"]] = 
     """Every leak in a copy: generic ones always, deny-list terms when a list is given."""
     names = {rel.rsplit("/", 1)[-1] for rel in files}
     top = {rel.split("/", 1)[0] for rel in files if "/" in rel}
+    copy = Copy(files, names, top, private_dirs, denylist)
     found: List[Finding] = []
     for rel, text in sorted(files.items()):
         for number, line in enumerate(text.splitlines(), 1):
-            found += line_leaks(rel, number, line, names, top, private_dirs, files, denylist)
+            found += line_leaks(copy, rel, number, line)
     return found
 
 

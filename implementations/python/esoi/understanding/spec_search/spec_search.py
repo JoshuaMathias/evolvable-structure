@@ -403,18 +403,32 @@ def checked(strategy: str, tag_mode: str) -> None:
         raise ValueError(f"tag_mode is one of {TAG_MODES}, not {tag_mode!r}")
 
 
-def judge_every(result: Selection, task: str, ending: tuple, judge: Optional[Judge], cap: Optional[int], batch_size: int,
-                max_workers: int, line_text: Optional[int]) -> Selection:
+@dataclass(frozen=True)
+class Staging:
+    """What a staging after the candidates are proposed shares: the task, the judge, the views and link settings that shape the result, the cap and the line width."""
+    task: str
+    judge: Optional[Judge]
+    views: Sequence[View]
+    expand: int
+    link_kinds: Optional[Sequence[str]]
+    cap: Optional[int]
+    line_text: Optional[int]
+
+    def finish(self, result: Selection, keys: List[str]) -> Selection:
+        """The selection with its items, their links and the linked items filled in from ``keys``."""
+        return finish(result, self.views, keys, self.expand, self.link_kinds)
+
+
+def judge_every(result: Selection, stage: Staging, batch_size: int, max_workers: int) -> Selection:
     """The ``judge-all`` staging: every candidate goes to the judge in batches, and a failed batch is kept whole."""
-    views, expand, link_kinds = ending
-    candidates = result.candidates
+    judge, cap, candidates = stage.judge, stage.cap, result.candidates
     if judge is None:
         result.route = "unjudged"
-        return finish(result, views, take_up_to(list(candidates), cap), expand, link_kinds)
-    by_key = {v.key: v for v in views}
+        return stage.finish(result, take_up_to(list(candidates), cap))
+    by_key = {v.key: v for v in stage.views}
     batches = [candidates[i:i + batch_size] for i in range(0, len(candidates), batch_size)]
     with ThreadPoolExecutor(max_workers=max(1, min(max_workers, len(batches)))) as pool:
-        verdicts = list(pool.map(lambda b: ask(judge, task, b, by_key, cap or len(b), line_text), batches))
+        verdicts = list(pool.map(lambda b: ask(judge, stage.task, b, by_key, cap or len(b), stage.line_text), batches))
     result.route, result.calls = "judged", len(batches)
     picked = set()
     for batch, verdict in zip(batches, verdicts):
@@ -423,13 +437,11 @@ def judge_every(result: Selection, task: str, ending: tuple, judge: Optional[Jud
             picked.update(batch)           # keep the batch rather than lose it
         else:
             picked.update(verdict)
-    return finish(result, views, take_up_to([k for k in candidates if k in picked], cap), expand, link_kinds)
+    return stage.finish(result, take_up_to([k for k in candidates if k in picked], cap))
 
 
-def judge_gated(result: Selection, task: str, ending: tuple, judge: Optional[Judge], fallback: int, cap: Optional[int], route: str,
-                gate: Gate, scored: tuple, line_text: Optional[int]) -> Selection:
+def judge_gated(result: Selection, stage: Staging, fallback: int, route: str, gate: Gate, scored: tuple) -> Selection:
     """The gated staging after the gate has decided: nothing, a sure answer, or one judge call over the best candidates."""
-    views, expand, link_kinds = ending
     lexical, semantic = scored
     candidates = result.candidates
     if route == "nothing":
@@ -438,17 +450,17 @@ def judge_gated(result: Selection, task: str, ending: tuple, judge: Optional[Jud
     if route == "sure":
         agreed = {k for k, _ in lexical[:gate.agree_rank]} & {k for k, _ in semantic[:gate.agree_rank]}
         result.route = "sure"
-        return finish(result, views, take_up_to([k for k in candidates if k in agreed], cap), expand, link_kinds)
+        return stage.finish(result, take_up_to([k for k in candidates if k in agreed], stage.cap))
     pool_keys = candidates[:gate.pool]
-    if judge is None:
+    if stage.judge is None:
         result.route = "unjudged"
-        return finish(result, views, pool_keys[:fallback], expand, link_kinds)
+        return stage.finish(result, pool_keys[:fallback])
     result.route, result.calls = "judged", 1
-    verdict = ask(judge, task, pool_keys, {v.key: v for v in views}, fallback, line_text)
+    verdict = ask(stage.judge, stage.task, pool_keys, {v.key: v for v in stage.views}, fallback, stage.line_text)
     if verdict is None:
         result.failed_batches = 1
         verdict = pool_keys[:fallback]          # a failed call keeps the best few rather than nothing
-    return finish(result, views, take_up_to([k for k in pool_keys if k in set(verdict)], cap), expand, link_kinds)
+    return stage.finish(result, take_up_to([k for k in pool_keys if k in set(verdict)], stage.cap))
 
 
 def take_up_to(keys: List[str], cap: Optional[int]) -> List[str]:
@@ -478,10 +490,10 @@ def gated(task: str, views: Sequence[View], *, judge: Optional[Judge] = None, ve
         result.route = "nothing"
         return result
     cap = max_ranked or None
-    ending = (views, expand, link_kinds)
+    stage = Staging(task, judge, views, expand, link_kinds, cap, line_text)
     if strategy == "judge-all":
-        return judge_every(result, task, ending, judge, cap, batch_size, max_workers, line_text)
-    return judge_gated(result, task, ending, judge, cap or unjudged_top, cap, gate_decision(lexical, semantic, gate), gate, (lexical, semantic), line_text)
+        return judge_every(result, stage, batch_size, max_workers)
+    return judge_gated(result, stage, cap or unjudged_top, gate_decision(lexical, semantic, gate), gate, (lexical, semantic))
 
 
 @implementation("spec-search", "lexical-only")

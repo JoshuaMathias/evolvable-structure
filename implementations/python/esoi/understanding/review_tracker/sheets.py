@@ -28,6 +28,7 @@ the API calls are behind ``SheetsApi``.
 from __future__ import annotations
 
 import csv
+from dataclasses import dataclass
 import hashlib
 import json
 import os
@@ -262,9 +263,20 @@ def chosen_side(mode: str, csv_side: tuple, sheet_side: tuple, base: Dict[str, s
     return merge(csv_side[0], csv_side[1], sheet_side[0], sheet_side[1], base, prefix, key)
 
 
-def sync_tab(title: str, spec: tuple, api, mode: str, state: dict, dry_run: bool, say: Callable[[str], None]) -> Optional[List[str]]:
+@dataclass(frozen=True)
+class Sync:
+    """One sync run: the sheet API, the winning side, the recorded state, whether it only reports, and the printer."""
+    api: object
+    mode: str
+    state: dict
+    dry_run: bool
+    say: Callable[[str], None]
+
+
+def sync_tab(title: str, spec: tuple, sync: Sync) -> Optional[List[str]]:
     """Sync one tab with its CSV and record it in ``state``; its header, or None when the CSV is missing and the tab is skipped."""
     path, key, prefix = spec
+    api, mode, state, dry_run, say = sync.api, sync.mode, sync.state, sync.dry_run, sync.say
     if not path.exists():   # never read a missing file as "everything deleted"
         say(f"[{title}] SKIPPED: {path.name} not found")
         return None
@@ -290,9 +302,10 @@ def run_sync(config: Config, api, mode: str, dry_run: bool = False, say: Callabl
     state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else {}
     if not dry_run:
         api.ensure_tabs(list(tabs))
+    sync = Sync(api, mode, state, dry_run, say)
     headers: Dict[str, List[str]] = {}
     for title, spec in tabs.items():
-        header = sync_tab(title, spec, api, mode, state, dry_run, say)
+        header = sync_tab(title, spec, sync)
         if header is not None:
             headers[title] = header
     if dry_run:
