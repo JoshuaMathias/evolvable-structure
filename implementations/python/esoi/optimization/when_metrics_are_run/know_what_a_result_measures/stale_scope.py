@@ -52,19 +52,14 @@ def scope_for(config: Config, component: str, impl: str, rule: Optional[str] = N
     return scope
 
 
-def build_scope(config: Config, component: str, impl: str, rule: str) -> Scope:
-    impl = impl.partition(":")[0] if ":" in impl and "/" not in impl else impl
-    root = config.root.resolve()
-    evaluation = config.evaluation.resolve().relative_to(root).as_posix() if config.evaluation.resolve().is_relative_to(root) else config.evaluation_dir
-    scope = Scope(rule="repo_wide", requested=rule, evaluation=evaluation, component=component)
-    if rule == "repo_wide":
-        return scope
-    index = index_of(config)
-    solutions = arm_solutions(config, index, component, impl)
-    owners = [(cid, pats) for cid, pats, sols in index.components if sols & set(solutions)]
-    if not solutions or not owners:
-        scope.note = "the ownership map has no entry for it, so the whole repository's code counts"
-        return scope
+def evaluation_of(config: Config, root) -> str:
+    """The evaluation folder as a path relative to the repository root when it lies inside it."""
+    resolved = config.evaluation.resolve()
+    return resolved.relative_to(root).as_posix() if resolved.is_relative_to(root) else config.evaluation_dir
+
+
+def add_ownership(scope: Scope, config: Config, index, solutions, owners) -> None:
+    """Fill the scope's own patterns, other components' patterns and shared components from the ownership map."""
     own_ids = {cid for cid, _ in owners}
     scope.shared_components = {cid for cid, _, sols in index.components if cid in own_ids and sols - set(solutions)}
     scope.own = [(pat, cid) for cid, pats in owners for pat in pats]
@@ -73,6 +68,21 @@ def build_scope(config: Config, component: str, impl: str, rule: str) -> Scope:
     for path in beside_folders(config, index, solutions):
         scope.own.append((glob_pattern(path), "its records folder"))
     scope.others = [(pat, cid) for cid, pats, _ in index.components if cid not in own_ids for pat in pats]
+
+
+def build_scope(config: Config, component: str, impl: str, rule: str) -> Scope:
+    impl = impl.partition(":")[0] if ":" in impl and "/" not in impl else impl
+    root = config.root.resolve()
+    scope = Scope(rule="repo_wide", requested=rule, evaluation=evaluation_of(config, root), component=component)
+    if rule == "repo_wide":
+        return scope
+    index = index_of(config)
+    solutions = arm_solutions(config, index, component, impl)
+    owners = [(cid, pats) for cid, pats, sols in index.components if sols & set(solutions)]
+    if not solutions or not owners:
+        scope.note = "the ownership map has no entry for it, so the whole repository's code counts"
+        return scope
+    add_ownership(scope, config, index, solutions, owners)
     scope.rule = "component_paths"
     if rule == "import_closure":
         add_import_closure(scope, config, index, component, impl, solutions, root)
@@ -132,6 +142,21 @@ def judge_evaluation_folder(scope: Scope, path: str) -> Tuple[bool, str]:
     return False, f"in the evaluation folder of {rest.split('/')[0]}"
 
 
+def judge_owner(scope: Scope, path: str) -> Tuple[bool, str]:
+    """The verdict from the ownership map, for a path the closure did not settle."""
+    owner = first_match(scope.own, path)
+    if owner and scope.requested == "import_closure" and owner in scope.shared_components:
+        return False, f"owned by component {owner}, which other solutions share: not this arm's own code"
+    if owner:
+        return True, f"owned by {owner}"
+    other = first_match(scope.others, path)
+    if other:
+        return False, f"owned by component {other}"
+    if scope.requested == "import_closure":
+        return False, "owned by no component and not found in the arm's own imports: not the arm's own code"
+    return True, "owned by no component, so it counts for every arm"
+
+
 def judge(config: Config, scope: Scope, path: str) -> Tuple[bool, str]:
     """``(counts, why)`` for one changed path under the scope: whether the arm measures it, and who owns it or why it counts."""
     if scope.rule == "repo_wide":
@@ -147,14 +172,4 @@ def judge(config: Config, scope: Scope, path: str) -> Tuple[bool, str]:
             return True, "imported by the arm"
         if scope.rule == "import_closure":
             return False, "not the arm's own code (not imported, or owned by another implementation)"
-    owner = first_match(scope.own, path)
-    if owner and scope.requested == "import_closure" and owner in scope.shared_components:
-        return False, f"owned by component {owner}, which other solutions share: not this arm's own code"
-    if owner:
-        return True, f"owned by {owner}"
-    other = first_match(scope.others, path)
-    if other:
-        return False, f"owned by component {other}"
-    if scope.requested == "import_closure":
-        return False, "owned by no component and not found in the arm's own imports: not the arm's own code"
-    return True, "owned by no component, so it counts for every arm"
+    return judge_owner(scope, path)
