@@ -8,19 +8,22 @@ from esoi.runtime.assemble_by_name.environment_needs.closure import Member, expl
 from esoi.runtime.assemble_by_name.installation.plan import Plan
 
 
-def plan_text(selected: Plan, members: Sequence[Member] = ()) -> str:
-    """The plan as text: the closure with reasons, the ladder, what would run, what a person must still do."""
+def head_lines(selected: Plan, members: Sequence[Member]) -> List[str]:
+    """The closure with reasons, then the resolution steps when the ladder had something to resolve."""
     lines: List[str] = []
     if members:
         lines += ["closure:"] + [f"  {line}" for line in explain_closure(members)]
     if selected.steps and (selected.conflicts or selected.substitutions or selected.isolated):
         lines += ["resolution:"] + [f"  {step}" for step in selected.steps]
-    for one in selected.substitutions:
-        lines.append(f"substitution: {one.text()}")
-    for one in selected.conflicts:
-        lines.append(f"CONFLICT {one}")
-    for text in selected.options:
-        lines.append(f"option: {text}")
+    return lines
+
+
+def plan_text(selected: Plan, members: Sequence[Member] = ()) -> str:
+    """The plan as text: the closure with reasons, the ladder, what would run, what a person must still do."""
+    lines = head_lines(selected, members)
+    lines += [f"substitution: {one.text()}" for one in selected.substitutions]
+    lines += [f"CONFLICT {one}" for one in selected.conflicts]
+    lines += [f"option: {text}" for text in selected.options]
     lines.append("nothing to install" if selected.empty and not selected.conflicts else "would run:")
     lines += run_lines(selected)
     lines += [f"you must install: {text}" for text in selected.binaries]

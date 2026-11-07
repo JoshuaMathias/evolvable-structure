@@ -16,24 +16,41 @@ def unmet_checks(target: Any, environ: Mapping[str, str], options: Mapping[str, 
     ``environ`` (no PATH, no program), so ``environ={}`` never finds, and never starts, one."""
     out = []
     for one in checking.check(declarations.declared(target), environ):
-        item = one.requirement
-        if isinstance(item, declarations.Binary):
-            found = shutil.which(item.name, path=environ.get("PATH", ""))
-            one = checking.Check(item, checking.MET if found else checking.UNMET,
-                            "" if found else (item.install_hint or f"install {item.name} and put it on PATH"))
-        if isinstance(item, declarations.Env) and item.option in options:
-            continue
-        if isinstance(item, declarations.Api) and item.key is not None and item.key.option in options:
-            continue
-        if one.blocking:
+        one = on_path(one, environ)
+        if not given_as_option(one.requirement, options) and one.blocking:
             out.append(one)
     return out
+
+
+def on_path(one: Any, environ: Mapping[str, str]) -> Any:
+    """A program's check redone against the PATH of ``environ``; any other check unchanged."""
+    item = one.requirement
+    if not isinstance(item, declarations.Binary):
+        return one
+    found = shutil.which(item.name, path=environ.get("PATH", ""))
+    return checking.Check(item, checking.MET if found else checking.UNMET,
+                          "" if found else (item.install_hint or f"install {item.name} and put it on PATH"))
+
+
+def given_as_option(item: Any, options: Mapping[str, Any]) -> bool:
+    """Whether the caller passed the option that fills this variable or api key."""
+    if isinstance(item, declarations.Env):
+        return item.option in options
+    return isinstance(item, declarations.Api) and item.key is not None and item.key.option in options
 
 
 def reason_of(seat: str, arm: str, one: Any) -> Reason:
     kind = ("key" if isinstance(one.requirement, (declarations.Env, declarations.Api)) else "network" if isinstance(one.requirement, declarations.Network)
             else "install")
     return Reason(seat, arm, kind, one.remedy)
+
+
+def lacks_option(target: Any, needs: Mapping[str, str], given: Mapping[str, Any]) -> bool:
+    """Whether the arm's builder has a required parameter that is neither a need nor a given option."""
+    builder = builder_of(target)
+    params = inspect.signature(builder).parameters.items() if builder is not None else []
+    return any(name != "self" and name not in needs and name not in given and par.default is par.empty
+               and par.kind not in (par.VAR_POSITIONAL, par.VAR_KEYWORD) for name, par in params)
 
 
 def seat_reasons(assembler: Any, sid: str, cfg: Any, line: str) -> List[Reason]:
@@ -51,12 +68,8 @@ def seat_reasons(assembler: Any, sid: str, cfg: Any, line: str) -> List[Reason]:
     if environ_lacking(target, given, cfg.consumer_environ):
         out.append(Reason(sid, picked.name, "key", line))
     out += [reason_of(sid, picked.name, one) for one in unmet_checks(target, cfg.consumer_environ, given)]
-    builder = builder_of(target)
-    for name, par in (inspect.signature(builder).parameters.items() if builder is not None else []):
-        if name != "self" and name not in needs and name not in given and par.default is par.empty \
-                and par.kind not in (par.VAR_POSITIONAL, par.VAR_KEYWORD) and not out:
-            out.append(Reason(sid, picked.name, "option", line))
-            break
+    if not out and lacks_option(target, needs, given):
+        out.append(Reason(sid, picked.name, "option", line))
     lazy = assembler.lazy_needs_of(target)     # a Lazy need is built on first use, so the seat does not wait on it
     return out or [Reason(sid, picked.name, "needs", line, tuple(need for param, need in needs.items() if param not in lazy))]
 

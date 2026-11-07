@@ -26,7 +26,20 @@ def pending_outcome(reasons: Sequence[Reason]) -> str:
     waits on, so the result is the worst leaf (load-error, then needs-option for an option or an object to pass, then
     pending-install, then pending-key, then pending-network). The leaves are found through any chain of ``needs`` reasons. A ``needs`` with no leaf
     under it is needs-option."""
-    settled = {one.seat for one in reasons if one.kind != "needs"}      # seats that end in a leaf
+    kinds = reason_kinds(reasons, settled_seats(reasons))
+    if "load" in kinds:
+        return "load-error"
+    if kinds & {"option", "provided"}:
+        return "needs-option"
+    for kind, outcome in (("install", "pending-install"), ("key", "pending-key"), ("network", "pending-network")):
+        if kind in kinds:
+            return outcome
+    return "needs-option"   # pending for a reason nothing declares: the default does not fill the seat
+
+
+def settled_seats(reasons: Sequence[Reason]) -> set:
+    """The seats that end in a leaf reason, through any chain of ``needs`` reasons that wait on them."""
+    settled = {one.seat for one in reasons if one.kind != "needs"}
     grown = True
     while grown:    # a needs reason is settled once a seat it waits on is: a leaf, or a needs reason that is itself settled
         grown = False
@@ -34,23 +47,12 @@ def pending_outcome(reasons: Sequence[Reason]) -> str:
             if one.kind == "needs" and one.seat not in settled and any(seat in settled for seat in one.waits):
                 settled.add(one.seat)
                 grown = True
-    kinds = set()
-    for one in reasons:
-        if one.kind != "needs":
-            kinds.add(one.kind)
-        elif one.seat not in settled:
-            kinds.add("option")
-    if "load" in kinds:
-        return "load-error"
-    if kinds & {"option", "provided"}:
-        return "needs-option"
-    if "install" in kinds:
-        return "pending-install"
-    if "key" in kinds:
-        return "pending-key"
-    if "network" in kinds:
-        return "pending-network"
-    return "needs-option"   # pending for a reason nothing declares: the default does not fill the seat
+    return settled
+
+
+def reason_kinds(reasons: Sequence[Reason], settled: set) -> set:
+    """The kinds of the leaves; a ``needs`` with no leaf under it counts as an option."""
+    return {one.kind if one.kind != "needs" else "option" for one in reasons if one.kind != "needs" or one.seat not in settled}
 
 
 def classify(error: BaseException) -> Tuple[str, str, List[Reason]]:

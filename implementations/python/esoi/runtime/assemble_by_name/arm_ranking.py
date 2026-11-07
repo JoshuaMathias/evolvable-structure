@@ -30,6 +30,12 @@ def selected_lead(cfg: Any, results: Dict[str, Any], by_key: Dict[str, str], kno
     return 1.0 if runner_up is not None and runner_up.outcome == "incumbent" and runner_up.significant else 0.0
 
 
+def ranked_keys(results: Dict[str, Any]) -> List[str]:
+    """The result rows' arm keys, best first as the leaderboard ranks them."""
+    from esoi.optimization.leaderboard import ranking
+    return [selection_registry.key(r["impl"]) for r in ranking.rank(results)] if results else []
+
+
 def metric_order(assembler: Any, solution_id: str, selected: str = "") -> Tuple[List[str], Optional[float], str]:
     """``(arm names best first, lead, note)`` for a seat, from the scope's own leaderboard when it has records and results:
     the latest rows of the solution's component ranked as the leaderboard ranks them, and ``lead`` 1.0 when the selected
@@ -43,14 +49,17 @@ def metric_order(assembler: Any, solution_id: str, selected: str = "") -> Tuple[
         cfg, results = read_leaderboard(assembler, solution_id)
     except Exception as error:
         return order, None, f"{solution_id}: the leaderboard could not be read ({type(error).__name__}: {error}); using record order"
-    from esoi.optimization.leaderboard import ranking
+    return ranked_order(solution_id, names, order, selected, (cfg, results))
+
+
+def ranked_order(solution_id: str, names: List[str], order: List[str], selected: str, board: Tuple[Any, Dict[str, Any]]) -> Tuple[List[str], Optional[float], str]:
+    """``metric_order``'s answer once the leaderboard was read: the arms it ranks first, the rest in record order, the selected arm on top."""
+    cfg, results = board
     by_key = {selection_registry.key(impl): impl for impl in results}
-    ranked = [selection_registry.key(r["impl"]) for r in ranking.rank(results)] if results else []
-    known = [n for n in ranked if n in names]
+    known = [n for n in ranked_keys(results) if n in names]
     if not known:
         return order, None, f"{solution_id}: no results file rows for its arms, so arms are tried in record order"
     best_first = known + [n for n in names if n not in known]
-    if selected:
-        best_first = [selected] + [n for n in best_first if n != selected]
+    best_first = [selected] + [n for n in best_first if n != selected] if selected else best_first
     lead = selected_lead(cfg, results, by_key, known, selected) if selected and by_key.get(selected) and len(known) > 1 else 0.0
     return best_first, lead, f"{solution_id}: arms ranked by the leaderboard in {cfg.results}"
