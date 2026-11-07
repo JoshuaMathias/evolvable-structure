@@ -105,7 +105,7 @@ code. Modules that were later split into several files keep their first name as 
 | `leaderboard.py` | `optimization/leaderboard/leaderboard.py` |
 | `stats.py` | `optimization/leaderboard/stats.py` |
 | `cascade.py` | `optimization/leaderboard/cascade.py` |
-| `circumstances.py` | `optimization/leaderboard/circumstances.py` |
+| `circumstances.py` | `structure/intent_registry/circumstances.py` |
 | `evidence_table.py` | `optimization/leaderboard/evidence_table.py` |
 | `promote.py` | `optimization/promote_the_winner/promote.py` |
 | `metric_meter.py` | `optimization/keep_metric_record/metric_meter.py` |
