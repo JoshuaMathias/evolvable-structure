@@ -26,8 +26,33 @@ REFERENCE_LINK = re.compile(r"^[ \t]{0,3}\[[^\]\n]+\]:[ \t]*<?(\S+?)>?(?:[ \t]+.
 INCLUDE = re.compile(r"\{\{#include\s+([^\s}:]+)[^}]*\}\}|\{%[-\s]*include\s+[\"']?([^\s\"'%]+)|^[ \t]*!include[ \t]+(\S+)", re.M)
 
 
+def dotted_name(package: str, pkg_dir: Path, file: Path) -> str:
+    """The dotted module name of a source file in the package folder (a package's ``__init__`` is the package itself)."""
+    parts = [package] + list(file.relative_to(pkg_dir).with_suffix("").parts)
+    return ".".join(parts[:-1] if parts[-1] == "__init__" else parts)
+
+
+def annotated_with(arg: ast.arg, names: List[str]) -> bool:
+    """Whether a parameter's annotation names one of the given classes."""
+    if arg.annotation is None:
+        return False
+    return bool(set(names) & set(ast.unparse(arg.annotation).replace("'", "").replace('"', "").split(".")))
+
+
+def walk_tops(tops) -> List[ast.AST]:
+    """Every syntax node under the given top nodes."""
+    return [n for top in tops for n in nodes_of(top)]
+
+
 def node_token(node: ast.AST, prose: Set[int]) -> Optional[str]:
     """The name or string value one syntax node contributes to the executable tokens, or None."""
+    if isinstance(node, ast.Constant):
+        return node.value if isinstance(node.value, str) and id(node) not in prose else None
+    return name_token(node)
+
+
+def name_token(node: ast.AST) -> Optional[str]:
+    """The identifier a name-bearing syntax node contributes, or None."""
     if isinstance(node, ast.Name):
         return node.id
     if isinstance(node, ast.Attribute):
@@ -38,8 +63,6 @@ def node_token(node: ast.AST, prose: Set[int]) -> Optional[str]:
         return node.arg or None
     if isinstance(node, ast.ImportFrom):
         return node.module or None
-    if isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in prose:
-        return node.value
     return None
 
 
@@ -51,7 +74,7 @@ def executable_tokens(text: str, tree, nodes=None) -> List[str]:
     a module several solutions share)."""
     if tree is None:
         return [line for line in text.splitlines() if not line.lstrip().startswith("#")]
-    walked = [n for top in (nodes if nodes is not None else [tree]) for n in nodes_of(top)]
+    walked = walk_tops(nodes if nodes is not None else [tree])
     prose = {id(n.value) for n in walked if isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant)
              and isinstance(n.value.value, str)}
     tokens = [node_token(node, prose) for node in walked]
@@ -101,6 +124,10 @@ class Code:
         self.documents = self.document_files(cfg)
         self.document_owners = self.document_ownership(cfg, components, selected)
         self.links: Dict[str, Set[str]] = {d: self.links_of(d) for d in self.document_owners}
+        self.read_declarations(solutions, selected)
+
+    def read_declarations(self, solutions: Dict[str, Dict[str, str]], selected: Dict[str, Dict[str, str]]) -> None:
+        """What the solutions and selected implementations declare: selected modules, interface names, @solution ids, assemblers."""
         self.selected_module = {sid: self.module_of(r.get("filepath", "")) for sid, r in selected.items() if r}
         self.interface: Dict[str, List[str]] = {sid: ids(r.get("interface_name") or "") for sid, r in solutions.items()}   # every name of the cell, never the cell as one string
         self.declared = {sid for text in self.source.values() for sid in re.findall(r"@solution\(\s*[\"']([\w.-]+)[\"']", text)}
@@ -113,10 +140,7 @@ class Code:
         if cfg.package and pkg_dir.is_dir():
             for f in pkg_dir.rglob("*.py"):
                 if "__pycache__" not in f.parts:
-                    parts = [cfg.package] + list(f.relative_to(pkg_dir).with_suffix("").parts)
-                    if parts[-1] == "__init__":
-                        parts = parts[:-1]
-                    self.files[".".join(parts)] = f
+                    self.files[dotted_name(cfg.package, pkg_dir, f)] = f
         self.source = {m: f.read_text(encoding="utf-8", errors="replace") for m, f in self.files.items()}
         self.trees = {m: tree_of(self.files[m]) for m in self.source}
         self.tokens = {m: executable_tokens(text, self.trees[m]) for m, text in self.source.items()}
@@ -243,13 +267,12 @@ class Code:
             return set()
         out: Set[str] = set()
         is_pkg = self.files[module].name == "__init__.py"
-        for node in (n for top in (nodes if nodes is not None else [tree]) for n in nodes_of(top)):
+        for node in walk_tops(nodes if nodes is not None else [tree]):
             if isinstance(node, ast.Import):
                 out.update(a.name for a in node.names)
             elif isinstance(node, ast.ImportFrom):
                 base = import_base(module.split(".") if is_pkg else module.split(".")[:-1], node.level, node.module)
-                out.add(base)
-                out.update(f"{base}.{a.name}" for a in node.names)
+                out.update([base, *(f"{base}.{a.name}" for a in node.names)])
         return {m for m in out if m in self.files}
 
     def typed_need(self, user: str, used: str) -> bool:
@@ -259,12 +282,8 @@ class Code:
         if not names or tree is None:
             return False
         own = self.region_nodes.get((module, user)) if module in self.shared else None
-        for node in (n for top in (own or [tree]) for n in nodes_of(top)):
-            if isinstance(node, ast.FunctionDef) and node.name == "__init__":
-                for arg in node.args.args + node.args.kwonlyargs:
-                    if arg.annotation is not None and set(names) & set(ast.unparse(arg.annotation).replace("'", "").replace('"', "").split(".")):
-                        return True
-        return False
+        inits = (n for n in walk_tops(own or [tree]) if isinstance(n, ast.FunctionDef) and n.name == "__init__")
+        return any(annotated_with(arg, names) for node in inits for arg in node.args.args + node.args.kwonlyargs)
 
     def imported_by(self, user: str, module: str, used: str, used_modules: Set[str]) -> bool:
         """``user``'s part of ``module`` imports a module of ``used``. A module the used shares with other solutions counts only when
@@ -282,12 +301,10 @@ class Code:
         tree = self.trees.get(module)
         nodes = self.region_nodes.get((module, user)) if module in self.shared else None
         out: Set[str] = set()
-        for node in (n for top in (nodes or [tree]) for n in (nodes_of(top) if top is not None else [])):
-            if isinstance(node, ast.ImportFrom):
-                package = module.split(".") if self.files[module].name == "__init__.py" else module.split(".")[:-1]
-                base = import_base(package, node.level, node.module)
-                if base == target:
-                    out.update(a.name for a in node.names)
+        package = module.split(".") if self.files[module].name == "__init__.py" else module.split(".")[:-1]
+        for node in walk_tops([top for top in (nodes or [tree]) if top is not None]):
+            if isinstance(node, ast.ImportFrom) and import_base(package, node.level, node.module) == target:
+                out.update(a.name for a in node.names)
         return out
 
     def names_interface(self, user: str, used: str, modules: Set[str]) -> bool:
@@ -302,10 +319,11 @@ class Code:
             return "W1"
         if mu & self.assemblers and used in self.declared:
             return "W2"
-        for w, imported in self.imports.items():
-            if w not in mu and w not in mc and imported & mu and imported & mc:
-                return "W3"
-        return ""
+        return "W3" if self.bridged_by_third(mu, mc) else ""
+
+    def bridged_by_third(self, mu: Set[str], mc: Set[str]) -> bool:
+        """Whether a module outside both sets imports from each of them."""
+        return any(w not in mu and w not in mc and imported & mu and imported & mc for w, imported in self.imports.items())
 
     def evidence(self, user: str, used: str) -> str:
         """The strongest evidence that ``user`` uses ``used`` (E1 to E5, then W1, W2, W3), '' for none, 'n/a' when either end
@@ -317,15 +335,17 @@ class Code:
             return "E5"
         if not mu or not mc:
             return ""
+        return self.import_evidence(user, used, mu, mc) or self.weak_evidence(user, used, mu, mc)
+
+    def import_evidence(self, user: str, used: str, mu: Set[str], mc: Set[str]) -> str:
+        """The import-based evidence (E1 to E4) that ``user`` uses ``used``, or ''."""
         if any(self.imported_by(user, m, used, mc) for m in mu):
             return "E1"
         if self.names_interface(user, used, mu):
             return "E2"
         if self.typed_need(user, used):
             return "E3"
-        if any(self.through_owned(user, m, used, mc) for m in mu):
-            return "E4"
-        return self.weak_evidence(user, used, mu, mc)
+        return "E4" if any(self.through_owned(user, m, used, mc) for m in mu) else ""
 
     def through_owned(self, user: str, module: str, used: str, used_modules: Set[str]) -> bool:
         """``user``'s part of ``module`` imports a module that only the user's component owns, and that module imports one that only
