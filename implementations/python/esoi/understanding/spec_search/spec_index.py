@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from esoi.structure.intent_registry import intents, registry as registry_module
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.tables import SEP
-from esoi import implementation, solution
+from esoi.runtime.implementation_selection.declare import implementation, solution
 
 VERSION = 1
 KINDS = {"intent": "intent", "problem": "problem_id", "ideal": "ideal_id", "solution": "solution_id",
@@ -59,12 +59,17 @@ def tokens(text: str) -> List[str]:
     for word in TOKEN.findall((text or "").lower()):
         if word in STOP or (len(word) < 3 and not word.isdigit()):
             continue
-        if len(word) > 4 and word.endswith("ies"):
-            word = word[:-3] + "y"
-        elif len(word) > 3 and word.endswith("s") and not word.endswith("ss"):
-            word = word[:-1]
-        out.append(word)
+        out.append(fold_plural(word))
     return out
+
+
+def fold_plural(word: str) -> str:
+    """The singular of a plural word: ``ies`` becomes ``y`` and a lone trailing ``s`` is dropped."""
+    if len(word) > 4 and word.endswith("ies"):
+        return word[:-3] + "y"
+    if len(word) > 3 and word.endswith("s") and not word.endswith("ss"):
+        return word[:-1]
+    return word
 
 
 def squash(text: str) -> str:
@@ -115,17 +120,22 @@ def raw_entries(config: Config) -> List[Dict[str, Any]]:
     return entries
 
 
+def named_targets(entry: Dict[str, Any], known: set) -> List[str]:
+    """The known records, other than itself, that one record names in its link cells, in order and without repeats."""
+    found: List[str] = []
+    for column, cell in entry["source"].items():
+        if not LINK_COLUMN.search(column) or column in (KINDS.get(entry["kind"]), "intent_id"):
+            continue
+        for target in (part.strip() for part in cell.split(SEP)):
+            if target in known and target != entry["id"] and target not in found:
+                found.append(target)
+    return found
+
+
 def links_between(entries: List[Dict[str, Any]]) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
     """The records each record names in its `*_id` and `*_ids` cells, and for each record the records that name it."""
     known = {e["id"] for e in entries}
-    forward: Dict[str, List[str]] = {e["id"]: [] for e in entries}
-    for e in entries:
-        for column, cell in e["source"].items():
-            if not LINK_COLUMN.search(column) or column == KINDS.get(e["kind"]) or column == "intent_id":
-                continue
-            for target in (part.strip() for part in cell.split(SEP)):
-                if target in known and target != e["id"] and target not in forward[e["id"]]:
-                    forward[e["id"]].append(target)
+    forward: Dict[str, List[str]] = {e["id"]: named_targets(e, known) for e in entries}
     back: Dict[str, List[str]] = {i: [] for i in known}
     for source, targets in forward.items():
         for target in targets:

@@ -63,14 +63,15 @@ def check_breaks(std, check, files: Sequence[str], commit: str, read: Reader, ad
     """Whether what a commit added breaks one check of a standard."""
     scope = [f for f in files if nav.matches(f, std.paths)]
     if check.kind == "needs-test":
-        tests = nav.glob_to_regex(check.argument or "tests/**")
-        return bool(scope) and not any(tests.match(f) for f in files)
+        return bool(scope) and not any(nav.glob_to_regex(check.argument or "tests/**").match(f) for f in files)
     if check.kind == "regex":
-        pattern = re.compile(check.argument)
-        return any(pattern.search(text) for f in scope for text in added.get(f, {}).values())
-    if check.kind == "undecorated-def":
-        return any(standards_check.undecorated_defs(read(commit, f), added.get(f, {})) for f in scope)
-    return False
+        return added_text_matches(re.compile(check.argument), scope, added)
+    return check.kind == "undecorated-def" and any(standards_check.undecorated_defs(read(commit, f), added.get(f, {})) for f in scope)
+
+
+def added_text_matches(pattern, scope: Sequence[str], added: dict) -> bool:
+    """Whether any line a commit added to the files in scope matches the pattern."""
+    return any(pattern.search(text) for f in scope for text in added.get(f, {}).values())
 
 
 def violated(root: Path, commit: str, files: Sequence[str], read: Reader, diff: Callable[[str], str]) -> Set[str]:
@@ -113,15 +114,25 @@ def measure(root: Path, cases: Sequence[dict], read: Reader, choose: Callable[[P
         applied = sorted(violated(root, case["commit"], list(case["files"]), read, diff) if diff else applicable(root, texts))
         shown = choose(root, case["task"])[:nav.MAX_SHOWN]
         results.append(CaseResult(case["id"], shown, applied, sorted(set(shown) & set(applied))))
+    return summarize(results)
+
+
+def share(part: float, whole: float, when_empty: float) -> float:
+    """``part`` over ``whole``, or ``when_empty`` when there is no whole."""
+    return part / whole if whole else when_empty
+
+
+def summarize(results: List[CaseResult]) -> Measurement:
+    """Recall, precision, quiet share and F1 over the per-case results."""
     needed = [r for r in results if r.applied]
     hits = sum(len(r.hit) for r in results)
     shown_total = sum(len(r.shown) for r in results)
     reachable = sum(min(len(r.applied), nav.MAX_SHOWN) for r in needed)
-    recall = hits / reachable if reachable else 0.0
-    precision = hits / shown_total if shown_total else 0.0
+    recall = share(hits, reachable, 0.0)
+    precision = share(hits, shown_total, 0.0)
     unneeded = [r for r in results if not r.applied]
-    quiet = sum(1 for r in unneeded if not r.shown) / len(unneeded) if unneeded else 1.0
-    f1 = 2 * recall * precision / (recall + precision) if recall + precision else 0.0
+    quiet = share(sum(1 for r in unneeded if not r.shown), len(unneeded), 1.0)
+    f1 = share(2 * recall * precision, recall + precision, 0.0)
     return Measurement(len(results), len(needed), recall, precision, quiet, f1, results)
 
 
@@ -191,6 +202,31 @@ def compare(root: Path, repo: Path, cases_file: Path, boots: int = 2000, seed: i
     test, older = list(range(cut)), list(range(cut, len(cases)))
     ids = [std.id for std in nav.load(root)]
     rates = {sid: sum(sid in labels[i] for i in older) / len(older) for sid in ids}
+    arms = choosers(root, ids, rates)
+    counts = {name: [(len(set(choose(c["task"])[:nav.MAX_SHOWN]) & labels[i]), len(choose(c["task"])[:nav.MAX_SHOWN]),
+                      min(len(labels[i]), nav.MAX_SHOWN)) for i, c in enumerate(cases)] for name, choose in arms.items()}
+    counts[FOR_FILE_ARM] = for_file_counts(root, repo, cases, labels)
+    rng = random.Random(seed)
+    samples = [[rng.choice(test) for _ in test] for _ in range(boots)]
+    readings = []
+    for name in counts:
+        gaps = sorted(f1_of(counts[name], s) - f1_of(counts["show-the-first-four"], s) for s in samples)
+        readings.append(ArmReading(name, f1_of(counts[name], older), f1_of(counts[name], test), gaps[int(boots * 0.025)], gaps[int(boots * 0.975) - 1]))
+    return readings
+
+
+FOR_FILE_ARM = "for-file (edit time, files known)"
+
+
+def for_file_counts(root: Path, repo: Path, cases: list, labels: list) -> List[Tuple[int, int, int]]:
+    """Per case: standards shown at edit time (files known) that were needed, standards shown, and standards reachable."""
+    read = git_reader(repo)
+    shown_by_file = [sorted(applicable(root, {path: read(c["commit"], path) for path in c["files"]}))[:nav.MAX_SHOWN] for c in cases]
+    return [(len(set(shown_by_file[i]) & labels[i]), len(shown_by_file[i]), min(len(labels[i]), nav.MAX_SHOWN)) for i in range(len(cases))]
+
+
+def choosers(root: Path, ids: List[str], rates: Dict[str, float]) -> Dict[str, Callable[[str], List[str]]]:
+    """The ways of choosing standards for a task that ``compare`` scores, by name."""
     cache: Dict[str, Tuple[List[str], List[str]]] = {}
 
     def ranked(task: str) -> Tuple[List[str], List[str]]:
@@ -205,22 +241,8 @@ def compare(root: Path, repo: Path, cases_file: Path, boots: int = 2000, seed: i
     def base_plus_keywords(task: str) -> List[str]:
         return nav.combine(base(task), ranked(task)[1])
 
-    arms = {"show-the-first-four": lambda task: ids, "tag-keyword-match": lambda task: ranked(task)[0],
+    return {"show-the-first-four": lambda task: ids, "tag-keyword-match": lambda task: ranked(task)[0],
             "base-rate": base, "base-rate-plus-keywords": base_plus_keywords}
-    counts = {name: [(len(set(choose(c["task"])[:nav.MAX_SHOWN]) & labels[i]), len(choose(c["task"])[:nav.MAX_SHOWN]),
-                      min(len(labels[i]), nav.MAX_SHOWN)) for i, c in enumerate(cases)] for name, choose in arms.items()}
-    read = git_reader(repo)
-    shown_by_file = [sorted(applicable(root, {path: read(c["commit"], path) for path in c["files"]}))[:nav.MAX_SHOWN] for c in cases]
-    counts["for-file (edit time, files known)"] = [(len(set(shown_by_file[i]) & labels[i]), len(shown_by_file[i]), min(len(labels[i]), nav.MAX_SHOWN))
-                                                   for i in range(len(cases))]
-    arms["for-file (edit time, files known)"] = None
-    rng = random.Random(seed)
-    samples = [[rng.choice(test) for _ in test] for _ in range(boots)]
-    readings = []
-    for name in arms:
-        gaps = sorted(f1_of(counts[name], s) - f1_of(counts["show-the-first-four"], s) for s in samples)
-        readings.append(ArmReading(name, f1_of(counts[name], older), f1_of(counts[name], test), gaps[int(boots * 0.025)], gaps[int(boots * 0.975) - 1]))
-    return readings
 
 
 def compare_report(readings: Sequence[ArmReading]) -> str:

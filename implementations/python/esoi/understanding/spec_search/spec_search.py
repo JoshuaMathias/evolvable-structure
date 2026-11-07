@@ -40,7 +40,7 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Seque
 import math
 
 from esoi.understanding.spec_search import spec_index
-from esoi import implementation, solution
+from esoi.runtime.implementation_selection.declare import implementation, solution
 
 log = logging.getLogger("esoi.understanding.spec_search.spec_search")
 
@@ -155,15 +155,29 @@ def views_from_items(items: Mapping[str, Mapping[str, Any]], *, kind: str = "ite
     ``tags``. ``text_of(item)`` is the item's search text when it is not its description or summary."""
     views = []
     for item_id, item in items.items():
-        if not isinstance(item, Mapping):
-            continue
-        title = str(item.get("name") or item_id)
-        text = text_of(item) if text_of else str(item.get("description") or item.get("summary") or "")
-        keywords = [k for k in (item.get("keywords") or []) if isinstance(k, str)]
-        tags = tuple(t for t in (item.get("tags") or []) if isinstance(t, str))
-        views.append(View(kind=kind, id=str(item_id), title=title, text=text, source=source, tags=tags,
-                          terms=terms_of(title, text, keywords)))
+        if isinstance(item, Mapping):
+            views.append(item_view(item_id, item, kind, source, text_of))
     return views
+
+
+def item_view(item_id: str, item: Mapping[str, Any], kind: str, source: str, text_of: Optional[Callable[[Mapping[str, Any]], str]]) -> View:
+    """The view of one item dict."""
+    title = str(item.get("name") or item_id)
+    text = text_of(item) if text_of else str(item.get("description") or item.get("summary") or "")
+    keywords = [k for k in (item.get("keywords") or []) if isinstance(k, str)]
+    tags = tuple(t for t in (item.get("tags") or []) if isinstance(t, str))
+    return View(kind=kind, id=str(item_id), title=title, text=text, source=source, tags=tags, terms=terms_of(title, text, keywords))
+
+
+def record_tags(entry: Dict[str, Any], links: tuple, kind_of: Dict[str, str], mitigated_by: Dict[str, List[str]],
+                tag_table: Optional[TagTable]) -> tuple:
+    """The tags of one index record: a solution's own plus its linked problems, a problem's id plus its mitigating tags."""
+    if entry["kind"] == "solution":
+        own = tag_table.solution_tags.get(entry["id"], ()) if tag_table else ()
+        return own + tuple(r for r in links if kind_of.get(r) == "problem")
+    if entry["kind"] == "problem":
+        return (entry["id"], *mitigated_by.get(entry["id"], ()))
+    return ()
 
 
 def views_from_index(index: Mapping[str, Any], tag_table: Optional[TagTable] = None) -> List[View]:
@@ -178,12 +192,7 @@ def views_from_index(index: Mapping[str, Any], tag_table: Optional[TagTable] = N
     views = []
     for e in entries:
         links = tuple(e.get("refs") or ())
-        if e["kind"] == "solution":
-            tags = (tag_table.solution_tags.get(e["id"], ()) if tag_table else ()) + tuple(r for r in links if kind_of.get(r) == "problem")
-        elif e["kind"] == "problem":
-            tags = (e["id"], *mitigated_by.get(e["id"], ()))
-        else:
-            tags = ()
+        tags = record_tags(e, links, kind_of, mitigated_by, tag_table)
         views.append(View(kind=e["kind"], id=e["id"], title=e.get("title", ""), text=e.get("summary", ""), links=links,
                           tags=tuple(dict.fromkeys(tags)), terms=e.get("terms") or {}, intent=e.get("intent", "")))
     return views
@@ -287,38 +296,41 @@ def served_by_solution(views: Sequence[View]) -> set:
     by_key = {v.key: v for v in views}
     served = set()
     for v in views:
-        if v.kind == "solution":
-            served.update(r for r in v.links if r in by_key and by_key[r].kind in NO_SOLUTION_KINDS)
-            if v.intent:
-                served.add(v.intent)
-        elif v.kind in NO_SOLUTION_KINDS and any(r in by_key and by_key[r].kind == "solution" for r in v.links):
-            served.add(v.key)
+        served |= served_keys(v, by_key)
     return served
+
+
+def served_keys(v: View, by_key: Dict[str, View]) -> set:
+    """The keys one view marks as served: a solution serves what it links and its intent; a problem or intent linked to a solution serves itself."""
+    if v.kind == "solution":
+        served = {r for r in v.links if r in by_key and by_key[r].kind in NO_SOLUTION_KINDS}
+        return served | {v.intent} if v.intent else served
+    if v.kind in NO_SOLUTION_KINDS and any(r in by_key and by_key[r].kind == "solution" for r in v.links):
+        return {v.key}
+    return set()
 
 
 def link_order(views: Sequence[View], link_kinds: Optional[Sequence[str]] = None) -> Dict[str, List[str]]:
     """Each view's links in the order they are brought in. With ``link_kinds`` only views of those kinds are links, one of
     each kind before a second of any, and the view's own intent counts as a link."""
     by_key = {v.key: v for v in views}
-    out = {}
-    for v in views:
-        if link_kinds is None:
-            out[v.key] = [r for r in v.links if r in by_key]
-            continue
-        refs = list(v.links) + ([v.intent] if v.intent and v.intent != v.key else [])
-        per_kind = {k: [r for r in dict.fromkeys(refs) if r in by_key and by_key[r].kind == k] for k in link_kinds}
-        ordered: List[str] = []
-        for step in range(max((len(x) for x in per_kind.values()), default=0)):
-            ordered += [per_kind[k][step] for k in link_kinds if step < len(per_kind[k])]
-        out[v.key] = ordered
-    return out
+    if link_kinds is None:
+        return {v.key: [r for r in v.links if r in by_key] for v in views}
+    return {v.key: one_of_each_kind(v, by_key, link_kinds) for v in views}
 
 
-def finish(result: Selection, views: Sequence[View], chosen: List[str], expand: int,
-           link_kinds: Optional[Sequence[str]] = None) -> Selection:
-    """Add the ranked views and, after each, up to ``expand`` linked ones; mark the "no solution yet" views."""
-    by_key = {v.key: v for v in views}
-    order = link_order(views, link_kinds)
+def one_of_each_kind(v: View, by_key: Dict[str, View], link_kinds: Sequence[str]) -> List[str]:
+    """A view's links of the wanted kinds (its own intent included), one of each kind before a second of any."""
+    refs = list(v.links) + ([v.intent] if v.intent and v.intent != v.key else [])
+    per_kind = {k: [r for r in dict.fromkeys(refs) if r in by_key and by_key[r].kind == k] for k in link_kinds}
+    ordered: List[str] = []
+    for step in range(max((len(x) for x in per_kind.values()), default=0)):
+        ordered += [per_kind[k][step] for k in link_kinds if step < len(per_kind[k])]
+    return ordered
+
+
+def bring_links(chosen: List[str], order: Dict[str, List[str]], expand: int) -> Tuple[List[str], Dict[str, str]]:
+    """The chosen keys with up to ``expand`` linked keys after each, and which chosen key brought each linked one."""
     keys: List[str] = list(chosen)
     brought: Dict[str, str] = {}
     for key in chosen:
@@ -328,6 +340,15 @@ def finish(result: Selection, views: Sequence[View], chosen: List[str], expand: 
                 keys.append(ref)
                 brought[ref] = key
                 added += 1
+    return keys, brought
+
+
+def finish(result: Selection, views: Sequence[View], chosen: List[str], expand: int,
+           link_kinds: Optional[Sequence[str]] = None) -> Selection:
+    """Add the ranked views and, after each, up to ``expand`` linked ones; mark the "no solution yet" views."""
+    by_key = {v.key: v for v in views}
+    order = link_order(views, link_kinds)
+    keys, brought = bring_links(chosen, order, expand)
     served = served_by_solution(views)
     for key in keys:
         v = by_key[key]
@@ -346,12 +367,21 @@ def propose(task: str, views: Sequence[View], vector_search: Optional[VectorSear
     rankings = [r for r in ([k for k, _ in lexical], [k for k, _ in semantic]) if r]
     candidates = fuse(rankings, k_lexical + k_vector)
     if tags:
-        by_key = {v.key: v for v in views}
-        wanted = (tag_table or TagTable()).expand(tags)
-        tagged = [k for k in candidates if wanted & set(by_key[k].tags)]
+        tagged = tagged_among(candidates, views, tags, tag_table)
         candidates = tagged if tag_mode == "filter" else fuse(rankings + ([tagged] if tagged else []), k_lexical + k_vector)
-    sources = {k: [n for n, r in (("lexical", lexical), ("vector", semantic)) if any(k == x for x, _ in r)] for k in candidates}
-    return lexical, semantic, candidates, sources
+    return lexical, semantic, candidates, found_by(candidates, lexical, semantic)
+
+
+def tagged_among(candidates: List[str], views: Sequence[View], tags: Sequence[str], tag_table: Optional[TagTable]) -> List[str]:
+    """The candidates that carry one of the wanted tags, or a tag the tag table expands them to."""
+    by_key = {v.key: v for v in views}
+    wanted = (tag_table or TagTable()).expand(tags)
+    return [k for k in candidates if wanted & set(by_key[k].tags)]
+
+
+def found_by(candidates: List[str], lexical, semantic) -> Dict[str, List[str]]:
+    """For each candidate, which of the lexical and vector searches ranked it."""
+    return {k: [n for n, r in (("lexical", lexical), ("vector", semantic)) if any(k == x for x, _ in r)] for k in candidates}
 
 
 @solution("spec-search", kind="event", example={"task": "which solution ranks implementations", "views": []})

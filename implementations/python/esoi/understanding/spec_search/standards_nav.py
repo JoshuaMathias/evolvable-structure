@@ -98,9 +98,18 @@ def parse_standard(root: Path, path: Path) -> Optional[Standard]:
     title = next((l[2:].strip() for l in text.splitlines() if l.startswith("# ")), path.stem)
     checks = tuple(c for c in (parse_check(r) for r in header_line(text, "Check")) if c)
     return Standard(id=path.stem, file=str(path.relative_to(root)), title=title,
-                    tags=tuple(t.strip() for t in tags[0].split(",") if t.strip()),
-                    paths=tuple(p.strip() for p in re.split(r"[;]", paths[0]) if p.strip()), rule=rule[0], checks=checks,
-                    when=(header_line(text, "When") or [""])[0], read_when=(header_line(text, "Read when") or [""])[0])
+                    tags=listed(tags[0], ","), paths=listed(paths[0], ";"), rule=rule[0], checks=checks,
+                    when=first_value(text, "When"), read_when=first_value(text, "Read when"))
+
+
+def listed(line: str, separator: str) -> Tuple[str, ...]:
+    """The non-empty, stripped items of a header line split on ``separator``."""
+    return tuple(item.strip() for item in line.split(separator) if item.strip())
+
+
+def first_value(text: str, key: str) -> str:
+    """The first value of a header line, or an empty string when the line is absent."""
+    return (header_line(text, key) or [""])[0]
 
 
 def standards_dir(root: Path) -> Optional[Path]:
@@ -122,6 +131,13 @@ def load(root: Path) -> List[Standard]:
     return [s for s in found if s]
 
 
+def applies(std: Standard, relative: str, content: str, tags: Optional[Set[str]]) -> bool:
+    """Whether a standard covers the file: its paths match, a requested tag is among its tags, and its When pattern is in the content."""
+    if not matches(relative, std.paths) or (tags and not tags & set(std.tags)):
+        return False
+    return not std.when or not content or bool(re.search(std.when, content))
+
+
 def for_file(file: Path, tags: Optional[Set[str]] = None) -> str:
     """The rules that apply to editing ``file``, as a few lines; empty when none do. ``tags`` narrows to those risk tags."""
     file = file.resolve()
@@ -130,8 +146,7 @@ def for_file(file: Path, tags: Optional[Set[str]] = None) -> str:
         return ""
     relative = str(file.relative_to(root))
     content = file.read_text(encoding="utf-8", errors="replace") if file.is_file() else ""
-    hits = [s for s in load(root) if matches(relative, s.paths) and (not tags or tags & set(s.tags))
-            and (not s.when or not content or re.search(s.when, content))]
+    hits = [s for s in load(root) if applies(s, relative, content, tags)]
     if not hits:
         return ""
     lines = [f"Standards for {relative} (full text only if you need it):"]
@@ -212,6 +227,11 @@ def select_for_task(root: Path, task: str) -> List[Tuple[Standard, str]]:
     ranked = rank_task(root, task)
     if not rates:
         return [(std, "matched " + (", ".join(hits) or "its own wording")) for _, std, hits in ranked]
+    return by_rate(by_id, rates, ranked)
+
+
+def by_rate(by_id: Dict[str, Standard], rates: Dict[str, float], ranked) -> List[Tuple[Standard, str]]:
+    """The frequently broken standards first, then those the task names, each with the reason it is shown."""
     frequent = [sid for sid in sorted(rates, key=lambda i: -rates[i]) if rates[sid] >= BASE_RATE_MIN and sid in by_id]
     hit_words = {std.id: hits for _, std, hits in ranked if hits}
     named = [std.id for _, std, hits in ranked if hits]
@@ -309,6 +329,21 @@ def measured_report(args, root: Path) -> str:
     return standards_measure.report(standards_measure.run(root, repo, cases, args.baseline, args.label))
 
 
+def rooted_command(args, root: Path) -> Optional[int]:
+    """Run a command that needs the standards folder; None when the command is another kind."""
+    if args.cmd == "for-task":
+        print(for_task(root, " ".join(args.task)))
+        return 0
+    if args.cmd in ("compare", "train", "measure"):
+        print(measured_report(args, root))
+        return 0
+    if args.cmd == "lint":
+        problems = lint(root)
+        print("\n".join(problems))
+        return 1 if problems else 0
+    return None
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
     if args.cmd == "for-file":
@@ -316,16 +351,12 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(for_file(Path(file), set(args.tag) or None))
         return 0
     root = find_root(Path(args.repo).resolve())
-    if args.cmd == "for-task" and root:
-        print(for_task(root, " ".join(args.task)))
-        return 0
-    if args.cmd in ("compare", "train", "measure") and root:
-        print(measured_report(args, root))
-        return 0
-    if args.cmd == "lint" and root:
-        problems = lint(root)
-        print("\n".join(problems))
-        return 1 if problems else 0
+    done = rooted_command(args, root) if root else None
+    return done if done is not None else hook_or_staged(args, root)
+
+
+def hook_or_staged(args, root: Optional[Path]) -> int:
+    """Install the pre-commit hook, or check the staged change (and print the advisory) when a standards folder was found."""
     from esoi.structure.structure_check import standards_check
     if args.cmd == "install-hook":
         print(standards_check.install_hook(root or Path(args.repo).resolve()))
