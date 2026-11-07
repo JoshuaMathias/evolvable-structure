@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, List
 from esoi.optimization.measurement_harness import run_log
 from esoi.optimization.measurement_harness.case_loading import stratified_sample
 from esoi.optimization.measurement_harness.run_errors import RunError
-from esoi.optimization.when_metrics_are_run import run_guards
+from esoi.optimization.when_metrics_are_run.interface import run_guards
 from esoi.structure.intent_registry.config import Config
 
 
@@ -38,18 +38,22 @@ def build_parser(component: str) -> argparse.ArgumentParser:
     return ap
 
 
+def failed_case_names(args: argparse.Namespace, config: Config, component: str, impl: str, cases_sha: str) -> str:
+    """The cases that failed last time, comma-joined, for ``--failed``; raises ``RunError`` when none are logged or other cases were named."""
+    if args.only or args.sample is not None:
+        raise RunError("--failed already names the cases to run (the ones that failed last); drop --only or --sample")
+    failing = run_log.failed_cases(config.root / config.runs_log, component, impl, cases_sha)
+    if not failing:
+        raise RunError(f"no failing case is logged for {impl} on these cases, so there is nothing to rerun "
+                       f"(the log is {config.runs_log}); run it without --failed")
+    return ",".join(failing)
+
+
 def name_cases_to_run(args: argparse.Namespace, config: Config, component: str, impl: str, cases_sha: str,
                       say: Callable[[str], None], guards: bool) -> None:
     """Set ``args.only`` to the failing cases (``--failed``) or to the unsolved ones (a plain unguarded-by-flags run)."""
-    runs_path = config.root / config.runs_log
     if args.failed:
-        if args.only or args.sample is not None:
-            raise RunError("--failed already names the cases to run (the ones that failed last); drop --only or --sample")
-        failing = run_log.failed_cases(runs_path, component, impl, cases_sha)
-        if not failing:
-            raise RunError(f"no failing case is logged for {impl} on these cases, so there is nothing to rerun "
-                           f"(the log is {config.runs_log}); run it without --failed")
-        args.only = ",".join(failing)
+        args.only = failed_case_names(args, config, component, impl, cases_sha)
     elif guards and not (args.only or args.sample is not None or args.record or args.force is not None):
         unsolved = run_guards.unsolved_cases(config, component, impl)
         if unsolved:   # the failing cases are rerun by themselves; the whole set waits until they pass

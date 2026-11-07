@@ -10,8 +10,8 @@ from esoi.optimization.measurement_harness.component_folder import prepare_path
 from esoi.optimization.measurement_harness.run_component import run_component
 from esoi.optimization.measurement_harness.run_errors import PendingNetwork, RunError
 from esoi.optimization.measurement_harness.stale_reasons import expired_reason
-from esoi.optimization.when_metrics_are_run import run_guards
-from esoi.optimization.when_metrics_are_run.paid_gating import paid_reason
+from esoi.optimization.when_metrics_are_run.interface import run_guards
+from esoi.optimization.when_metrics_are_run.interface import paid_reason
 from esoi.structure.intent_registry.config import Config
 
 
@@ -57,16 +57,24 @@ def not_rerun_reason(config: Config, component: str, impl: str, row: Optional[Di
 def why_stale(config: Config, comp: str, impl: str, row: Optional[Dict[str, str]], is_selected: bool, flags: List[str], full: bool) -> str:
     """Why an arm's recorded result no longer counts (empty when it is current): a changed file or case, a different sample than the
     selected arm's, a sample when ``--full`` asks for the whole set, or an expiration that has passed."""
-    why = stale_reasons.stale_reason(config, comp, row)
-    if not why and row and not is_selected:
-        wanted = sample_args(config, comp, row)
-        if wanted != flags:
-            why = f"it was scored on a different sample ({' '.join(wanted) or 'full set'}) than the selected arm ({' '.join(flags) or 'full set'}), so it is not comparable"
-    if not why and full and row and sample_args(config, comp, row):
-        why = "it was scored on a sample and --full asks for the whole set"
-    if not why and is_selected:
-        why = expired_reason(config, comp, row)   # an expiration the metric or project declares and that has passed
-    return why
+    return (stale_reasons.stale_reason(config, comp, row) or other_sample(config, comp, row, is_selected, flags)
+            or (full_reason(config, comp, row) if full else "")
+            or (expired_reason(config, comp, row) if is_selected else ""))   # an expiration the metric or project declares and that has passed
+
+
+def full_reason(config: Config, comp: str, row: Optional[Dict[str, str]]) -> str:
+    """Why a sampled row no longer counts when ``--full`` asks for the whole set."""
+    return "it was scored on a sample and --full asks for the whole set" if row and sample_args(config, comp, row) else ""
+
+
+def other_sample(config: Config, comp: str, row: Optional[Dict[str, str]], is_selected: bool, flags: List[str]) -> str:
+    """Why a rival's row is not comparable: it was scored on another sample than the selected arm's."""
+    if not row or is_selected:
+        return ""
+    wanted = sample_args(config, comp, row)
+    if wanted == flags:
+        return ""
+    return f"it was scored on a different sample ({' '.join(wanted) or 'full set'}) than the selected arm ({' '.join(flags) or 'full set'}), so it is not comparable"
 
 
 def rerun_one(config: Config, comp: str, impl: str, row: Optional[Dict[str, str]], why: str, flags: List[str], named: bool,
@@ -82,6 +90,13 @@ def rerun_one(config: Config, comp: str, impl: str, row: Optional[Dict[str, str]
     if capped:
         say(f"{comp}/{impl}: stale, {why}; SKIPPED, not worth running: {capped}")
         return "capped"
+    return run_arm(config, (comp, impl), why, flags, (record, plan), say)
+
+
+def run_arm(config: Config, arm: Tuple[str, str], why: str, flags: List[str], options: Tuple[bool, bool], say: Callable[[str], None]) -> str:
+    """Report and run (or plan) one stale arm that passed the guards: ``planned``, ``offline``, ``failed`` or ``ran``."""
+    comp, impl = arm
+    record, plan = options
     say(f"{comp}/{impl}: stale, {why}")
     if plan:
         say(f"{comp}/{impl}: would run" + (f" ({' '.join(flags)})" if flags else ""))
@@ -98,6 +113,23 @@ def rerun_one(config: Config, comp: str, impl: str, row: Optional[Dict[str, str]
         return "failed"
     say(f"{comp}/{impl}: run" + (f" ({' '.join(flags)})" if flags else "") + (" and recorded" if record else ""))
     return "ran"
+
+
+def say_left_over(left: List[str], skipped: List[str], say: Callable[[str], None]) -> None:
+    """The closing lines: how many rows were not re-run and why, and how to run the paid arms that were skipped."""
+    if left:
+        say(f"{len(left)} row(s) not re-run: a changed file only informs; improve the implementation first, and measure when a decision "
+            "depends on the result (`esoi run --stale --for-decision`, `--include COMPONENT/IMPL`, or `--all` for every stale arm)")
+    if skipped:
+        say(f"skipped {len(skipped)} paid arm(s); stage and budget them first (see the metric run policy), then run each with "
+            "`esoi run <component> --impl <name> --max-calls N --record`, or "
+            f"`esoi run --stale --include {' --include '.join(skipped)}`")
+
+
+def waiting_label(why: str) -> str:
+    """How a stale row that is not re-run is described: the changed code, or the stale reason."""
+    prefix = "the measured code changed since"
+    return "measured code changed since " + why.split(" changed since ", 1)[-1] if why.startswith(prefix) else f"stale, {why}"
 
 
 def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool = True, include_paid: bool = False,
@@ -127,7 +159,6 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
     registry = load(config)
     selected_arms = {arm_selection.selected_arm(config, r, "", registry) for r in registry.solutions}
     skipped: List[str] = []
-    skipped_ceiling: List[str] = []
     left: List[str] = []
     failed = 0
     target: Dict[str, List[str]] = {}   # component -> run flags of its selected arm's sample
@@ -140,24 +171,14 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
         if not why:
             say(f"{comp}/{impl}: current")
             continue
-        named = f"{comp}/{impl}" in (include or [])   # a person named this arm: that is the decision the guard asks for
+        named = f"{comp}/{impl}" in (include or ())   # a person named this arm: that is the decision the guard asks for
         waiting = not_rerun_reason(config, comp, impl, row, (comp, impl) in selected_arms, for_decision, named, run_all)
         if waiting:
-            label = "measured code changed since " + why.split(" changed since ", 1)[-1] if why.startswith("the measured code changed since") else f"stale, {why}"
-            say(f"{comp}/{impl}: {label}; not re-run: {waiting}")
+            say(f"{comp}/{impl}: {waiting_label(why)}; not re-run: {waiting}")
             left.append(f"{comp}/{impl}")
             continue
         outcome = rerun_one(config, comp, impl, row, why, flags, named, (record, include_paid, plan), say)
-        if outcome == "paid":
-            skipped.append(f"{comp}/{impl}")
-        elif outcome == "capped":
-            skipped_ceiling.append(f"{comp}/{impl}")
+        skipped += [f"{comp}/{impl}"] * (outcome == "paid")
         failed += outcome == "failed"
-    if left:
-        say(f"{len(left)} row(s) not re-run: a changed file only informs; improve the implementation first, and measure when a decision "
-            "depends on the result (`esoi run --stale --for-decision`, `--include COMPONENT/IMPL`, or `--all` for every stale arm)")
-    if skipped:
-        say(f"skipped {len(skipped)} paid arm(s); stage and budget them first (see the metric run policy), then run each with "
-            "`esoi run <component> --impl <name> --max-calls N --record`, or "
-            f"`esoi run --stale --include {' --include '.join(skipped)}`")
+    say_left_over(left, skipped, say)
     return 1 if failed else 0

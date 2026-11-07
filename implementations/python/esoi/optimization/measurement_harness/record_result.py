@@ -4,7 +4,7 @@ from __future__ import annotations
 import csv
 import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from esoi.optimization.leaderboard.case_identity import cases_digest
 from esoi.optimization.measurement_harness import code_provenance
@@ -34,16 +34,20 @@ def record_result(summary: Dict[str, Any], config: Config, date: Optional[str] =
     return row
 
 
+def read_log(target: Path) -> Tuple[List[str], List[Dict[str, str]]]:
+    """``(header, rows)`` of the results log, empty when there is none yet."""
+    if not target.exists():
+        return [], []
+    with open(target, newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        return list(reader.fieldnames or []), list(reader)
+
+
 def append_row(target: Path, row: Dict[str, Any], with_code_shas: bool, extra: List[str] = ()) -> None:
     """Append ``row`` to the results log. The log gains a trailing ``code_shas`` column the first time a repository with
     code in another repository records (older rows keep it blank)."""
     target.parent.mkdir(parents=True, exist_ok=True)
-    header: List[str] = []
-    old_rows: List[Dict[str, str]] = []
-    if target.exists():
-        with open(target, newline="", encoding="utf-8") as fh:
-            reader = csv.DictReader(fh)
-            header, old_rows = list(reader.fieldnames or []), list(reader)
+    header, old_rows = read_log(target)
     wanted = RESULT_COLUMNS + (["code_shas"] if with_code_shas else []) + [c for c in extra if c not in RESULT_COLUMNS]
     columns = header + [c for c in wanted if c not in header] if header else wanted
     rewrite = not header or columns != header

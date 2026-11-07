@@ -3,14 +3,23 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from esoi.optimization.leaderboard import circumstances
+from esoi.optimization.leaderboard.interface import circumstances
 from esoi.optimization.leaderboard.case_identity import cases_digest
 from esoi.optimization.measurement_harness import balance
 from esoi.optimization.measurement_harness.per_case_log import write_per_case
 from esoi.optimization.measurement_harness.record_result import record_result
 from esoi.optimization.measurement_harness.run_cost import run_cost
-from esoi.runtime.assemble_by_name.name_check import check_name
+from esoi.runtime.assemble_by_name.interface import check_name
 from esoi.structure.intent_registry.config import Config
+
+
+def cost_weights(rows: List[Dict[str, Any]]) -> List[float]:
+    """How a run's cost is shared among its cases: by tokens, else by model calls, else equally."""
+    for field_name in ("tokens_in", "calls"):
+        weights = [float(r.get(field_name) or 0) + (float(r.get("tokens_out") or 0) if field_name == "tokens_in" else 0) for r in rows]
+        if sum(weights) > 0:
+            return weights
+    return [1.0] * len(rows)
 
 
 def case_balanced_scores(config: Config, component: str, summary: Dict[str, Any], rows: List[Dict[str, Any]]) -> List[float]:
@@ -21,12 +30,7 @@ def case_balanced_scores(config: Config, component: str, summary: Dict[str, Any]
     table = config.balance.get(component)
     if table is None or cost == "" or cost is None or not rows:
         return []
-    for field_name in ("tokens_in", "calls"):
-        weights = [float(r.get(field_name) or 0) + (float(r.get("tokens_out") or 0) if field_name == "tokens_in" else 0) for r in rows]
-        if sum(weights) > 0:
-            break
-    else:
-        weights = [1.0] * len(rows)
+    weights = cost_weights(rows)
     share = [float(cost) * w / sum(weights) for w in weights]
     return balance.case_scores([bool(r["ok"]) for r in rows], share, [float(r["seconds"]) for r in rows], table)
 
@@ -55,15 +59,24 @@ def record_slices(config: Config, component: str, circs: List[circumstances.Circ
     return written
 
 
+def dev_and_held(cases: List[dict], rows: List[Dict[str, Any]], found: List[int]) -> Dict[str, str]:
+    """The ``passed/total`` of the development cases and of the held-out cases among a slice."""
+    dev = [i for i in found if not cases[i].get("heldout")]
+    held = [i for i in found if cases[i].get("heldout")]
+    return dict(dev=f"{sum(bool(rows[i]['ok']) for i in dev)}/{len(dev)}", heldout=f"{sum(bool(rows[i]['ok']) for i in held)}/{len(held)}")
+
+
+def token_share(part: List[Dict[str, Any]], total: int, in_slice: int, in_run: int) -> float:
+    """The part of a run's cost a slice carries: its share of the tokens, or of the cases when no tokens were counted."""
+    return sum(r["tokens_in"] + r["tokens_out"] for r in part) / total if total else in_slice / in_run
+
+
 def slice_row(config: Config, component: str, summary: Dict[str, Any], cases: List[dict], rows: List[Dict[str, Any]], cid: str,
               found: List[int], total: int) -> Dict[str, Any]:
     """The derived result row of one slice: sums over the cases it holds, cost shared by token use, scored again."""
     part = [rows[i] for i in found]
-    dev = [i for i in found if not cases[i].get("heldout")]
-    held = [i for i in found if cases[i].get("heldout")]
-    share = sum(r["tokens_in"] + r["tokens_out"] for r in part) / total if total else len(found) / len(rows)
-    piece = dict(summary, cases=len(found), passed=sum(bool(r["ok"]) for r in part),
-                 dev=f"{sum(bool(rows[i]['ok']) for i in dev)}/{len(dev)}", heldout=f"{sum(bool(rows[i]['ok']) for i in held)}/{len(held)}",
+    share = token_share(part, total, len(found), len(rows))
+    piece = dict(summary, cases=len(found), passed=sum(bool(r["ok"]) for r in part), **dev_and_held(cases, rows, found),
                  model_calls=sum(r["calls"] for r in part), tokens_in=sum(r["tokens_in"] for r in part),
                  tokens_out=sum(r["tokens_out"] for r in part), seconds=round(sum(r["seconds"] for r in part), 1),
                  cli_reported_cost_usd=round(summary["cli_reported_cost_usd"] * share, 4),

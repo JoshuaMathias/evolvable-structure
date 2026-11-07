@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from esoi.optimization.when_metrics_are_run.paid_gating import SIMULATED_MODEL, price_for
+from esoi.optimization.when_metrics_are_run.interface import SIMULATED_MODEL, price_for
 from esoi.structure.intent_registry.config import Config
 
 

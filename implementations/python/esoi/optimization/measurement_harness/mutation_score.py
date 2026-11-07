@@ -34,14 +34,24 @@ def score_case(fn, case):
     want = case["expect"]
     if case["kind"] == "scale":
         return scale_row(out, want)
-    problems = out["problems"]
     if want.get("clean"):
-        ok = out["exit"] == 0 and not problems
-        return dict(ok=ok, got="clean", note="ok" if ok else f"false positive: {problems[:2]}")
+        return clean_row(out)
     if want.get("advice"):   # information only: reported as advice and never as a problem
         return advice_row(out, case, want)
     if want.get("advisory"):
         return noted_row(out, case, want)
+    return problem_row(out, case, want)
+
+
+def clean_row(out):
+    """The row for a fixture that must raise no problem."""
+    ok = out["exit"] == 0 and not out["problems"]
+    return dict(ok=ok, got="clean", note="ok" if ok else f"false positive: {out['problems'][:2]}")
+
+
+def problem_row(out, case, want):
+    """The row for a mutation that must be reported as a problem of the named rule."""
+    problems = out["problems"]
     hits = [p for p in problems if p.startswith(want["rule"] + " ") and want.get("contains", "") in p]
     ok = out["exit"] == 1 and bool(hits)
     return dict(ok=ok, got=f"{case['kind']}:{want['rule']}",

@@ -12,6 +12,11 @@ from esoi.optimization.measurement_harness.component_folder import prepare_path
 from esoi.structure.intent_registry.config import Config
 
 
+def stratum_of(case: dict) -> str:
+    """The stratum a case belongs to: its ``stratum``, else its ``dataset``, else its ``area``."""
+    return case.get("stratum") or case.get("dataset") or case.get("area") or ""
+
+
 def stratified_sample(cases: List[dict], n: int, seed: int = 0) -> List[dict]:
     """``n`` cases spread over the strata (``stratum``, else ``dataset``, else ``area``), the same cases every
     time for one seed. A smaller ``n`` is a prefix of a larger one."""
@@ -19,7 +24,7 @@ def stratified_sample(cases: List[dict], n: int, seed: int = 0) -> List[dict]:
     rng = random.Random(seed)
     groups: Dict[str, List[dict]] = {}
     for case in sorted(cases, key=lambda c: str(c["id"])):
-        groups.setdefault(case.get("stratum") or case.get("dataset") or case.get("area") or "", []).append(case)
+        groups.setdefault(stratum_of(case), []).append(case)
     for group in groups.values():
         rng.shuffle(group)
     picked: List[dict] = []

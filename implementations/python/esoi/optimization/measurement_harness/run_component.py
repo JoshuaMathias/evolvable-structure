@@ -33,7 +33,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from esoi.optimization.leaderboard import circumstances
+from esoi.optimization.leaderboard.interface import circumstances
 from esoi.optimization.leaderboard.case_identity import cases_digest
 from esoi.optimization.measurement_harness import balance
 from esoi.optimization.measurement_harness import cassette as cassettes
@@ -51,9 +51,9 @@ from esoi.optimization.measurement_harness.run_arguments import build_parser, na
 from esoi.optimization.measurement_harness.run_cases import run_cases
 from esoi.optimization.measurement_harness.run_cost import run_cost
 from esoi.optimization.measurement_harness.run_errors import RunError
-from esoi.optimization.when_metrics_are_run import run_guards
-from esoi.optimization.when_metrics_are_run.paid_gating import SIMULATED_MODEL, declared_live, declares_simulated, impl_path
-from esoi.runtime.consumer_check import foundation
+from esoi.optimization.when_metrics_are_run.interface import run_guards
+from esoi.optimization.when_metrics_are_run.interface import SIMULATED_MODEL, declared_live, declares_simulated, impl_path
+from esoi.runtime.consumer_check.interface import foundation
 from esoi.runtime.implementation_selection import variants
 from esoi.structure.intent_registry.config import Config
 
@@ -221,6 +221,40 @@ def open_run(component: str, argv: List[str], config: Config, say: Callable[[str
     return args, cases, circs, impl, sample, cases_sha
 
 
+def foundations_to_compose(config: Config, component: str, args: Any, say: Callable[[str], None]) -> list:
+    """The foundations whose parts the run composes: only a whole-set run composes them."""
+    declared = foundation.declared(config, component)
+    if declared and (args.only or args.sample is not None):
+        say("note: a sampled or --only run scores the consumer's own cases only; the foundation parts are not composed")
+        return []
+    return declared
+
+
+def measure_run(scene: tuple, work: tuple, tools: tuple, options: tuple) -> tuple:
+    """Run the cases (and the foundation part) under the guard and the log; ``(rows, reused, stopped, own spend, parts)``.
+    What was scored stays in the log when the run is stopped or crashes."""
+    config, component, impl, builds = scene
+    cases, scorer, fn, score = work
+    meter, guard, log = tools
+    reuse, args, say = options
+    parts: list = []
+    if guard:
+        guard.start()
+    try:
+        # a recorded run is a whole measurement; a development run is for fixing
+        rows, reused, stopped = run_cases(cases, scorer, fn, meter, reuse, log, say, not (args.keep_going or args.record))
+        own_at = (meter.calls, meter.tokens_in, meter.tokens_out, meter.cost_usd, time.time())   # the consumer's own spend, before the foundation part
+        if builds and not stopped:   # the foundation's part: reused when current, else run through the foundation's own scorer
+            parts = foundation.measure(config, component, impl, fn, getattr(score, "foundation_fn", None), meter, say)
+    except BaseException as exc:   # Ctrl-C, a spent call budget or a crash
+        log.end(f"stopped: {type(exc).__name__}")
+        raise
+    finally:
+        if guard:
+            guard.stop()
+    return rows, reused, stopped, own_at, parts
+
+
 def run_component(component: str, scorer: Callable, argv: List[str], config: Config,
                   say: Callable[[str], None] = print, guards: bool = True) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     """Drive one implementation over a component's cases; print each case; optionally record. Returns (summary, rows)."""
@@ -230,30 +264,14 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
     meter, guard = make_meter(config, component, impl, args)
     fn = load_impl(impl, component, config)(meter)
     score = importlib.import_module(f"{component}.score")
-    builds = foundation.declared(config, component) if not (args.only or args.sample is not None) else []   # composition is for whole sets
-    if foundation.declared(config, component) and not builds:
-        say("note: a sampled or --only run scores the consumer's own cases only; the foundation parts are not composed")
+    builds = foundations_to_compose(config, component, args, say)
     git_sha = code_provenance.current_sha(config, component, impl)
     reuse = {} if (args.fresh or args.only) else run_log.reusable(runs_path, component, impl, cases_sha, git_sha)
     log = run_log.RunLog(runs_path, dict(component=component, impl=impl, cases_sha=cases_sha, git_sha=git_sha, sample=sample,
                                          recorded="yes" if args.record else "no"))
     log.begin()
-    parts: list = []
     started = time.time()
-    if guard:
-        guard.start()
-    try:
-        # a recorded run is a whole measurement; a development run is for fixing
-        rows, reused, stopped = run_cases(cases, scorer, fn, meter, reuse, log, say, not (args.keep_going or args.record))
-        own_at = (meter.calls, meter.tokens_in, meter.tokens_out, meter.cost_usd, time.time())   # the consumer's own spend, before the foundation part
-        if builds and not stopped:   # the foundation's part: reused when current, else run through the foundation's own scorer
-            parts = foundation.measure(config, component, impl, fn, getattr(score, "foundation_fn", None), meter, say)
-    except BaseException as exc:   # Ctrl-C, a spent call budget or a crash: what was scored stays in the log
-        log.end(f"stopped: {type(exc).__name__}")
-        raise
-    finally:
-        if guard:
-            guard.stop()
+    rows, reused, stopped, own_at, parts = measure_run((config, component, impl, builds), (cases, scorer, fn, score), (meter, guard, log), (reuse, args, say))
     log.end("done" if not stopped else stopped.replace("stopped at", "stopped: at"))
     cases = cases[:len(rows)]
     summary = build_summary(component, impl, config, rows, cases, reused, own_at, started, meter, sample)

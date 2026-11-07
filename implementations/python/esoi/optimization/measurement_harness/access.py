@@ -41,18 +41,23 @@ class Reads:
         return Reads(self.records - before.records, self.bytes - before.bytes, self.calls - before.calls, set(self.scopes), self.full_scan)
 
 
-def settings(table: Optional[Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
-    """The validated ``source_access`` table of a ``[balance.<component>]`` table, or None when there is none. Raises ValueError for a
-    negative price or limit or an unknown key (a typo must not loosen a gate silently)."""
-    sub = (table or {}).get("source_access")
-    if not sub:
-        return None
+def check_source_access(sub: Mapping[str, Any]) -> None:
+    """Raise ``ValueError`` for an unknown key or a negative price or limit."""
     known = set(PRICES) | set(LIMITS) | {"allowed_scopes", "forbid_full_scan"}
     if unknown := sorted(set(sub) - known):
         raise ValueError(f"source_access has unknown key(s): {', '.join(unknown)}")
     for key in (*PRICES, *LIMITS):
         if key in sub and float(sub[key]) < 0:
             raise ValueError(f"source_access {key} cannot be negative")
+
+
+def settings(table: Optional[Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
+    """The validated ``source_access`` table of a ``[balance.<component>]`` table, or None when there is none. Raises ValueError for a
+    negative price or limit or an unknown key (a typo must not loosen a gate silently)."""
+    sub = (table or {}).get("source_access")
+    if not sub:
+        return None
+    check_source_access(sub)
     return {"prices": {k: float(sub[k]) for k in PRICES if k in sub}, "limits": {k: float(sub[k]) for k in LIMITS if k in sub},
             "allowed_scopes": None if "allowed_scopes" not in sub else {str(s) for s in sub["allowed_scopes"]},
             "forbid_full_scan": bool(sub.get("forbid_full_scan", True))}
@@ -92,12 +97,15 @@ def loosening(own: Optional[Mapping[str, Any]], foundation: Optional[Mapping[str
     if theirs is None:
         return []
     mine = settings(own) or {"prices": {}, "limits": {}, "allowed_scopes": None, "forbid_full_scan": True}
-    out: List[str] = []
-    for key, limit in theirs["limits"].items():
-        if key in mine["limits"] and mine["limits"][key] > limit:
-            out.append(f"{key} is {mine['limits'][key]:g}, above the foundation's {limit:g}")
+    out = [f"{key} is {mine['limits'][key]:g}, above the foundation's {limit:g}"
+           for key, limit in theirs["limits"].items() if key in mine["limits"] and mine["limits"][key] > limit]
     if theirs["forbid_full_scan"] and not mine["forbid_full_scan"]:
         out.append("forbid_full_scan is off, the foundation forbids a full scan")
-    if theirs["allowed_scopes"] is not None and mine["allowed_scopes"] is not None and (extra := sorted(mine["allowed_scopes"] - theirs["allowed_scopes"])):
-        out.append(f"allowed_scopes adds {', '.join(repr(s) for s in extra)}, which the foundation does not allow")
-    return out
+    return out + wider_scopes(mine["allowed_scopes"], theirs["allowed_scopes"])
+
+
+def wider_scopes(mine: Optional[set], theirs: Optional[set]) -> List[str]:
+    """The note for scopes the consumer allows that the foundation does not."""
+    if theirs is None or mine is None or not (extra := sorted(mine - theirs)):
+        return []
+    return [f"allowed_scopes adds {', '.join(repr(s) for s in extra)}, which the foundation does not allow"]

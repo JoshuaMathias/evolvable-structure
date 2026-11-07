@@ -25,6 +25,13 @@ def read_per_case(config: Config, every: bool = False) -> List[Dict[str, str]]:
     return results_log.per_case_rows(config, every)
 
 
+def reject_unknown_columns(path: Path, header: List[str]) -> None:
+    """Raise ``RunError`` when the file has a column this version does not know."""
+    unknown = [name for name in header if name not in PER_CASE_COLUMNS]
+    if unknown:
+        raise RunError(f"{path} has column(s) this version does not know ({', '.join(unknown)}); remedy: update esoi")
+
+
 def upgrade_per_case_header(path: Path) -> None:
     """Rewrite a per-case log written by an older version (a header without a column added since, such as ``score``) under the
     current header, in one move, so a new row never lands under a header that lacks its column. Existing values are kept and a
@@ -37,9 +44,7 @@ def upgrade_per_case_header(path: Path) -> None:
             return
         fh.seek(0)
         rows = [r for r in csv.DictReader(fh) if r.get("component") != "component"]
-    unknown = [name for name in header if name not in PER_CASE_COLUMNS]
-    if unknown:
-        raise RunError(f"{path} has column(s) this version does not know ({', '.join(unknown)}); remedy: update esoi")
+    reject_unknown_columns(path, header)
     temporary = path.with_suffix(path.suffix + ".upgrade")
     with open(temporary, "w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, PER_CASE_COLUMNS, lineterminator="\n")

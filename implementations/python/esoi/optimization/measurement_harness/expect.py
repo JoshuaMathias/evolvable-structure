@@ -21,13 +21,15 @@ from typing import Any, Callable, Dict, List
 
 def collection_problems(out: Dict[str, Any], expect: Dict[str, Any]) -> List[str]:
     """Problems with the output's values and lists: ``eq``, ``has`` and ``any_of``."""
+    problems = [f"{key}: expected {want!r}, got {out.get(key)!r}" for key, want in (expect.get("eq") or {}).items() if out.get(key) != want]
+    return problems + list_problems(out, expect)
+
+
+def list_problems(out: Dict[str, Any], expect: Dict[str, Any]) -> List[str]:
+    """Problems with the output's lists: items it must hold (``has``) and groups of which it must hold one item (``any_of``)."""
     problems: List[str] = []
-    for key, want in (expect.get("eq") or {}).items():
-        if out.get(key) != want:
-            problems.append(f"{key}: expected {want!r}, got {out.get(key)!r}")
     for key, wanted in (expect.get("has") or {}).items():
-        have = out.get(key) or []
-        problems.extend(f"{key} lacks {item!r}" for item in wanted if item not in have)
+        problems.extend(f"{key} lacks {item!r}" for item in wanted if item not in (out.get(key) or []))
     for key, groups in (expect.get("any_of") or {}).items():
         have = out.get(key) or []
         problems.extend(f"{key} holds none of {group!r}" for group in groups if not any(item in have for item in group))
