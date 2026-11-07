@@ -65,22 +65,32 @@ def selection_leader(rows: Rows, per_case: Optional[List[Row]], fraction: float,
     return selected if selected in top else rank(top)[0]["impl"]
 
 
+def run_rows(per_case: List[Row], row: Row) -> List[Row]:
+    """The per-case rows of exactly the run a results row summarises: its component, implementation, cases hash and sample."""
+    sample = (row.get("sample") or "").strip()
+    return [r for r in per_case
+            if (r.get("component"), r.get("impl"), r.get("cases_sha"), (r.get("sample") or "").strip())
+            == (row.get("component"), row.get("impl"), row.get("cases_sha"), sample)]
+
+
+def holds_exactly(found: Dict[str, bool], row: Row) -> bool:
+    """Whether the per-case outcomes are exactly the run the row summarises: its case count and its pass total."""
+    try:
+        total, passed = int(float(row.get("cases") or 0)), int(float(row.get("passed") or 0))
+    except ValueError:
+        return False
+    return bool(found) and len(found) == total and sum(found.values()) == passed
+
+
 def case_outcomes(per_case: Optional[List[Row]], row: Row) -> Optional[Dict[str, bool]]:
     """``{case id: passed}`` of the run a results row summarises, or ``None`` when the per-case log does not hold exactly that
     run (no rows, another count, or another pass total: the log keeps the newest run of a sample, the row may be older)."""
     if not per_case or unverified(row):
         return None
-    sample = (row.get("sample") or "").strip()
-    found = {r["case_id"]: stats.passed(r.get("ok")) for r in per_case
-             if r.get("component") == row.get("component") and r.get("impl") == row.get("impl")
-             and r.get("cases_sha") == row.get("cases_sha") and (r.get("sample") or "").strip() == sample}
+    found = {r["case_id"]: stats.passed(r.get("ok")) for r in run_rows(per_case, row)}
     if part_of(row):   # a part of the run: the cases of that part must be all the row counts
         found = {c: ok for c, ok in found.items() if stats.in_heldout(c, float(row.get("split") or 0)) == (part_of(row) == "heldout")}
-    try:
-        total, passed = int(float(row.get("cases") or 0)), int(float(row.get("passed") or 0))
-    except ValueError:
-        return None
-    return found if found and len(found) == total and sum(found.values()) == passed else None
+    return found if holds_exactly(found, row) else None
 
 
 def case_numbers(per_case: Optional[List[Row]], row: Row) -> Optional[Dict[str, float]]:
@@ -88,15 +98,12 @@ def case_numbers(per_case: Optional[List[Row]], row: Row) -> Optional[Dict[str, 
     per-case log holds no complete set of scores for exactly that run."""
     if case_outcomes(per_case, row) is None:
         return None
-    sample = (row.get("sample") or "").strip()
     found: Dict[str, float] = {}
-    for r in per_case or []:
-        if (r.get("component"), r.get("impl"), r.get("cases_sha"), (r.get("sample") or "").strip()) == \
-                (row.get("component"), row.get("impl"), row.get("cases_sha"), sample):
-            if part_of(row) and stats.in_heldout(r["case_id"], float(row.get("split") or 0)) != (part_of(row) == "heldout"):
-                continue
-            try:
-                found[r["case_id"]] = float(r.get("score") or "")
-            except ValueError:
-                return None
+    for r in run_rows(per_case or [], row):
+        if part_of(row) and stats.in_heldout(r["case_id"], float(row.get("split") or 0)) != (part_of(row) == "heldout"):
+            continue
+        try:
+            found[r["case_id"]] = float(r.get("score") or "")
+        except ValueError:
+            return None
     return found

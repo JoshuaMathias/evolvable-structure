@@ -15,6 +15,23 @@ def history_of(rows: Rows, history: Optional[Dict[str, List[Row]]] = None) -> Di
     return history if history is not None else {impl: [row] for impl, row in rows.items()}
 
 
+def newest_shared(mine: List[Row], theirs: List[Row]) -> Optional[Tuple[int, int]]:
+    """``(rival position, selected position)`` of the newest pair of rows scored on the same cases and sample, or None."""
+    best = None
+    for i, rival in enumerate(theirs):
+        for j, own in enumerate(mine):
+            if comparable(own, rival) and (best is None or (i, j) > best):
+                best = (i, j)
+    return best
+
+
+def why_unmatched(selected: str, mine: List[Row], theirs: List[Row], recorded: List[Row]) -> str:
+    """Why a rival shares no cases and sample with the selected arm: it has only named cases or slices, or the two ran on other cases."""
+    if not theirs:
+        return f"scored on {recorded[-1].get('sample')} only; not comparable: named cases only (no run of the whole set)"
+    return f"scored on {describe_cases(theirs[-1])}, {selected} on {describe_cases(mine[-1])}: no run of the two on the same cases and sample"
+
+
 def rival_pairs(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
                 history: Optional[Dict[str, List[Row]]] = None) -> Tuple[List[Tuple[Row, Row]], List[Tuple[str, str]]]:
     """``(pairs, unmatched)`` for ``selected``. A pair is ``(selected row, rival row)`` scored on the same cases (see
@@ -30,21 +47,11 @@ def rival_pairs(rows: Rows, selected: str, eval_dir: Optional[Path] = None,
         theirs = arms[impl]
         if impl == selected or is_ablation((theirs or every[impl])[-1], eval_dir):
             continue
-        if not theirs:   # recorded only on named cases (only:) or slices: never silently skipped
-            if mine:
-                unmatched.append((impl, f"scored on {every[impl][-1].get('sample')} only; not comparable: named cases only (no run of the whole set)"))
-            continue
-        best = None   # (rival position, selected position) of the newest shared key
-        for i, rival in enumerate(theirs):
-            for j, own in enumerate(mine):
-                if comparable(own, rival) and (best is None or (i, j) > best):
-                    best = (i, j)
-        if best is None:
-            if mine:
-                unmatched.append((impl, f"scored on {describe_cases(theirs[-1])}, {selected} on "
-                                        f"{describe_cases(mine[-1])}: no run of the two on the same cases and sample"))
-            continue
-        pairs.append((mine[best[1]], theirs[best[0]]))
+        best = newest_shared(mine, theirs)
+        if best is not None:
+            pairs.append((mine[best[1]], theirs[best[0]]))
+        elif mine:   # never silently skipped
+            unmatched.append((impl, why_unmatched(selected, mine, theirs, every[impl])))
     return pairs, unmatched
 
 
