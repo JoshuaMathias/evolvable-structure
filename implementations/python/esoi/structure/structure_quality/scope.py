@@ -19,7 +19,7 @@ from esoi.structure.intent_registry.parsed_source import nodes_of
 from esoi.structure.structure_quality.adopted import adopted_projects, installed_classes
 from esoi.structure.structure_quality.conformance import (arm_problems, declared_solutions, decorator_id, inherited_members, is_protocol, passes_through,
                                                          protocol_members, protocol_problems)
-from esoi.structure.structure_quality.balance import Budgets, Dimension, combine, share
+from esoi.structure.structure_quality.balance import Budgets, Dimension, from_parts, share
 from esoi.structure.structure_quality.overlap import ARMS_SHARE_LITTLE, mean_overlap
 from esoi.structure.structure_quality.protocol_groups import collect, group_protocols
 from esoi.structure.structure_quality.project import Project, resolve_import
@@ -239,7 +239,7 @@ def measure(project: Project, budgets: Budgets) -> Dimension:
              "protocols_within_budget": share(len(unit_protocols) - len(split), len(unit_protocols)),
              "arms_share_one_purpose": share(len(purposes) - len(unfocused), len(purposes))}
     offenders = scope_offenders(off, hollow, split, unfocused)
-    return Dimension("scope", combine(list(parts.values())), {k: v for k, v in parts.items() if v is not None}, offenders)
+    return from_parts("scope", parts, offenders)
 
 
 def unfocused_purposes(project: Project) -> Tuple[Dict[str, List[str]], Dict[str, float]]:

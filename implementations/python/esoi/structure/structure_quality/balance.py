@@ -85,6 +85,11 @@ def combine(values: List[Optional[float]]) -> Optional[float]:
     return round(product ** (1 / len(kept)), 4)
 
 
+def from_parts(name: str, parts: Dict[str, Optional[float]], offenders: List[str], note: str = "") -> Dimension:
+    """The dimension a module builds from its named parts: the parts that were measured, their geometric mean, and the offenders."""
+    return Dimension(name, combine(list(parts.values())), {k: v for k, v in parts.items() if v is not None}, offenders, note)
+
+
 def verdict_of(score: Optional[float]) -> str:
     """Where a score stands against the reference line."""
     if score is None:

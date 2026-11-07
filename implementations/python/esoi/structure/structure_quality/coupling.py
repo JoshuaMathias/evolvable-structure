@@ -23,7 +23,7 @@ from pathlib import PurePosixPath
 from typing import Dict, List, Optional, Set, Tuple
 
 from esoi.structure.structure_quality import foundation
-from esoi.structure.structure_quality.balance import Budgets, Dimension, combine, share
+from esoi.structure.structure_quality.balance import Budgets, Dimension, from_parts, share
 from esoi.structure.structure_quality.project import Project
 
 ENTRY_NAMES = {"interface.py", "__init__.py"}
@@ -335,4 +335,4 @@ def measure(project: Project, budgets: Budgets, cochange: Optional[Dict[str, obj
         parts["changes_explained_by_imports"] = cochange.get("explained_share")
         offenders += hidden_change_lines(cochange)
         note = "; ".join(filter(None, [note, f"stage 2: {cochange.get('commits', 0)} commits read"]))
-    return Dimension("coupling", combine(list(parts.values())), {k: v for k, v in parts.items() if v is not None}, offenders, note)
+    return from_parts("coupling", parts, offenders, note)

@@ -21,7 +21,7 @@ from typing import Dict, List, Optional, Set
 
 from esoi.structure.intent_registry.parsed_source import nodes_of
 from esoi.structure.structure_quality.conformance import decorator_id, is_protocol, protocol_members
-from esoi.structure.structure_quality.balance import Budgets, Dimension, combine, mean
+from esoi.structure.structure_quality.balance import Budgets, Dimension, from_parts, mean
 from esoi.structure.structure_quality.coupling import cross_edges
 from esoi.structure.structure_quality.project import Project
 
@@ -150,4 +150,4 @@ def measure(project: Project, budgets: Budgets) -> Dimension:
     member_shares = {k: len(called) / len(members) for k, (members, called) in protocols.items()}
     offenders += unused_member_lines(protocols, member_shares)
     parts = {"exported_names_used": mean([round(v, 4) for v in shares.values()]), "protocol_members_used": mean([round(v, 4) for v in member_shares.values()])}
-    return Dimension("surface", combine(list(parts.values())), {k: v for k, v in parts.items() if v is not None}, offenders)
+    return from_parts("surface", parts, offenders)

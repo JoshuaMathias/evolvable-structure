@@ -14,7 +14,7 @@ import csv
 from pathlib import Path, PurePosixPath
 from typing import Dict, List, Tuple
 
-from esoi.structure.structure_quality.balance import Budgets, Dimension, combine, share
+from esoi.structure.structure_quality.balance import Budgets, Dimension, from_parts, share
 from esoi.structure.structure_quality.project import Project
 
 
@@ -96,4 +96,4 @@ def measure(project: Project, budgets: Budgets) -> Dimension:
              "intents_within_children_budget": share(len(children) - len(wide), len(children)),
              "files_within_depth_budget": share(len(modules) - len(deep), len(modules))}
     offenders = size_offenders(project, budgets, functions, long_modules, crowded, wide, deep)
-    return Dimension("size", combine(list(parts.values())), {k: v for k, v in parts.items() if v is not None}, offenders)
+    return from_parts("size", parts, offenders)
