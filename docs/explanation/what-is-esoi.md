@@ -21,6 +21,8 @@ Fuller definitions, each in the author's words: [intent types](intent-types.md).
 
 ![How an intent holds a problem, an ideal, a solution, its implementations and the metric that picks the best one](../assets/esoi-structure.svg)
 
+A network of solutions that solve problems through alternative implementations that iterate towards ideals, measured by metrics.
+
 [How the records connect](how-they-connect.md) has the exact links between them.
 
 ## The loop
