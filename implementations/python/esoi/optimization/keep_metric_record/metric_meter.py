@@ -162,9 +162,12 @@ class OfflineArmMeter:
 
 
 def esoi_command(root: Path) -> List[str]:
-    """The command that runs ``esoi`` for a repository: its own virtual environment's, else the running interpreter's."""
+    """The command that runs ``esoi`` for a repository: its own virtual environment's, else the running interpreter's.
+
+    The interpreter runs with ``-P`` (no current directory on the import path): the repository's own ``esoi/`` records folder
+    would otherwise shadow the installed package and the command could not start."""
     own = next((str(root / rel) for rel in REPO_ESOI_COMMANDS if os.access(root / rel, os.X_OK)), None)
-    return [own] if own else [sys.executable, "-m", "esoi"]
+    return [own] if own else [sys.executable, "-P", "-m", "esoi"]
 
 
 def kill_process_group(proc: "subprocess.Popen") -> None:
