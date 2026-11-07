@@ -3,6 +3,12 @@ from pathlib import Path
 from typing import Dict, List, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
+from esoi.optimization.keep_metric_record.iteration import MetricIteration  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.optimization.keep_metric_record.metric_meter import AFTER, BEFORE, OfflineArmMeter, RecordedRowMeter, read_value  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.optimization.keep_metric_record.metric_results import FileMetricLedger, MetricResult, reconcile, render_line  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.optimization.keep_metric_record.spec_slice import Chosen, RepoSliceSource, SpecSlice, lexical_choice, next_milestone, target_of  # noqa: F401  (re-exported: other units call this unit through its interface)
+
+__all__ = ["AFTER", "BEFORE", "Chosen", "FileMetricLedger", "MetricIteration", "MetricRecordKeeping", "MetricResult", "OfflineArmMeter", "RecordedRowMeter", "RepoSliceSource", "SpecSlice", "lexical_choice", "next_milestone", "read_value", "reconcile", "render_line", "target_of"]
 
 
 @solution("keep-metric-record", kind="event", entry="readings", example=".")

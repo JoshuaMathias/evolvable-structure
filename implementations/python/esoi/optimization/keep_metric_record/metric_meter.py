@@ -133,7 +133,7 @@ class OfflineArmMeter:
 
     def measure(self, spec_slice: SpecSlice, working_dir: Optional[str] = None) -> Optional[float]:
         try:
-            from esoi.optimization.measurement_harness import case_loading
+            from esoi.optimization.measurement_harness.interface import case_loading
             from esoi.optimization.when_metrics_are_run import interface as gating
             config, component, arm = repository(spec_slice)
             row = latest_row(config, component, arm) if component else None
@@ -236,6 +236,15 @@ def run_bounded(call: Callable[[], Any], seconds: float) -> Tuple[Any, bool]:
     return box.get("value"), not worker.is_alive()
 
 
+def ask_meter(meter: MetricMeter, spec_slice: SpecSlice, working_dir: Optional[str], left: float) -> Tuple[Optional[float], bool]:
+    """``(value, unfinished)`` from one meter within ``left`` seconds. A meter that can stop itself at the limit gets a moment
+    past it to be reaped and answer; one that cannot is left behind at the limit."""
+    stoppable = hasattr(meter, "within")
+    bounded = meter.within(left) if stoppable else meter
+    value, finished = run_bounded(lambda m=bounded: m.measure(spec_slice, working_dir), left + (JOIN_GRACE_SECONDS if stoppable else 0.0))
+    return value, not finished or getattr(bounded, "timed_out", False)
+
+
 def read_value(meters: Sequence[MetricMeter], spec_slice: SpecSlice, working_dir: Optional[str] = None, *,
                when: str = BEFORE, budget_seconds: float = DEFAULT_BUDGET_SECONDS,
                announce: Optional[Callable[[], None]] = None, clock: Callable[[], float] = time.monotonic) -> Reading:
@@ -259,14 +268,9 @@ def read_value(meters: Sequence[MetricMeter], spec_slice: SpecSlice, working_dir
             announced = True
             if announce is not None:
                 announce()
-        # A meter that can stop itself at the limit gets a moment past it to be reaped and answer; one that cannot is
-        # left behind at the limit.
-        stoppable = hasattr(meter, "within")
-        bounded = meter.within(left) if stoppable else meter
-        value, finished = run_bounded(lambda m=bounded: m.measure(spec_slice, working_dir),
-                                      left + (JOIN_GRACE_SECONDS if stoppable else 0.0))
+        value, unfinished = ask_meter(meter, spec_slice, working_dir, left)
         if value is not None:
             return Reading(value, meter.name)
-        if not finished or getattr(bounded, "timed_out", False):
+        if unfinished:
             note = f"{meter.name} did not finish within {budget:g}s"
     return Reading(note=note)

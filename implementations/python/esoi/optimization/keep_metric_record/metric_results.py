@@ -131,11 +131,11 @@ class MetricResult:
     def from_row(cls, row: Mapping[str, Any]) -> "MetricResult":
         """A ledger row back into a result; ValueError for a row that is not one."""
         try:
-            return cls(source=str(row.get("source") or ""), run_id=row.get("run_id") or "",
-                       task_id=row.get("task_id") or "", solution_id=row.get("solution_id") or "",
-                       metric_id=row.get("metric_id") or "", name=row.get("name") or "",
-                       milestone=row.get("milestone") or "", before=row.get("before"), after=row.get("after"),
-                       reason=row.get("reason") or "", ts=float(row.get("ts") or 0.0),
+            def text(key: str) -> str:
+                return row.get(key) or ""
+            return cls(source=str(text("source")), run_id=text("run_id"), task_id=text("task_id"), solution_id=text("solution_id"),
+                       metric_id=text("metric_id"), name=text("name"), milestone=text("milestone"), before=row.get("before"),
+                       after=row.get("after"), reason=text("reason"), ts=float(row.get("ts") or 0.0),
                        disagrees=bool(row.get("disagrees")))
         except (TypeError, AttributeError) as e:
             raise ValueError(f"not a metric row: {e}") from e

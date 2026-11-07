@@ -195,10 +195,13 @@ def slice_from_root(request: str, root: Path, choose: Chooser = lexical_choice,
         return None
     metric = authoritative_metric(solution, {m.get("metric_id", ""): m for m in loaded.metrics}) or {}
     step = next_milestone(solution.get("milestones", ""))
-    if step is None and not metric:
-        return None
+    return None if step is None and not metric else slice_of(config, solution, metric, step)
+
+
+def slice_of(config: Any, solution: Dict[str, str], metric: Dict[str, str], step: Any) -> SpecSlice:
+    """The slice for a solution: its next milestone (when it has one) and its authoritative metric (when it has one)."""
     value, token = target_of(step.text if step else "")
-    return SpecSlice(root=str(config.root), solution_id=wanted[0], solution_name=solution.get("name", ""),
+    return SpecSlice(root=str(config.root), solution_id=solution.get("solution_id", ""), solution_name=solution.get("name", ""),
                      milestone=step.text if step else "", milestone_number=step.number if step else 0, target=value,
                      target_text=token, metric_id=metric.get("metric_id", ""), metric_name=metric.get("name", ""),
                      metric_command=metric.get("command", ""))
