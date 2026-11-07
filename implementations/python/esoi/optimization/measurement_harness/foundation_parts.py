@@ -117,15 +117,24 @@ def run_summary(f: builds_on.Foundation, arm: str, rows: List[Dict[str, Any]], s
                 [dict(case_id=str(r["id"]), ok="1" if r["ok"] else "0", calls=r["calls"], seconds=r["seconds"]) for r in rows])
 
 
-def run_part(f: builds_on.Foundation, arm: str, consumer_fn: Callable, adapter: Optional[Callable], meter: Any, say: Callable[[str], None],
-             reason: str) -> Optional[Part]:
+@dataclass(frozen=True)
+class Consumer:
+    """The consumer's side of a run: its arm's function, the score module's adapter, the call meter and the printer."""
+    fn: Callable
+    adapter: Optional[Callable]
+    meter: Any
+    say: Callable[[str], None]
+
+
+def run_part(f: builds_on.Foundation, arm: str, consumer: Consumer, reason: str) -> Optional[Part]:
     """Run the foundation's cases through the foundation's own scorer. With a named foundation arm it is the foundation's own build of that arm;
     without one the consumer's ``adapter(name, fn)`` turns the consumer's arm into what the foundation's scorer calls."""
+    adapter, meter, say = consumer.adapter, consumer.meter, consumer.say
     fconf = builds_on.load_config(f)
     component_folder.prepare_path(fconf)
     cases = case_loading.load_cases(f.target, fconf)
     score = importlib.import_module(f"{f.target}.score")
-    fn = arm_loading.load_impl(arm, f.target, fconf)(meter) if arm else adapter(f.name, consumer_fn) if adapter is not None else None
+    fn = arm_loading.load_impl(arm, f.target, fconf)(meter) if arm else adapter(f.name, consumer.fn) if adapter is not None else None
     if fn is None:
         return None
     say(f"{f.name}: running {len(cases)} foundation case(s) through {f.root.name}'s {f.target} scorer ({reason})")
@@ -137,9 +146,9 @@ def run_part(f: builds_on.Foundation, arm: str, consumer_fn: Callable, adapter: 
     return run_summary(f, arm or "(consumer arm)", rows, (meter, spent, started), ident, reason)
 
 
-def measure(config: Config, component: str, impl: str, consumer_fn: Callable, adapter: Optional[Callable], meter: Any,
-            say: Callable[[str], None]) -> List[Part]:
+def measure(config: Config, component: str, impl: str, consumer: Consumer) -> List[Part]:
     """The part each foundation contributes for this arm: reuse a current recorded result, else the policy's choice (see the module docstring)."""
+    adapter, say = consumer.adapter, consumer.say
     named, parts = builds_on.declared_arms(config, component, impl), []
     for f in builds_on.declared(config, component):
         arm = named.get(f.name, "")
@@ -153,7 +162,7 @@ def measure(config: Config, component: str, impl: str, consumer_fn: Callable, ad
         elif f.on_stale == "report":
             raise run_errors.RunError(f"the foundation {f.name} cannot be reused: {why} (on_stale = report, so nothing is run; "
                                    f"re-record {arm or 'the foundation arm'} in {f.root.name} and run again)")
-        elif (ran := run_part(f, arm, consumer_fn, adapter, meter, say, why)) is not None:
+        elif (ran := run_part(f, arm, consumer, why)) is not None:
             parts.append(ran)
         else:
             say(f"{f.name}: this arm names no foundation arm and the score module's foundation_fn does not adapt it, so it does not build on {f.name}")

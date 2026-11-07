@@ -264,7 +264,8 @@ def measure_run(run: Run, tools: Tools) -> tuple:
         rows, reused, stopped = run_cases(run.cases, tools, run.say, not (args.keep_going or args.record))
         own_at = (meter.calls, meter.tokens_in, meter.tokens_out, meter.cost_usd, time.time())   # the consumer's own spend, before the foundation part
         if run.builds and not stopped:   # the foundation's part: reused when current, else run through the foundation's own scorer
-            parts = foundation_parts.measure(run.config, run.component, run.impl, tools.fn, getattr(tools.score, "foundation_fn", None), meter, run.say)
+            parts = foundation_parts.measure(run.config, run.component, run.impl,
+                                          foundation_parts.Consumer(tools.fn, getattr(tools.score, "foundation_fn", None), meter, run.say))
     except BaseException as exc:   # Ctrl-C, a spent call budget or a crash
         log.end(f"stopped: {type(exc).__name__}")
         raise

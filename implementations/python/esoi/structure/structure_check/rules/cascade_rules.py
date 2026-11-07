@@ -5,6 +5,7 @@ S32 a metric's cascading conditionals can be read, S33 the selected implementati
 from __future__ import annotations
 
 import datetime
+from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 from esoi.optimization.leaderboard import arm_selection, cascade_stages
@@ -28,8 +29,17 @@ def differs(selected: str, decision) -> bool:
     return bool(decision.winner and selected and selected != decision.winner)
 
 
-def disagreement_lines(ctx: Context, metric: Dict[str, str], component: str, selected: str, stages, current, recorded) -> Tuple[List[str], List[str]]:
+@dataclass(frozen=True)
+class Cascade:
+    """A metric's stages and what they choose: on the current cases only (``current``) and on every well-formed row (``recorded``)."""
+    stages: list
+    current: object
+    recorded: object
+
+
+def disagreement_lines(ctx: Context, metric: Dict[str, str], component: str, selected: str, cascade: Cascade) -> Tuple[List[str], List[str]]:
     """(problems, advice) for each solution of a metric whose selected arm is not the one its cascade chooses."""
+    stages, current, recorded = cascade.stages, cascade.current, cascade.recorded
     bad: List[str] = []
     advice: List[str] = []
     mid = metric.get("metric_id", "")
@@ -79,7 +89,7 @@ def run(ctx: Context) -> list:
         recorded = stage_standings.decide(stages, stage_standings.standings(stages, ctx.history[component], datetime.date.today(),
                                   lambda row, c=component: defect_reason(ctx.config, c, row),
                                   ctx.config.evaluation), ctx.config.evaluation)   # every well-formed row, whatever changed since
-        found, advice = disagreement_lines(ctx, metric, component, selected, stages, current, recorded)
+        found, advice = disagreement_lines(ctx, metric, component, selected, Cascade(stages, current, recorded))
         bad += found
         ctx.advisory.extend(advice)
     return bad

@@ -225,14 +225,13 @@ def judge(config: Config, loaded: Any, row: Optional[Dict[str, str]], sid: str, 
     if mine is None or not any(b["impl"] == parent_arm for _, b in pairs):
         found.advice = describe_missing(config, loaded, row, comp, child_arm, parent_arm, mine, theirs, unmatched, found)
         return found
-    found.numbers, found.verdict, found.advice = decide(config, rows, history, per_case, (sid, kind, comp), parent_arm, child_arm)
+    found.numbers, found.verdict, found.advice = decide(config, found, comp, rows, history, per_case)
     return found
 
 
-def decide(config: Config, rows: Dict[str, Dict[str, str]], history: Dict[str, Any], per_case: Any, subject: Tuple[str, str, str],
-           parent_arm: str, child_arm: str) -> Tuple[str, str, str]:
+def decide(config: Config, found: Finding, comp: str, rows: Dict[str, Dict[str, str]], history: Dict[str, Any], per_case: Any) -> Tuple[str, str, str]:
     """``(numbers, verdict, advice)`` of the parent's arm against the child's, from the rival decision on the child's metric."""
-    sid, kind, comp = subject
+    sid, kind, parent_arm, child_arm = found.solution_id, found.kind, found.parent_arm, found.child_arm
     policy = switching_policy.policy_for(config, sid, comp, per_case)
     decided = [d for d in rival_decisions.decisions(rows, child_arm, config.evaluation, history, per_case, policy) if d.rival == parent_arm]
     d = decided[0]
@@ -293,9 +292,21 @@ def changed_arm(loaded: Any, row: Optional[Dict[str, str]], sid: str, parent_arm
     return overridden, lock_moved, own if overridden else locked.get(sid, "")
 
 
-def compare_one(config: Config, loaded: Any, row: Optional[Dict[str, str]], sid: str, parent_arm: str, locked: Dict[str, str],
-                reasons: Dict[str, Any], metric_ids: Set[str]) -> Union[Finding, str, None]:
+@dataclass(frozen=True)
+class Child:
+    """The child being followed: its records, its solution rows, the arms its lock holds, the reasons its overrides give and its metric ids."""
+    config: Config
+    loaded: Any
+    rows: Dict[str, Dict[str, str]]
+    locked: Dict[str, str]
+    reasons: Dict[str, Any]
+    metric_ids: Set[str]
+
+
+def compare_one(child: Child, sid: str, parent_arm: str) -> Union[Finding, str, None]:
     """The finding for one solution, a skip note, or None when nothing can have changed under the child."""
+    config, loaded, locked, reasons, metric_ids = child.config, child.loaded, child.locked, child.reasons, child.metric_ids
+    row = child.rows.get(sid)
     overridden, lock_moved, child_arm = changed_arm(loaded, row, sid, parent_arm, locked)
     if not child_arm or not (overridden or lock_moved):
         return None   # inherited and not locked, or unchanged
@@ -318,11 +329,12 @@ def follow(config: Config, parent: str = "", solutions: Tuple[str, ...] = (), lo
     reasons, bad = override_rows(config, loaded, selections)
     report.problems += bad
     metric_ids = {m.get("metric_id", "") for m in loaded.metrics}
+    child = Child(config, loaded, rows, locked, reasons, metric_ids)
     for sid in sorted(selections):
         if solutions and sid not in solutions:
             continue
         report.checked += 1
-        compared = compare_one(config, loaded, rows.get(sid), sid, selections[sid], locked, reasons, metric_ids)
+        compared = compare_one(child, sid, selections[sid])
         if isinstance(compared, str):
             report.skipped.append(compared)
         elif compared is not None:

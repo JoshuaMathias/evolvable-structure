@@ -18,6 +18,7 @@ A waiver excuses one key: the solution id, the folder's path from the repository
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -85,18 +86,6 @@ def names_solution(config: Config, files: Set[str], solution_id: str, interface:
     return False
 
 
-def shared_layer_reaches(config: Config, spec: Path, code_file: str, graph: Dict[str, Set[str]], intent_files: Set[str],
-                         solution_id: str = "", interface: str = "") -> bool:
-    """Whether ``code_file`` sits in a layer of the package that is shared infrastructure of the intent at ``spec`` (a layer ranked
-    below the area folders by ``layers``) and is imported by that intent's code (or named by its executable code through the solution's id or interface class, as an area wires
-    its members by typed need): the spec folder's modules and the code of the implementations its rows name. Code in a layer at or above the area, or one the intent's code never imports, does not reach."""
-    if not in_shared_layer(config, spec, code_file):
-        return False
-    if any(code_file in graph.get(g, ()) for g in intent_files):
-        return True
-    return bool(solution_id) and names_solution(config, intent_files, solution_id, interface)
-
-
 def layer_of(config: Config, package: Path, spec: Path, code_file: str) -> Optional[str]:
     """The first folder under the package that holds ``code_file``, or None when the spec or the code is not inside the package."""
     if not config.package or package not in spec.parents or spec == package:
@@ -120,14 +109,20 @@ def in_shared_layer(config: Config, spec: Path, code_file: str) -> bool:
 
 def shared_in(config, spec: Path, code_file: str, graph: Dict[str, set], intent_code: Dict[Path, set],
               solution_id: str = "", interface: str = "", resolved: Dict[str, Path] = None) -> bool:
-    """Whether ``code_file`` is in a shared layer that the code of the intent holding ``spec`` imports. ``resolved`` maps each file of
-    the graph to its resolved path, worked out once by the caller for every solution it asks about."""
+    """Whether ``code_file`` sits in a layer of the package that is shared infrastructure of the intent at ``spec`` (a layer ranked
+    below the area folders by ``layers``) and is imported by that intent's code: the spec folder's modules and the code of the
+    implementations its rows name, or named by that code through the solution's id or interface class, as an area wires its members
+    by typed need. ``resolved`` maps each file of the graph to its resolved path, worked out once by the caller for every solution it asks about."""
     if not graph or not code_file:
         return False
     resolved = resolved if resolved is not None else {rel_file: (config.root / rel_file).resolve() for rel_file in graph}
     here = spec.resolve()
     mine = {rel_file for rel_file, path in resolved.items() if path.is_relative_to(here)} | intent_code.get(here, set())
-    return shared_layer_reaches(config, spec, code_file, graph, mine, solution_id, interface)
+    if not in_shared_layer(config, spec, code_file):   # a layer at or above the area, or one the intent's code never imports, does not reach
+        return False
+    if any(code_file in graph.get(g, ()) for g in mine):
+        return True
+    return bool(solution_id) and names_solution(config, mine, solution_id, interface)
 
 
 def rel(config, path: Path) -> str:
@@ -149,12 +144,24 @@ def readme_finding(ctx: Context, row: Dict[str, str], here: Path, arms) -> List[
             "belongs to an intent elsewhere)"]
 
 
-def far_finding(ctx: Context, sid: str, folder: Path, codes, arms, moves, graph, intent_code, interfaces, resolved) -> List[str]:
+@dataclass(frozen=True)
+class CodeMap:
+    """Where each solution's code lies: its files by solution, the arm folders, the planned moves, the import graph, the intent's own code and interface names."""
+    codes: Dict[str, List[Tuple[Path, Path, str]]]
+    arms: object
+    moves: Dict
+    graph: Dict[str, set]
+    intent_code: Dict[Path, set]
+    interfaces: Dict[str, str]
+    resolved: Dict[str, Path]
+
+
+def far_finding(ctx: Context, where: CodeMap, sid: str, folder: Path) -> List[str]:
     """S40 for a solution whose spec is more than one link away from its code."""
-    config = ctx.config
+    config, codes, arms, moves = ctx.config, where.codes, where.arms, where.moves
     near: Dict[Path, bool] = {}
     for c, row_folder, code_file in codes.get(sid, []):   # one file of the solution in a shared layer the intent reaches covers its arms there
-        near[c] = near.get(c, False) or shared_in(config, folder, code_file, graph, intent_code, sid, interfaces.get(sid, ""), resolved)
+        near[c] = near.get(c, False) or shared_in(config, folder, code_file, where.graph, where.intent_code, sid, where.interfaces.get(sid, ""), where.resolved)
     far = sorted({rel(config, c) for c, row_folder, code_file in codes.get(sid, []) if reach(arms, folder, c, row_folder, near[c]) > 1})
     if not far or ctx.waived("S40", sid):
         return []
@@ -192,8 +199,9 @@ def findings(ctx: Context) -> List[str]:
             intent_code.setdefault(folder.resolve(), set()).add(code_file)
             out += readme_finding(ctx, row, here, arms)
     out = list(dict.fromkeys(out))
+    where = CodeMap(codes, arms, moves, graph, intent_code, interfaces, resolved)
     for sid, folder in sorted(solution_folder.items()):
-        out += far_finding(ctx, sid, folder, codes, arms, moves, graph, intent_code, interfaces, resolved)
+        out += far_finding(ctx, where, sid, folder)
     return out
 
 

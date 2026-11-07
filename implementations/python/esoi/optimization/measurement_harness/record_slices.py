@@ -1,6 +1,7 @@
 """Derive and record the per-circumstance rows and the per-case log of a recorded run."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Dict, List
 
 from esoi.structure.intent_registry.interface import check_name, circumstances
@@ -48,11 +49,10 @@ def record_slices(config: Config, component: str, circs: List[circumstances.Circ
                                  score=scores[i] if scores else "") for i, (c, r) in enumerate(zip(cases, rows))])
     if not circs:
         return []   # no circumstances: no derived slice rows, but the per-case outcomes still support the paired test
-    total = (summary["tokens_in"] + summary["tokens_out"]) or 0
     written = []
     for cid, found in circumstances.slices(circs, cases, circumstances.run_context(summary.get("model"), summary["impl"])).items():
         check_name(cid, "slice id")   # a '/' or ';' would make the row read as a whole run
-        piece = slice_row(config, component, summary, cases, rows, cid, found, total)
+        piece = slice_row(config, component, Scored(summary, cases, rows), cid, found)
         record_result(piece, config)
         written.append(piece)
     return written
@@ -70,9 +70,18 @@ def token_share(part: List[Dict[str, Any]], total: int, in_slice: int, in_run: i
     return sum(r["tokens_in"] + r["tokens_out"] for r in part) / total if total else in_slice / in_run
 
 
-def slice_row(config: Config, component: str, summary: Dict[str, Any], cases: List[dict], rows: List[Dict[str, Any]], cid: str,
-              found: List[int], total: int) -> Dict[str, Any]:
+@dataclass(frozen=True)
+class Scored:
+    """A scored run: its summary row, its cases and the row of each case."""
+    summary: Dict[str, Any]
+    cases: List[dict]
+    rows: List[Dict[str, Any]]
+
+
+def slice_row(config: Config, component: str, scored: Scored, cid: str, found: List[int]) -> Dict[str, Any]:
     """The derived result row of one slice: sums over the cases it holds, cost shared by token use, scored again."""
+    summary, cases, rows = scored.summary, scored.cases, scored.rows
+    total = (summary["tokens_in"] + summary["tokens_out"]) or 0
     part = [rows[i] for i in found]
     share = token_share(part, total, len(found), len(rows))
     piece = dict(summary, cases=len(found), passed=sum(bool(r["ok"]) for r in part), **dev_and_held(cases, rows, found),
