@@ -60,38 +60,34 @@ def run_sheet_sync(config, args: argparse.Namespace) -> int:
     return sheets.run_cli(config, args.mode, args.dry_run)
 
 
-def run_spec(config, args: argparse.Namespace) -> int:
-    """``esoi spec``: build, search and read the specification index (no model is called)."""
+def spec_index_action(args: argparse.Namespace, index) -> int:
+    """``esoi spec index``: print the index as JSON, or write it to ``--out``."""
     import json
+    text = json.dumps(index, indent=1, sort_keys=True) + "\n"
+    if args.out:
+        Path(args.out).write_text(text, encoding="utf-8")
+        print(f"wrote {args.out} ({index['n']} entries, digest {index['digest']})")
+    else:
+        print(text, end="")
+    return 0
+
+
+def spec_related_action(args: argparse.Namespace, index) -> int:
+    """``esoi spec related``: the records linked to a record, with the step and link that reach each."""
     from esoi.understanding.spec_search import spec_index
-    index = spec_index.cached(config, Path(args.cache)) if args.cache else spec_index.build(config)
-    if args.action == "intent":
-        for entry in spec_index.of_intent(index, args.target):
-            print(spec_index.line(entry))
-        return 0
-    if args.action == "index":
-        text = json.dumps(index, indent=1, sort_keys=True) + "\n"
-        if args.out:
-            Path(args.out).write_text(text, encoding="utf-8")
-            print(f"wrote {args.out} ({index['n']} entries, digest {index['digest']})")
-        else:
-            print(text, end="")
-        return 0
-    if not args.target:
-        print(f"esoi: spec {args.action} needs a {'record id' if args.action == 'show' else 'use case text'}", file=sys.stderr)
-        return 2
-    if args.action == "find":
-        print(spec_index.render_scan(index, spec_index.find_specs(index, args.target, args.k, args.expand)))
-        return 0
-    if args.action == "related":
-        try:
-            hits = spec_index.related(index, args.target, args.depth, max(args.k, 1))
-        except KeyError:
-            print(f"esoi: no record {args.target!r}", file=sys.stderr)
-            return 1
-        by_id = {e["id"]: e for e in index["entries"]}
-        print("\n".join(f"{spec_index.line(by_id[h['id']])}  (step {h['depth']} via {h['via']})" for h in hits))
-        return 0
+    try:
+        hits = spec_index.related(index, args.target, args.depth, max(args.k, 1))
+    except KeyError:
+        print(f"esoi: no record {args.target!r}", file=sys.stderr)
+        return 1
+    by_id = {e["id"]: e for e in index["entries"]}
+    print("\n".join(f"{spec_index.line(by_id[h['id']])}  (step {h['depth']} via {h['via']})" for h in hits))
+    return 0
+
+
+def spec_show_action(config, args: argparse.Namespace, index) -> int:
+    """``esoi spec show``: one record at the asked tier."""
+    from esoi.understanding.spec_search import spec_index
     try:
         print(spec_index.show(config, index, args.target, args.tier))
     except KeyError:
@@ -100,42 +96,69 @@ def run_spec(config, args: argparse.Namespace) -> int:
     return 0
 
 
-def run_projects(config, args: argparse.Namespace) -> int:
-    """``esoi projects``: the one place the index folder is resolved from ``ESOI_HOME``."""
-    import os
-    from esoi.understanding.local_application_index.interface import projects
-    home = projects.resolve_home(os.environ, Path.home())
-    if args.action == "init":
-        made = projects.init(home)
-        print(f"{home}: " + (", ".join(made) + " created" if made else "already set up"))
+def run_spec(config, args: argparse.Namespace) -> int:
+    """``esoi spec``: build, search and read the specification index (no model is called)."""
+    from esoi.understanding.spec_search import spec_index
+    index = spec_index.cached(config, Path(args.cache)) if args.cache else spec_index.build(config)
+    if args.action == "intent":
+        for entry in spec_index.of_intent(index, args.target):
+            print(spec_index.line(entry))
         return 0
-    if args.action == "add":
-        if not args.target:
-            print("esoi: projects add needs a path or URL", file=sys.stderr)
-            return 2
-        try:
-            row = projects.add(home, args.target, args.id, args.name, args.vision, args.kind, args.specifications,
-                               args.start_here, args.relations, args.notes, args.replace)
-        except ValueError as exc:
-            print(f"esoi: {exc}", file=sys.stderr)
-            return 2
-        print(f"added {row['project_id']} ({row['kind']}, {row['location']})")
-        if not projects.resolve([row])[0]["vision_statement"]:
-            print("note: no vision statement found in the project's top intent.csv; add one there (or with --vision --replace)")
-        return 0
-    if args.action == "list":
-        for line in projects.render_list(projects.resolve(projects.read_projects(home))):
-            print(line)
-        return 0
-    if args.action == "check":
-        bad = projects.check(home)
-        for line in bad:
-            print(line)
-        print("esoi projects: " + (f"{len(bad)} problem(s)" if bad else "ok"))
-        return 1 if bad else 0
     if args.action == "index":
-        print(f"wrote {projects.index(home)}")
+        return spec_index_action(args, index)
+    if not args.target:
+        print(f"esoi: spec {args.action} needs a {'record id' if args.action == 'show' else 'use case text'}", file=sys.stderr)
+        return 2
+    if args.action == "find":
+        print(spec_index.render_scan(index, spec_index.find_specs(index, args.target, args.k, args.expand)))
         return 0
+    if args.action == "related":
+        return spec_related_action(args, index)
+    return spec_show_action(config, args, index)
+
+
+def projects_init(projects, home, args: argparse.Namespace) -> int:
+    made = projects.init(home)
+    print(f"{home}: " + (", ".join(made) + " created" if made else "already set up"))
+    return 0
+
+
+def projects_add(projects, home, args: argparse.Namespace) -> int:
+    if not args.target:
+        print("esoi: projects add needs a path or URL", file=sys.stderr)
+        return 2
+    try:
+        row = projects.add(home, args.target, args.id, args.name, args.vision, args.kind, args.specifications,
+                           args.start_here, args.relations, args.notes, args.replace)
+    except ValueError as exc:
+        print(f"esoi: {exc}", file=sys.stderr)
+        return 2
+    print(f"added {row['project_id']} ({row['kind']}, {row['location']})")
+    if not projects.resolve([row])[0]["vision_statement"]:
+        print("note: no vision statement found in the project's top intent.csv; add one there (or with --vision --replace)")
+    return 0
+
+
+def projects_list(projects, home, args: argparse.Namespace) -> int:
+    for line in projects.render_list(projects.resolve(projects.read_projects(home))):
+        print(line)
+    return 0
+
+
+def projects_check(projects, home, args: argparse.Namespace) -> int:
+    bad = projects.check(home)
+    for line in bad:
+        print(line)
+    print("esoi projects: " + (f"{len(bad)} problem(s)" if bad else "ok"))
+    return 1 if bad else 0
+
+
+def projects_index(projects, home, args: argparse.Namespace) -> int:
+    print(f"wrote {projects.index(home)}")
+    return 0
+
+
+def projects_where(projects, home, args: argparse.Namespace) -> int:
     found = projects.where(home, Path(args.target or "."))
     if found is None:
         print("no listed project contains that path")
@@ -143,6 +166,18 @@ def run_projects(config, args: argparse.Namespace) -> int:
     for line in projects.render_where(found):
         print(line)
     return 0
+
+
+PROJECT_ACTIONS = {"init": projects_init, "add": projects_add, "list": projects_list, "check": projects_check,
+                   "index": projects_index, "where": projects_where}
+
+
+def run_projects(config, args: argparse.Namespace) -> int:
+    """``esoi projects``: the one place the index folder is resolved from ``ESOI_HOME``."""
+    import os
+    from esoi.understanding.local_application_index.interface import projects
+    home = projects.resolve_home(os.environ, Path.home())
+    return PROJECT_ACTIONS[args.action](projects, home, args)
 
 
 TABLE = """

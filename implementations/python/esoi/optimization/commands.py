@@ -68,13 +68,36 @@ def run_evidence_table(config, args: argparse.Namespace) -> int:
     return evidence_table.run_cli(config, args.file, args.begin or evidence_table.BEGIN, args.end or evidence_table.END, args.solution)
 
 
+def explain_selection(config, args: argparse.Namespace) -> int:
+    """Print the chosen implementation of ``args.solution`` and, for the cascade, each layer's vote."""
+    import os
+    from esoi.runtime.implementation_selection import selection_cascade
+    from esoi.runtime.implementation_selection import selection_registry
+    from esoi.runtime.implementation_selection.select import Selector
+    if config.selection_table:
+        selector = Selector.from_config(config)
+        if args.solution in selector.table:
+            name = selector.chosen_name(args.solution, args.name)
+            print(f"{args.solution}: {name} (choices: {', '.join(selector.names(args.solution))})")
+            return 0
+    environ = dict(os.environ, **{selection_registry.ROOT_ENV: str(config.root)})
+    try:
+        picked = selection_cascade.choose(args.solution, args.name, environ)
+    except selection_registry.SelectionError:
+        if config.selection_table:
+            Selector.from_config(config).chosen_name(args.solution, args.name)   # says "no selection table entry ..."
+        raise
+    print(f"{args.solution}: {picked.name} (chosen by the {picked.layer} layer; choices: "
+          f"{', '.join(selection_cascade.names(args.solution, environ))})")
+    for layer, value, source in selection_cascade.explain(args.solution, args.name, environ):
+        print(f"  {layer}: {value} ({source})")
+    return 0
+
+
 def run_select(config, args: argparse.Namespace) -> int:
     """``esoi select``: explain the cascade for a solution, promote a winner, or write a snapshot."""
     import json
     from esoi.runtime.assemble_by_name.interface import intent_map
-    from esoi.runtime.implementation_selection import selection_cascade
-    from esoi.runtime.implementation_selection import selection_registry
-    from esoi.runtime.implementation_selection.select import Selector
     if args.promote:
         from esoi.optimization.promote_the_winner.interface import promote
         return promote.run_cli(config, args.solution or "", args.dry_run, args.apply)
@@ -86,25 +109,7 @@ def run_select(config, args: argparse.Namespace) -> int:
         print("esoi: name a solution, or use --promote or --snapshot", file=sys.stderr)
         return 2
     try:
-        if config.selection_table:
-            selector = Selector.from_config(config)
-            if args.solution in selector.table:
-                name = selector.chosen_name(args.solution, args.name)
-                print(f"{args.solution}: {name} (choices: {', '.join(selector.names(args.solution))})")
-                return 0
-        import os
-        environ = dict(os.environ, **{selection_registry.ROOT_ENV: str(config.root)})
-        try:
-            picked = selection_cascade.choose(args.solution, args.name, environ)
-        except selection_registry.SelectionError:
-            if config.selection_table:
-                Selector.from_config(config).chosen_name(args.solution, args.name)   # says "no selection table entry ..."
-            raise
-        print(f"{args.solution}: {picked.name} (chosen by the {picked.layer} layer; choices: "
-              f"{', '.join(selection_cascade.names(args.solution, environ))})")
-        for layer, value, source in selection_cascade.explain(args.solution, args.name, environ):
-            print(f"  {layer}: {value} ({source})")
-        return 0
+        return explain_selection(config, args)
     except (ValueError, OSError, ImportError, AttributeError) as exc:   # unknown solution or name, table cannot load
         print(f"esoi: {exc}", file=sys.stderr)
         return 2

@@ -74,25 +74,32 @@ def records_sync(config, args: argparse.Namespace) -> int:
     return 0
 
 
-def records_check(config, args: argparse.Namespace) -> int:
-    from esoi.structure.intent_registry import registry
+def intent_tree_problems(config) -> list:
+    """The problems of the records of every intent folder, checked together against the whole intent tree."""
+    from esoi.structure.intent_registry import intents, registry
     from esoi.structure.intent_registry.template_sync import template
-    from esoi.structure.intent_registry.records import check_records, check_headers, overall_ids, tables_of
-    if config.intent_mode:
-        from esoi.structure.intent_registry import intents
-        loaded, tpl = registry.load(config), template.load_for(config)
-        tree = tables_of(loaded)
-        every = {e: {r.get(k, "") for r in tree[e]} - {""} for e, k in
-                 {"problem": "problem_id", "ideal": "ideal_id", "solution": "solution_id",
-                  "implementation": "implementation_id", "metric": "metric_id"}.items()}
-        problems = [line for _, folder in intents.folders(config) for line in check_headers(folder, tpl, approved=config.approved_fields, metric_command=config.metric_command)]
-        problems += check_records(config.structure, tpl, overall=every, tables=tree, retired={"overall_solution_ids"}, scope="the intent tree",
-                                 approved=config.approved_fields, metric_command=config.metric_command)
-        for line in problems:
-            print(line)
-        return 1 if problems else 0
+    from esoi.structure.intent_registry.records import check_records, check_headers, tables_of
+    loaded, tpl = registry.load(config), template.load_for(config)
+    tree = tables_of(loaded)
+    every = {e: {r.get(k, "") for r in tree[e]} - {""} for e, k in
+             {"problem": "problem_id", "ideal": "ideal_id", "solution": "solution_id",
+              "implementation": "implementation_id", "metric": "metric_id"}.items()}
+    problems = [line for _, folder in intents.folders(config) for line in check_headers(folder, tpl, approved=config.approved_fields, metric_command=config.metric_command)]
+    problems += check_records(config.structure, tpl, overall=every, tables=tree, retired={"overall_solution_ids"}, scope="the intent tree",
+                             approved=config.approved_fields, metric_command=config.metric_command)
+    return problems
+
+
+def flat_records_problems(config) -> list:
+    """The problems of a repository's single records folder, checked against its overall ids."""
+    from esoi.structure.intent_registry.template_sync import template
+    from esoi.structure.intent_registry.records import check_records, overall_ids
     overall = overall_ids(config.root / config.overall) if config.overall and (config.root / config.overall).is_dir() else None
-    problems = check_records(config.structure, template.load_for(config), overall=overall, approved=config.approved_fields, metric_command=config.metric_command)
+    return check_records(config.structure, template.load_for(config), overall=overall, approved=config.approved_fields, metric_command=config.metric_command)
+
+
+def records_check(config, args: argparse.Namespace) -> int:
+    problems = intent_tree_problems(config) if config.intent_mode else flat_records_problems(config)
     for line in problems:
         print(line)
     return 1 if problems else 0
