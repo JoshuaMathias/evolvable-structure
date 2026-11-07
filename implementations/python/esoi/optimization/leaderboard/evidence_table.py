@@ -15,6 +15,7 @@ from __future__ import annotations
 import datetime
 import re
 import statistics
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
@@ -130,23 +131,36 @@ def arm_label(name: str, impl: str, is_selected: bool) -> str:
     return (f"{name} (`{impl}`)" if name and name.lower() != impl.lower() else f"`{impl}`") + (" (selected)" if is_selected else "")
 
 
-def solution_rows(config: Config, registry: Registry, sol: dict, component: str, selected: str, history: dict, per_case: list, chosen: dict,
-                  graded: dict, note: str, impl_names: dict) -> List[List[str]]:
+@dataclass(frozen=True)
+class TableContext:
+    """What every solution's rows read: the records, the results and per-case logs, the switching policies and the graded public evidence."""
+    config: Config
+    registry: Registry
+    history: dict
+    per_case: list
+    chosen: dict
+    graded: dict
+    note: str
+    impl_names: dict
+
+
+def solution_rows(ctx: TableContext, sol: dict, component: str, selected: str) -> List[List[str]]:
     """The table rows of one solution: one per arm, the selected arm first."""
+    config, history, per_case = ctx.config, ctx.history, ctx.per_case
     sid = sol["solution_id"]
     arms = {impl: whole for impl, found in history[component].items() if (whole := [r for r in found if not results_log.is_partial(r)])}
     rows = {impl: found[-1] for impl, found in arms.items()}
     apart = bool(arm_kinds.invariant_reason(component, config.evaluation))
     ranked = selected in rows and not apart
     found = {d.rival: d for d in rival_decisions.decisions(rows, selected, config.evaluation, history[component], per_case,
-                                                        chosen.get(component))} if ranked else {}
+                                                        ctx.chosen.get(component))} if ranked else {}
     pairs = {r["impl"]: (own, r) for own, r in rival_pairing.rival_pairs(rows, selected, config.evaluation, history[component])[0]} if ranked else {}
     out: List[List[str]] = []
     for impl in sorted(arms, key=lambda i: (i != selected, i)):
         row = arm_row(impl, selected, pairs, rows)
-        out.append([solution_label(sol), arm_label(impl_names.get(f"{sid}:{impl}", ""), impl, impl == selected), str(row.get("cases", "")), rate_label(row),
+        out.append([solution_label(sol), arm_label(ctx.impl_names.get(f"{sid}:{impl}", ""), impl, impl == selected), str(row.get("cases", "")), rate_label(row),
                     cost_label(row), seconds_label(row, per_case), arm_standing(impl, selected, apart, found, rows, config),
-                    public_label(config, registry, graded, sid, impl) + note])
+                    public_label(config, ctx.registry, ctx.graded, sid, impl) + ctx.note])
     return out
 
 
@@ -161,11 +175,12 @@ def table_rows(config: Config, registry: Registry, today: Optional[datetime.date
         graded, note = {}, f" (public evidence file cannot be read: {exc})"
     out: List[List[str]] = []
     impl_names = {r.get("implementation_id", ""): " ".join((r.get("name") or "").split()) for r in registry.implementations}
+    ctx = TableContext(config, registry, history, per_case, chosen, graded, note, impl_names)
     for sol in registry.solutions:
         component, selected = arm_selection.selected_arm(config, sol, "", registry)
         if not component or (solution and sol["solution_id"] != solution) or component not in history:
             continue
-        out.extend(solution_rows(config, registry, sol, component, selected, history, per_case, chosen, graded, note, impl_names))
+        out.extend(solution_rows(ctx, sol, component, selected))
     return out
 
 

@@ -31,7 +31,7 @@ from esoi.optimization.leaderboard.interface import held_out_parts, rival_pairin
 from esoi.structure.intent_registry import intents
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.specify_from_code.declarations import intent_folder
-from esoi.optimization.measurement_harness.interface import stale_reason
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import stale_reason
 from esoi.structure.intent_registry.registry import Registry
 from esoi.runtime.implementation_selection.select import load_table
 from esoi.structure.intent_registry.tables import ids, read_csv, read_header, write_csv
@@ -53,10 +53,30 @@ class Proposal:
     edits: List[str] = field(default_factory=list)
 
 
-def new_selected(config: Config, registry: Registry, solution: Row, component: str, current: str, winner: str) -> str:
+@dataclass(frozen=True)
+class Subject:
+    """The solution being promoted and everything its proposal reads: records, the component's arms and rows, the incumbent."""
+    config: Config
+    registry: Registry
+    solution: Row
+    component: str
+    current: str
+    arms: Dict[str, List[Row]]
+    per_case: Dict
+    stale: Callable
+    today: str
+    table: Dict
+
+    def stale_reason(self, row: Row) -> str:
+        """Why a result row does not count (uncommitted or changed code), else ``""``."""
+        return self.stale(self.config, self.component, row, True)
+
+
+def new_selected(subject: Subject, winner: str) -> str:
     """The ``selected`` cell for the winner, in the style the old one is written in (a path, ``solution:name``, a name)."""
-    old = (solution.get("selected") or "").strip()
-    sid = solution["solution_id"]
+    config, registry, component = subject.config, subject.registry, subject.component
+    old = (subject.solution.get("selected") or "").strip()
+    sid = subject.solution["solution_id"]
     if "/" in old.split("::")[0]:
         record = next((r for r in registry.implementations if r.get("implementation_id") == f"{sid}:{winner}"), {})
         path = (record.get("filepath") or "").strip()
@@ -90,12 +110,13 @@ def solution_stages(config: Config, registry: Registry, solution: Row) -> List[c
     return []
 
 
-def latest_rows(config: Config, component: str, arms: Dict[str, List[Row]], stale: Callable, stages: List[cascade_stages.Stage]):
+def latest_rows(subject: Subject, stages: List[cascade_stages.Stage]):
     """``(rows per arm at the latest counting stage, that stage or None, why there are none)``."""
+    config, arms = subject.config, subject.arms
     if not stages:
-        rows = {impl: rs[-1] for impl, rs in arms.items() if rs and not stale(config, component, rs[-1], True)}
+        rows = {impl: rs[-1] for impl, rs in arms.items() if rs and not subject.stale_reason(rs[-1])}
         return rows, None, ("" if rows else "no counting result yet (run `esoi run` on committed code)")
-    standing = stage_standings.standings(stages, arms, None, lambda row: stale(config, component, row, True), config.evaluation)
+    standing = stage_standings.standings(stages, arms, None, subject.stale_reason, config.evaluation)
     counting = {impl: st for impl, st in standing.items() if st.rows}
     if not counting:
         return {}, None, "no stage has a counting result yet (run `esoi run` on committed code, or `esoi run --stale`)"
@@ -103,15 +124,14 @@ def latest_rows(config: Config, component: str, arms: Dict[str, List[Row]], stal
     return {impl: st.rows[latest] for impl, st in counting.items() if latest in st.rows}, stages[latest], ""
 
 
-def first_choice(config: Config, registry: Registry, solution: Row, component: str, command_arm: str,
-                 arms: Dict[str, List[Row]], stale: Callable, today: str) -> Proposal:
+def first_choice(subject: Subject) -> Proposal:
     """The proposal for a solution whose ``selected`` is empty: the arm with the highest result on the latest cascade stage
     that has a counting result, when it is the only such arm or no other arm there is within the noise of it. Equal results are a
     tie, which the metric cannot break: the proposal is blocked and names the arms, so a person (or the project's tie rule)
     decides. The winning arm must also meet the gate of the stage it was chosen at."""
-    sid = solution["solution_id"]
-    proposal = Proposal(sid, "blocked", "", "")
-    rows, stage, none_reason = latest_rows(config, component, arms, stale, solution_stages(config, registry, solution))
+    config = subject.config
+    proposal = Proposal(subject.solution["solution_id"], "blocked", "", "")
+    rows, stage, none_reason = latest_rows(subject, solution_stages(config, subject.registry, subject.solution))
     if none_reason:
         proposal.reason = none_reason
         return proposal
@@ -127,15 +147,15 @@ def first_choice(config: Config, registry: Registry, solution: Row, component: s
     if stage is not None and not stage_standings.gate_met(stage, leader, None, config.evaluation)[0]:
         proposal.reason = f"{leader['impl']} leads at {where} but does not meet that stage's gate"
         return proposal
-    return first_selection(config, registry, solution, component, proposal, leader, ranked, where, today)
+    return first_selection(subject, proposal, leader, ranked, where)
 
 
-def first_selection(config: Config, registry: Registry, solution: Row, component: str, proposal: Proposal, leader: Row, ranked: List[Row],
-                    where: str, today: str) -> Proposal:
+def first_selection(subject: Subject, proposal: Proposal, leader: Row, ranked: List[Row], where: str) -> Proposal:
     """Fill the proposal of a first selection: the winner, its evidence, the edits and whether a person must apply them."""
+    solution, today = subject.solution, subject.today
     sid = solution["solution_id"]
     proposal.winner, proposal.status = leader["impl"], "propose"
-    proposal.selected = new_selected(config, registry, solution, component, "", proposal.winner)
+    proposal.selected = new_selected(subject, proposal.winner)
     others = ", ".join(f"{r['impl']} {r.get('passed', '')}/{r.get('cases', '')}" for r in ranked[1:]) or "no other arm has a result"
     proposal.selected_by = (f"selected {today} by esoi select --promote as a best guess (no incumbent to test against) on the solution's metric: {proposal.winner} "
                             f"{leader.get('passed', '')}/{leader.get('cases', '')} at {where} (cases_sha {leader.get('cases_sha', '')}, "
@@ -149,17 +169,16 @@ def first_selection(config: Config, registry: Registry, solution: Row, component
     return proposal
 
 
-def stage_missing(config: Config, registry: Registry, solution: Row, component: str, arms: Dict[str, List[Row]], stale: Callable,
-                  winner: str, need: str, origin: str) -> str:
+def stage_missing(subject: Subject, winner: str, need: str, origin: str) -> str:
     """Why a switch to ``winner`` waits for the cascade stage ``need`` that the project or solution requires, or ``""`` when the
     winner has a counting result at that stage or a later one."""
-    found = solution_stages(config, registry, solution)
+    found = solution_stages(subject.config, subject.registry, subject.solution)
     if not found:
         return f"the {origin} requires stage {need}, but the solution's metric has no cascading conditionals"
     names = [st.name for st in found]
     if need not in names:
         return f"the {origin} requires stage {need}, which the metric's cascading conditionals do not list"
-    standing = stage_standings.standings(found, arms, None, lambda row: stale(config, component, row, True), config.evaluation)
+    standing = stage_standings.standings(found, subject.arms, None, subject.stale_reason, subject.config.evaluation)
     if winner in standing and any(i >= names.index(need) for i in standing[winner].rows):
         return ""
     return f"the {origin} requires a result at stage {need} before switching, and {winner} has none yet; run it there"
@@ -183,31 +202,32 @@ def pick_rows(arms: Dict[str, List[Row]], per_case: Dict, fraction: float) -> Di
     return {impl: rs for impl, rs in parts.items() if rs}
 
 
-def cascade_choice(config: Config, via: tuple, current: str, per_case: Dict, pick_policy: switching_policy.Policy,
+def cascade_choice(subject: Subject, via: tuple, pick_policy: switching_policy.Policy,
                    claim_policy: switching_policy.Policy) -> Optional[Choice]:
     """The cascade's leader as a choice, when switching to it takes a shown (or allowed guessed) gain."""
     winner, pair = via
     if winner is None:
         return None
     if pair is not None:   # a cascade names the leader at its latest stage; switching still takes a shown (or allowed guessed) gain
-        shown = rival_decisions.decisions({current: pair[0], winner: pair[1]}, current, config.evaluation, None, per_case, pick_policy)
+        current = subject.current
+        shown = rival_decisions.decisions({current: pair[0], winner: pair[1]}, current, subject.config.evaluation, None, subject.per_case, pick_policy)
         if not any(d.outcome == "rival" and d.switch for d in shown):
             return None
     return Choice(winner, pair, True, claim_policy, claim_policy.holdout)
 
 
-def pick_winner(config: Config, registry: Registry, solution: Row, component: str, current: str, arms: Dict[str, List[Row]],
-                per_case: Dict, claim_policy: switching_policy.Policy, stale: Callable) -> Optional[Choice]:
+def pick_winner(subject: Subject, claim_policy: switching_policy.Policy) -> Optional[Choice]:
     """The rival that clearly beats ``current`` (by the cascade's latest stage, else the paired decision), or None."""
+    config, current, per_case = subject.config, subject.current, subject.per_case
     fraction = claim_policy.holdout
     pick_policy = dataclasses.replace(claim_policy, holdout=0.0)   # the leader is chosen on the selection part; claims use the held-out part
-    pick_arms = pick_rows(arms, per_case, fraction)
+    pick_arms = pick_rows(subject.arms, per_case, fraction)
     if current not in pick_arms:
         return None
     rows = {impl: rs[-1] for impl, rs in pick_arms.items()}
-    via = stage_standings.solution_choice(config, registry, solution, component, current, pick_arms, stale)
+    via = stage_standings.solution_choice(config, subject.registry, subject.solution, subject.component, current, pick_arms, subject.stale)
     if via is not None:   # the metric has cascading conditionals: the latest stage run decides (esoi.optimization.leaderboard.stage_standings)
-        return cascade_choice(config, via, current, per_case, pick_policy, claim_policy)
+        return cascade_choice(subject, via, pick_policy, claim_policy)
     beaten = rival_decisions.challengers(rows, current, config.evaluation, pick_arms, per_case, pick_policy)
     if not beaten:
         return None
@@ -217,19 +237,18 @@ def pick_winner(config: Config, registry: Registry, solution: Row, component: st
     return Choice(winner, pair, False, claim_policy, fraction)
 
 
-def block_reason(config: Config, registry: Registry, solution: Row, component: str, current: str, choice: Choice, own: Row, rival: Row,
-                 arms: Dict[str, List[Row]], stale: Callable, policy: switching_policy.Policy, table: Dict) -> str:
+def block_reason(subject: Subject, choice: Choice, own: Row, rival: Row) -> str:
     """Why the switch cannot be promoted now (a result does not count, a required stage is missing, a table default), else ``""``."""
-    winner = choice.winner
-    why = next((f"{name}: {text}" for name, row in ((current, own), (winner, rival))
-                if (text := "its row has no cases_sha" if case_identity.unverified(row) else stale(config, component, row, True))), "")
+    winner, policy = choice.winner, choice.claim_policy
+    why = next((f"{name}: {text}" for name, row in ((subject.current, own), (winner, rival))
+                if (text := "its row has no cases_sha" if case_identity.unverified(row) else subject.stale_reason(row))), "")
     if why:
         return f"a result does not count ({why}); re-run `esoi run --stale` on committed code"
     need = policy.require_stage
-    waits = stage_missing(config, registry, solution, component, arms, stale, winner, need, policy.source("require_stage")) if need else ""
+    waits = stage_missing(subject, winner, need, policy.source("require_stage")) if need else ""
     if waits:
         return waits
-    if (table.get(solution["solution_id"]) or {}).get("default"):
+    if (subject.table.get(subject.solution["solution_id"]) or {}).get("default"):
         return ("its selection table entry holds its own default; delete that `default` so the records' "
                 "`selected` is the only copy, then promote")
     return ""
@@ -243,11 +262,11 @@ def chosen_on_text(own: Row, rival: Row, current: str, winner: str, fraction: fl
             f"{rival.get('passed')}/{rival.get('cases')}, {current} {own.get('passed')}/{own.get('cases')}")
 
 
-def claim_evidence(config: Config, choice: Choice, current: str, arms: Dict[str, List[Row]], per_case: Dict, own: Row, rival: Row,
-                   chosen_on: str):
+def claim_evidence(subject: Subject, choice: Choice, own: Row, rival: Row, chosen_on: str):
     """The pair of rows and the rule text the evidence rests on; with a held-out share, the held-out claim's rows."""
-    decided = next((d for d in rival_decisions.decisions({impl: rs[-1] for impl, rs in arms.items()}, current, config.evaluation, arms,
-                                                         per_case, choice.claim_policy) if d.rival == choice.winner), None)
+    arms = subject.arms
+    decided = next((d for d in rival_decisions.decisions({impl: rs[-1] for impl, rs in arms.items()}, subject.current, subject.config.evaluation,
+                                                         arms, subject.per_case, choice.claim_policy) if d.rival == choice.winner), None)
     if choice.fraction and decided is not None:   # the evidence names the held-out numbers the claim rests on
         own, rival = decided.own, decided.other
     reason = f"{decided.rule}: {decided.text}" if decided else ""
@@ -256,9 +275,9 @@ def claim_evidence(config: Config, choice: Choice, current: str, arms: Dict[str,
     return own, rival, reason
 
 
-def judge_choice(config: Config, registry: Registry, solution: Row, component: str, current: str, choice: Choice,
-                 arms: Dict[str, List[Row]], per_case: Dict, stale: Callable, today: str, table: Dict) -> Proposal:
+def judge_choice(subject: Subject, choice: Choice) -> Proposal:
     """The proposal for a chosen rival: blocked with a reason, or the edits and evidence of the switch."""
+    solution, current, today = subject.solution, subject.current, subject.today
     sid, winner, fraction = solution["solution_id"], choice.winner, choice.fraction
     proposal = Proposal(sid, "blocked", current, winner)
     if choice.pair is None:
@@ -267,16 +286,16 @@ def judge_choice(config: Config, registry: Registry, solution: Row, component: s
     own, rival = choice.pair
     chosen_on = chosen_on_text(own, rival, current, winner, fraction)
     own, rival = held_out_parts.whole_row(own), held_out_parts.whole_row(rival)
-    blocked = block_reason(config, registry, solution, component, current, choice, own, rival, arms, stale, choice.claim_policy, table)
+    blocked = block_reason(subject, choice, own, rival)
     if blocked:
         proposal.reason = blocked
         return proposal
-    selected = new_selected(config, registry, solution, component, current, winner)
+    selected = new_selected(subject, winner)
     if not selected:
         proposal.reason = f"no implementation record or impls file of {winner} to point `selected` at"
         return proposal
     proposal.selected = selected
-    own, rival, reason = claim_evidence(config, choice, current, arms, per_case, own, rival, chosen_on)
+    own, rival, reason = claim_evidence(subject, choice, own, rival, chosen_on)
     proposal.selected_by = (cascade_evidence if choice.via_cascade else evidence)(own, rival, current, winner, today, reason)
     return finish_switch(proposal, solution, selected)
 
@@ -308,13 +327,14 @@ def propose(config: Config, registry: Registry, today: Optional[str] = None,
         if not component:
             continue
         arms = history.get(component, {})
+        subject = Subject(config, registry, solution, component, current, arms, per_case, stale, today, table)
         if not (solution.get("selected") or "").strip():   # nothing selected yet: the metric makes the first choice, or names a tie
-            out.append(first_choice(config, registry, solution, component, current, arms, stale, today))
+            out.append(first_choice(subject))
             continue
         policy = chosen.get(component) or switching_policy.Policy()
-        choice = pick_winner(config, registry, solution, component, current, arms, per_case, policy, stale)
+        choice = pick_winner(subject, policy)
         if choice is not None:
-            out.append(judge_choice(config, registry, solution, component, current, choice, arms, per_case, stale, today, table))
+            out.append(judge_choice(subject, choice))
     return out
 
 

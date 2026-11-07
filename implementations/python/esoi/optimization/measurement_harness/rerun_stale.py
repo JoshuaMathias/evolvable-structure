@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib
+from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional, Tuple
 
 from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import stale_reasons
@@ -33,12 +34,31 @@ def stale_arms(config: Config) -> List[Tuple[str, str]]:
     return arms
 
 
-def not_rerun_reason(config: Config, component: str, impl: str, row: Optional[Dict[str, str]], selected: bool, for_decision: bool,
-                     named: bool, run_all: bool) -> str:
+@dataclass(frozen=True)
+class StaleArm:
+    """One arm under review: its latest whole-run row (None when never measured), whether it is the selected arm, and the run flags of the selected arm's sample."""
+    config: Config
+    comp: str
+    impl: str
+    row: Optional[Dict[str, str]]
+    is_selected: bool
+    flags: List[str]
+
+
+@dataclass(frozen=True)
+class RerunPolicy:
+    """What a ``--stale`` run does with an arm worth running: record the row, include paid arms, or only plan."""
+    record: bool
+    include_paid: bool
+    plan: bool
+
+
+def not_rerun_reason(arm: StaleArm, for_decision: bool, named: bool, run_all: bool) -> str:
     """Empty when running a stale arm is worth its cost now, else why ``--stale`` leaves it alone. A changed file, or changed cases,
     only informs: a row is re-run automatically when it has never been measured (a selected arm), when its metric's expiration has
     passed, when a pending decision or release depends on it (``for_decision``, the selected arm only), when a person names it
     (``--include``), or with ``--all`` (the old run-everything behaviour). A rival, and any row nothing depends on, is never re-run."""
+    config, component, row, selected = arm.config, arm.comp, arm.row, arm.is_selected
     if run_all or named:
         return ""
     if row is None and selected:
@@ -52,12 +72,13 @@ def not_rerun_reason(config: Config, component: str, impl: str, row: Optional[Di
     return "no pending decision or release depends on it (run `esoi run --stale --for-decision` when one does, or name the arm with --include)"
 
 
-def why_stale(config: Config, comp: str, impl: str, row: Optional[Dict[str, str]], is_selected: bool, flags: List[str], full: bool) -> str:
+def why_stale(arm: StaleArm, full: bool) -> str:
     """Why an arm's recorded result no longer counts (empty when it is current): a changed file or case, a different sample than the
     selected arm's, a sample when ``--full`` asks for the whole set, or an expiration that has passed."""
-    return (stale_reasons.stale_reason(config, comp, row) or other_sample(config, comp, row, is_selected, flags)
+    config, comp, row = arm.config, arm.comp, arm.row
+    return (stale_reasons.stale_reason(config, comp, row) or other_sample(arm)
             or (full_reason(config, comp, row) if full else "")
-            or (stale_reasons.expired_reason(config, comp, row) if is_selected else ""))   # an expiration the metric or project declares and that has passed
+            or (stale_reasons.expired_reason(config, comp, row) if arm.is_selected else ""))   # an expiration the metric or project declares and that has passed
 
 
 def full_reason(config: Config, comp: str, row: Optional[Dict[str, str]]) -> str:
@@ -65,36 +86,35 @@ def full_reason(config: Config, comp: str, row: Optional[Dict[str, str]]) -> str
     return "it was scored on a sample and --full asks for the whole set" if row and sample_args(config, comp, row) else ""
 
 
-def other_sample(config: Config, comp: str, row: Optional[Dict[str, str]], is_selected: bool, flags: List[str]) -> str:
+def other_sample(arm: StaleArm) -> str:
     """Why a rival's row is not comparable: it was scored on another sample than the selected arm's."""
-    if not row or is_selected:
+    flags = arm.flags
+    if not arm.row or arm.is_selected:
         return ""
-    wanted = sample_args(config, comp, row)
+    wanted = sample_args(arm.config, arm.comp, arm.row)
     if wanted == flags:
         return ""
     return f"it was scored on a different sample ({' '.join(wanted) or 'full set'}) than the selected arm ({' '.join(flags) or 'full set'}), so it is not comparable"
 
 
-def rerun_one(config: Config, comp: str, impl: str, row: Optional[Dict[str, str]], why: str, flags: List[str], named: bool,
-              options: Tuple[bool, bool, bool], say: Callable[[str], None]) -> str:
+def rerun_one(arm: StaleArm, why: str, named: bool, policy: RerunPolicy, say: Callable[[str], None]) -> str:
     """Run (or plan) one stale arm worth running. Returns ``paid`` or ``capped`` when it was skipped, ``failed`` when it could not
     start, else ``ran``."""
-    record, include_paid, plan = options
-    paid = paid_reason(config, comp, impl, row)
-    if paid and not (include_paid or named):
+    config, comp, impl = arm.config, arm.comp, arm.impl
+    paid = paid_reason(config, comp, impl, arm.row)
+    if paid and not (policy.include_paid or named):
         say(f"{comp}/{impl}: stale, {why}; SKIPPED because it may spend money ({paid})")
         return "paid"
-    capped = "" if named else run_guards.ceiling_reason(config, comp, impl, run_guards.sample_of(flags), paid, stale_reasons.stale_reason)
+    capped = "" if named else run_guards.ceiling_reason(config, comp, impl, run_guards.sample_of(arm.flags), paid, stale_reasons.stale_reason)
     if capped:
         say(f"{comp}/{impl}: stale, {why}; SKIPPED, not worth running: {capped}")
         return "capped"
-    return run_arm(config, (comp, impl), why, flags, (record, plan), say)
+    return run_arm(arm, why, policy, say)
 
 
-def run_arm(config: Config, arm: Tuple[str, str], why: str, flags: List[str], options: Tuple[bool, bool], say: Callable[[str], None]) -> str:
+def run_arm(arm: StaleArm, why: str, policy: RerunPolicy, say: Callable[[str], None]) -> str:
     """Report and run (or plan) one stale arm that passed the guards: ``planned``, ``offline``, ``failed`` or ``ran``."""
-    comp, impl = arm
-    record, plan = options
+    config, comp, impl, flags, record, plan = arm.config, arm.comp, arm.impl, arm.flags, policy.record, policy.plan
     say(f"{comp}/{impl}: stale, {why}")
     if plan:
         say(f"{comp}/{impl}: would run" + (f" ({' '.join(flags)})" if flags else ""))
@@ -165,17 +185,18 @@ def rerun_stale(config: Config, say: Callable[[str], None] = print, record: bool
         if comp not in target:   # stale_arms lists the selected arm of a component first
             target[comp] = [] if full else sample_args(config, comp, row)
         flags = target[comp]
-        why = why_stale(config, comp, impl, row, (comp, impl) in selected_arms, flags, full)
+        arm = StaleArm(config, comp, impl, row, (comp, impl) in selected_arms, flags)
+        why = why_stale(arm, full)
         if not why:
             say(f"{comp}/{impl}: current")
             continue
         named = f"{comp}/{impl}" in (include or ())   # a person named this arm: that is the decision the guard asks for
-        waiting = not_rerun_reason(config, comp, impl, row, (comp, impl) in selected_arms, for_decision, named, run_all)
+        waiting = not_rerun_reason(arm, for_decision, named, run_all)
         if waiting:
             say(f"{comp}/{impl}: {waiting_label(why)}; not re-run: {waiting}")
             left.append(f"{comp}/{impl}")
             continue
-        outcome = rerun_one(config, comp, impl, row, why, flags, named, (record, include_paid, plan), say)
+        outcome = rerun_one(arm, why, named, RerunPolicy(record, include_paid, plan), say)
         skipped += [f"{comp}/{impl}"] * (outcome == "paid")
         failed += outcome == "failed"
     say_left_over(left, skipped, say)

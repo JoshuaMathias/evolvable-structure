@@ -6,6 +6,7 @@ compared (same ``cases_sha``, ``sample`` and case count); a rival that shares no
 A component with an ``invariant.txt`` is listed apart, with its recorded run, and never ranked."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
@@ -56,49 +57,71 @@ def unmeasured_candidates(registry: Registry, history: Dict[str, Dict[str, List[
              "`esoi records sync` make it an arm)"] + found) if found else []
 
 
-def say_attested(config: Config, component: str, rows: Dict[str, Row], stale, attested, say: Callable[[str], None]) -> None:
+@dataclass(frozen=True)
+class Report:
+    """How a leaderboard run prints: the configuration, whether flags count against it, the printer and the stale and attestation checks."""
+    config: Config
+    strict: bool
+    say: Callable[[str], None]
+    stale: Optional[Callable[[Config, str, Row, bool], str]]
+    attested: Optional[Callable[[Config, str, str, str], str]]
+
+
+@dataclass(frozen=True)
+class Component:
+    """One component's standing: its latest rows, the selected arm, the results and per-case logs and the switching policy."""
+    name: str
+    rows: Dict[str, Row]
+    sel: Optional[str]
+    history: Dict[str, List[Row]]
+    per_case: List[Row]
+    policy: object
+
+
+def say_attested(report: Report, comp: Component) -> None:
     """Print the rows that are current by attestation."""
-    for impl, r in sorted(rows.items()):
-        if (said := attested(config, component, impl, r.get("git_sha", ""))) and not stale(config, component, r, True):
-            say(f"  = {impl}: {said}")
+    for impl, r in sorted(comp.rows.items()):
+        if (said := report.attested(report.config, comp.name, impl, r.get("git_sha", ""))) and not report.stale(report.config, comp.name, r, True):
+            report.say(f"  = {impl}: {said}")
 
 
-def say_comparisons(config: Config, rows: Dict[str, Row], sel: str, history: List[Row], say: Callable[[str], None]) -> None:
+def say_comparisons(report: Report, comp: Component) -> None:
     """Print each comparison of the selected arm with a rival that was made on other rows than the latest ones."""
-    for own, rival in rival_pairs(rows, sel, config.evaluation, history)[0]:
+    rows, sel = comp.rows, comp.sel
+    for own, rival in rival_pairs(rows, sel, report.config.evaluation, comp.history)[0]:
         if own is not rows.get(sel) or rival is not rows.get(rival["impl"]):
-            say(f"  = compared on {describe_cases(own)}: {sel} {own['passed']}/{own['cases']} ({own.get('date', '')}) "
-                f"against {rival['impl']} {rival['passed']}/{rival['cases']} ({rival.get('date', '')})")
+            report.say(f"  = compared on {describe_cases(own)}: {sel} {own['passed']}/{own['cases']} ({own.get('date', '')}) "
+                       f"against {rival['impl']} {rival['passed']}/{rival['cases']} ({rival.get('date', '')})")
 
 
-def say_component(config: Config, component: str, rows: Dict[str, Row], sel: Optional[str], history: Dict[str, List[Row]], per_case: List[Row],
-                  policy, strict: bool, say: Callable[[str], None], stale, attested) -> int:
+def say_component(report: Report, comp: Component) -> int:
     """Print one component's verdict, rows, comparisons and flags; returns how many flags count against a strict run."""
-    label, detail = verdict(rows, sel, config.evaluation, history, per_case, policy) if sel else ("UNMEASURED", "no selected implementation: " + best_guess(rows, config.evaluation)[1])
-    say(f"{component} (selected: {sel or 'none recorded'}) {label}: {detail}")
+    config, say, sel, rows = report.config, report.say, comp.sel, comp.rows
+    label, detail = verdict(rows, sel, config.evaluation, comp.history, comp.per_case, comp.policy) if sel else ("UNMEASURED", "no selected implementation: " + best_guess(rows, config.evaluation)[1])
+    say(f"{comp.name} (selected: {sel or 'none recorded'}) {label}: {detail}")
     for line in format_rows(rows, sel, config.evaluation):
         say(line)
-    if stale and attested:
-        say_attested(config, component, rows, stale, attested, say)
+    if report.stale and report.attested:
+        say_attested(report, comp)
     if not sel:
         return 0
-    say_comparisons(config, rows, sel, history, say)
-    return say_flags(config, component, (rows, sel, history, per_case, policy), strict, say, stale)
+    say_comparisons(report, comp)
+    return say_flags(report, comp)
 
 
-def say_flags(config: Config, component: str, scene: tuple, strict: bool, say: Callable[[str], None], stale) -> int:
+def say_flags(report: Report, comp: Component) -> int:
     """Print the rivals that are not comparable, the challengers and the stale rivals; returns how many count against a strict run."""
-    rows, sel, history, per_case, policy = scene
+    config, say, strict, rows, sel = report.config, report.say, report.strict, comp.rows, comp.sel
     flagged = 0
-    for impl, why in incomparable_rivals(rows, sel, config.evaluation, history):
+    for impl, why in incomparable_rivals(rows, sel, config.evaluation, comp.history):
         flagged += 1 if strict else 0
         say(f"  ? {impl} is not comparable with {sel}: {why}; re-run both on the same sample "
             "(`esoi run --stale` re-runs a rival on the selected arm's sample)")
-    for r in challengers(rows, sel, config.evaluation, history, per_case, policy):
+    for r in challengers(rows, sel, config.evaluation, comp.history, comp.per_case, comp.policy):
         flagged += 1
         say(f"  ! {r['impl']} should replace the selected {sel}: decide whether to adopt it "
             "(update the solution's `selected` and the live default together)")
-    for impl, why in (stale_rivals(config, component, rows, sel, stale, history) if stale else []):
+    for impl, why in (stale_rivals(config, comp.name, rows, sel, report.stale, comp.history) if report.stale else []):
         flagged += 1 if strict else 0
         say(f"  ~ {impl} is a rival the verdict on {sel} rests on, but {why}; re-run it on the current code "
             "before trusting the verdict")
@@ -139,11 +162,11 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
     per_case = per_case_rows(config)
     chosen = policies(config, registry, per_case)
     apart = {c: rows for c, rows in results.items() if invariant_reason(c, config.evaluation)}
+    report = Report(config, strict, say, stale, attested)
     flagged = 0
     for component, rows in sorted(results.items()):
         if component not in apart:
-            flagged += say_component(config, component, rows, selected.get(component), history[component], per_case, chosen.get(component),
-                                     strict, say, stale, attested)
+            flagged += say_component(report, Component(component, rows, selected.get(component), history[component], per_case, chosen.get(component)))
     say_solutions(config, registry, results, history, per_case, say)
     for line in unmeasured_candidates(registry, history):
         say(line)
