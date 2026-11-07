@@ -5,8 +5,10 @@ as a few short kinds of record (the problem, the ideal you want, the solution, t
 them), try more than one way, and let a measurement pick the best. The structure stays steady while the ways of doing
 things improve, and it changes with you when your intent does.
 
-It works for anything with an intent and more than one way to serve it: a product, code, a course, a coaching program,
-a team process, a personal schedule.
+Both AI and humans tend to not be very good at applying structure. With ESOI, AI and humans complement each other in a way that keeps getting better over time.
+
+It works for any conscious intention with more than one way to serve it: a product, code, a course, a coaching program,
+a team process, or a personal schedule. See [What ESOI is](explanation/what-is-esoi.md).
 
 ![ESOI at a glance: an intent holds a problem, an ideal, a solution, its implementations and the metric that picks the best one](assets/esoi-structure.svg)
 
