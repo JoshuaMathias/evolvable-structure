@@ -68,23 +68,28 @@ def standings(stages: List[Stage], history: Dict[str, List[Row]], today: Optiona
     for impl, rows in history.items():
         if not rows or arm_kinds.is_ablation(rows[-1], eval_dir):
             continue
-        newest: Dict[int, Row] = {}
-        for row in rows:
-            if ranking.is_sampled(row) or ranking.is_simulated(row):   # a row that called a model, or a simulated one, is a result of the first stage that takes it
-                if (index := stage_index(stages, row)) is not None:
-                    newest[index] = row
-            else:                             # an arm that calls none is a result of every stage that takes its cases, so it meets the
-                for index, stage in enumerate(stages):   # model arms at their stage and the comparison is on the same case set
-                    if matches(stage, row):
-                        newest[index] = row
         standing = Standing(impl)
-        for index, row in newest.items():
+        for index, row in newest_per_stage(stages, rows).items():
             if why := expiry(stages[index], row, today, stale):
                 standing.expired[index] = (row, why)
             else:
                 standing.rows[index] = row
         out[impl] = standing
     return out
+
+
+def newest_per_stage(stages: List[Stage], rows: List[Row]) -> Dict[int, Row]:
+    """The newest row of an arm at each stage it is a result of."""
+    newest: Dict[int, Row] = {}
+    for row in rows:
+        if ranking.is_sampled(row) or ranking.is_simulated(row):   # a row that called a model, or a simulated one, is a result of the first stage that takes it
+            if (index := stage_index(stages, row)) is not None:
+                newest[index] = row
+        else:                             # an arm that calls none is a result of every stage that takes its cases, so it meets the
+            for index, stage in enumerate(stages):   # model arms at their stage and the comparison is on the same case set
+                if matches(stage, row):
+                    newest[index] = row
+    return newest
 
 
 @dataclass
@@ -94,6 +99,19 @@ class Decision:
     leader: str = ""                 # the best result at that stage
     pending: List[str] = field(default_factory=list)   # held in place until run at `stage`
     notes: List[str] = field(default_factory=list)
+
+
+def held_in_place(counting: Dict[str, "Standing"], latest: int, leader: str) -> Dict[str, Row]:
+    """The arms with no result at the latest stage whose earlier shared stage beat the leader's: held in place until run there."""
+    held: Dict[str, Row] = {}
+    for impl, s in counting.items():
+        if latest in s.rows:
+            continue
+        shared = [i for i in s.rows if i < latest and i in counting[leader].rows
+                  and case_identity.comparable(s.rows[i], counting[leader].rows[i])]
+        if shared and ranking.higher(s.rows[max(shared)], counting[leader].rows[max(shared)]):
+            held[impl] = s.rows[max(shared)]
+    return held
 
 
 def decide(stages: List[Stage], standing: Dict[str, Standing], eval_dir: Optional[Path] = None) -> Decision:
@@ -108,14 +126,7 @@ def decide(stages: List[Stage], standing: Dict[str, Standing], eval_dir: Optiona
              "so it is not compared" for impl, r in sorted(at_latest.items()) if not case_identity.comparable(r, reference)]
     ranked = ranking.rank({impl: r for impl, r in at_latest.items() if case_identity.comparable(r, reference)})
     leader = ranked[0]["impl"]
-    held: Dict[str, Row] = {}
-    for impl, s in counting.items():
-        if latest in s.rows:
-            continue
-        shared = [i for i in s.rows if i < latest and i in counting[leader].rows
-                  and case_identity.comparable(s.rows[i], counting[leader].rows[i])]
-        if shared and ranking.higher(s.rows[max(shared)], counting[leader].rows[max(shared)]):
-            held[impl] = s.rows[max(shared)]
+    held = held_in_place(counting, latest, leader)
     winner = ranking.rank(held)[0]["impl"] if held else leader
     if held:
         notes.append(f"{', '.join(sorted(held))} scored higher than {leader} at an earlier stage and has not been run at "
@@ -140,19 +151,22 @@ def next_stage(stages: List[Stage], mine: Standing, selected: Optional[Standing]
     """``(stage index, why)`` for the first stage with no counting result, once every earlier stage's gate is met; else
     ``(None, why nothing is next)``. A stage never run is ``not run``, never an estimate."""
     for index, stage in enumerate(stages):
-        if stage.inherited and inherited is not None:
-            met, why = inherited(stage)   # the foundation's gate, checked first and never re-proved here
-            if not met:
-                return None, f"stopped before {stage.name}: the foundation's {stage.inherits} stage has not passed ({why})"
+        if stage.inherited and inherited is not None and not (foundation := inherited(stage))[0]:   # the foundation's gate, checked first and never re-proved here
+            return None, f"stopped before {stage.name}: the foundation's {stage.inherits} stage has not passed ({foundation[1]})"
         if stage.unrun:
             continue
         row = mine.rows.get(index)
         if row is None:
             return index, f"expired: {mine.expired[index][1]}" if index in mine.expired else "not run"
-        met, why = gate_met(stage, row, selected.rows.get(index) if selected and selected.impl != mine.impl else None, eval_dir)
+        met, why = gate_met(stage, row, rival_row(selected, mine, index), eval_dir)
         if not met:
             return None, f"stopped after {stage.name}: {why}"
     return None, "every stage has a counting result"
+
+
+def rival_row(selected: Optional["Standing"], mine: "Standing", index: int) -> Optional[Row]:
+    """The selected arm's row at the stage, when the arm being asked about is another arm."""
+    return selected.rows.get(index) if selected and selected.impl != mine.impl else None
 
 
 def shared_pair(stages: List[Stage], standing: Dict[str, Standing], first: str, second: str) -> Optional[Tuple[Row, Row]]:

@@ -8,6 +8,17 @@ from esoi.structure.intent_registry.registry import Registry, harness_arms
 from esoi.optimization.leaderboard.results_log import Row, all_results
 
 
+def chosen_name(row: Row, registry: Optional[Registry]) -> str:
+    """The arm name the solution's ``selected`` cell stands for: the name of the implementation record whose file it is, else the cell's name."""
+    cell = (row.get("selected") or "").strip()
+    if not cell:
+        return ""
+    sid = row.get("solution_id", "")
+    records = {r.get("implementation_id", ""): r for r in (registry.implementations if registry is not None else [])}
+    by_path = next((i.split(":", 1)[-1] for i, r in records.items() if i.startswith(f"{sid}:") and (r.get("filepath") or "").strip() == cell), "")
+    return by_path or cell.split(":", 1)[-1]
+
+
 def selected_arm(config: Config, row: Row, component: str = "", registry: Optional[Registry] = None) -> Tuple[str, str]:
     """``(component, arm)`` the solution's selection means on ``component`` (default: the first component of its metric command).
     The command lists the arms to measure; the choice is the solution's ``selected`` in the records: a name, ``solution:name`` or
@@ -19,13 +30,7 @@ def selected_arm(config: Config, row: Row, component: str = "", registry: Option
         return "", ""
     component = component or arms[0][0]
     listed = [impl for comp, impl in arms if comp == component]
-    cell = (row.get("selected") or "").strip()
-    sid = row.get("solution_id", "")
-    records = {r.get("implementation_id", ""): r for r in (registry.implementations if registry is not None else [])}
-    chosen = ""
-    if cell:
-        by_path = next((i.split(":", 1)[-1] for i, r in records.items() if i.startswith(f"{sid}:") and (r.get("filepath") or "").strip() == cell), "")
-        chosen = by_path or cell.split(":", 1)[-1]
+    chosen = chosen_name(row, registry)
     known = chosen in listed or chosen in all_results(config.results_path).get(component, {})
     return component, chosen if chosen and known else (listed[0] if listed else "")
 

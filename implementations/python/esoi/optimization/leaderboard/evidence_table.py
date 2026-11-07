@@ -119,12 +119,22 @@ def arm_row(impl: str, selected: str, pairs: dict, rows: dict) -> dict:
     return rows[impl]
 
 
+def solution_label(sol: dict) -> str:
+    """The solution's name with its id, or just the id when the name is the id."""
+    sid = sol["solution_id"]
+    return f"{sol.get('name') or sid} (`{sid}`)" if (sol.get("name") or "").strip().lower() != sid else f"`{sid}`"
+
+
+def arm_label(name: str, impl: str, is_selected: bool) -> str:
+    """The arm's name with its id, marked when selected."""
+    return (f"{name} (`{impl}`)" if name and name.lower() != impl.lower() else f"`{impl}`") + (" (selected)" if is_selected else "")
+
+
 def solution_rows(config: Config, registry: Registry, sol: dict, component: str, selected: str, history: dict, per_case: list, chosen: dict,
                   graded: dict, note: str, impl_names: dict) -> List[List[str]]:
     """The table rows of one solution: one per arm, the selected arm first."""
     sid = sol["solution_id"]
-    arms = {impl: [r for r in found if not results_log.is_partial(r)] for impl, found in history[component].items()}
-    arms = {impl: found for impl, found in arms.items() if found}
+    arms = {impl: whole for impl, found in history[component].items() if (whole := [r for r in found if not results_log.is_partial(r)])}
     rows = {impl: found[-1] for impl, found in arms.items()}
     apart = bool(arm_kinds.invariant_reason(component, config.evaluation))
     ranked = selected in rows and not apart
@@ -134,9 +144,7 @@ def solution_rows(config: Config, registry: Registry, sol: dict, component: str,
     out: List[List[str]] = []
     for impl in sorted(arms, key=lambda i: (i != selected, i)):
         row = arm_row(impl, selected, pairs, rows)
-        arm = impl_names.get(f"{sid}:{impl}", "")
-        out.append([f"{sol.get('name') or sid} (`{sid}`)" if (sol.get("name") or "").strip().lower() != sid else f"`{sid}`",
-                    (f"{arm} (`{impl}`)" if arm and arm.lower() != impl.lower() else f"`{impl}`") + (" (selected)" if impl == selected else ""), str(row.get("cases", "")), rate_label(row),
+        out.append([solution_label(sol), arm_label(impl_names.get(f"{sid}:{impl}", ""), impl, impl == selected), str(row.get("cases", "")), rate_label(row),
                     cost_label(row), seconds_label(row, per_case), arm_standing(impl, selected, apart, found, rows, config),
                     public_label(config, registry, graded, sid, impl) + note])
     return out
