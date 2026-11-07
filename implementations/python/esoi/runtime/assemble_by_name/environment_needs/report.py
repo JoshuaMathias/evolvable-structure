@@ -12,16 +12,21 @@ SCHEMA = "esoi.requirements/1"   # the "schema" field of the JSON output; a fiel
 EXIT_MET, EXIT_UNMET, EXIT_ERROR = 0, 1, 2   # the exit codes of esoi requirements --check and esoi install
 
 
+def describe_api(item: Api) -> str:
+    """One line about an API: key situation, free tier and rate limit."""
+    bits = [item.label, "keyless path available" if item.keyless else "key required" if item.key else "no key"]
+    for text, value in (("free tier", item.free_tier), ("rate limit", item.rate_limit)):
+        if value:
+            bits.append(f"{text}: {value}" + (f" (as of {item.as_of})" if item.as_of else ""))
+    return ", ".join(bits)
+
+
 def describe(item: Requirement) -> str:
     """One short factual line about what the requirement is."""
     if isinstance(item, Env):
         return item.label + (" (secret)" if item.secret else "") + (f", fills {item.option}" if item.option else "")
     if isinstance(item, Api):
-        bits = [item.label, "keyless path available" if item.keyless else "key required" if item.key else "no key"]
-        for text, value in (("free tier", item.free_tier), ("rate limit", item.rate_limit)):
-            if value:
-                bits.append(f"{text}: {value}" + (f" (as of {item.as_of})" if item.as_of else ""))
-        return ", ".join(bits)
+        return describe_api(item)
     if isinstance(item, Python):
         return f"python module {item.module} from {item.pip_spec}"
     if isinstance(item, Binary):

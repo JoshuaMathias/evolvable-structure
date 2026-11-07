@@ -144,6 +144,23 @@ def lock_arms(lock_file: str) -> Tuple[Dict[str, str], str]:
     return {sid: variants.base_of(str(e["arm"])).lower() for sid, e in found["solutions"].items()}, ""
 
 
+def override_reasons(sid: str, cell: str, own: set) -> Tuple[Tuple[str, ...], List[str]]:
+    """``(reason ids, problems)`` of one override row's ``reason_ids`` cell."""
+    given: Tuple[str, ...] = ()
+    problems: List[str] = []
+    parts = [p.strip() for p in cell.split(";") if p.strip()]
+    for part in parts:
+        try:
+            given += hierarchy.check_reasons([part], f"overrides.csv {sid}")
+        except ValueError as error:
+            problems.append(str(error))
+    if not given and not parts:
+        problems.append(f"overrides.csv {sid}: no reason is recorded (cite a problem, ideal or metric id of this repository)")
+    problems += [f"overrides.csv {sid}: {r} is no problem, ideal or metric of this repository"
+                 for r in given if not r.startswith(hierarchy.UNCONFIRMED) and r not in own]
+    return given, problems
+
+
 def override_rows(config: Config, loaded: Any, parent: Dict[str, str]) -> Tuple[Dict[str, Tuple[str, ...]], List[str]]:
     """``({solution_id: reason ids}, problems)`` from ``overrides.csv``; a row that is malformed is a problem line, not an error."""
     own = {r.get(key, "") for rows, key in ((loaded.problems, "problem_id"), (loaded.ideals, "ideal_id"), (loaded.metrics, "metric_id")) for r in rows}
@@ -160,17 +177,8 @@ def override_rows(config: Config, loaded: Any, parent: Dict[str, str]) -> Tuple[
             continue
         if sid not in parent:
             problems.append(f"overrides.csv {sid}: the parent has no such solution, so there is nothing to override")
-        given: Tuple[str, ...] = ()
-        for part in (p.strip() for p in cell.split(";") if p.strip()):
-            try:
-                given += hierarchy.check_reasons([part], f"overrides.csv {sid}")
-            except ValueError as error:
-                problems.append(str(error))
-        if not given and not any(p.strip() for p in cell.split(";")):
-            problems.append(f"overrides.csv {sid}: no reason is recorded (cite a problem, ideal or metric id of this repository)")
-        for reason in given:
-            if not reason.startswith(hierarchy.UNCONFIRMED) and reason not in own:
-                problems.append(f"overrides.csv {sid}: {reason} is no problem, ideal or metric of this repository")
+        given, found = override_reasons(sid, cell, own)
+        problems += found
         reasons[sid] = reasons.get(sid, ()) + given
     return reasons, problems
 
@@ -223,19 +231,21 @@ def judge(config: Config, loaded: Any, row: Optional[Dict[str, str]], sid: str, 
     decided = [d for d in rival_decisions.decisions(rows, child_arm, config.evaluation, history, per_case, policy) if d.rival == parent_arm]
     d = decided[0]
     found.numbers = f"{parent_arm} {ranking.pass_rate(d.other):.3g} against {child_arm} {ranking.pass_rate(d.own):.3g} on {case_identity.describe_cases(d.own)}; {d.text}"
-    held = "the override" if kind == "override" else f"the lock ({child_arm})"
-    if d.outcome == "rival":
-        found.verdict = "drop"
-        found.advice = (f"override can be dropped: on your own metric {parent_arm} now beats {child_arm}; remove the override of {sid}"
-                        if kind == "override" else f"adopt {parent_arm}: it beats {child_arm} on your own metric; update the lock: esoi lock --update --solution {sid}")
-    elif d.outcome == "tie":
-        found.verdict = "adopt"
-        found.advice = (f"adopt {parent_arm}: it holds on your own metric (not worse than {child_arm}); drop the override of {sid}"
-                        if kind == "override" else f"adopt {parent_arm}: it holds on your own metric; update the lock: esoi lock --update --solution {sid}")
-    else:
-        found.verdict = "keep"
-        found.advice = f"keep {held}: your own metric says the parent's {parent_arm} loses to {child_arm} ({found.numbers})"
+    found.verdict, found.advice = verdict_advice(d.outcome, kind, sid, parent_arm, child_arm, found.numbers)
     return found
+
+
+def verdict_advice(outcome: str, kind: str, sid: str, parent_arm: str, child_arm: str, numbers: str) -> Tuple[str, str]:
+    """``(verdict, advice)`` for the parent's arm against the child's, from the decision's outcome."""
+    override = kind == "override"
+    if outcome == "rival":
+        return "drop", (f"override can be dropped: on your own metric {parent_arm} now beats {child_arm}; remove the override of {sid}"
+                        if override else f"adopt {parent_arm}: it beats {child_arm} on your own metric; update the lock: esoi lock --update --solution {sid}")
+    if outcome == "tie":
+        return "adopt", (f"adopt {parent_arm}: it holds on your own metric (not worse than {child_arm}); drop the override of {sid}"
+                         if override else f"adopt {parent_arm}: it holds on your own metric; update the lock: esoi lock --update --solution {sid}")
+    held = "the override" if override else f"the lock ({child_arm})"
+    return "keep", f"keep {held}: your own metric says the parent's {parent_arm} loses to {child_arm} ({numbers})"
 
 
 def describe_missing(config: Config, loaded: Any, row: Dict[str, str], comp: str, child_arm: str, parent_arm: str,
@@ -282,12 +292,10 @@ def follow(config: Config, parent: str = "", solutions: Tuple[str, ...] = (), lo
         own = variants.base_of(default_name(row, loaded.implementations)).lower() if row else ""
         overridden = bool(own) and own != parent_arm
         child_arm = own if overridden else locked.get(sid, "")
-        if not child_arm:
-            continue   # inherited and not locked: nothing records what the child held, so nothing can have changed under it
         lock_moved = bool(locked.get(sid)) and locked[sid] != parent_arm and not overridden
+        if not child_arm or not (overridden or lock_moved):
+            continue   # inherited and not locked, or unchanged: nothing can have changed under the child
         has_metric = any(r in metric_ids for r in reasons.get(sid, ()))
-        if not overridden and not lock_moved:
-            continue
         found = judge(config, loaded, row, sid, "override" if overridden else "inherited", parent_arm, child_arm)
         if overridden and not has_metric and not lock_moved and found.verdict == "not-measured":
             report.skipped.append(f"{sid}: override of {parent_arm} cites no metric and has no row to compare; not re-checked")

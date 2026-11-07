@@ -49,20 +49,27 @@ def record_slices(config: Config, component: str, circs: List[circumstances.Circ
     written = []
     for cid, found in circumstances.slices(circs, cases, circumstances.run_context(summary.get("model"), summary["impl"])).items():
         check_name(cid, "slice id")   # a '/' or ';' would make the row read as a whole run
-        part = [rows[i] for i in found]
-        dev = [i for i in found if not cases[i].get("heldout")]
-        held = [i for i in found if cases[i].get("heldout")]
-        share = sum(r["tokens_in"] + r["tokens_out"] for r in part) / total if total else len(found) / len(rows)
-        piece = dict(summary, cases=len(found), passed=sum(bool(r["ok"]) for r in part),
-                     dev=f"{sum(bool(rows[i]['ok']) for i in dev)}/{len(dev)}", heldout=f"{sum(bool(rows[i]['ok']) for i in held)}/{len(held)}",
-                     model_calls=sum(r["calls"] for r in part), tokens_in=sum(r["tokens_in"] for r in part),
-                     tokens_out=sum(r["tokens_out"] for r in part), seconds=round(sum(r["seconds"] for r in part), 1),
-                     cli_reported_cost_usd=round(summary["cli_reported_cost_usd"] * share, 4),
-                     sample=(summary["sample"] + "/" if summary["sample"] else "") + f"slice:{cid}", details="derived from the run of the same date")
-        for stale_key in ("balanced", "accuracy", "cost_per_case", "seconds_per_case"):
-            piece.pop(stale_key, None)
-        piece.update(balance.balanced(piece["passed"], piece["cases"], run_cost(config, piece, piece["model"]), piece["seconds"],
-                                      config.balance.get(component)))
+        piece = slice_row(config, component, summary, cases, rows, cid, found, total)
         record_result(piece, config)
         written.append(piece)
     return written
+
+
+def slice_row(config: Config, component: str, summary: Dict[str, Any], cases: List[dict], rows: List[Dict[str, Any]], cid: str,
+              found: List[int], total: int) -> Dict[str, Any]:
+    """The derived result row of one slice: sums over the cases it holds, cost shared by token use, scored again."""
+    part = [rows[i] for i in found]
+    dev = [i for i in found if not cases[i].get("heldout")]
+    held = [i for i in found if cases[i].get("heldout")]
+    share = sum(r["tokens_in"] + r["tokens_out"] for r in part) / total if total else len(found) / len(rows)
+    piece = dict(summary, cases=len(found), passed=sum(bool(r["ok"]) for r in part),
+                 dev=f"{sum(bool(rows[i]['ok']) for i in dev)}/{len(dev)}", heldout=f"{sum(bool(rows[i]['ok']) for i in held)}/{len(held)}",
+                 model_calls=sum(r["calls"] for r in part), tokens_in=sum(r["tokens_in"] for r in part),
+                 tokens_out=sum(r["tokens_out"] for r in part), seconds=round(sum(r["seconds"] for r in part), 1),
+                 cli_reported_cost_usd=round(summary["cli_reported_cost_usd"] * share, 4),
+                 sample=(summary["sample"] + "/" if summary["sample"] else "") + f"slice:{cid}", details="derived from the run of the same date")
+    for stale_key in ("balanced", "accuracy", "cost_per_case", "seconds_per_case"):
+        piece.pop(stale_key, None)
+    piece.update(balance.balanced(piece["passed"], piece["cases"], run_cost(config, piece, piece["model"]), piece["seconds"],
+                                  config.balance.get(component)))
+    return piece

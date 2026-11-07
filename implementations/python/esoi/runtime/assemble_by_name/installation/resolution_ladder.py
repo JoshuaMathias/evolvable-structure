@@ -91,6 +91,41 @@ def isolate_step(entries: Sequence[Entry], conflicts: Sequence[Conflict], projec
     return None
 
 
+def sort_requirements(current: Sequence[Entry], environ: Mapping[str, str]) -> Tuple[List[Tuple[str, str]], List[str], List[str]]:
+    """The scripts to run in order, the binaries to install and the other things missing, from the entries' checks."""
+    scripts: List[Tuple[str, str]] = []
+    binaries: List[str] = []
+    missing: List[str] = []
+    for entry, one in zip(current, check(current, environ)):
+        item = entry.requirement
+        if isinstance(item, ScriptFile):
+            scripts.append((item.role, item.path))
+        elif isinstance(item, Binary) and one.status != MET:
+            binaries.append(f"{item.name}: {one.remedy}")
+        elif one.blocking and not isinstance(item, (Python, Network)):
+            missing.append(f"{item.label}: {one.remedy}")
+        elif isinstance(item, Download) and one.failing:
+            missing.append(f"{item.label}: {one.remedy}")
+    order = {role: position for position, (name, role) in enumerate(SCRIPT_ROLES)}
+    scripts.sort(key=lambda pair: (str(Path(pair[1]).parent), order.get(pair[0], 9)))
+    return scripts, binaries, missing
+
+
+def another_arm_step(current: List[Entry], conflicts: list, resolver: Optional[Resolver], fallback: Optional[Fallback],
+                     substitutions: List[Substitution], steps: List[str]):
+    """Step 3: swap an arm of a seat for a compatible one; returns the entries and the conflicts that remain."""
+    if fallback is None:
+        steps.append("3. another arm: not available here (no assembly to choose from)")
+        return current, conflicts
+    found = fallback(conflicts, current)
+    if found is None:
+        steps.append("3. another arm: no compatible arm among the seat's alternatives")
+        return current, conflicts
+    substitutions.append(found[0])
+    steps.append("3. another arm: " + found[0].text())
+    return found[1], trial(found[1], resolver)[0]
+
+
 def make_plan(entries: Sequence[Entry], environ: Mapping[str, str], resolver: Optional[Resolver] = None,
               fallback: Optional[Fallback] = None, project: Optional[Path] = None, notes: Sequence[str] = ()) -> Plan:
     """The install plan for the entries, with the resolution ladder applied when they conflict (see the module docstring).
@@ -107,17 +142,8 @@ def make_plan(entries: Sequence[Entry], environ: Mapping[str, str], resolver: Op
         swapped = alternatives_step(current, conflicts, resolver, steps)
         if swapped is not None:
             current, conflicts = swapped, []
-    if conflicts and fallback is not None:
-        found = fallback(conflicts, current)
-        if found is not None:
-            substitutions.append(found[0])
-            current = found[1]
-            conflicts, log = trial(current, resolver)
-            steps.append("3. another arm: " + found[0].text())
-        else:
-            steps.append("3. another arm: no compatible arm among the seat's alternatives")
-    elif conflicts:
-        steps.append("3. another arm: not available here (no assembly to choose from)")
+    if conflicts:
+        current, conflicts = another_arm_step(current, conflicts, resolver, fallback, substitutions, steps)
     if conflicts:
         moved = isolate_step(current, conflicts, project or Path.cwd(), steps)
         if moved is not None:
@@ -126,21 +152,7 @@ def make_plan(entries: Sequence[Entry], environ: Mapping[str, str], resolver: Op
             conflicts = find_conflicts(current)
     if conflicts:
         steps.append("5. stop: no step resolved the conflict; nothing will be installed")
-    scripts: List[Tuple[str, str]] = []
-    binaries: List[str] = []
-    missing: List[str] = []
-    for entry, one in zip(current, check(current, environ)):
-        item = entry.requirement
-        if isinstance(item, ScriptFile):
-            scripts.append((item.role, item.path))
-        elif isinstance(item, Binary) and one.status != MET:
-            binaries.append(f"{item.name}: {one.remedy}")
-        elif one.blocking and not isinstance(item, (Python, Network)):
-            missing.append(f"{item.label}: {one.remedy}")
-        elif isinstance(item, Download) and one.failing:
-            missing.append(f"{item.label}: {one.remedy}")
-    order = {role: position for position, (name, role) in enumerate(SCRIPT_ROLES)}
-    scripts.sort(key=lambda pair: (str(Path(pair[1]).parent), order.get(pair[0], 9)))
+    scripts, binaries, missing = sort_requirements(current, environ)
     pip = () if conflicts else tuple(merged_specs(needs_install(current)))
     constraints = tuple(installed_constraints(current)) if pip else ()
     return Plan(pip, constraints, tuple(scripts), tuple(isolated), tuple(substitutions), tuple(steps),

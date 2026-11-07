@@ -114,6 +114,19 @@ class Stage:
         return self.name == PUBLIC_STAGE
 
 
+def stage_values(name: str, body: str) -> Tuple[Dict[str, str], List[str]]:
+    """The ``key=value`` pairs of one stage's bracket, and the pairs that are malformed."""
+    values: Dict[str, str] = {}
+    errors: List[str] = []
+    for chunk in (c for c in body.split(PAIR_SEPARATOR) if c.strip()):
+        key, equals, value = (piece.strip() for piece in chunk.partition("="))
+        if not equals or key not in KEYS or not value:
+            errors.append(f"stage {name}: `{chunk.strip()[:40]}` is not key=value with a key from {', '.join(KEYS)}")
+        else:
+            values[key] = value
+    return values, errors
+
+
 def parse(text: str) -> Tuple[List[Stage], List[str]]:
     """The stages in a ``cascading_conditionals`` cell and what is wrong with it. An empty cell is no cascade."""
     text = UNCONFIRMED.sub("", text or "")
@@ -126,14 +139,9 @@ def parse(text: str) -> Tuple[List[Stage], List[str]]:
         if not found:
             errors.append(f"stage {position} ({part.strip()[:40]!r}) is not `name` or `name [key=value | key=value]`")
             continue
-        name, body = found.group(1), found.group(2) or ""
-        values: Dict[str, str] = {}
-        for chunk in (c for c in body.split(PAIR_SEPARATOR) if c.strip()):
-            key, equals, value = (piece.strip() for piece in chunk.partition("="))
-            if not equals or key not in KEYS or not value:
-                errors.append(f"stage {name}: `{chunk.strip()[:40]}` is not key=value with a key from {', '.join(KEYS)}")
-            else:
-                values[key] = value
+        name = found.group(1)
+        values, bad = stage_values(name, found.group(2) or "")
+        errors.extend(bad)
         stage, problems = build(name, values)
         errors.extend(f"stage {name}: {p}" for p in problems)
         if stage.public and stage.real is not False:
@@ -144,6 +152,30 @@ def parse(text: str) -> Tuple[List[Stage], List[str]]:
     errors.extend(f"stage {s.name} has no gate or min-pass-rate, so nothing says when to move on to {stages[i + 1].name}"
                   for i, s in enumerate(stages[:-1]) if not s.gated and not s.unrun and not s.inherited)
     return stages, errors
+
+
+def pass_floor(values: Dict[str, str], problems: List[str]) -> Optional[float]:
+    """The ``min-pass-rate`` fraction, or None (with a problem when it is not a fraction)."""
+    if "min-pass-rate" not in values:
+        return None
+    try:
+        floor = float(values["min-pass-rate"])
+        if not 0 <= floor <= 1:
+            raise ValueError
+    except ValueError:
+        problems.append(f"min-pass-rate={values['min-pass-rate']} is not a fraction between 0 and 1")
+        return None
+    return floor
+
+
+def max_age(values: Dict[str, str], problems: List[str]) -> Optional[int]:
+    """The ``max-age-days`` count, or None (with a problem when it is not a positive whole number)."""
+    if "max-age-days" not in values:
+        return None
+    if values["max-age-days"].isdigit() and int(values["max-age-days"]) > 0:
+        return int(values["max-age-days"])
+    problems.append(f"max-age-days={values['max-age-days']} is not a positive whole number")
+    return None
 
 
 def build(name: str, values: Dict[str, str]) -> Tuple[Stage, List[str]]:
@@ -159,20 +191,7 @@ def build(name: str, values: Dict[str, str]) -> Tuple[Stage, List[str]]:
     if gate and gate not in GATES:
         problems.append(f"gate={gate} is not one of {', '.join(GATES)}")
         gate = ""
-    floor = age = None
-    if "min-pass-rate" in values:
-        try:
-            floor = float(values["min-pass-rate"])
-            if not 0 <= floor <= 1:
-                raise ValueError
-        except ValueError:
-            problems.append(f"min-pass-rate={values['min-pass-rate']} is not a fraction between 0 and 1")
-            floor = None
-    if "max-age-days" in values:
-        if values["max-age-days"].isdigit() and int(values["max-age-days"]) > 0:
-            age = int(values["max-age-days"])
-        else:
-            problems.append(f"max-age-days={values['max-age-days']} is not a positive whole number")
+    floor, age = pass_floor(values, problems), max_age(values, problems)
     kind = values.get("kind", "")
     if kind and kind not in KINDS:
         problems.append(f"kind={kind} is not one of {', '.join(KINDS)}")
@@ -252,9 +271,14 @@ def expectation_notes(stages: List[Stage]) -> List[str]:
     Cases only need to grow among stages of the same cost kind, so a free full-set stage may be followed by one real case. A list
     with fewer than two stages that run, and a stage named ``public``, are not judged."""
     own = [s for s in stages if not s.unrun]
-    notes: List[str] = []
     if len(own) < 2:
-        return notes
+        return []
+    return order_notes(stages, own) + breadth_notes(own)
+
+
+def order_notes(stages: List[Stage], own: List[Stage]) -> List[str]:
+    """Notes on the idea stage and the first stage on the implementation."""
+    notes: List[str] = []
     ideas = [s for s in stages if s.idea]
     if not ideas:
         notes.append("no stage evaluates ideas before implementation; consider a first stage with kind=idea and a scale= that says what every "
@@ -264,6 +288,12 @@ def expectation_notes(stages: List[Stage]) -> List[str]:
     if own[0].real is not False:
         notes.append(f"the first stage on the implementation, {own[0].name}, should cost nothing (a unit test or syntax check): "
                      "add real=no, or put a stage that needs no model first (see docs/explanation/first-stage-needs-no-model.md)")
+    return notes
+
+
+def breadth_notes(own: List[Stage]) -> List[str]:
+    """Notes on the model-calling stages: a single real case first, then growing, the last the most comprehensive."""
+    notes: List[str] = []
     paid = [s for s in own if s.real is not False]   # a free stage is cheap whatever it covers, so it is not compared for breadth
     if paid and breadth(paid[0]) not in (None, 1.0) and len(paid) > 1:
         notes.append(f"the first stage that calls a model, {paid[0].name}, should be a real single case or end-to-end run (sample=sample:1), "

@@ -22,19 +22,23 @@ def plan_text(selected: Plan, members: Sequence[Member] = ()) -> str:
     for text in selected.options:
         lines.append(f"option: {text}")
     lines.append("nothing to install" if selected.empty and not selected.conflicts else "would run:")
+    lines += run_lines(selected)
+    lines += [f"you must install: {text}" for text in selected.binaries]
+    lines += [f"you must provide: {text}" for text in selected.missing]
+    lines += [f"note: {text}" for text in selected.notes]
+    return "\n".join(lines) + "\n"
+
+
+def run_lines(selected: Plan) -> List[str]:
+    """What would run: the pip install, one venv per isolated group, and the scripts."""
+    lines: List[str] = []
     if selected.pip:
         lines.append("  python -m pip install " + " ".join(f"'{spec}'" for spec in selected.pip) + "  (then pip check)")
     for one in selected.isolated:
         lines.append(f"  python -m venv {one.folder}; {one.folder}/bin/python -m pip install " + " ".join(f"'{spec}'" for spec in one.specs))
     for role, path in selected.scripts:
         lines.append("  " + {"requirements": "python -m pip install -r ", "shell": "sh ", "python": "python "}.get(role, "") + path)
-    for text in selected.binaries:
-        lines.append(f"you must install: {text}")
-    for text in selected.missing:
-        lines.append(f"you must provide: {text}")
-    for text in selected.notes:
-        lines.append(f"note: {text}")
-    return "\n".join(lines) + "\n"
+    return lines
 
 
 def plan_json(selected: Plan, members: Sequence[Member] = ()) -> Dict[str, Any]:

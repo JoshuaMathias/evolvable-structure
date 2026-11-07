@@ -281,6 +281,17 @@ def reconcile(rows: Sequence[MetricResult], limit: int = MAX_METRICS) -> List[Me
     A reading beats a shrug: once any row holds a number (before or after), the declared not-applicable rows are left out
     of what is shown, so a run never says a metric moved and that there was nothing to measure in one breath. They stay in
     the ledger file; a run whose only rows are not-applicable ones still shows them."""
+    out = fold_by_source(rows)
+    flagged = disagreeing(out)
+    order = {SOURCE_MEASURED: 0, SOURCE_RECORDED: 1, SOURCE_NOT_APPLICABLE: 2}
+    out = [replace(r, disagrees=True) if id(r) in flagged else r for r in out]
+    if any(r.before is not None or r.after is not None for r in out):
+        out = [r for r in out if r.source != SOURCE_NOT_APPLICABLE]
+    return sorted(out, key=lambda r: order[r.source])[:limit]
+
+
+def fold_by_source(rows: Sequence[MetricResult]) -> List[MetricResult]:
+    """Rows of one source for one metric folded into one (a later non-empty value replaces an earlier one)."""
     folded: Dict[tuple, MetricResult] = {}
     for row in rows:
         key = (row.source, row.reason) if row.source == SOURCE_NOT_APPLICABLE else (row.source, row.solution_id, row.metric_id)
@@ -290,19 +301,19 @@ def reconcile(rows: Sequence[MetricResult], limit: int = MAX_METRICS) -> List[Me
             after=row.after if row.after is not None else earlier.after, name=row.name or earlier.name,
             milestone=row.milestone or earlier.milestone, reason=row.reason or earlier.reason, ts=row.ts,
             task_id=row.task_id or earlier.task_id)
-    out = list(folded.values())
-    measured = [r for r in out if r.source == SOURCE_MEASURED]
-    recorded = [r for r in out if r.source == SOURCE_RECORDED]
+    return list(folded.values())
+
+
+def disagreeing(rows: List[MetricResult]) -> set:
+    """The ids of a measured and a recorded row for the same metric that give different numbers."""
+    measured = [r for r in rows if r.source == SOURCE_MEASURED]
+    recorded = [r for r in rows if r.source == SOURCE_RECORDED]
     flagged = set()
     for m in measured:
         for r in recorded:
             if same_metric(m, r) and (differs(m.before, r.before) or differs(m.after, r.after)):
                 flagged.update((id(m), id(r)))
-    order = {SOURCE_MEASURED: 0, SOURCE_RECORDED: 1, SOURCE_NOT_APPLICABLE: 2}
-    out = [replace(r, disagrees=True) if id(r) in flagged else r for r in out]
-    if any(r.before is not None or r.after is not None for r in out):
-        out = [r for r in out if r.source != SOURCE_NOT_APPLICABLE]
-    return sorted(out, key=lambda r: order[r.source])[:limit]
+    return flagged
 
 
 def payload_of(results: Sequence[MetricResult]) -> List[Dict[str, Any]]:

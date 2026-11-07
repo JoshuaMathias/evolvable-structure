@@ -326,29 +326,29 @@ def command(base: str, package: str, file: str, solution: str = "") -> str:
                                 f"--solution {solution}" if solution else "") if x)
 
 
-def steps_for(change: Change, package: str, file: str) -> List[Dict[str, Any]]:
-    """The ordered remedy steps for one update: install what is missing, start services, set variables (asking a person for a key),
-    apply the update, then verify."""
-    unmet = change.unmet
+def remedy_steps(unmet: List[Dict[str, Any]], solution: str, package: str) -> List[Dict[str, Any]]:
+    """The steps that meet the unmet requirements: packages, binaries, services, environment, then anything else."""
     steps: List[Dict[str, Any]] = []
     if any(a["kind"] == "python" for a in unmet):
-        install = "esoi install" + (f" --package {package}" if package else "") + f" --solution {change.solution} --yes"
+        install = "esoi install" + (f" --package {package}" if package else "") + f" --solution {solution} --yes"
         steps.append({"action": "install-packages", "command": install, "human": False,
                       "detail": "; ".join(a["remedy"] for a in unmet if a["kind"] == "python" and a["remedy"])})
-    for a in unmet:
-        if a["kind"] == "binary":
-            steps.append({"action": "install-binary", "command": None, "human": False, "detail": a["remedy"] or a["label"]})
-    for a in unmet:
-        if a["kind"] == "service":
-            steps.append({"action": "start-service", "command": None, "human": False, "detail": a["remedy"] or a["label"]})
+    for kind, action in (("binary", "install-binary"), ("service", "start-service")):
+        steps.extend({"action": action, "command": None, "human": False, "detail": a["remedy"] or a["label"]} for a in unmet if a["kind"] == kind)
     for a in unmet:
         if a["kind"] in ("env", "api"):
             steps.append({"action": "set-environment", "command": None, "human": bool(a.get("secret")), "requirement": a["id"],
                           "detail": a["remedy"] or a["label"],
                           "note": "a key is a person's to obtain: ask them, using the signup link in the detail" if a.get("secret") else ""})
-    for a in unmet:
-        if a["kind"] not in ("python", "binary", "service", "env", "api"):
-            steps.append({"action": "resolve", "command": None, "human": False, "detail": a["remedy"] or a["label"]})
+    steps.extend({"action": "resolve", "command": None, "human": False, "detail": a["remedy"] or a["label"]}
+                 for a in unmet if a["kind"] not in ("python", "binary", "service", "env", "api"))
+    return steps
+
+
+def steps_for(change: Change, package: str, file: str) -> List[Dict[str, Any]]:
+    """The ordered remedy steps for one update: install what is missing, start services, set variables (asking a person for a key),
+    apply the update, then verify."""
+    steps = remedy_steps(change.unmet, change.solution, package)
     steps.append({"action": "apply", "command": command("esoi lock --update", package, file, change.solution), "human": False,
                   "detail": f"move {change.solution} from {change.old_arm or 'unlocked'} to {change.new_arm or 'unselected'}"})
     steps.append({"action": "verify", "command": "esoi requirements --check" + (f" --package {package}" if package else "") +

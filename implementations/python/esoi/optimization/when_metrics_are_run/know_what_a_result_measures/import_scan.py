@@ -48,41 +48,59 @@ def find_module_files(roots: List[Path], dotted: str) -> List[Path]:
     return []
 
 
+def import_base(here: Path, roots: List[Path]) -> Optional[List[str]]:
+    """The package path of the file's folder under the first search root that holds it, for resolving relative imports."""
+    for root in roots:
+        if root in here.parents:
+            return list(here.parent.relative_to(root).parts)
+    return None
+
+
+def from_import_names(node: ast.ImportFrom, base: Optional[List[str]]) -> Set[str]:
+    """The dotted names a ``from ... import ...`` brings in (the module and each imported name beneath it)."""
+    prefix: List[str] = []
+    if node.level:
+        if base is None or node.level - 1 > len(base):
+            return set()
+        prefix = base[:len(base) - (node.level - 1)]
+    module = ".".join(prefix + ([node.module] if node.module else [])) if (node.level or node.module) else ""
+    if module:
+        return {module} | {f"{module}.{alias.name}" for alias in node.names}
+    if node.level:
+        return {".".join(prefix + [alias.name]) for alias in node.names}
+    return set()
+
+
+def dynamic_import(node: ast.Call) -> Tuple[Optional[str], bool]:
+    """``(module name, complete)`` for a call that imports by name: the literal name when it is one, and False when the name is computed.
+    A call that is not an import returns ``(None, True)``."""
+    func = node.func
+    called = func.attr if isinstance(func, ast.Attribute) else func.id if isinstance(func, ast.Name) else ""
+    if called not in DYNAMIC_CALLS:
+        return None, True
+    first = node.args[0] if node.args else None
+    if called not in ("spec_from_file_location", "load_source") and isinstance(first, ast.Constant) \
+            and isinstance(first.value, str) and not first.value.startswith("."):
+        return first.value, True
+    return None, False
+
+
 def import_names(tree: ast.Module, here: Path, roots: List[Path]) -> Tuple[Set[str], bool]:
     """``(names, complete)``: every module a file imports, as dotted names from a search root, and whether it imports none by a name it
     computes (the names found are returned either way)."""
     names: Set[str] = set()
     complete = True
-    base: Optional[List[str]] = None
-    for root in roots:
-        if root in here.parents:
-            base = list(here.parent.relative_to(root).parts)
-            break
+    base = import_base(here, roots)
     for node in nodes_of(tree):
         if isinstance(node, ast.Import):
             names.update(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom):
-            prefix: List[str] = []
-            if node.level:
-                if base is None or node.level - 1 > len(base):
-                    continue
-                prefix = base[:len(base) - (node.level - 1)]
-            module = ".".join(prefix + ([node.module] if node.module else [])) if (node.level or node.module) else ""
-            if module:
-                names.add(module)
-                names.update(f"{module}.{alias.name}" for alias in node.names)
-            elif node.level:
-                names.update(".".join(prefix + [alias.name]) for alias in node.names)
+            names |= from_import_names(node, base)
         elif isinstance(node, ast.Call):
-            func = node.func
-            called = func.attr if isinstance(func, ast.Attribute) else func.id if isinstance(func, ast.Name) else ""
-            if called in DYNAMIC_CALLS:
-                first = node.args[0] if node.args else None
-                if called not in ("spec_from_file_location", "load_source") and isinstance(first, ast.Constant) \
-                        and isinstance(first.value, str) and not first.value.startswith("."):
-                    names.add(first.value)
-                else:
-                    complete = False
+            name, whole = dynamic_import(node)
+            complete = complete and whole
+            if name:
+                names.add(name)
     return names, complete
 
 
