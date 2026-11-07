@@ -12,7 +12,8 @@ import re
 from pathlib import Path
 from typing import Dict, List
 
-from esoi.optimization.leaderboard import arm_selection, case_identity, held_out_parts, results_log, rival_decisions, rival_pairing, switching_policy
+from esoi.optimization.leaderboard import arm_selection, case_identity, results_log, rival_decisions, switching_policy
+from esoi.optimization.leaderboard.interface import held_out_parts, rival_pairing
 from esoi.optimization.measurement_harness.interface import defect_reason, stale_reason
 from esoi.optimization.when_metrics_are_run.interface import declares_simulated
 from esoi.structure.intent_registry.records import FILES
@@ -67,14 +68,16 @@ def declares_alternative(tree: ast.Module) -> bool:
 def drives_live_code(ctx: Context, tree: ast.Module) -> bool:
     """True when the module imports a live package or calls one of the configured live calls."""
     live_imports, live_calls = set(ctx.config.live_imports), set(ctx.config.live_calls)
-    for node in nodes_of(tree):
-        if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] in live_imports:
-            return True
-        if isinstance(node, ast.Import) and any(a.name.split(".")[0] in live_imports for a in node.names):
-            return True
-        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and f"{node.value.id}.{node.attr}" in live_calls:
-            return True
-    return False
+    return any(node_is_live(node, live_imports, live_calls) for node in nodes_of(tree))
+
+
+def node_is_live(node: ast.AST, live_imports: set, live_calls: set) -> bool:
+    """Whether one syntax node imports a live package or names a live call."""
+    if isinstance(node, ast.ImportFrom):
+        return (node.module or "").split(".")[0] in live_imports
+    if isinstance(node, ast.Import):
+        return any(a.name.split(".")[0] in live_imports for a in node.names)
+    return isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and f"{node.value.id}.{node.attr}" in live_calls
 
 
 def impl_kind(ctx: Context, path: Path) -> str:
@@ -121,16 +124,23 @@ def check_live_code(ctx: Context) -> List[str]:
                        "alternative (set ALTERNATIVE = True, or open the docstring with ALTERNATIVE/ABLATION/"
                        "VALIDITY): the number would not measure the live code")
     for r in ctx.solutions:
-        sel = r["selected"].split("::")[0]
-        if sel in kinds and kinds[sel] == "alternative" and not ctx.waived("S12", f"{r['solution_id']}:{Path(sel).stem}"):
-            bad.append(f"S12 {r['solution_id']}: selected {sel} is an alternative, not live code; select the live "
-                       "implementation or add a waiver naming the decision")
-        arms = ctx.harness_arms(r.get("metric_command", ""))
-        if arms:
-            measured = f"{config.evaluation_dir}/{arms[0][0]}/impls/{arms[0][1]}.py"
-            if kinds.get(measured) == "alternative" and not ctx.waived("S12", f"{r['solution_id']}:{arms[0][1]}"):
-                bad.append(f"S12 {r['solution_id']}: the measured implementation {measured} is an alternative, not "
-                           "live code, so the recorded number would not be the selected one's")
+        bad += alternative_problems(ctx, r, kinds)
+    return bad
+
+
+def alternative_problems(ctx: Context, r: Dict[str, str], kinds: Dict[str, str]) -> List[str]:
+    """S12 for one solution whose selected or measured implementation is an alternative, not live code."""
+    bad: List[str] = []
+    sel = r["selected"].split("::")[0]
+    if kinds.get(sel) == "alternative" and not ctx.waived("S12", f"{r['solution_id']}:{Path(sel).stem}"):
+        bad.append(f"S12 {r['solution_id']}: selected {sel} is an alternative, not live code; select the live "
+                   "implementation or add a waiver naming the decision")
+    arms = ctx.harness_arms(r.get("metric_command", ""))
+    if arms:
+        measured = f"{ctx.config.evaluation_dir}/{arms[0][0]}/impls/{arms[0][1]}.py"
+        if kinds.get(measured) == "alternative" and not ctx.waived("S12", f"{r['solution_id']}:{arms[0][1]}"):
+            bad.append(f"S12 {r['solution_id']}: the measured implementation {measured} is an alternative, not "
+                       "live code, so the recorded number would not be the selected one's")
     return bad
 
 
@@ -149,21 +159,27 @@ def check_selection(ctx: Context) -> List[str]:
     per_case = results_log.per_case_rows(config)
     chosen = switching_policy.policies(config, ctx.registry, per_case)
     for r in ctx.solutions:
-        if not ctx.harness_arms(r.get("metric_command", "")):
-            continue
-        comp, sel = arm_selection.selected_arm(config, r, "", ctx.registry)   # the records' `selected`, not the command's order
-        if sel not in results.get(comp, {}):
-            if not ctx.waived("S10", f"{r['solution_id']}:unmeasured"):   # advice: a measurement is made when it is worth its cost
-                ctx.advisory.append(f"S10 {r['solution_id']}: selected {sel} has no row in the results log (run with --record when a decision needs it)")
-            continue
-        pick_history, pick_policy = held_out_parts.selection_view(ctx.history.get(comp, {}), per_case, chosen.get(comp) or switching_policy.Policy())
-        if sel not in pick_history:
-            continue
-        better = [x["impl"] for x in rival_decisions.challengers({i: rs[-1] for i, rs in pick_history.items()}, sel, config.evaluation, pick_history, per_case, pick_policy)]
-        if better and not ctx.waived("S10", f"{r['solution_id']}:{','.join(sorted(better))}"):
-            bad.append(f"S10 {r['solution_id']}: {', '.join(better)} beat the selected {sel} in the results log; "
-                       "adopt the winner or add a waiver naming the pending decision")
+        if ctx.harness_arms(r.get("metric_command", "")):
+            bad += rival_problems(ctx, r, per_case, chosen)
     return bad
+
+
+def rival_problems(ctx: Context, r: Dict[str, str], per_case, chosen) -> List[str]:
+    """S10 for one measured solution: its selected implementation has a row, and no rival beats it on the metric."""
+    config = ctx.config
+    comp, sel = arm_selection.selected_arm(config, r, "", ctx.registry)   # the records' `selected`, not the command's order
+    if sel not in ctx.results.get(comp, {}):
+        if not ctx.waived("S10", f"{r['solution_id']}:unmeasured"):   # advice: a measurement is made when it is worth its cost
+            ctx.advisory.append(f"S10 {r['solution_id']}: selected {sel} has no row in the results log (run with --record when a decision needs it)")
+        return []
+    pick_history, pick_policy = held_out_parts.selection_view(ctx.history.get(comp, {}), per_case, chosen.get(comp) or switching_policy.Policy())
+    if sel not in pick_history:
+        return []
+    better = [x["impl"] for x in rival_decisions.challengers({i: rs[-1] for i, rs in pick_history.items()}, sel, config.evaluation, pick_history, per_case, pick_policy)]
+    if better and not ctx.waived("S10", f"{r['solution_id']}:{','.join(sorted(better))}"):
+        return [f"S10 {r['solution_id']}: {', '.join(better)} beat the selected {sel} in the results log; "
+                "adopt the winner or add a waiver naming the pending decision"]
+    return []
 
 
 def check_arms_have_rows(ctx: Context) -> List[str]:
@@ -194,19 +210,25 @@ def check_naive_baselines(ctx: Context) -> List[str]:
     return bad
 
 
+def simulated_problems(ctx: Context, r: Dict[str, str]) -> List[str]:
+    """S31 for the implementations a solution's harness command measures that declare SIMULATED = True."""
+    bad: List[str] = []
+    config, sid = ctx.config, r["solution_id"]
+    for comp in sorted({c for c, _ in ctx.harness_arms(r.get("metric_command", ""))}):
+        for impl_path in sorted((config.evaluation / comp / "impls").glob("*.py")):
+            if impl_path.name != "__init__.py" and declares_simulated(impl_path) and not ctx.waived("S31", f"{sid}:{impl_path.stem}"):
+                bad.append(f"S31 {sid}: {config.evaluation_dir}/{comp}/impls/{impl_path.name} declares SIMULATED = True, "
+                           "so the metric measures a scripted stand-in, not the real thing; measure real behaviour on "
+                           "real inputs (a real model call, real data), keep the scripted version as a unit test, or "
+                           "waive naming why this metric cannot be real")
+    return bad
+
+
 def check_real_metrics(ctx: Context) -> List[str]:
     """S31: no implementation declares SIMULATED = True and no metric record admits a scripted stand-in."""
     bad: List[str] = []
-    config = ctx.config
     for r in ctx.solutions:
-        sid = r["solution_id"]
-        for comp in sorted({c for c, _ in ctx.harness_arms(r.get("metric_command", ""))}):
-            for impl_path in sorted((config.evaluation / comp / "impls").glob("*.py")):
-                if impl_path.name != "__init__.py" and declares_simulated(impl_path) and not ctx.waived("S31", f"{sid}:{impl_path.stem}"):
-                    bad.append(f"S31 {sid}: {config.evaluation_dir}/{comp}/impls/{impl_path.name} declares SIMULATED = True, "
-                               "so the metric measures a scripted stand-in, not the real thing; measure real behaviour on "
-                               "real inputs (a real model call, real data), keep the scripted version as a unit test, or "
-                               "waive naming why this metric cannot be real")
+        bad += simulated_problems(ctx, r)
     for m in ctx.registry.metrics:
         for col in ("purpose", "record"):
             hit = UNREAL_METRIC.search(m.get(col, ""))

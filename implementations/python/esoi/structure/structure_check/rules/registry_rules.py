@@ -91,16 +91,16 @@ def selection_problems(ctx: Context, r: Dict[str, str], table, suffixes: Set[str
     """S7 for a solution's `selected` and its implementation paths."""
     bad: List[str] = []
     sid = r["solution_id"]
+    selected = r["selected"]
     if sid in table:
         names = table[sid].get("implementations", {})
-        if r["selected"] and r["selected"] not in names and variants.base_of(r["selected"]) not in names:
-            bad.append(f"S7 {sid}: selected {r['selected']!r} is not an implementation name in the selection "
+        if selected and selected not in names and variants.base_of(selected) not in names:
+            bad.append(f"S7 {sid}: selected {selected!r} is not an implementation name in the selection "
                        f"table (choices: {', '.join(sorted(names))})")
-    elif r["selected"] and r["selected"] not in impls and variants.base_of(r["selected"]) not in impls:   # a variant is its base with parameters
-        bad.append(f"S7 {sid}: selected {r['selected']!r} is not among its implementations")
-    for i in impls:
-        if "/" in i and not (ctx.config.root / i.split("::")[0]).exists():
-            bad.append(f"S7 {sid}: implementation path {i} does not exist")
+    elif selected and selected not in impls and variants.base_of(selected) not in impls:   # a variant is its base with parameters
+        bad.append(f"S7 {sid}: selected {selected!r} is not among its implementations")
+    bad += [f"S7 {sid}: implementation path {i} does not exist" for i in impls
+            if "/" in i and not (ctx.config.root / i.split("::")[0]).exists()]
     return bad
 
 
@@ -117,12 +117,18 @@ def metric_command_problems(ctx: Context, r: Dict[str, str], suffixes: Set[str])
                 declared or (config.evaluation / comp / "impls" / f"{impl}.py").exists()):
             bad.append(f"S7 {sid}: harness command names {comp}/{impl}, which has no score.py or impls file "
                        "(and no implementation of that name declared in code)")
-    if mc and not mc.startswith("none"):
-        words = mc.split()
-        target = words[1] if mc.startswith("python") and len(words) > 1 else words[0]
-        if target.endswith(".py") and not (config.root / target).exists():
-            bad.append(f"S7 {sid}: metric script {target} does not exist")
+    target = metric_script(mc)
+    if target.endswith(".py") and not (config.root / target).exists():
+        bad.append(f"S7 {sid}: metric script {target} does not exist")
     return bad
+
+
+def metric_script(command: str) -> str:
+    """The script a metric command runs (after ``python``), or an empty string for no command or ``none``."""
+    if not command or command.startswith("none"):
+        return ""
+    words = command.split()
+    return words[1] if command.startswith("python") and len(words) > 1 else words[0]
 
 
 def solution_problems(ctx: Context, table) -> Tuple[List[str], Set[str]]:
@@ -171,15 +177,21 @@ def table_entry_problems(ctx: Context, sid: str, entry, port_rows: Dict[str, Dic
                    "`selected` is the only copy)")
     listed = listed_modules(ctx, sid, port_rows[sid]) if sid in port_rows else set()
     for name, ref in implementations.items():
-        target = ref["target"] if isinstance(ref, dict) else ref
-        module = target.partition(":")[0]
-        mod_path = ctx.config.module_path(module)
-        if not (ctx.config.root / mod_path).exists():
-            bad.append(f"S14 {sid}: implementation {name!r} points at {module}, which does not exist")
-        elif sid in port_rows and mod_path not in listed:
-            bad.append(f"S14 {sid}: implementation {name!r} lives in {mod_path}, which neither the solution's "
-                       "implementations cell nor the path of any of its implementations.csv records lists")
+        bad += module_problems(ctx, sid, name, ref, sid in port_rows, listed)
     return bad
+
+
+def module_problems(ctx: Context, sid: str, name: str, ref, has_record: bool, listed: Set[str]) -> List[str]:
+    """S14 for one selection-table implementation: its module exists and the solution's records list it."""
+    target = ref["target"] if isinstance(ref, dict) else ref
+    module = target.partition(":")[0]
+    mod_path = ctx.config.module_path(module)
+    if not (ctx.config.root / mod_path).exists():
+        return [f"S14 {sid}: implementation {name!r} points at {module}, which does not exist"]
+    if has_record and mod_path not in listed:
+        return [f"S14 {sid}: implementation {name!r} lives in {mod_path}, which neither the solution's "
+                "implementations cell nor the path of any of its implementations.csv records lists"]
+    return []
 
 
 def selection_table_problems(ctx: Context, table) -> List[str]:

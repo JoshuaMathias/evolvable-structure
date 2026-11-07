@@ -14,7 +14,7 @@ from esoi.structure.intent_registry.records import FILES, MAY_BE_EMPTY
 from esoi.structure.intent_registry.registry import adopts
 from esoi.structure.intent_registry.tables import ids
 from esoi.structure.structure_check.rules.base import Context, RuleGroup
-from esoi.structure.structure_quality.overlap import ARMS_SHARE_LITTLE, OVERLAP, OVERLAP_WORDS, content, mean_overlap
+from esoi.structure.structure_quality.interface import ARMS_SHARE_LITTLE, OVERLAP, OVERLAP_WORDS, content, mean_overlap
 
 CROSS_PROJECT = re.compile(r"^@[\w.-]+/[\w.-]+$")
 CROSS_PROJECT_IMPLEMENTS = re.compile(r"^@[\w.-]+/[\w.-]+(:[\w.-]+)?$")
@@ -66,9 +66,8 @@ def row_role_problems(ctx: Context, row, group: list, intent: str, scoped: bool,
     if not sid or ctx.waived("S48", sid) or adopts(row):   # the library states an adopted solution's role
         return []
     out = exclusion_problems(sid, intent, row, [s for s in group if s is not row], scoped)
-    for target in ids(row.get("delegates_to", "")):
-        if target != "none" and target not in known:
-            out.append(f"S48 {sid}: delegates_to names {target}, which is no solution; next: name the sibling that owns that part of the job")
+    out += [f"S48 {sid}: delegates_to names {target}, which is no solution; next: name the sibling that owns that part of the job"
+            for target in ids(row.get("delegates_to", "")) if target != "none" and target not in known]
     if sid in containers and not (row.get("change_driver") or "").strip():
         out.append(f"S48 {sid}: it is a container (an implementation of it is a sub-intent) but names no change_driver; next: say what kind "
                    f"of change moves its metric: {CHANGE_DRIVERS}")
@@ -97,21 +96,37 @@ def role_scope(ctx: Context) -> List[str]:
     kind of change that moves a container's metric. Informing only: the texts are judged by people, these are the prompts."""
     out: List[str] = []
     rows = ctx.registry.every_solution()
-    by_intent: Dict[str, list] = defaultdict(list)
-    for row in rows:
-        by_intent[row.get("intent_id", "")].append(row)
-    known = {r.get("solution_id", "") for r in rows}
-    containers = {r.get("solution_id", "") for r in ctx.registry.implementations if (r.get("sub_intent") or "").strip()}
-    scoped = any("delegates_to" in row for row in rows)   # a repository that has the column records who owns what each solution excludes
-    for intent, group in by_intent.items():
+    known, containers, scoped = role_facts(ctx, rows)
+    for intent, group in solutions_by_intent(rows).items():
         if not scoped and len(group) > 1 and intent and not ctx.waived("S48", intent):
-            out.append(f"S48 {intent}: its {len(group)} solutions have siblings, but no solution records `delegates_to` (who owns what each one is not "
-                       "responsible for); next: add the `delegates_to` and `change_driver` columns to solutions.csv and scope each role "
-                       "(docs/how-to/scope-the-role-of-a-solution.md)")
+            out.append(unscoped_line(intent, len(group)))
         for row in group:
             out += row_role_problems(ctx, row, group, intent, scoped, known, containers)
         out += overlap_problems(ctx, group)
     return out
+
+
+def role_facts(ctx: Context, rows: list) -> tuple:
+    """The solution ids, the ids of containers (an implementation of them is a sub-intent), and whether the repository records ``delegates_to``."""
+    known = {r.get("solution_id", "") for r in rows}
+    containers = {r.get("solution_id", "") for r in ctx.registry.implementations if (r.get("sub_intent") or "").strip()}
+    scoped = any("delegates_to" in row for row in rows)   # a repository that has the column records who owns what each solution excludes
+    return known, containers, scoped
+
+
+def solutions_by_intent(rows: list) -> Dict[str, list]:
+    """The solution rows grouped by the intent that holds them."""
+    by_intent: Dict[str, list] = defaultdict(list)
+    for row in rows:
+        by_intent[row.get("intent_id", "")].append(row)
+    return by_intent
+
+
+def unscoped_line(intent: str, count: int) -> str:
+    """The S48 line for an intent with sibling solutions in a repository that records no ``delegates_to`` at all."""
+    return (f"S48 {intent}: its {count} solutions have siblings, but no solution records `delegates_to` (who owns what each one is not "
+            "responsible for); next: add the `delegates_to` and `change_driver` columns to solutions.csv and scope each role "
+            "(docs/how-to/scope-the-role-of-a-solution.md)")
 
 
 def review_prompts(ctx: Context) -> List[str]:
@@ -183,6 +198,20 @@ def sub_intent_shape_problems(intent) -> List[str]:
     return bad
 
 
+def field_problems(intent, template: List[str], where: str) -> List[str]:
+    """S28 for the fields of one intent record: template fields left empty and the old ``opportunity`` column."""
+    bad: List[str] = []
+    empty = [k for k in template if not intent.row.get(k, "").strip() and k not in MAY_BE_EMPTY["intent"]]
+    if empty:
+        bad.append(f"S28 {intent.intent_id}: template field(s) not filled: {', '.join(empty)}"
+                   + (" (the top intent is why this project exists, in its own words; the structure it applies is a "
+                      "solution inside it)" if intent.is_top else ""))
+    if "opportunity" in intent.row:
+        bad.append(f"S28 {intent.intent_id}: {where} has the old column `opportunity`, renamed `opportunities` "
+                   "(rename it in the header; the values stay)")
+    return bad
+
+
 def intent_problems(ctx: Context, intent, template: List[str], by_id: Dict[str, "intents.Intent"]) -> List[str]:
     """S28 for one intent folder: one record, an id used once, the template filled, `implements` and `opportunities` as its level needs."""
     bad: List[str] = []
@@ -194,14 +223,7 @@ def intent_problems(ctx: Context, intent, template: List[str], by_id: Dict[str, 
     if intent.intent_id in by_id:
         bad.append(f"S28 {where}: intent_id {intent.intent_id} is already used by another intent")
     by_id[intent.intent_id] = intent
-    empty = [k for k in template if not intent.row.get(k, "").strip() and k not in MAY_BE_EMPTY["intent"]]
-    if empty:
-        bad.append(f"S28 {intent.intent_id}: template field(s) not filled: {', '.join(empty)}"
-                   + (" (the top intent is why this project exists, in its own words; the structure it applies is a "
-                      "solution inside it)" if intent.is_top else ""))
-    if "opportunity" in intent.row:
-        bad.append(f"S28 {intent.intent_id}: {where} has the old column `opportunity`, renamed `opportunities` "
-                   "(rename it in the header; the values stay)")
+    bad += field_problems(intent, template, where)
     implements = intent.row.get("implements", "").strip()
     if intent.is_top:
         if implements and not CROSS_PROJECT_IMPLEMENTS.match(implements):
@@ -212,23 +234,28 @@ def intent_problems(ctx: Context, intent, template: List[str], by_id: Dict[str, 
     return bad + sub_intent_shape_problems(intent)
 
 
+def implements_problems(intent, records: Dict[str, Dict[str, str]]) -> List[str]:
+    """S28 for one sub-intent: the implementation it says it arises from exists, lives in its parent, and names it back."""
+    implements = intent.row.get("implements", "").strip()
+    record = records.get(implements)
+    if record is None:
+        return [f"S28 {intent.intent_id}: implements {implements!r}, which is not an implementation record"]
+    bad: List[str] = []
+    if record.get("intent_id", "") != intent.parent:
+        bad.append(f"S28 {intent.intent_id}: implements {implements}, which lives in {record.get('intent_id', '')!r}, "
+                   f"not in its parent intent {intent.parent!r}")
+    if record.get("sub_intent", "").strip() != intent.intent_id:
+        bad.append(f"S28 {implements}: the implementation a sub-intent arises from names it in `sub_intent` "
+                   f"({intent.intent_id}), and this one says {record.get('sub_intent', '').strip()!r}")
+    return bad
+
+
 def sub_intent_link_problems(found: list, records: Dict[str, Dict[str, str]], by_id) -> List[str]:
     """S28 for the link between a sub-intent and the implementation it arises from, in both directions."""
     bad: List[str] = []
     for intent in found:
-        if intent.is_top or not intent.intent_id:
-            continue
-        implements = intent.row.get("implements", "").strip()
-        record = records.get(implements)
-        if record is None:
-            bad.append(f"S28 {intent.intent_id}: implements {implements!r}, which is not an implementation record")
-            continue
-        if record.get("intent_id", "") != intent.parent:
-            bad.append(f"S28 {intent.intent_id}: implements {implements}, which lives in {record.get('intent_id', '')!r}, "
-                       f"not in its parent intent {intent.parent!r}")
-        if record.get("sub_intent", "").strip() != intent.intent_id:
-            bad.append(f"S28 {implements}: the implementation a sub-intent arises from names it in `sub_intent` "
-                       f"({intent.intent_id}), and this one says {record.get('sub_intent', '').strip()!r}")
+        if not intent.is_top and intent.intent_id:
+            bad += implements_problems(intent, records)
     for iid, record in records.items():
         sub = record.get("sub_intent", "").strip()
         if not sub:
