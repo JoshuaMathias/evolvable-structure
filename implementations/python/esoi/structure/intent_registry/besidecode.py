@@ -27,7 +27,7 @@ from typing import Callable, Dict, List, Optional, Set, Tuple
 
 from esoi.structure.intent_registry import intents
 from esoi.structure.intent_registry.config import Config
-from esoi.structure.intent_registry.import_base import import_base
+from esoi.structure.intent_registry.import_base import statement_modules
 from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
 from esoi.structure.intent_registry.records import FILES
 from esoi.structure.intent_registry.tables import ids, read_csv, read_header, write_csv
@@ -48,13 +48,7 @@ class Move:
 
 def hosts(config: Config) -> List[Path]:
     """Every folder ``[records] beside_code`` allows to hold records (existing folders that match, outside the structure folder)."""
-    patterns = config.records.get("beside_code", []) if isinstance(config.records, dict) else []
-    found: List[Path] = []
-    for pattern in ([patterns] if isinstance(patterns, str) else patterns):
-        for path in sorted(config.root.glob(str(pattern))):
-            if path.is_dir() and path != config.structure and config.structure not in path.parents and path not in found:
-                found.append(path)
-    return found
+    return intents.allowed_beside_folders(config)
 
 
 def code_hosts(config: Config) -> List[str]:
@@ -141,21 +135,10 @@ def import_graph(config: Config) -> Dict[str, Set[str]]:
         is_pkg = rel.endswith("__init__.py")
         found: Set[str] = set()
         for node in nodes_of(tree):
-            found.update(modules[n] for n in imported_names(node, dotted, is_pkg) if n in modules)
+            found.update(modules[n] for n in statement_modules(node, dotted.split(".") if is_pkg else dotted.split(".")[:-1]) if n in modules)
         found.discard(rel)
         graph[rel] = found
     return graph
-
-
-def imported_names(node, dotted: str, is_pkg: bool) -> List[str]:
-    """The module names one import statement may refer to (none for any other node)."""
-    import ast
-    if isinstance(node, ast.Import):
-        return [a.name for a in node.names]
-    if isinstance(node, ast.ImportFrom):
-        base = import_base(dotted.split(".") if is_pkg else dotted.split(".")[:-1], node.level, node.module)
-        return [base] + [f"{base}.{a.name}" for a in node.names]
-    return []
 
 
 def host_for(allowed: Set[Path], folder: Optional[Path], root: Path) -> Optional[Path]:
@@ -254,7 +237,7 @@ def plan(config: Config, mode: str = "beside") -> List[Move]:
     walked = intents.discover_in_structure(config)
     named = intents.named_folders(config, walked, intents.beside_folders(config))
     root = config.root.resolve()
-    allowed = {p.resolve() for p in set(hosts(config)) | set(intents.beside_folders(config))}
+    allowed = {p.resolve() for p in hosts(config)}
     owner_here = {name: {row.get(KEY_OF[name], "").strip(): (folder, owner) for row, folder, owner in found}
                   for name, found in held.items()}
     top = next((i for i in walked if i.is_top), None)

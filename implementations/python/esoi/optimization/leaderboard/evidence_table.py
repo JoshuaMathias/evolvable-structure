@@ -57,15 +57,12 @@ def seconds_label(row: Row, per_case: Optional[List[Row]]) -> str:
     """Median seconds per case when the per-case log holds exactly this run, else the total over the cases, labelled mean."""
     if held_out_parts.case_outcomes(per_case, row) is None:
         return seconds_mean(row)
-    sample = (row.get("sample") or "").strip()
     times = []
-    for r in per_case or []:
-        if (r.get("component"), r.get("impl"), r.get("cases_sha"), (r.get("sample") or "").strip()) == \
-                (row.get("component"), row.get("impl"), row.get("cases_sha"), sample):
-            try:
-                times.append(float(r.get("seconds") or ""))
-            except ValueError:
-                return seconds_mean(row)
+    for r in held_out_parts.run_rows(per_case or [], row):
+        try:
+            times.append(float(r.get("seconds") or ""))
+        except ValueError:
+            return seconds_mean(row)
     return f"{statistics.median(times):.3g} (median)" if times else seconds_mean(row)
 
 

@@ -12,7 +12,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from esoi.structure.intent_registry.import_base import import_base
+from esoi.structure.intent_registry.import_base import statement_modules
 from esoi.runtime.assemble_by_name.environment_needs.source_location import source_path
 
 
@@ -22,14 +22,10 @@ def imported_names(tree: ast.AST, module: ModuleType, path: Path, notes: List[st
     package = module.__name__ if path.name == "__init__.py" else module.__name__.rpartition(".")[0]
     names: set = set()
     for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            names.update(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom):
-            base = import_base(package.split("."), node.level, node.module)
-            names.add(base)
-            names.update(f"{base}.{alias.name}" for alias in node.names if alias.name != "*")
-        elif isinstance(node, ast.Call):
+        if isinstance(node, ast.Call):
             names.update(called_import(node, module, notes))
+        else:
+            names.update(statement_modules(node, package.split(".")))
     return sorted(name for name in names if name)
 
 

@@ -136,8 +136,7 @@ def first_choice(subject: Subject) -> Proposal:
         proposal.reason = none_reason
         return proposal
     winner_name, why_guess = rival_decisions.best_guess(rows, config.evaluation)
-    reference = max(rows.values(), key=lambda r: (int(float(r.get("cases") or 0)), r.get("date") or "", r["impl"]))
-    ranked = ranking.rank({impl: r for impl, r in rows.items() if case_identity.comparable(r, reference)})
+    ranked = ranking.rank(case_identity.comparable_with(rows, case_identity.largest_run(rows)))
     where = stage.name if stage else "the results log"
     if winner_name is None:   # exactly equal estimates, or nothing to choose from: the metric cannot break it
         proposal.reason = (f"a tie at {where}: " + ", ".join(f"{r['impl']} {r.get('passed', '')}/{r.get('cases', '')}" for r in ranked)

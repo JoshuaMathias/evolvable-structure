@@ -104,3 +104,14 @@ def is_bottom(view: View, registry: Registry, folder: Path) -> bool:
 def kind_of(view: View, registry: Registry, folder: Path) -> str:
     """How a parent page names a solution folder before the reader clicks: whether it ends there or goes deeper."""
     return "solution with implementations" if is_bottom(view, registry, folder) else "solution with implementations and parts below it"
+
+
+def solution_page_line(view: View, registry: Registry, base: Path, row: dict, folder: Optional[Path]) -> str:
+    """The list line of one solution seen from the page in ``base``: a link to its own page with its kind and purpose, or a note that it has no page."""
+    sid = row.get("solution_id", "")
+    purpose = one_line(row.get("purpose", "")) or one_line(row.get("description", ""))
+    name = one_line(row.get("name", "")) or sid
+    tail = f": {purpose}" if purpose else ""
+    if folder is not None:
+        return f"- [{name}]({link(base, folder / FILE)}) ({kind_of(view, registry, folder)})" + tail
+    return f"- {name} (solution with no page of its own, its implementations are in this intent's records)" + tail

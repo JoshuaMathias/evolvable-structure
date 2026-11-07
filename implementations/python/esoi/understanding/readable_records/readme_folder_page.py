@@ -51,12 +51,6 @@ def folder_diagram(registry: Registry, view: View, owner: str, folder: Path) -> 
     return diagram.block(shaped, Intent(owner, folder))
 
 
-def direct_children(view: View, folder: Path) -> List[Path]:
-    """The beside-code folders directly below ``folder``, with none between."""
-    return [down for _, down in view.beside
-            if folder in down.parents and not any(folder in f.parents and f in down.parents for _, f in view.beside)]
-
-
 def folder_links(view: View, owner: str, folder: Path) -> List[str]:
     config = view.config
     out: List[str] = []
@@ -68,7 +62,7 @@ def folder_links(view: View, owner: str, folder: Path) -> List[str]:
     if parent is not None:
         out.append(f"- Intent: [{one_line(parent.row.get('name', '')) or parent.intent_id}]({link(folder, parent.folder / FILE)})")
     out += [f"- Down: [{one_line(down.relative_to(config.root).as_posix())}]({link(folder, down / FILE)})"
-            for down in direct_children(view, folder)]
+            for down in readme_trail.child_folders(view, folder)]
     if (config.root / FILE).is_file():
         out.append(f"- Repository: [top README]({link(folder, config.root / FILE)})")
     return out
@@ -81,16 +75,10 @@ def one_level_below(registry: Registry, view: View, folder: Path) -> List[str]:
     lines: List[str] = [readme_trail.sub_intent_line(child, folder)
                         for child in readme_trail.sub_intents_of(view, ids_in(folder, "solutions.csv", "solution_id"))]
     for down in readme_trail.child_folders(view, folder):
-        lines += [solution_folder_line(view, registry, folder, down, sid) for sid in ids_in(down, "solutions.csv", "solution_id")]
+        for sid in ids_in(down, "solutions.csv", "solution_id"):
+            row = next((r for r in registry.every_solution() if r.get("solution_id", "") == sid), {"solution_id": sid})
+            lines.append(readme_trail.solution_page_line(view, registry, folder, row, down))
     return ["## One level below", ""] + lines + [""] if lines else []
-
-
-def solution_folder_line(view: View, registry: Registry, folder: Path, down: Path, sid: str) -> str:
-    """The list line of one solution folder directly below ``folder``: its name, kind and purpose."""
-    row = next((r for r in registry.every_solution() if r.get("solution_id", "") == sid), {})
-    purpose = one_line(row.get("purpose", "")) or one_line(row.get("description", ""))
-    return (f"- [{one_line(row.get('name', '')) or sid}]({link(folder, down / FILE)}) ({readme_trail.kind_of(view, registry, down)})"
-            + (f": {purpose}" if purpose else ""))
 
 
 def part_of_name(view: View, above: tuple) -> str:

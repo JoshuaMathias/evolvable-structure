@@ -52,14 +52,21 @@ class Intent:
 RECORD_FILES = ("problems.csv", "ideals.csv", "solutions.csv", "implementations.csv", "metrics.csv")
 
 
-def beside_folders(config: Config) -> List[Path]:
-    """The folders ``[records] beside_code`` names (paths or globs from the repository root) that hold records, in the order
-    listed, each once. The structure folder and anything inside it are never beside the code."""
+def allowed_beside_folders(config: Config) -> List[Path]:
+    """The existing folders ``[records] beside_code`` names (paths or globs from the repository root) that may hold records, in the order listed,
+    each once. The structure folder and anything inside it are never beside the code."""
     patterns = config.records.get("beside_code", []) if isinstance(config.records, dict) else []
     found: List[Path] = []
     for pattern in ([patterns] if isinstance(patterns, str) else patterns):
-        found += [p for p in sorted(config.root.glob(str(pattern))) if p not in found and holds_beside_records(config, p)]
+        for path in sorted(config.root.glob(str(pattern))):
+            if path.is_dir() and path != config.structure and config.structure not in path.parents and path not in found:
+                found.append(path)
     return found
+
+
+def beside_folders(config: Config) -> List[Path]:
+    """The folders ``allowed_beside_folders`` names that hold records, in the order listed."""
+    return [p for p in allowed_beside_folders(config) if holds_beside_records(config, p)]
 
 
 def holds_beside_records(config: Config, path: Path) -> bool:

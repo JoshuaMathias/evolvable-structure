@@ -10,7 +10,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
-from esoi.structure.intent_registry.import_base import import_base
+from esoi.structure.intent_registry.import_base import import_base, statement_modules
 from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
 from esoi.structure.intent_registry.tables import glob_re
 from esoi.structure.structure_check.coherence_paragraph import position
@@ -276,13 +276,9 @@ class Code:
         if tree is None:
             return set()
         out: Set[str] = set()
-        is_pkg = self.files[module].name == "__init__.py"
+        package = module.split(".") if self.files[module].name == "__init__.py" else module.split(".")[:-1]
         for node in walk_tops(nodes if nodes is not None else [tree]):
-            if isinstance(node, ast.Import):
-                out.update(a.name for a in node.names)
-            elif isinstance(node, ast.ImportFrom):
-                base = import_base(module.split(".") if is_pkg else module.split(".")[:-1], node.level, node.module)
-                out.update([base, *(f"{base}.{a.name}" for a in node.names)])
+            out.update(statement_modules(node, package))
         return {m for m in out if m in self.files}
 
     def typed_need(self, user: str, used: str) -> bool:

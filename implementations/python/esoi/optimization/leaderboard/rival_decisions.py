@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from esoi.optimization.leaderboard import stats
 from esoi.optimization.leaderboard.arm_kinds import is_ablation
-from esoi.optimization.leaderboard.case_identity import comparable, unverified
+from esoi.optimization.leaderboard.case_identity import comparable_with, largest_run, unverified
 from esoi.optimization.leaderboard.held_out_parts import case_numbers, case_outcomes, part_of, part_row
 from esoi.optimization.leaderboard.ranking import estimate, pass_rate, rank, uses_balanced
 from esoi.optimization.leaderboard.results_log import Row, Rows, is_partial
@@ -30,8 +30,7 @@ def best_guess(rows: Rows, eval_dir: Optional[Path] = None) -> Tuple[Optional[st
     live = {i: r for i, r in rows.items() if not is_partial(r) and not is_ablation(r, eval_dir)}
     if not live:
         return None, "no arm has a result"
-    reference = max(live.values(), key=lambda r: (int(float(r.get("cases") or 0)), r.get("date") or "", r["impl"]))
-    ranked = rank({i: r for i, r in live.items() if comparable(r, reference)})
+    ranked = rank(comparable_with(live, largest_run(live)))
     top = [r for r in ranked if estimate(r) == estimate(ranked[0])]
     shown = ", ".join(f"{r['impl']} {pass_rate(r):.3g}" for r in ranked)
     if len(top) > 1:

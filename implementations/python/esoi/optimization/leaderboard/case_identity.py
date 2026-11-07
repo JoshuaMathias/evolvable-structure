@@ -5,7 +5,7 @@ import hashlib
 import importlib.util
 import sys
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 from esoi.optimization.leaderboard.results_log import Row
 
@@ -64,6 +64,16 @@ def comparable(a: Row, b: Row) -> bool:
     """Two rows are comparable only when scored on the same cases: the same case file, the same sample and the same
     number of cases (blank == blank: legacy rows)."""
     return cases_key(a) == cases_key(b)
+
+
+def largest_run(rows: Dict[str, Row]) -> Row:
+    """The row the others are compared with: the one scored on the most cases, the newest then the last by arm name when they tie."""
+    return max(rows.values(), key=lambda r: (int(float(r.get("cases") or 0)), r.get("date") or "", r["impl"]))
+
+
+def comparable_with(rows: Dict[str, Row], reference: Row) -> Dict[str, Row]:
+    """The rows scored on the same cases and sample as ``reference`` (it included)."""
+    return {impl: r for impl, r in rows.items() if comparable(r, reference)}
 
 
 def describe_cases(row: Row) -> str:

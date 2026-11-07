@@ -57,17 +57,6 @@ def navigation(view: View, registry: Registry, intent: Intent) -> List[str]:
     return out + record_links(view, registry, intent)
 
 
-def solution_line(view: View, registry: Registry, intent: Intent, r: dict, folder: Optional[Path]) -> str:
-    """The line for one solution below an intent: a link to its own page with its kind, or a note that it has none."""
-    sid = r.get("solution_id", "")
-    purpose = one_line(r.get("purpose", "")) or one_line(r.get("description", ""))
-    name = one_line(r.get("name", "")) or sid
-    tail = f": {purpose}" if purpose else ""
-    if folder is not None:
-        return f"- [{name}]({link(intent.folder, folder / FILE)}) ({readme_trail.kind_of(view, registry, folder)})" + tail
-    return f"- {name} (solution with no page of its own, its implementations are in this intent's records)" + tail
-
-
 def one_level_below(view: View, registry: Registry, intent: Intent) -> List[str]:
     """The section naming what lies one level below the intent, each child with its kind so a reader sees before clicking whether it goes
     deeper: a sub-intent with its vision statement, a solution with its own page (a solution with implementations) with its purpose, and a
@@ -83,7 +72,7 @@ def one_level_below(view: View, registry: Registry, intent: Intent) -> List[str]
         folder = held.get(sid)
         if sid in refined or (folder is not None and readme_trail.has_page_above(view, intent, folder)):
             continue   # shown by its sub-intent, or listed on the page of the solution folder above it
-        lines.append(solution_line(view, registry, intent, r, folder))
+        lines.append(readme_trail.solution_page_line(view, registry, intent.folder, r, folder))
     if not lines:
         return []
     return ["## One level below", "", "This intent is implemented by the sub-intents and solutions below it; each shows whether it goes deeper.", ""] + lines + [""]

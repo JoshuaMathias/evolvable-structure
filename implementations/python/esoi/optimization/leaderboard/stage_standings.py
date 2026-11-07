@@ -121,10 +121,10 @@ def decide(stages: List[Stage], standing: Dict[str, Standing], eval_dir: Optiona
         return Decision(notes=["no stage has a counting result, so nothing is chosen by the metric"])
     latest = max(s.reached for s in counting.values())
     at_latest = {impl: s.rows[latest] for impl, s in counting.items() if latest in s.rows}
-    reference = max(at_latest.values(), key=lambda r: (int(float(r.get("cases") or 0)), r.get("date") or "", r["impl"]))
+    reference = case_identity.largest_run(at_latest)
     notes = [f"{impl} was scored at {stages[latest].name} on other cases or a different sample than {reference['impl']}, "
              "so it is not compared" for impl, r in sorted(at_latest.items()) if not case_identity.comparable(r, reference)]
-    ranked = ranking.rank({impl: r for impl, r in at_latest.items() if case_identity.comparable(r, reference)})
+    ranked = ranking.rank(case_identity.comparable_with(at_latest, reference))
     leader = ranked[0]["impl"]
     held = held_in_place(counting, latest, leader)
     winner = ranking.rank(held)[0]["impl"] if held else leader
