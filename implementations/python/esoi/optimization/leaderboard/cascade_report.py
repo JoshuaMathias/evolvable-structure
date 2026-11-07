@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Tuple
 
 from esoi.optimization.leaderboard import arm_selection, results_log
 from esoi.optimization.leaderboard.results_log import Row
@@ -72,10 +72,19 @@ def report_next_stages(config, stages, standing, component: str, chosen: str, sa
         say(f"  next for {impl}: {stages[index].name} ({why}): {run_command(component, impl, stages[index])}{extra}")
 
 
+def metric_arm(config, loaded, metric: dict, owners: List[str]) -> Tuple[str, str]:
+    """``(component, arm)`` a metric measures first, the arm being its owner's selected one when it has one."""
+    from esoi.structure.intent_registry import registry as registry_module
+    component, chosen = next(iter(registry_module.harness_arms(config, metric.get("command", ""))), ("", ""))
+    owner = next((s for s in loaded.solutions if s["solution_id"] in owners), None)
+    if owner is not None and component:
+        chosen = arm_selection.selected_arm(config, owner, component, loaded)[1] or chosen
+    return component, chosen
+
+
 def report_metric(config, loaded, metric: dict, stages, errors, owners: List[str], graded, history: dict, today, say: Callable[[str], None]) -> int:
     """Print one metric's cascade; returns 1 when its choice differs from the selected implementation."""
     from esoi.optimization.measurement_harness import interface as harness
-    from esoi.structure.intent_registry import registry as registry_module
     say(f"{metric.get('metric_id', '')}: {' > '.join(s.name for s in stages) or '(no valid stage)'}")
     for line in errors:
         say(f"  problem: {line}")
@@ -83,10 +92,7 @@ def report_metric(config, loaded, metric: dict, stages, errors, owners: List[str
         say(f"  note: {line}")
     for owner in owners:
         public_lines(config, loaded, owner, graded, stages, say)
-    component, chosen = next(iter(registry_module.harness_arms(config, metric.get("command", ""))), ("", ""))
-    owner = next((s for s in loaded.solutions if s["solution_id"] in owners), None)
-    if owner is not None and component:
-        chosen = arm_selection.selected_arm(config, owner, component, loaded)[1] or chosen
+    component, chosen = metric_arm(config, loaded, metric, owners)
     if not stages or not component or component not in history:
         say("  no results yet: every stage is not run" if stages else "  fix the list to read it")
         return 0
@@ -96,18 +102,23 @@ def report_metric(config, loaded, metric: dict, stages, errors, owners: List[str
     return behind
 
 
+def graded_evidence(config, today: Optional[datetime.date]) -> dict:
+    """The graded estimates of the public evidence records, or none when there are no records."""
+    from esoi.optimization.when_metrics_are_run.public_evidence import evidence_grading, evidence_records
+    rows = evidence_records.load_for(config)
+    return evidence_grading.estimates(rows, today) if rows else {}
+
+
 def run_cli(config, solution: str = "", strict: bool = False, say: Callable[[str], None] = print,
             today: Optional[datetime.date] = None) -> int:
     """``esoi cascade [SOLUTION]``: each stage, every implementation's result per stage (a stage not run says so), which
     implementation the cascade chooses against the selected one, and the next stage worth running. With ``strict`` it
     exits 1 when the chosen implementation is not the selected one."""
-    from esoi.optimization.when_metrics_are_run.public_evidence import evidence_grading, evidence_records
     from esoi.structure.intent_registry import registry as registry_module
     from esoi.structure.intent_registry.tables import ids
     loaded = registry_module.load(config)
     history = results_log.all_results(config.results_path)
-    evidence_rows = evidence_records.load_for(config)
-    graded = evidence_grading.estimates(evidence_rows, today) if evidence_rows else {}
+    graded = graded_evidence(config, today)
     found, behind = 0, 0
     for metric in loaded.metrics:
         stages, errors = load_stages(config, metric)
