@@ -102,9 +102,8 @@ def rewrite_links(text: str, source: str, pages: Dict[str, str], root: Path, rep
     return LINK.sub(replace, text)
 
 
-def sidebar(home_text: str, home_source: str, pages: Dict[str, str], docs: str, extra: Sequence[str]) -> Tuple[str, List[str]]:
-    """The sidebar: Home, then one group per category (from the folder), each page labelled as the start page labels it when it
-    links to it, in the start page's order and then alphabetically. Pages outside the four folders go under "More"."""
+def start_page_order(home_text: str, home_source: str, pages: Dict[str, str]) -> Tuple[Dict[str, str], List[str]]:
+    """The labels and the order the start page gives to the pages it links to, before its "About" section."""
     labels: Dict[str, str] = {}
     order: List[str] = []
     for line in home_text.splitlines():
@@ -117,8 +116,14 @@ def sidebar(home_text: str, home_source: str, pages: Dict[str, str], docs: str, 
             if resolved in pages and resolved not in labels:
                 labels[resolved] = label
                 order.append(resolved)
+    return labels, order
+
+
+def sidebar(home_text: str, home_source: str, pages: Dict[str, str], docs: str, extra: Sequence[str]) -> Tuple[str, List[str]]:
+    """The sidebar: Home, then one group per category (from the folder), each page labelled as the start page labels it when it
+    links to it, in the start page's order and then alphabetically. Pages outside the four folders go under "More"."""
+    labels, order = start_page_order(home_text, home_source, pages)
     lines = ["**[Home](Home)**"]
-    reached = ["Home"]
     groups = [(f"{docs}/{folder}/", title) for folder, title in CATEGORIES] + [("", "More")]
     placed: set = {home_source}
     for prefix, title in groups:
@@ -130,7 +135,6 @@ def sidebar(home_text: str, home_source: str, pages: Dict[str, str], docs: str, 
         for p in members:
             placed.add(p)
             lines.append(f"- [{labels.get(p, pages[p].replace('-', ' '))}]({pages[p]})")
-            reached.append(pages[p])
     return "\n".join(lines).strip() + "\n", [pages[p] for p in order if p in pages] + ["Home"]
 
 

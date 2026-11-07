@@ -78,56 +78,69 @@ def next_id(prefix: str, existing: List[str]) -> str:
     return f"{prefix}{(max(nums) + 1 if nums else 1):03d}"
 
 
+def assign_blank_ids(csv_rows: List[Row], sheet_rows: List[Row], prefix: str, key: str) -> List[str]:
+    """Give a sheet row with a blank id the next free one; returns the log lines."""
+    log: List[str] = []
+    all_ids = [r[key] for r in csv_rows] + [r.get(key, "") for r in sheet_rows]
+    for r in sheet_rows:
+        if not r.get(key, "").strip():
+            r[key] = next_id(prefix, all_ids)
+            all_ids.append(r[key])
+            log.append(f"  new id {r[key]} assigned to a sheet row")
+    return log
+
+
+def merge_both(i: str, header: List[str], cr: Row, sr: Row, b: Optional[str]) -> Tuple[Optional[Row], Optional[str]]:
+    """The kept row and the log line for a record present in the CSV and the sheet."""
+    hc, hs = row_hash(header, cr), row_hash(header, sr)
+    if hc == hs or hc == b:
+        return sr, (f"  {i}: changed in sheet" if hc != hs else None)
+    if hs == b:
+        return cr, f"  {i}: changed in CSV"
+    return sr, (f"  CONFLICT {i}: changed on both sides, sheet wins. CSV version was:\n"
+                + json.dumps({h: cr.get(h, "") for h in header}, ensure_ascii=False, indent=1))
+
+
+def merge_csv_only(i: str, header: List[str], cr: Row, b: Optional[str]) -> Tuple[Optional[Row], str]:
+    """The kept row (None when it is deleted) and the log line for a record only the CSV has."""
+    if b is None:
+        return cr, f"  {i}: new in CSV"
+    if row_hash(header, cr) == b:
+        return None, f"  {i}: deleted in sheet, deleting from CSV"
+    return cr, f"  {i}: deleted in sheet but changed in CSV, kept"
+
+
+def merge_sheet_only(i: str, header: List[str], sr: Row, b: Optional[str]) -> Tuple[Optional[Row], str]:
+    """The kept row (None when it is deleted) and the log line for a record only the sheet has."""
+    if b is None:
+        return sr, f"  {i}: new in sheet"
+    if row_hash(header, sr) == b:
+        return None, f"  {i}: deleted in CSV, deleting from sheet"
+    return sr, f"  {i}: deleted in CSV but changed in sheet, kept"
+
+
 def merge(csv_header: List[str], csv_rows: List[Row], sheet_header: List[str], sheet_rows: List[Row],
           base: Dict[str, str], prefix: str, key: str) -> Tuple[List[str], List[Row], List[str]]:
     """Return (header, merged rows, log lines). ``base`` is {key: hash} from the last sync."""
     header = list(csv_header) or list(sheet_header)
     header += [h for h in sheet_header if h and h not in header]
-    log: List[str] = []
-    all_ids = [r[key] for r in csv_rows] + [r.get(key, "") for r in sheet_rows]
-    for r in sheet_rows:   # a blank id in the sheet -> assign the next free one
-        if not r.get(key, "").strip():
-            r[key] = next_id(prefix, all_ids)
-            all_ids.append(r[key])
-            log.append(f"  new id {r[key]} assigned to a sheet row")
+    log = assign_blank_ids(csv_rows, sheet_rows, prefix, key)
     by_csv = {r[key]: r for r in csv_rows}
     by_sheet = {r[key]: r for r in sheet_rows}
     order = [r[key] for r in csv_rows] + [r[key] for r in sheet_rows if r[key] not in by_csv]
     out: List[Row] = []
     for i in order:
         cr, sr, b = by_csv.get(i), by_sheet.get(i), base.get(i)
-        hc = row_hash(header, cr) if cr else None
-        hs = row_hash(header, sr) if sr else None
         if cr and sr:
-            if hc == hs or hc == b:
-                out.append(sr)
-                if hc != hs:
-                    log.append(f"  {i}: changed in sheet")
-            elif hs == b:
-                out.append(cr)
-                log.append(f"  {i}: changed in CSV")
-            else:
-                out.append(sr)
-                log.append(f"  CONFLICT {i}: changed on both sides, sheet wins. CSV version was:\n"
-                           + json.dumps({h: cr.get(h, "") for h in header}, ensure_ascii=False, indent=1))
+            kept, line = merge_both(i, header, cr, sr, b)
         elif cr:
-            if b is None:
-                out.append(cr)
-                log.append(f"  {i}: new in CSV")
-            elif hc == b:
-                log.append(f"  {i}: deleted in sheet, deleting from CSV")
-            else:
-                out.append(cr)
-                log.append(f"  {i}: deleted in sheet but changed in CSV, kept")
+            kept, line = merge_csv_only(i, header, cr, b)
         else:
-            if b is None:
-                out.append(sr)
-                log.append(f"  {i}: new in sheet")
-            elif hs == b:
-                log.append(f"  {i}: deleted in CSV, deleting from sheet")
-            else:
-                out.append(sr)
-                log.append(f"  {i}: deleted in CSV but changed in sheet, kept")
+            kept, line = merge_sheet_only(i, header, sr, b)
+        if kept is not None:
+            out.append(kept)
+        if line:
+            log.append(line)
     return header, out, log
 
 
@@ -220,6 +233,27 @@ def settings(config: Config) -> Tuple[str, str]:
     return sheet_id, str(Path(credentials).expanduser())
 
 
+def read_both(api, title: str, path: Path, dry_run: bool) -> Tuple[List[str], List[Row], List[str], List[Row]]:
+    """The CSV and the sheet tab of one table; a tab not created yet in a dry run reads as empty."""
+    csv_header, csv_rows = read_table(path)
+    try:
+        sheet_header, sheet_rows = api.read(title)
+    except Exception:
+        if not dry_run:
+            raise
+        sheet_header, sheet_rows = [], []
+    return csv_header, csv_rows, sheet_header, sheet_rows
+
+
+def chosen_side(mode: str, csv_side: tuple, sheet_side: tuple, base: Dict[str, str], prefix: str, key: str) -> Tuple[List[str], List[Row], List[str]]:
+    """The header, rows and log of one table: the CSV on push, the sheet on pull, otherwise the three-way merge."""
+    if mode == "push":
+        return csv_side[0], csv_side[1], ["  CSV overwrites sheet"]
+    if mode == "pull":
+        return sheet_side[0], sheet_side[1], ["  sheet overwrites CSV"]
+    return merge(csv_side[0], csv_side[1], sheet_side[0], sheet_side[1], base, prefix, key)
+
+
 def run_sync(config: Config, api, mode: str, dry_run: bool = False, say: Callable[[str], None] = print) -> int:
     tabs = tabs_from(config)
     state_path = config.root / config.sheets.get("state_file", ".esoi_sync_state.json")
@@ -231,20 +265,8 @@ def run_sync(config: Config, api, mode: str, dry_run: bool = False, say: Callabl
         if not path.exists():   # never read a missing file as "everything deleted"
             say(f"[{title}] SKIPPED: {path.name} not found")
             continue
-        csv_header, csv_rows = read_table(path)
-        try:
-            sheet_header, sheet_rows = api.read(title)
-        except Exception:
-            if not dry_run:
-                raise
-            sheet_header, sheet_rows = [], []   # a tab not created yet in a dry run
-        if mode == "push":
-            header, rows, log = csv_header, csv_rows, ["  CSV overwrites sheet"]
-        elif mode == "pull":
-            header, rows, log = sheet_header, sheet_rows, ["  sheet overwrites CSV"]
-        else:
-            header, rows, log = merge(csv_header, csv_rows, sheet_header, sheet_rows,
-                                      state.get(title, {}).get("rows", {}), prefix, key)
+        csv_header, csv_rows, sheet_header, sheet_rows = read_both(api, title, path, dry_run)
+        header, rows, log = chosen_side(mode, (csv_header, csv_rows), (sheet_header, sheet_rows), state.get(title, {}).get("rows", {}), prefix, key)
         say(f"[{title}] csv={len(csv_rows)} sheet={len(sheet_rows)} -> {len(rows)} rows")
         for line in log:
             say(line)

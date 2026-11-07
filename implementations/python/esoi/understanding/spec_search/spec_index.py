@@ -21,7 +21,7 @@ import math
 import re
 from collections import Counter
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from esoi.structure.intent_registry import intents, registry as registry_module
 from esoi.structure.intent_registry.config import Config
@@ -97,9 +97,8 @@ def digest_of(row: Dict[str, str]) -> str:
     return hashlib.sha256(json.dumps(row, sort_keys=True).encode("utf-8")).hexdigest()[:12]
 
 
-def entries_of(config: Config) -> List[Dict[str, Any]]:
-    """One entry per record of every intent, in tree order. Links are the cells of ``*_id`` and ``*_ids`` columns that
-    name another record, and each link is also recorded on the record it points to."""
+def raw_entries(config: Config) -> List[Dict[str, Any]]:
+    """One entry per record of every intent, in tree order, each with its source row."""
     loaded = registry_module.load(config)
     rows_by_kind: Dict[str, List[Dict[str, str]]] = {
         "problem": loaded.problems, "ideal": loaded.ideals, "implementation": loaded.implementations,
@@ -113,6 +112,11 @@ def entries_of(config: Config) -> List[Dict[str, Any]]:
         for row in rows:
             if row.get(KINDS[kind], "").strip():
                 entries.append({"id": row[KINDS[kind]].strip(), "kind": kind, "intent": row.get("intent_id", ""), "source": row})
+    return entries
+
+
+def links_between(entries: List[Dict[str, Any]]) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
+    """The records each record names in its `*_id` and `*_ids` cells, and for each record the records that name it."""
     known = {e["id"] for e in entries}
     forward: Dict[str, List[str]] = {e["id"]: [] for e in entries}
     for e in entries:
@@ -126,6 +130,14 @@ def entries_of(config: Config) -> List[Dict[str, Any]]:
     for source, targets in forward.items():
         for target in targets:
             back[target].append(source)
+    return forward, back
+
+
+def entries_of(config: Config) -> List[Dict[str, Any]]:
+    """One entry per record of every intent, in tree order. Links are the cells of ``*_id`` and ``*_ids`` columns that
+    name another record, and each link is also recorded on the record it points to."""
+    entries = raw_entries(config)
+    forward, back = links_between(entries)
     out = []
     for e in entries:
         row = e.pop("source")

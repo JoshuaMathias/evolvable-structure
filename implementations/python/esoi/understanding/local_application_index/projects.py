@@ -156,6 +156,30 @@ def resolve(rows: List[Row]) -> List[Row]:
     return out
 
 
+def local_facts(path: Optional[Path]) -> Tuple[str, str, str, str]:
+    """What a local project folder says of itself: its own name and vision, the specifications folder and the first file to read."""
+    if path is None or not path.is_dir():
+        return "", "", "", ""
+    own_name, own_vision = describe(path)
+    return own_name, own_vision, structure_of(path)[0], next((c for c in START_HERE_CANDIDATES if (path / c).exists()), "")
+
+
+def project_row(location: str, project_id: str, name: str, vision: str, kind: str, specifications: str, start_here: str,
+                relations: str, notes: str) -> Row:
+    """The index row of a project: what the flags say, completed from the project's own folder when it is a local one."""
+    path = local_path(location)
+    if path is not None and path.exists():
+        path = path.resolve()
+    stored = location if is_url(location) else home_relative(path) if path is not None and path.exists() else location
+    own_name, own_vision, guessed_spec, guessed_start = local_facts(path)
+    base = path.name if path is not None and path.name else location.rstrip("/").rsplit("/", 1)[-1]
+    # a project that has a top intent record keeps its name and vision there, so the row holds them only when given
+    return {"project_id": project_id or slug(name or own_name or base),
+            "name": name or ("" if own_name else base), "vision_statement": vision,
+            "location": stored, "kind": kind or guess_kind(location), "specifications": specifications or guessed_spec,
+            "start_here": start_here or guessed_start, "relations": relations, "notes": notes}
+
+
 def add(home: Path, location: str, project_id: str = "", name: str = "", vision: str = "", kind: str = "",
         specifications: str = "", start_here: str = "", relations: str = "", notes: str = "",
         replace: bool = False) -> Row:
@@ -164,21 +188,7 @@ def add(home: Path, location: str, project_id: str = "", name: str = "", vision:
     project without one (a URL, a board, a legacy project) gets them from the flags, the name defaulting to the folder
     name."""
     home = Path(home)
-    path = local_path(location)
-    if path is not None and path.exists():
-        path = path.resolve()
-    stored = location if is_url(location) else home_relative(path) if path is not None and path.exists() else location
-    own_name, own_vision, guessed_spec, guessed_start = "", "", "", ""
-    if path is not None and path.is_dir():
-        own_name, own_vision = describe(path)
-        guessed_spec = structure_of(path)[0]
-        guessed_start = next((c for c in START_HERE_CANDIDATES if (path / c).exists()), "")
-    base = path.name if path is not None and path.name else location.rstrip("/").rsplit("/", 1)[-1]
-    # a project that has a top intent record keeps its name and vision there, so the row holds them only when given
-    row = {"project_id": project_id or slug(name or own_name or base),
-           "name": name or ("" if own_name else base), "vision_statement": vision,
-           "location": stored, "kind": kind or guess_kind(location), "specifications": specifications or guessed_spec,
-           "start_here": start_here or guessed_start, "relations": relations, "notes": notes}
+    row = project_row(location, project_id, name, vision, kind, specifications, start_here, relations, notes)
     rows = read_projects(home)
     same = [i for i, r in enumerate(rows) if r["project_id"] == row["project_id"]]
     if same and not replace:
@@ -189,6 +199,46 @@ def add(home: Path, location: str, project_id: str = "", name: str = "", vision:
         rows.append(row)
     write_projects(home, rows)
     return row
+
+
+def identity_problems(r: Row, ident: str, own_name: str, own_vision: str) -> List[str]:
+    """Problems with the name, vision statement, location and kind cells of one project."""
+    bad: List[str] = []
+    for column, source in (("name", own_name), ("vision_statement", own_vision)):
+        if source and r[column].strip() and r[column].strip() != source.strip():
+            bad.append(f"{ident}: {column} {r[column].strip()!r} disagrees with the top intent.csv of the project "
+                       f"({source.strip()!r}); empty the cell, the intent.csv is the source")
+    if not r["name"].strip() and not own_name.strip():
+        bad.append(f"{ident}: name is empty (the project has no top intent.csv with one)")
+    bad += [f"{ident}: {column} is empty" for column in ("location", "kind") if not r[column].strip()]
+    if r["kind"] and r["kind"] not in KINDS:
+        bad.append(f"{ident}: kind {r['kind']!r} is not one of {', '.join(KINDS)}")
+    return bad
+
+
+def relation_problems(r: Row, ident: str, known: List[str]) -> List[str]:
+    """Problems with the relations of one project: an unknown kind, a target outside the index, the project itself."""
+    bad: List[str] = []
+    for entry in ids(r["relations"]):
+        kind, _, target = entry.partition(":")
+        if kind not in RELATIONS:
+            bad.append(f"{ident}: relation {entry!r} has kind {kind!r}, not one of {', '.join(RELATIONS)}")
+        elif target not in known:
+            bad.append(f"{ident}: relation {entry!r} names {target!r}, which is not a project in the index")
+        elif target == ident:
+            bad.append(f"{ident}: relation {entry!r} names the project itself")
+    return bad
+
+
+def location_problems(r: Row, ident: str) -> List[str]:
+    """Problems with a local project's location, specifications and start file."""
+    root = local_path(r["location"])
+    if root is None:
+        return []
+    if not root.exists():
+        return [f"{ident}: location {r['location']} does not exist"]
+    return [f"{ident}: {column} {r[column]!r} does not exist under {r['location']}"
+            for column in ("specifications", "start_here") if r[column].strip() and root.is_dir() and not (root / r[column]).exists()]
 
 
 def check(home: Path) -> List[str]:
@@ -210,34 +260,7 @@ def check(home: Path) -> List[str]:
             bad.append("a row has no project_id")
             continue
         own_name, own_vision = sources.get(ident, ("", ""))
-        for column, source in (("name", own_name), ("vision_statement", own_vision)):
-            if source and r[column].strip() and r[column].strip() != source.strip():
-                bad.append(f"{ident}: {column} {r[column].strip()!r} disagrees with the top intent.csv of the project "
-                           f"({source.strip()!r}); empty the cell, the intent.csv is the source")
-        if not r["name"].strip() and not own_name.strip():
-            bad.append(f"{ident}: name is empty (the project has no top intent.csv with one)")
-        for column in ("location", "kind"):
-            if not r[column].strip():
-                bad.append(f"{ident}: {column} is empty")
-        if r["kind"] and r["kind"] not in KINDS:
-            bad.append(f"{ident}: kind {r['kind']!r} is not one of {', '.join(KINDS)}")
-        for entry in ids(r["relations"]):
-            kind, _, target = entry.partition(":")
-            if kind not in RELATIONS:
-                bad.append(f"{ident}: relation {entry!r} has kind {kind!r}, not one of {', '.join(RELATIONS)}")
-            elif target not in known:
-                bad.append(f"{ident}: relation {entry!r} names {target!r}, which is not a project in the index")
-            elif target == ident:
-                bad.append(f"{ident}: relation {entry!r} names the project itself")
-        root = local_path(r["location"])
-        if root is None:
-            continue
-        if not root.exists():
-            bad.append(f"{ident}: location {r['location']} does not exist")
-            continue
-        for column in ("specifications", "start_here"):
-            if r[column].strip() and root.is_dir() and not (root / r[column]).exists():
-                bad.append(f"{ident}: {column} {r[column]!r} does not exist under {r['location']}")
+        bad += identity_problems(r, ident, own_name, own_vision) + relation_problems(r, ident, known) + location_problems(r, ident)
     return bad
 
 

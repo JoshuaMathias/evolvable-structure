@@ -249,6 +249,53 @@ def rows_by_file(config: Config) -> Dict[str, List[Tuple[Row, Path, str]]]:
     return out
 
 
+def code_targets(config: Config, held, allowed: Set[Path], root: Path) -> Tuple[Dict[Tuple[str, str], Path], Dict[str, Path]]:
+    """Where each implementation and solution belongs beside its code: the wanted folders by ``(file, id)``, and the solutions' folders by id."""
+    want: Dict[Tuple[str, str], Path] = {}
+    impl_dirs: Dict[str, List[Path]] = {}
+    for row, folder, _ in held["implementations.csv"]:
+        here = code_folder(config, row.get("filepath", ""))
+        if here is not None:
+            impl_dirs.setdefault(row.get("solution_id", "").strip(), []).append(here)
+            target = host_for(allowed, here, root)
+            if target is not None:
+                want[("implementations.csv", row.get("implementation_id", "").strip())] = target
+    solution_at: Dict[str, Path] = {}
+    for row, folder, _ in held["solutions.csv"]:
+        sid = row.get("solution_id", "").strip()
+        target = host_for(allowed, common(impl_dirs.get(sid, [])), root)
+        if target is not None:
+            solution_at[sid] = target
+            want[("solutions.csv", sid)] = target
+    return want, solution_at
+
+
+def linked_targets(held, allowed: Set[Path], root: Path, owner_here, solution_at: Dict[str, Path]) -> Dict[Tuple[str, str], Path]:
+    """Where each problem, metric and ideal belongs: with the solutions it serves, and an ideal with the problems it opposes."""
+    want: Dict[Tuple[str, str], Path] = {}
+
+    def where_solutions(cell: str, fallback: Path) -> Optional[Path]:
+        places = [solution_at.get(s, owner_here["solutions.csv"].get(s, (fallback, ""))[0].resolve()) for s in ids(cell)]
+        return host_for(allowed, common(places), root) if places else None
+
+    problem_at: Dict[str, Path] = {}
+    for row, folder, _ in held["problems.csv"]:
+        target = where_solutions(row.get("solution_ids", ""), folder)
+        if target is not None:
+            problem_at[row.get("problem_id", "").strip()] = target
+            want[("problems.csv", row.get("problem_id", "").strip())] = target
+    for row, folder, _ in held["metrics.csv"]:
+        target = where_solutions(row.get("solution_ids", ""), folder)
+        if target is not None:
+            want[("metrics.csv", row.get("metric_id", "").strip())] = target
+    for row, folder, _ in held["ideals.csv"]:
+        places = [problem_at[p] for p in ids(row.get("problem_ids", "")) if p in problem_at]
+        target = host_for(allowed, common(places), root) if len(places) == len(ids(row.get("problem_ids", ""))) and places else None
+        if target is not None:
+            want[("ideals.csv", row.get("ideal_id", "").strip())] = target
+    return want
+
+
 def plan(config: Config, mode: str = "beside") -> List[Move]:
     """The records that are not in the folder they belong in. ``mode`` is ``beside`` (next to their code) or ``gather`` (all of
     the top intent's records in the structure folder)."""
@@ -257,56 +304,21 @@ def plan(config: Config, mode: str = "beside") -> List[Move]:
     held = rows_by_file(config)
     walked = intents.discover_in_structure(config)
     named = intents.named_folders(config, walked, intents.beside_folders(config))
-    allowed = set(hosts(config)) | set(intents.beside_folders(config))
     root = config.root.resolve()
-    allowed = {p.resolve() for p in allowed}
+    allowed = {p.resolve() for p in set(hosts(config)) | set(intents.beside_folders(config))}
     owner_here = {name: {row.get(KEY_OF[name], "").strip(): (folder, owner) for row, folder, owner in found}
                   for name, found in held.items()}
     top = next((i for i in walked if i.is_top), None)
+    want: Dict[Tuple[str, str], Path] = {}
+    if mode == "beside":
+        want, solution_at = code_targets(config, held, allowed, root)
+        want.update(linked_targets(held, allowed, root, owner_here, solution_at))
 
     def destination(name: str, ident: str) -> Optional[Path]:
         folder, owner = owner_here[name][ident]
         if mode == "gather":
             return config.structure if owner == (top.intent_id if top else "") else folder
         return want.get((name, ident))
-
-    want: Dict[Tuple[str, str], Path] = {}
-    if mode == "beside":
-        impl_dirs: Dict[str, List[Path]] = {}
-        for row, folder, _ in held["implementations.csv"]:
-            here = code_folder(config, row.get("filepath", ""))
-            if here is not None:
-                impl_dirs.setdefault(row.get("solution_id", "").strip(), []).append(here)
-                target = host_for(allowed, here, root)
-                if target is not None:
-                    want[("implementations.csv", row.get("implementation_id", "").strip())] = target
-        solution_at: Dict[str, Path] = {}
-        for row, folder, _ in held["solutions.csv"]:
-            sid = row.get("solution_id", "").strip()
-            target = host_for(allowed, common(impl_dirs.get(sid, [])), root)
-            if target is not None:
-                solution_at[sid] = target
-                want[("solutions.csv", sid)] = target
-
-        def where_solutions(cell: str, fallback: Path) -> Optional[Path]:
-            places = [solution_at.get(s, owner_here["solutions.csv"].get(s, (fallback, ""))[0].resolve()) for s in ids(cell)]
-            return host_for(allowed, common(places), root) if places else None
-
-        problem_at: Dict[str, Path] = {}
-        for row, folder, _ in held["problems.csv"]:
-            target = where_solutions(row.get("solution_ids", ""), folder)
-            if target is not None:
-                problem_at[row.get("problem_id", "").strip()] = target
-                want[("problems.csv", row.get("problem_id", "").strip())] = target
-        for row, folder, _ in held["metrics.csv"]:
-            target = where_solutions(row.get("solution_ids", ""), folder)
-            if target is not None:
-                want[("metrics.csv", row.get("metric_id", "").strip())] = target
-        for row, folder, _ in held["ideals.csv"]:
-            places = [problem_at[p] for p in ids(row.get("problem_ids", "")) if p in problem_at]
-            target = host_for(allowed, common(places), root) if len(places) == len(ids(row.get("problem_ids", ""))) and places else None
-            if target is not None:
-                want[("ideals.csv", row.get("ideal_id", "").strip())] = target
 
     moves: List[Move] = []
     for name, found in held.items():

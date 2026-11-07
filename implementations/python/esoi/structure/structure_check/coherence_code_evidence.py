@@ -8,7 +8,7 @@ import re
 import urllib.parse
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from esoi.structure.intent_registry.import_base import import_base
 from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
@@ -26,6 +26,23 @@ REFERENCE_LINK = re.compile(r"^[ \t]{0,3}\[[^\]\n]+\]:[ \t]*<?(\S+?)>?(?:[ \t]+.
 INCLUDE = re.compile(r"\{\{#include\s+([^\s}:]+)[^}]*\}\}|\{%[-\s]*include\s+[\"']?([^\s\"'%]+)|^[ \t]*!include[ \t]+(\S+)", re.M)
 
 
+def node_token(node: ast.AST, prose: Set[int]) -> Optional[str]:
+    """The name or string value one syntax node contributes to the executable tokens, or None."""
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.alias)):
+        return node.name
+    if isinstance(node, (ast.arg, ast.keyword)):
+        return node.arg or None
+    if isinstance(node, ast.ImportFrom):
+        return node.module or None
+    if isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in prose:
+        return node.value
+    return None
+
+
 def executable_tokens(text: str, tree, nodes=None) -> List[str]:
     """The names and string values the executable code of a Python module holds: identifiers, attributes, imported names,
     parameter and keyword names, and string literals used as values. Docstrings and any other bare string statement are
@@ -37,25 +54,8 @@ def executable_tokens(text: str, tree, nodes=None) -> List[str]:
     walked = [n for top in (nodes if nodes is not None else [tree]) for n in nodes_of(top)]
     prose = {id(n.value) for n in walked if isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant)
              and isinstance(n.value.value, str)}
-    out: List[str] = []
-    for node in walked:
-        if isinstance(node, ast.Name):
-            out.append(node.id)
-        elif isinstance(node, ast.Attribute):
-            out.append(node.attr)
-        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            out.append(node.name)
-        elif isinstance(node, ast.arg):
-            out.append(node.arg)
-        elif isinstance(node, ast.keyword) and node.arg:
-            out.append(node.arg)
-        elif isinstance(node, ast.alias):
-            out.append(node.name)
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            out.append(node.module)
-        elif isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in prose:
-            out.append(node.value)
-    return out
+    tokens = [node_token(node, prose) for node in walked]
+    return [t for t in tokens if t is not None]
 
 
 def document_targets(text: str) -> List[str]:
@@ -91,6 +91,23 @@ class Code:
     def __init__(self, cfg, solutions: Dict[str, Dict[str, str]], implementations: List[Dict[str, str]],
                  selected: Dict[str, Dict[str, str]], components: List[Dict[str, str]] = ()):
         self.root = cfg.root
+        self.read_package(cfg)
+        self.imports: Dict[str, Set[str]] = {m: self.imports_of(m) for m in self.files}
+        self.index_regions()
+        self.map_modules(solutions, implementations)
+        self.shared = {m for m in self.files if sum(1 for sid in self.modules if m in self.modules[sid]) > 1}
+        self.read_regions()
+        self.owned = self.ownership(cfg, components)
+        self.documents = self.document_files(cfg)
+        self.document_owners = self.document_ownership(cfg, components, selected)
+        self.links: Dict[str, Set[str]] = {d: self.links_of(d) for d in self.document_owners}
+        self.selected_module = {sid: self.module_of(r.get("filepath", "")) for sid, r in selected.items() if r}
+        self.interface: Dict[str, List[str]] = {sid: ids(r.get("interface_name") or "") for sid, r in solutions.items()}   # every name of the cell, never the cell as one string
+        self.declared = {sid for text in self.source.values() for sid in re.findall(r"@solution\(\s*[\"']([\w.-]+)[\"']", text)}
+        self.assemblers = {m for m, text in self.source.items() if "Assembler(" in text or "assemble_defaults(" in text}
+
+    def read_package(self, cfg) -> None:
+        """Find the package's modules and read their source, syntax trees and executable tokens."""
         pkg_dir = cfg.root / (cfg.package_dir or cfg.package or "")
         self.files: Dict[str, Path] = {}
         if cfg.package and pkg_dir.is_dir():
@@ -103,13 +120,18 @@ class Code:
         self.source = {m: f.read_text(encoding="utf-8", errors="replace") for m, f in self.files.items()}
         self.trees = {m: tree_of(self.files[m]) for m in self.source}
         self.tokens = {m: executable_tokens(text, self.trees[m]) for m, text in self.source.items()}
-        self.imports: Dict[str, Set[str]] = {m: self.imports_of(m) for m in self.files}
+
+    def index_regions(self) -> None:
+        """Index the classes each module declares for a solution: (module, solution id) to the class nodes."""
         self.region_nodes: Dict[Tuple[str, str], list] = defaultdict(list)    # (module, solution id) -> the classes it declares there
         for m, tree in self.trees.items():
             for node in (tree.body if tree is not None else []):
                 owner = declared_owner(node)
                 if owner:
                     self.region_nodes[(m, owner)].append(node)
+
+    def map_modules(self, solutions, implementations) -> None:
+        """Map each solution to the modules its implementation records and ``@implementation`` declarations name."""
         self.modules: Dict[str, Set[str]] = defaultdict(set)
         for row in implementations:
             module = self.module_of(row.get("filepath", ""))
@@ -119,21 +141,15 @@ class Code:
             for sid in re.findall(r"@implementation\(\s*[\"']([\w.-]+)[\"']", text):
                 if sid in solutions:
                     self.modules[sid].add(m)
-        self.shared = {m for m in self.files if sum(1 for sid in self.modules if m in self.modules[sid]) > 1}
+
+    def read_regions(self) -> None:
+        """Tokens and imports of each solution's own classes, in the modules several solutions share."""
         self.region_tokens: Dict[Tuple[str, str], List[str]] = {}
         self.region_imports: Dict[Tuple[str, str], Set[str]] = {}
         for (m, sid), nodes in self.region_nodes.items():
             if m in self.shared:
                 self.region_tokens[(m, sid)] = executable_tokens(self.source[m], self.trees[m], nodes)
                 self.region_imports[(m, sid)] = self.imports_of(m, nodes)
-        self.owned = self.ownership(cfg, components)
-        self.documents = self.document_files(cfg)
-        self.document_owners = self.document_ownership(cfg, components, selected)
-        self.links: Dict[str, Set[str]] = {d: self.links_of(d) for d in self.document_owners}
-        self.selected_module = {sid: self.module_of(r.get("filepath", "")) for sid, r in selected.items() if r}
-        self.interface: Dict[str, List[str]] = {sid: ids(r.get("interface_name") or "") for sid, r in solutions.items()}   # every name of the cell, never the cell as one string
-        self.declared = {sid for text in self.source.values() for sid in re.findall(r"@solution\(\s*[\"']([\w.-]+)[\"']", text)}
-        self.assemblers = {m for m, text in self.source.items() if "Assembler(" in text or "assemble_defaults(" in text}
 
     def ownership(self, cfg, components) -> Dict[str, Set[str]]:
         """{module: solutions its components.csv rows list}, by the same path globs the structure check uses. The package's own
@@ -274,6 +290,23 @@ class Code:
                     out.update(a.name for a in node.names)
         return out
 
+    def names_interface(self, user: str, used: str, modules: Set[str]) -> bool:
+        """Executable code of a module of the user names the used's id or its interface class."""
+        named = [re.compile(r"\b" + re.escape(name) + r"\b") for name in self.interface.get(used, [])]
+        return any(position(used, {}, token) >= 0 or any(pattern.search(token) for pattern in named)
+                   for m in modules for token in self.own_tokens(user, m))
+
+    def weak_evidence(self, user: str, used: str, mu: Set[str], mc: Set[str]) -> str:
+        """The weak evidence (W1 to W3) that ``user`` uses ``used``, or ''."""
+        if any(self.imports.get(y, set()) & mc for m in mu for y in self.own_imports(user, m)):
+            return "W1"
+        if mu & self.assemblers and used in self.declared:
+            return "W2"
+        for w, imported in self.imports.items():
+            if w not in mu and w not in mc and imported & mu and imported & mc:
+                return "W3"
+        return ""
+
     def evidence(self, user: str, used: str) -> str:
         """The strongest evidence that ``user`` uses ``used`` (E1 to E5, then W1, W2, W3), '' for none, 'n/a' when either end
         has no module."""
@@ -286,23 +319,13 @@ class Code:
             return ""
         if any(self.imported_by(user, m, used, mc) for m in mu):
             return "E1"
-        named = [re.compile(r"\b" + re.escape(name) + r"\b") for name in self.interface.get(used, [])]
-        for m in mu:
-            if any(position(used, {}, token) >= 0 or any(pattern.search(token) for pattern in named)
-                   for token in self.own_tokens(user, m)):
-                return "E2"
+        if self.names_interface(user, used, mu):
+            return "E2"
         if self.typed_need(user, used):
             return "E3"
         if any(self.through_owned(user, m, used, mc) for m in mu):
             return "E4"
-        if any(self.imports.get(y, set()) & mc for m in mu for y in self.own_imports(user, m)):
-            return "W1"
-        if mu & self.assemblers and used in self.declared:
-            return "W2"
-        for w, imported in self.imports.items():
-            if w not in mu and w not in mc and imported & mu and imported & mc:
-                return "W3"
-        return ""
+        return self.weak_evidence(user, used, mu, mc)
 
     def through_owned(self, user: str, module: str, used: str, used_modules: Set[str]) -> bool:
         """``user``'s part of ``module`` imports a module that only the user's component owns, and that module imports one that only

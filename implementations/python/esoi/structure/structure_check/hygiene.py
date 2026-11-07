@@ -84,15 +84,20 @@ def redact(hit: str) -> str:
     return hit[:6] + "..." if len(hit) > 9 else hit
 
 
+def email_placeholder(match: "re.Match[str]", allow: Allowances) -> bool:
+    """Whether an email hit is a role mailbox, a placeholder domain or an allowed domain."""
+    local, domain = match.group(1).lower(), match.group(2).lower()
+    if local in ROLE_MAILBOXES | set(allow.mailboxes) or any(label in PLACEHOLDER_DOMAIN_LABELS for label in domain.split(".")):
+        return True
+    return any(domain == d or domain.endswith("." + d) for d in (*ALLOWED_EMAIL_DOMAINS, *allow.email_domains))
+
+
 def is_placeholder(pattern: str, match: "re.Match[str]", allow: Allowances = Allowances()) -> bool:
     """Whether a pattern hit is a documented placeholder rather than the real thing."""
     if pattern == "machine-path":
         return (match.group(1) or match.group(2) or "").lower() in PLACEHOLDER_USERS | set(allow.users)
     if pattern == "email":
-        local, domain = match.group(1).lower(), match.group(2).lower()
-        if local in ROLE_MAILBOXES | set(allow.mailboxes) or any(label in PLACEHOLDER_DOMAIN_LABELS for label in domain.split(".")):
-            return True
-        return any(domain == d or domain.endswith("." + d) for d in (*ALLOWED_EMAIL_DOMAINS, *allow.email_domains))
+        return email_placeholder(match, allow)
     if pattern == "object-id":
         return len(set(match.group(0))) <= 3   # 000000000000000000000000 and similar fillers
     if pattern == "api-key":
@@ -101,17 +106,24 @@ def is_placeholder(pattern: str, match: "re.Match[str]", allow: Allowances = All
     return False
 
 
+def line_findings(line: str, number: int, path: str, allow: Allowances) -> List[Finding]:
+    """Every non-placeholder hit on one line."""
+    found: List[Finding] = []
+    named = [m.span() for rx in allow.patterns.values() for m in rx.finditer(line)]
+    for name, rx in {**PATTERNS, **allow.patterns}.items():
+        for match in rx.finditer(line):
+            if name == "api-key" and any(a < match.end() and match.start() < b for a, b in named):
+                continue   # the repository's own pattern already names this secret
+            if name in allow.patterns or not is_placeholder(name, match, allow):
+                found.append(Finding(path, number, name, redact(match.group(0))))
+    return found
+
+
 def scan_text(text: str, path: str = "<text>", allow: Allowances = Allowances()) -> List[Finding]:
     """Every non-placeholder hit in ``text``, one Finding per hit."""
     found: List[Finding] = []
     for number, line in enumerate(text.splitlines(), 1):
-        named = [m.span() for rx in allow.patterns.values() for m in rx.finditer(line)]
-        for name, rx in {**PATTERNS, **allow.patterns}.items():
-            for match in rx.finditer(line):
-                if name == "api-key" and any(a < match.end() and match.start() < b for a, b in named):
-                    continue   # the repository's own pattern already names this secret
-                if name in allow.patterns or not is_placeholder(name, match, allow):
-                    found.append(Finding(path, number, name, redact(match.group(0))))
+        found += line_findings(line, number, path, allow)
     for name, rx in BLOCK_PATTERNS.items():
         for match in rx.finditer(text):
             found.append(Finding(path, text.count("\n", 0, match.start()) + 1, name, redact(match.group(0))))

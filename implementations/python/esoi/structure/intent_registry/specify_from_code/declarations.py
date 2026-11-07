@@ -121,6 +121,26 @@ def scan_file(rel: str, text: str, out: Declared) -> None:
         return
 
 
+def solution_decl(sid: str, rel: str, node: ast.AST, call: ast.Call, purpose: str) -> SolutionDecl:
+    """The solution a ``@solution("id", kind=, entry=, example=)`` decorator declares on ``node``."""
+    params, returns = signature(node)
+    keywords = {k.arg: k.value for k in call.keywords if k.arg}
+    example, has_example = literal(keywords.get("example"))
+    return SolutionDecl(sid, rel, node.lineno, node.name, purpose, params, returns,
+                        node.name if isinstance(node, ast.ClassDef) else "",
+                        string_arg(keywords["kind"]) or "" if "kind" in keywords else "",
+                        string_arg(keywords["entry"]) or "" if "entry" in keywords else "",
+                        example, has_example)
+
+
+def implementation_decl(sid: str, rel: str, node: ast.AST, call: ast.Call, purpose: str) -> ImplementationDecl:
+    """The implementation an ``@implementation("id", "name")`` decorator declares on ``node``; its name defaults to the node's."""
+    given = string_arg(call.args[1]) if len(call.args) > 1 else None
+    given = given or next((string_arg(k.value) for k in call.keywords if k.arg == "name"), None)
+    name = (given or node.name).strip().lower()
+    return ImplementationDecl(sid, name, rel, node.lineno, purpose)
+
+
 def declare_decorated(rel: str, node: ast.AST, out: Declared) -> None:
     """Record the solution or implementation each ``@solution`` / ``@implementation`` decorator of a function or class declares."""
     for decorator in node.decorator_list:
@@ -131,19 +151,10 @@ def declare_decorated(rel: str, node: ast.AST, out: Declared) -> None:
         sid = string_arg(call.args[0]) or ""
         purpose = first_paragraph(ast.get_docstring(node))
         if kind == "solution":
-            params, returns = signature(node)
-            keywords = {k.arg: k.value for k in call.keywords if k.arg}
-            example, has_example = literal(keywords.get("example"))
-            out.solutions[sid] = SolutionDecl(sid, rel, node.lineno, node.name, purpose, params, returns,
-                                              node.name if isinstance(node, ast.ClassDef) else "",
-                                              string_arg(keywords["kind"]) or "" if "kind" in keywords else "",
-                                              string_arg(keywords["entry"]) or "" if "entry" in keywords else "",
-                                              example, has_example)
+            out.solutions[sid] = solution_decl(sid, rel, node, call, purpose)
         else:
-            given = string_arg(call.args[1]) if len(call.args) > 1 else None
-            given = given or next((string_arg(k.value) for k in call.keywords if k.arg == "name"), None)
-            name = (given or node.name).strip().lower()
-            out.implementations[(sid, name)] = ImplementationDecl(sid, name, rel, node.lineno, purpose)
+            decl = implementation_decl(sid, rel, node, call, purpose)
+            out.implementations[(sid, decl.name)] = decl
 
 
 def declare_registered(rel: str, node: ast.Call, out: Declared) -> None:
@@ -190,16 +201,23 @@ def scan(config: Config, files: Optional[List[str]] = None) -> Declared:
     return out
 
 
+def record_of(decl: ImplementationDecl, sid: str, records, declared: Declared):
+    """The implementation record of a declared implementation: the one with its id, else (a record whose id follows no pattern) the only one
+    whose path is the declaring file when it is also the only declaration there. None when there is none."""
+    record = records.get(decl.implementation_id)
+    if record is None:
+        alone = [r for r in records.values() if r.get("solution_id") == sid and (r.get("filepath") or "").strip() == decl.file]
+        siblings = [d for (s, _), d in declared.implementations.items() if s == sid and d.file == decl.file]
+        record = alone[0] if len(alone) == 1 and len(siblings) == 1 else None
+    return record
+
+
 def implementation_drift(decl: ImplementationDecl, sid: str, name: str, records, solutions, declared: Declared) -> List[str]:
     """S30 lines for one declared implementation: its solution is known, its record exists, and the record points at the declaring file."""
     if sid not in solutions and sid not in declared.solutions and not sid.startswith("@"):
         return [f"S30 {sid}:{name}: declared at {decl.file}:{decl.line} for a solution that is neither declared "
                 "nor in solutions.csv"]
-    record = records.get(decl.implementation_id)
-    if record is None:   # a record whose id follows no pattern still counts when its path is this file and it is alone there
-        alone = [r for r in records.values() if r.get("solution_id") == sid and (r.get("filepath") or "").strip() == decl.file]
-        siblings = [d for (s, _), d in declared.implementations.items() if s == sid and d.file == decl.file]
-        record = alone[0] if len(alone) == 1 and len(siblings) == 1 else None
+    record = record_of(decl, sid, records, declared)
     if record is None:
         return [f"S30 {decl.implementation_id}: declared at {decl.file}:{decl.line} but implementations.csv has no "
                 "such record (`esoi records sync` writes it)"]

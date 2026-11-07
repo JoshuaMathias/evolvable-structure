@@ -233,33 +233,42 @@ STOP = {"the", "and", "for", "that", "with", "this", "from", "into", "each", "wh
 HEDGES = ("should", "try to", "consider", "ideally", "if possible")
 
 
-def lint(root: Path) -> List[str]:
-    """The standard for writing standards, checked: every tag is defined, and rule and message text is plain and short."""
-    tags, problems = load_tags(root), []
-    for std in load(root):
-        for t in std.tags:
-            if t not in tags:
-                problems.append(f"{std.file}: tag '{t}' is not a row of tags.csv")
-        words = len(std.rule.split())
-        if words > 40 or not std.rule.rstrip().endswith("."):
-            problems.append(f"{std.file}: the Rule is one sentence of at most 40 words ({words} here) ending in a full stop")
-        if any(h in std.rule.lower() for h in HEDGES):
-            problems.append(f"{std.file}: the Rule states what to do, with no hedge words ({', '.join(HEDGES)})")
-        for check in std.checks:
-            if len(check.message.split()) > 45:
-                problems.append(f"{std.file}: a Check message is at most 45 words and says what to do instead")
-        for text in (std.rule, *[c.message for c in std.checks]):
-            if "\u2014" in text:
-                problems.append(f"{std.file}: no em dash in rule or message text")
-    for t in tags.values():
-        if not (t.mitigates and t.meaning and t.keywords):
-            problems.append(f"tags.csv: tag '{t.tag}' needs mitigates, meaning and keywords")
-        elif not t.meaning.lower().startswith("risk of"):
-            problems.append(f"tags.csv: tag '{t.tag}' meaning starts 'Risk of ...' (the risk the tag mitigates)")
+def standard_problems(std, tags: dict) -> List[str]:
+    """What one standard breaks of the standard for writing standards: undefined tags, a long or hedged rule, long messages, em dashes."""
+    problems = [f"{std.file}: tag '{t}' is not a row of tags.csv" for t in std.tags if t not in tags]
+    words = len(std.rule.split())
+    if words > 40 or not std.rule.rstrip().endswith("."):
+        problems.append(f"{std.file}: the Rule is one sentence of at most 40 words ({words} here) ending in a full stop")
+    if any(h in std.rule.lower() for h in HEDGES):
+        problems.append(f"{std.file}: the Rule states what to do, with no hedge words ({', '.join(HEDGES)})")
+    problems += [f"{std.file}: a Check message is at most 45 words and says what to do instead"
+                 for check in std.checks if len(check.message.split()) > 45]
+    problems += [f"{std.file}: no em dash in rule or message text" for text in (std.rule, *[c.message for c in std.checks]) if "\u2014" in text]
     return problems
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def tag_problems(t) -> List[str]:
+    """What one tag row breaks: missing mitigates, meaning or keywords, or a meaning that does not name the risk."""
+    if not (t.mitigates and t.meaning and t.keywords):
+        return [f"tags.csv: tag '{t.tag}' needs mitigates, meaning and keywords"]
+    if not t.meaning.lower().startswith("risk of"):
+        return [f"tags.csv: tag '{t.tag}' meaning starts 'Risk of ...' (the risk the tag mitigates)"]
+    return []
+
+
+def lint(root: Path) -> List[str]:
+    """The standard for writing standards, checked: every tag is defined, and rule and message text is plain and short."""
+    tags = load_tags(root)
+    problems: List[str] = []
+    for std in load(root):
+        problems += standard_problems(std, tags)
+    for t in tags.values():
+        problems += tag_problems(t)
+    return problems
+
+
+def build_parser():
+    """The command-line parser of the standards navigator."""
     import argparse
     ap = argparse.ArgumentParser(prog="esoi.understanding.spec_search.standards_nav", description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -286,7 +295,22 @@ def main(argv: Optional[List[str]] = None) -> int:
     tr.add_argument("--date", required=True)
     i = sub.add_parser("install-hook", help="write the pre-commit hook for a repository")
     i.add_argument("repo", nargs="?", default=".")
-    args = ap.parse_args(argv)
+    return ap
+
+
+def measured_report(args, root: Path) -> str:
+    """The text of the ``compare``, ``train`` and ``measure`` commands, which score the standards against a cases file."""
+    from esoi.understanding.spec_search import standards_measure
+    repo, cases = Path(args.repo).resolve(), Path(args.cases)
+    if args.cmd == "compare":
+        return standards_measure.compare_report(standards_measure.compare(root, repo, cases))
+    if args.cmd == "train":
+        return standards_measure.train(root, repo, cases, args.date)
+    return standards_measure.report(standards_measure.run(root, repo, cases, args.baseline, args.label))
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    args = build_parser().parse_args(argv)
     if args.cmd == "for-file":
         for file in args.file:
             print(for_file(Path(file), set(args.tag) or None))
@@ -295,17 +319,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.cmd == "for-task" and root:
         print(for_task(root, " ".join(args.task)))
         return 0
-    if args.cmd == "compare" and root:
-        from esoi.understanding.spec_search import standards_measure
-        print(standards_measure.compare_report(standards_measure.compare(root, Path(args.repo).resolve(), Path(args.cases))))
-        return 0
-    if args.cmd == "train" and root:
-        from esoi.understanding.spec_search import standards_measure
-        print(standards_measure.train(root, Path(args.repo).resolve(), Path(args.cases), args.date))
-        return 0
-    if args.cmd == "measure" and root:
-        from esoi.understanding.spec_search import standards_measure
-        print(standards_measure.report(standards_measure.run(root, Path(args.repo).resolve(), Path(args.cases), args.baseline, args.label)))
+    if args.cmd in ("compare", "train", "measure") and root:
+        print(measured_report(args, root))
         return 0
     if args.cmd == "lint" and root:
         problems = lint(root)

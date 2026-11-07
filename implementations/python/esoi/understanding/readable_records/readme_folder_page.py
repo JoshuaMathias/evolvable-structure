@@ -187,27 +187,33 @@ def render_folder(registry: Registry, view: View, owner: str, folder: Path) -> s
     return "\n".join(lines).rstrip() + "\n"
 
 
-def render_arms(registry: Registry, view: View, folder: Path, owners: List[Tuple[str, Path]]) -> str:
-    """The README of a folder of arm code whose records belong to an intent elsewhere: the arms it holds, each with its code and
-    the intent that owns it, and a link to every owning intent's README."""
+def arm_table(registry: Registry, view: View, folder: Path) -> List[str]:
+    """The table of the implementations whose code lies directly in this folder, with whether each is selected."""
     config = view.config
-    here = {f.resolve(): owner for owner, f in owners}
     mine = []
     for row in registry.implementations:
         path = (row.get("filepath", "") or "").split("::")[0].strip()
         if path and (config.root / path).resolve().parent == folder.resolve():
             mine.append(row)
+    chosen = {r.get("solution_id", ""): one_line(r.get("selected", "")) for r in registry.every_solution()}
+    lines = ["| Implementation | Handle | Code | Selected |", "|---|---|---|---|"]
+    for r in sorted(mine, key=lambda r: r.get("implementation_id", "")):
+        name = r.get("implementation_id", "").split(":", 1)[-1]
+        lines.append(f"| {one_line(r.get('name', '')) or r.get('implementation_id', '')} | `{r.get('implementation_id', '')}` | {code_cell(view, folder, r.get('filepath', ''))} | "
+                     f"{'selected' if chosen.get(r.get('solution_id', '')) in (name, r.get('implementation_id', '')) else ''} |")
+    return lines
+
+
+def render_arms(registry: Registry, view: View, folder: Path, owners: List[Tuple[str, Path]]) -> str:
+    """The README of a folder of arm code whose records belong to an intent elsewhere: the arms it holds, each with its code and
+    the intent that owns it, and a link to every owning intent's README."""
+    config = view.config
     lines = [f"# Arms in {folder.name}", ""]
     first = view.intent(owners[0][0]) if owners else None
     if first is not None:
         trail = [(readme_trail.label(i), i.folder) for i in readme_trail.intent_chain(view, first)] + [(f"Arms in {folder.name}", None)]
         lines += [readme_trail.breadcrumb(folder, trail), ""]
-    chosen = {r.get("solution_id", ""): one_line(r.get("selected", "")) for r in registry.every_solution()}
-    lines += ["| Implementation | Handle | Code | Selected |", "|---|---|---|---|"]
-    for r in sorted(mine, key=lambda r: r.get("implementation_id", "")):
-        name = r.get("implementation_id", "").split(":", 1)[-1]
-        lines.append(f"| {one_line(r.get('name', '')) or r.get('implementation_id', '')} | `{r.get('implementation_id', '')}` | {code_cell(view, folder, r.get('filepath', ''))} | "
-                     f"{'selected' if chosen.get(r.get('solution_id', '')) in (name, r.get('implementation_id', '')) else ''} |")
+    lines += arm_table(registry, view, folder)
     lines += ["", "## Where to go next", ""]
     for owner, owner_folder in owners:
         intent = view.intent(owner)

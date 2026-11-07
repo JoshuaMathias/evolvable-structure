@@ -22,21 +22,10 @@ def arises(view: View, intent: Intent) -> str:
     return f"This sub-intent arises as the implementation `{intent.row.get('implements', '')}` of its parent intent {where}."
 
 
-def navigation(view: View, registry: Registry, intent: Intent) -> List[str]:
-    """Where to go next: sub-intents, the parent intent, the repository's top README and the record files."""
-    if view.config is None:
-        return []
+def record_links(view: View, registry: Registry, intent: Intent) -> List[str]:
+    """The lines linking the records kept beside the code, the record files of the intent and its diagram page."""
     root = view.config.root
     out: List[str] = []
-    children = [i for i in view.intents if i.parent == intent.intent_id]
-    for child in children:
-        name = one_line(child.row.get("name", "")) or child.intent_id
-        out.append(f"- Sub-intent: [{name}]({link(intent.folder, child.folder / FILE)})")
-    parent = view.intent(intent.parent) if intent.parent else None
-    if parent is not None:
-        out.append(f"- Parent intent: [{one_line(parent.row.get('name', '')) or parent.intent_id}]({link(intent.folder, parent.folder / FILE)})")
-    if (root / FILE).is_file():
-        out.append(f"- Repository: [top README]({link(intent.folder, root / FILE)})")
     places = [folder for owner, folder in view.beside if owner == intent.intent_id]
     if places:
         out.append("- Records beside the code: " + ", ".join(f"[{one_line(folder.relative_to(root).as_posix())}]({link(intent.folder, folder / FILE)})"
@@ -49,6 +38,34 @@ def navigation(view: View, registry: Registry, intent: Intent) -> List[str]:
     if diagram.block(registry, intent):
         out.append("- Diagram page: [diagram.md](diagram.md)")
     return out
+
+
+def navigation(view: View, registry: Registry, intent: Intent) -> List[str]:
+    """Where to go next: sub-intents, the parent intent, the repository's top README and the record files."""
+    if view.config is None:
+        return []
+    root = view.config.root
+    out: List[str] = []
+    for child in [i for i in view.intents if i.parent == intent.intent_id]:
+        name = one_line(child.row.get("name", "")) or child.intent_id
+        out.append(f"- Sub-intent: [{name}]({link(intent.folder, child.folder / FILE)})")
+    parent = view.intent(intent.parent) if intent.parent else None
+    if parent is not None:
+        out.append(f"- Parent intent: [{one_line(parent.row.get('name', '')) or parent.intent_id}]({link(intent.folder, parent.folder / FILE)})")
+    if (root / FILE).is_file():
+        out.append(f"- Repository: [top README]({link(intent.folder, root / FILE)})")
+    return out + record_links(view, registry, intent)
+
+
+def solution_line(view: View, registry: Registry, intent: Intent, r: dict, folder: Optional[Path]) -> str:
+    """The line for one solution below an intent: a link to its own page with its kind, or a note that it has none."""
+    sid = r.get("solution_id", "")
+    purpose = one_line(r.get("purpose", "")) or one_line(r.get("description", ""))
+    name = one_line(r.get("name", "")) or sid
+    tail = f": {purpose}" if purpose else ""
+    if folder is not None:
+        return f"- [{name}]({link(intent.folder, folder / FILE)}) ({readme_trail.kind_of(view, registry, folder)})" + tail
+    return f"- {name} (solution with no page of its own, its implementations are in this intent's records)" + tail
 
 
 def one_level_below(view: View, registry: Registry, intent: Intent) -> List[str]:
@@ -69,12 +86,7 @@ def one_level_below(view: View, registry: Registry, intent: Intent) -> List[str]
         folder = held.get(sid)
         if sid in refined or (folder is not None and readme_trail.has_page_above(view, intent, folder)):
             continue   # shown by its sub-intent, or listed on the page of the solution folder above it
-        purpose = one_line(r.get("purpose", "")) or one_line(r.get("description", ""))
-        name = one_line(r.get("name", "")) or sid
-        if folder is not None:
-            lines.append(f"- [{name}]({link(intent.folder, folder / FILE)}) ({readme_trail.kind_of(view, registry, folder)})" + (f": {purpose}" if purpose else ""))
-        else:
-            lines.append(f"- {name} (solution with no page of its own, its implementations are in this intent's records)" + (f": {purpose}" if purpose else ""))
+        lines.append(solution_line(view, registry, intent, r, folder))
     if not lines:
         return []
     return ["## One level below", "", "This intent is implemented by the sub-intents and solutions below it; each shows whether it goes deeper.", ""] + lines + [""]
@@ -134,6 +146,23 @@ def where_cell(view: Optional[View], folder: Path, filepath: str) -> str:
     return shown
 
 
+def solution_table(registry: Registry, solutions: List[dict], level: str) -> List[str]:
+    """The table of the intent's solutions with their selected implementation and metric."""
+    lines = [f"{level} Solutions", "", "| Solution | Handle | Selected | Metric |", "|---|---|---|---|"]
+    lines += [f"| {one_line(r.get('name', '')) or r.get('solution_id', '')} | `{r.get('solution_id', '')}` | {impl_label(registry, r.get('solution_id', ''), r.get('selected', ''))} | "
+              f"{metric_names(r.get('metric', ''))} |" for r in solutions]
+    return lines + [""]
+
+
+def implementation_table(view: Optional[View], intent: Intent, implementations: List[dict], level: str) -> List[str]:
+    """The table of the intent's implementations with where each lives and the sub-intent it arises as."""
+    lines = [f"{level} Implementations", "", "| Implementation | Handle | Where | Sub-intent |", "|---|---|---|---|"]
+    lines += [f"| {one_line(r.get('name', '')) or r.get('implementation_id', '')} | `{r.get('implementation_id', '')}` | {where_cell(view, intent.folder, r.get('filepath', ''))} | "
+              f"{sub_intent_cell(view, intent, r.get('sub_intent', ''))} |"
+              for r in implementations]
+    return lines + [""]
+
+
 def record_tables(registry: Registry, intent: Intent, level: str = "##", view: Optional[View] = None) -> List[str]:
     """The full record: every problem, ideal, solution, implementation and metric of the intent, by id."""
     iid = intent.intent_id
@@ -147,15 +176,10 @@ def record_tables(registry: Registry, intent: Intent, level: str = "##", view: O
                                            for r in ideals] + [""]
     solutions = mine(registry.every_solution(), iid)
     if solutions:
-        lines += [f"{level} Solutions", "", "| Solution | Handle | Selected | Metric |", "|---|---|---|---|"]
-        lines += [f"| {one_line(r.get('name', '')) or r.get('solution_id', '')} | `{r.get('solution_id', '')}` | {impl_label(registry, r.get('solution_id', ''), r.get('selected', ''))} | "
-                  f"{metric_names(r.get('metric', ''))} |" for r in solutions] + [""]
+        lines += solution_table(registry, solutions, level)
     implementations = mine(registry.implementations, iid)
     if implementations:
-        lines += [f"{level} Implementations", "", "| Implementation | Handle | Where | Sub-intent |", "|---|---|---|---|"]
-        lines += [f"| {one_line(r.get('name', '')) or r.get('implementation_id', '')} | `{r.get('implementation_id', '')}` | {where_cell(view, intent.folder, r.get('filepath', ''))} | "
-                  f"{sub_intent_cell(view, intent, r.get('sub_intent', ''))} |"
-                  for r in implementations] + [""]
+        lines += implementation_table(view, intent, implementations, level)
     metrics = mine(registry.metrics, iid)
     if metrics:
         lines += [f"{level} Metrics", ""] + [f"- {named(r, 'metric_id')}: "

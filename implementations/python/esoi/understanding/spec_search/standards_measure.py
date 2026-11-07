@@ -59,26 +59,25 @@ def applicable(root: Path, texts: Dict[str, str]) -> Set[str]:
     return found
 
 
+def check_breaks(std, check, files: Sequence[str], commit: str, read: Reader, added: dict) -> bool:
+    """Whether what a commit added breaks one check of a standard."""
+    scope = [f for f in files if nav.matches(f, std.paths)]
+    if check.kind == "needs-test":
+        tests = nav.glob_to_regex(check.argument or "tests/**")
+        return bool(scope) and not any(tests.match(f) for f in files)
+    if check.kind == "regex":
+        pattern = re.compile(check.argument)
+        return any(pattern.search(text) for f in scope for text in added.get(f, {}).values())
+    if check.kind == "undecorated-def":
+        return any(standards_check.undecorated_defs(read(commit, f), added.get(f, {})) for f in scope)
+    return False
+
+
 def violated(root: Path, commit: str, files: Sequence[str], read: Reader, diff: Callable[[str], str]) -> Set[str]:
     """Ids of the standards whose own checks would have flagged what ``commit`` added: the objective label for work
     that actually broke a rule, taken from the code and not from anyone's opinion."""
     added = standards_check.added_lines(diff(commit))
-    found: Set[str] = set()
-    for std in nav.load(root):
-        for check in std.checks:
-            scope = [f for f in files if nav.matches(f, std.paths)]
-            if check.kind == "needs-test":
-                tests = nav.glob_to_regex(check.argument or "tests/**")
-                if scope and not any(tests.match(f) for f in files):
-                    found.add(std.id)
-            elif check.kind == "regex":
-                pattern = re.compile(check.argument)
-                if any(pattern.search(text) for f in scope for text in added.get(f, {}).values()):
-                    found.add(std.id)
-            elif check.kind == "undecorated-def":
-                if any(standards_check.undecorated_defs(read(commit, f), added.get(f, {})) for f in scope):
-                    found.add(std.id)
-    return found
+    return {std.id for std in nav.load(root) if any(check_breaks(std, check, files, commit, read, added) for check in std.checks)}
 
 
 def git_diff(repo: Path) -> Callable[[str], str]:

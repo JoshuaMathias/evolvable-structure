@@ -47,15 +47,9 @@ def resolves(view, folder, target):
     return any(i.folder.resolve() / readme_view.FILE == full for i in view.intents)
 
 
-def verdicts(text, loaded, view, intent, again):
-    vision = readme_view.one_line(intent.row.get("vision_statement", ""))
-    coherence = readme_view.one_line(intent.row.get("solution_coherence", ""))
-    screen = window(text)
-    out = {"vision": not vision or vision in screen, "coherence": not coherence or coherence[:80] in screen}
-    block = diagram.block(loaded, intent)
-    out["diagram"] = not block or "\n".join(block) in screen
+def solutions_listed(text: str, loaded, view, intent) -> bool:
+    """Whether every solution of the intent has a table row naming its entry call and its selected implementation."""
     rows = [r for r in loaded.every_solution() if r.get("intent_id", intent.intent_id) == intent.intent_id]
-    package = view.config.package
     good = True
     for r in rows:
         sid = r.get("solution_id", "")
@@ -63,7 +57,11 @@ def verdicts(text, loaded, view, intent, again):
         call = f'run("{sid}"' if sid in view.declared and (view.declared[sid].entry or view.declared[sid].kind) else (readme_view.recorded_call(r) or "no entry declared")
         picked = readme_view.one_line(r.get("selected", "")) or "none selected"
         good = good and any(call in ln and picked in ln for ln in lines)
-    out["solutions"] = good
+    return good
+
+
+def links_resolve(text: str, view, intent) -> bool:
+    """Whether every link of the page resolves and the page links the sub-intents, the parent and the repository's top page."""
     targets = [t for t in LINK.findall(text)]
     wanted = [readme_view.link(intent.folder, c.folder / readme_view.FILE) for c in view.intents if c.parent == intent.intent_id]
     parent = view.intent(intent.parent) if intent.parent else None
@@ -71,7 +69,18 @@ def verdicts(text, loaded, view, intent, again):
         wanted.append(readme_view.link(intent.folder, parent.folder / readme_view.FILE))
     if (view.config.root / readme_view.FILE).is_file():
         wanted.append(readme_view.link(intent.folder, view.config.root / readme_view.FILE))
-    out["links"] = all(resolves(view, intent.folder, t) for t in targets) and all(w in targets for w in wanted)
+    return all(resolves(view, intent.folder, t) for t in targets) and all(w in targets for w in wanted)
+
+
+def verdicts(text, loaded, view, intent, again):
+    vision = readme_view.one_line(intent.row.get("vision_statement", ""))
+    coherence = readme_view.one_line(intent.row.get("solution_coherence", ""))
+    screen = window(text)
+    out = {"vision": not vision or vision in screen, "coherence": not coherence or coherence[:80] in screen}
+    block = diagram.block(loaded, intent)
+    out["diagram"] = not block or "\n".join(block) in screen
+    out["solutions"] = solutions_listed(text, loaded, view, intent)
+    out["links"] = links_resolve(text, view, intent)
     out["finished"] = bool(text) and not re.search(r"\u2014|unconfirmed|TODO|TBD|/home/", text, re.I)
     out["pure"] = bool(text) and text == again
     top = summary(text)

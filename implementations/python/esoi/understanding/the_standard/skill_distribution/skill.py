@@ -227,6 +227,23 @@ def resolves(rel: str, token: str, files: Dict[str, str]) -> bool:
     return here in files or os.path.normpath(token) in files
 
 
+def line_leaks(rel: str, number: int, line: str, names: set, top: set, private_dirs, files: Dict[str, str], denylist) -> List[Finding]:
+    """Every leak on one line of a copied file."""
+    found: List[Finding] = []
+    for kind, rx in (("absolute-path", ABSOLUTE_PATH), ("email", EMAIL)):
+        found.extend(Finding(rel, number, kind, m.group(0)) for m in rx.finditer(line))
+    if MARKER_LEFT.search(line):
+        found.append(Finding(rel, number, "private-marker", "an unstripped private span"))
+    found.extend(Finding(rel, number, "pointer-to-unshipped-note", m.group(1)) for m in POINTER.finditer(line)
+                 if m.group(1) not in names)
+    for m in PATH_TOKEN.finditer(line):
+        first = next(part for part in m.group(1).split("/") if part != "..")
+        if first in (*top, *private_dirs) and not resolves(rel, m.group(1), files):
+            found.append(Finding(rel, number, "reference-to-a-file-not-shipped", m.group(1)))
+    found.extend(Finding(rel, number, "denied-term", term) for term, rx in denylist if rx.search(line))
+    return found
+
+
 def scan(files: Dict[str, str], denylist: List[Tuple[str, "re.Pattern[str]"]] = (), private_dirs: List[str] = ()) -> List[Finding]:
     """Every leak in a copy: generic ones always, deny-list terms when a list is given."""
     names = {rel.rsplit("/", 1)[-1] for rel in files}
@@ -234,19 +251,7 @@ def scan(files: Dict[str, str], denylist: List[Tuple[str, "re.Pattern[str]"]] = 
     found: List[Finding] = []
     for rel, text in sorted(files.items()):
         for number, line in enumerate(text.splitlines(), 1):
-            for kind, rx in (("absolute-path", ABSOLUTE_PATH), ("email", EMAIL)):
-                found.extend(Finding(rel, number, kind, m.group(0)) for m in rx.finditer(line))
-            if MARKER_LEFT.search(line):
-                found.append(Finding(rel, number, "private-marker", "an unstripped private span"))
-            found.extend(Finding(rel, number, "pointer-to-unshipped-note", m.group(1)) for m in POINTER.finditer(line)
-                         if m.group(1) not in names)
-            for m in PATH_TOKEN.finditer(line):
-                first = next(part for part in m.group(1).split("/") if part != "..")
-                if first in (*top, *private_dirs) and not resolves(rel, m.group(1), files):
-                    found.append(Finding(rel, number, "reference-to-a-file-not-shipped", m.group(1)))
-            for term, rx in denylist:
-                if rx.search(line):
-                    found.append(Finding(rel, number, "denied-term", term))
+            found += line_leaks(rel, number, line, names, top, private_dirs, files, denylist)
     return found
 
 

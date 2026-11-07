@@ -114,6 +114,45 @@ def baseline_repo(dest: Path) -> Path:
     return root
 
 
+def edit_csv(root: Path, e: dict) -> None:
+    """Apply one ``csv_*`` edit to the CSV row found by ``key_col`` == ``key``."""
+    op, path = e["op"], root / e.get("path", "")
+    rows, cols = read_rows(path), read_header(path)
+    hit = next(r for r in rows if r[e["key_col"]] == e["key"]) if op != "csv_append" else None
+    if op == "csv_cell":
+        hit[e["col"]] = e["value"].replace("{HEAD}", head_sha(root)) if "{HEAD}" in e["value"] else e["value"]
+    elif op == "csv_clone":
+        rows.append({**hit, **e["row"]})
+    elif op == "csv_drop":
+        rows.remove(hit)
+    elif op == "csv_dup":
+        rows.append(dict(hit))
+    elif op == "csv_append":
+        rows.append({c: e["row"].get(c, "") for c in cols})
+    path.write_text(csv_text(cols, rows))
+
+
+def replace_in_file(root: Path, e: dict) -> None:
+    """Replace the first occurrence of ``old`` by ``new`` in a file; the edit must apply."""
+    path = root / e.get("path", "")
+    text = path.read_text()
+    assert e["old"] in text, f"fixture edit does not apply: {e['old']!r} not in {e.get('path', '')}"
+    path.write_text(text.replace(e["old"], e["new"], 1))
+
+
+def move_file(root: Path, e: dict) -> None:
+    """Rename ``path`` to ``to``, making the folder it lands in."""
+    (root / e["to"]).parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(root / e.get("path", "")), str(root / e["to"]))
+
+
+def drop_column(root: Path, e: dict) -> None:
+    """Remove the column ``col`` from a CSV."""
+    path = root / e.get("path", "")
+    rows, cols = read_rows(path), read_header(path)
+    path.write_text(csv_text([c for c in cols if c != e["col"]], [{k: v for k, v in r.items() if k != e["col"]} for r in rows]))
+
+
 def apply_edits(root: Path, edits: List[dict]) -> None:
     """Apply declarative edits. ``write``/``append``/``replace``/``delete`` act on files; ``csv_cell``, ``csv_drop``,
     ``csv_dup``, ``csv_clone`` (a copy with the cells of ``row`` replaced) and ``csv_append`` act on a CSV row found by
@@ -121,45 +160,18 @@ def apply_edits(root: Path, edits: List[dict]) -> None:
     current short commit; ``git_commit`` commits what changed without restamping the results; ``regen`` re-runs the live
     ``--write-docs`` so a case can isolate one rule from stale generated docs; ``move`` renames ``path`` to ``to``."""
     root = Path(root)
+    simple = {"replace": replace_in_file, "move": move_file, "csv_drop_col": drop_column,
+              "write": lambda r, e: write(r, e.get("path", ""), e["content"]),
+              "append": lambda r, e: (r / e.get("path", "")).write_text((r / e.get("path", "")).read_text() + e["content"]),
+              "delete": lambda r, e: (r / e.get("path", "")).unlink(),
+              "git_record": lambda r, e: git_record(r), "git_commit": lambda r, e: git_commit(r),
+              "regen": lambda r, e: check.write_docs(config.load(r), say=lambda text: None)}
     for e in edits:
-        op, rel = e["op"], e.get("path", "")
-        path = root / rel
-        if op == "write":
-            write(root, rel, e["content"])
-        elif op == "append":
-            path.write_text(path.read_text() + e["content"])
-        elif op == "replace":
-            text = path.read_text()
-            assert e["old"] in text, f"fixture edit does not apply: {e['old']!r} not in {rel}"
-            path.write_text(text.replace(e["old"], e["new"], 1))
-        elif op == "delete":
-            path.unlink()
-        elif op == "move":
-            (root / e["to"]).parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(path), str(root / e["to"]))
-        elif op == "git_record":
-            git_record(root)
-        elif op == "git_commit":
-            git_commit(root)
-        elif op == "csv_drop_col":
-            rows, cols = read_rows(path), read_header(path)
-            path.write_text(csv_text([c for c in cols if c != e["col"]], [{k: v for k, v in r.items() if k != e["col"]} for r in rows]))
-        elif op == "regen":
-            check.write_docs(config.load(root), say=lambda text: None)
+        op = e["op"]
+        if op in simple:
+            simple[op](root, e)
         elif op.startswith("csv_"):
-            rows, cols = read_rows(path), read_header(path)
-            hit = next(r for r in rows if r[e["key_col"]] == e["key"]) if op != "csv_append" else None
-            if op == "csv_cell":
-                hit[e["col"]] = e["value"].replace("{HEAD}", head_sha(root)) if "{HEAD}" in e["value"] else e["value"]
-            elif op == "csv_clone":
-                rows.append({**hit, **e["row"]})
-            elif op == "csv_drop":
-                rows.remove(hit)
-            elif op == "csv_dup":
-                rows.append(dict(hit))
-            elif op == "csv_append":
-                rows.append({c: e["row"].get(c, "") for c in cols})
-            path.write_text(csv_text(cols, rows))
+            edit_csv(root, e)
         else:
             raise ValueError(op)
 

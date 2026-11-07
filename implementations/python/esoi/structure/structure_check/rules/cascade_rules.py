@@ -22,6 +22,11 @@ SUMMARIES = {
 }
 
 
+def differs(selected: str, decision) -> bool:
+    """Whether a standing names a winner other than the selected arm."""
+    return bool(decision.winner and selected and selected != decision.winner)
+
+
 def disagreement_lines(ctx: Context, metric: Dict[str, str], component: str, selected: str, stages, current, recorded) -> Tuple[List[str], List[str]]:
     """(problems, advice) for each solution of a metric whose selected arm is not the one its cascade chooses."""
     bad: List[str] = []
@@ -31,13 +36,11 @@ def disagreement_lines(ctx: Context, metric: Dict[str, str], component: str, sel
         owner = next((s for s in ctx.registry.solutions if s["solution_id"] == sid), None)
         if owner is not None:
             selected = arm_selection.selected_arm(ctx.config, owner, component, ctx.registry)[1] or selected   # the records' `selected`
-        if not (current.winner and selected and selected != current.winner) and not (recorded.winner and selected and selected != recorded.winner):
+        if not (differs(selected, current) or differs(selected, recorded)) or ctx.waived("S33", sid):
             continue
-        decision = current if current.winner and selected != current.winner else recorded
+        decision = current if differs(selected, current) else recorded
         line = (f"S33 {sid}: selected is {selected} but the cascade of {mid} chooses {decision.winner} "
                 f"({'; '.join(decision.notes) or 'the highest result at ' + stages[decision.stage].name})")
-        if ctx.waived("S33", sid):
-            continue
         if current.winner == recorded.winner and current.winner != selected:   # current and recorded results agree: a real disagreement
             bad.append(line + "; switch `selected` (esoi select --promote) or waive naming the pending decision")
         else:   # the choice differs only because some results were recorded on other cases, so it informs

@@ -88,6 +88,21 @@ def check_one(std: Standard, check: Check, root: Path, file: str, added: Dict[in
     return []
 
 
+def standard_findings(std, root: Path, staged: List[str], diff: dict) -> List[Finding]:
+    """The findings of one standard's checks over the staged files in its scope."""
+    findings: List[Finding] = []
+    in_scope = [f for f in staged if matches(f, std.paths)]
+    for check in std.checks:
+        if check.kind == "needs-test":
+            tests = glob_to_regex(check.argument or "tests/**")
+            if in_scope and not any(tests.match(f) for f in staged) and not any(waived_no_test(std.id, t) for f in in_scope for t in diff[f].values()):
+                findings.append(Finding(std.id, in_scope[0], 0, check.message))
+            continue
+        for f in in_scope:
+            findings += check_one(std, check, root, f, diff[f], staged)
+    return findings
+
+
 def check_staged(root: Path) -> List[Finding]:
     """Run every standard's checks over the lines the staged change adds."""
     standards = [s for s in load(root) if s.checks]
@@ -98,15 +113,7 @@ def check_staged(root: Path) -> List[Finding]:
     if folder and any(f.startswith(str(folder.relative_to(root))) for f in staged):
         findings += [Finding("standards-lint", str(folder.relative_to(root)), 0, p) for p in lint(root)]
     for std in standards:
-        in_scope = [f for f in staged if matches(f, std.paths)]
-        for check in std.checks:
-            if check.kind == "needs-test":
-                tests = glob_to_regex(check.argument or "tests/**")
-                if in_scope and not any(tests.match(f) for f in staged) and not any(waived_no_test(std.id, t) for f in in_scope for t in diff[f].values()):
-                    findings.append(Finding(std.id, in_scope[0], 0, check.message))
-                continue
-            for f in in_scope:
-                findings += check_one(std, check, root, f, diff[f], staged)
+        findings += standard_findings(std, root, staged, diff)
     return findings
 
 
