@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import time
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Tuple
 
 from esoi.optimization.measurement_harness import access
@@ -43,9 +44,21 @@ def score_one(scorer: Callable, fn: Callable, case: Dict[str, Any], meter: CallM
     return row, meter.cost_usd - cost0
 
 
-def run_cases(cases: List[Dict[str, Any]], scorer: Callable, fn: Callable, meter: CallMeter, reuse: Dict[str, Any], log: Any,
-              say: Callable[[str], None], stop_at_fail: bool) -> Tuple[List[Dict[str, Any]], Dict[str, Any], str]:
+@dataclass(frozen=True)
+class Tools:
+    """What scores the cases: the scorer and its module, the arm's function, the call meter and its offline guard, the run log and the rows to reuse."""
+    scorer: Callable
+    fn: Callable
+    score: Any
+    meter: CallMeter
+    guard: Any
+    log: Any
+    reuse: Dict[str, Any]
+
+
+def run_cases(cases: List[Dict[str, Any]], tools: Tools, say: Callable[[str], None], stop_at_fail: bool) -> Tuple[List[Dict[str, Any]], Dict[str, Any], str]:
     """Run the cases in order. Returns (rows, the spend carried over from reused rows, the reason it stopped early or '')."""
+    reuse, log = tools.reuse, tools.log
     rows: List[Dict[str, Any]] = []
     reused = new_reused()
     for case in cases:
@@ -56,7 +69,7 @@ def run_cases(cases: List[Dict[str, Any]], scorer: Callable, fn: Callable, meter
             log.case(row, spent, reused=True)
             say(f"[{row['id']:9}] {'PASS' if row['ok'] else 'FAIL'} reused from an earlier run of this implementation version")
             continue
-        row, spent = score_one(scorer, fn, case, meter)
+        row, spent = score_one(tools.scorer, tools.fn, case, tools.meter)
         rows.append(row)
         log.case(row, spent)
         say(f"[{row['id']:9}] {'PASS' if row['ok'] else 'FAIL'} calls={row['calls']} {row.get('got', '')} | {row.get('note', '')}")

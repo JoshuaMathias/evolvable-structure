@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, List
 
 from esoi.optimization.measurement_harness.case_loading import stratified_sample
@@ -37,24 +38,32 @@ def build_parser(component: str) -> argparse.ArgumentParser:
     return ap
 
 
-def failed_case_names(args: argparse.Namespace, config: Config, component: str, impl: str, cases_sha: str) -> str:
+@dataclass(frozen=True)
+class Target:
+    """What is being run: the configuration, the component, the implementation and the digest of the cases."""
+    config: Config
+    component: str
+    impl: str
+    cases_sha: str
+
+
+def failed_case_names(args: argparse.Namespace, target: Target) -> str:
     """The cases that failed last time, comma-joined, for ``--failed``; raises ``RunError`` when none are logged or other cases were named."""
     if args.only or args.sample is not None:
         raise RunError("--failed already names the cases to run (the ones that failed last); drop --only or --sample")
-    failing = run_log.failed_cases(config.root / config.runs_log, component, impl, cases_sha)
+    failing = run_log.failed_cases(target.config.root / target.config.runs_log, target.component, target.impl, target.cases_sha)
     if not failing:
-        raise RunError(f"no failing case is logged for {impl} on these cases, so there is nothing to rerun "
-                       f"(the log is {config.runs_log}); run it without --failed")
+        raise RunError(f"no failing case is logged for {target.impl} on these cases, so there is nothing to rerun "
+                       f"(the log is {target.config.runs_log}); run it without --failed")
     return ",".join(failing)
 
 
-def name_cases_to_run(args: argparse.Namespace, config: Config, component: str, impl: str, cases_sha: str,
-                      say: Callable[[str], None], guards: bool) -> None:
+def name_cases_to_run(args: argparse.Namespace, target: Target, say: Callable[[str], None], guards: bool) -> None:
     """Set ``args.only`` to the failing cases (``--failed``) or to the unsolved ones (a plain unguarded-by-flags run)."""
     if args.failed:
-        args.only = failed_case_names(args, config, component, impl, cases_sha)
+        args.only = failed_case_names(args, target)
     elif guards and not (args.only or args.sample is not None or args.record or args.force is not None):
-        unsolved = run_guards.unsolved_cases(config, component, impl)
+        unsolved = run_guards.unsolved_cases(target.config, target.component, target.impl)
         if unsolved:   # the failing cases are rerun by themselves; the whole set waits until they pass
             say(f"{len(unsolved)} case(s) failed in the latest run and have not passed since, so only those run ({', '.join(unsolved[:8])}"
                 f"{' ...' if len(unsolved) > 8 else ''}); pass --force \"reason\" to run the whole set")

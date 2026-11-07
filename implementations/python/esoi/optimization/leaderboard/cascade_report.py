@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime
+from dataclasses import dataclass
 from typing import Callable, List, Optional, Tuple
 
 from esoi.optimization.leaderboard import arm_selection, inherited_gate, results_log
@@ -82,20 +83,32 @@ def metric_arm(config, loaded, metric: dict, owners: List[str]) -> Tuple[str, st
     return component, chosen
 
 
-def report_metric(config, loaded, metric: dict, stages, errors, owners: List[str], graded, history: dict, today, say: Callable[[str], None]) -> int:
+@dataclass(frozen=True)
+class CascadeRun:
+    """What every metric's report reads: the records, the public evidence graded, the results, the day and the printer."""
+    config: object
+    loaded: object
+    graded: dict
+    history: dict
+    today: Optional[datetime.date]
+    say: Callable[[str], None]
+
+
+def report_metric(run: CascadeRun, metric: dict, stages, errors, owners: List[str]) -> int:
     """Print one metric's cascade; returns 1 when its choice differs from the selected implementation."""
+    config, loaded, history, say = run.config, run.loaded, run.history, run.say
     say(f"{metric.get('metric_id', '')}: {' > '.join(s.name for s in stages) or '(no valid stage)'}")
     for line in errors:
         say(f"  problem: {line}")
     for line in expectation_notes(stages):
         say(f"  note: {line}")
     for owner in owners:
-        public_lines(config, loaded, owner, graded, stages, say)
+        public_lines(config, loaded, owner, run.graded, stages, say)
     component, chosen = metric_arm(config, loaded, metric, owners)
     if not stages or not component or component not in history:
         say("  no results yet: every stage is not run" if stages else "  fix the list to read it")
         return 0
-    standing = standings(stages, history[component], today, lambda row: stale_reasons.stale_reason(config, component, row, True), config.evaluation)
+    standing = standings(stages, history[component], run.today, lambda row: stale_reasons.stale_reason(config, component, row, True), config.evaluation)
     behind = report_standings(config, stages, standing, component, chosen, say)
     report_next_stages(config, stages, standing, component, chosen, say)
     return behind
@@ -118,6 +131,7 @@ def run_cli(config, solution: str = "", strict: bool = False, say: Callable[[str
     loaded = registry_module.load(config)
     history = results_log.all_results(config.results_path)
     graded = graded_evidence(config, today)
+    run = CascadeRun(config, loaded, graded, history, today, say)
     found, behind = 0, 0
     for metric in loaded.metrics:
         stages, errors = load_stages(config, metric)
@@ -125,7 +139,7 @@ def run_cli(config, solution: str = "", strict: bool = False, say: Callable[[str
         if not stages and not errors or (solution and solution not in owners):
             continue
         found += 1
-        behind += report_metric(config, loaded, metric, stages, errors, owners, graded, history, today, say)
+        behind += report_metric(run, metric, stages, errors, owners)
     if solution and not found:
         say(f"no cascading conditionals are recorded for {solution}")
     return 1 if strict and behind else 0

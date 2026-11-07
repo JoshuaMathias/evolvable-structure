@@ -30,8 +30,9 @@ import argparse
 import importlib
 import json
 import time
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple
 
 from esoi.structure.intent_registry.interface import circumstances
 from esoi.optimization.leaderboard.case_identity import cases_digest
@@ -46,8 +47,8 @@ from esoi.optimization.measurement_harness.offline_guard import OfflineGuard, re
 from esoi.optimization.measurement_harness.per_case_log import write_per_case
 from esoi.optimization.measurement_harness.record_result import record_result
 from esoi.optimization.measurement_harness.record_slices import record_slices
-from esoi.optimization.measurement_harness.run_arguments import build_parser, name_cases_to_run, narrow_cases
-from esoi.optimization.measurement_harness.run_cases import run_cases
+from esoi.optimization.measurement_harness.run_arguments import Target, build_parser, name_cases_to_run, narrow_cases
+from esoi.optimization.measurement_harness.run_cases import Tools, run_cases
 from esoi.optimization.measurement_harness.run_cost import run_cost
 from esoi.optimization.measurement_harness.run_errors import RunError
 from esoi.optimization.when_metrics_are_run.interface import SIMULATED_MODEL, declared_live, declares_simulated, impl_path, run_guards, run_log
@@ -93,10 +94,24 @@ def make_meter(config: Config, component: str, impl: str, args: argparse.Namespa
     return meter, guard
 
 
-def build_summary(component: str, impl: str, config: Config, rows: List[Dict[str, Any]], cases: List[Dict[str, Any]], reused: Dict[str, Any],
-                  own_at: Tuple, started: float, meter: CallMeter, sample: str) -> Dict[str, Any]:
+@dataclass(frozen=True)
+class Run:
+    """The run being driven: what it measures, how it was asked for, the cases chosen and the foundations it composes."""
+    config: Config
+    component: str
+    impl: str
+    args: argparse.Namespace
+    say: Callable[[str], None]
+    sample: str
+    builds: list
+    circs: Any
+    cases: List[Dict[str, Any]]
+
+
+def build_summary(run: Run, rows: List[Dict[str, Any]], reused: Dict[str, Any], own_at: Tuple, started: float, meter: CallMeter) -> Dict[str, Any]:
     """The run's summary row: counts, spend (own plus reused) and the model."""
-    held = [r for r, c in zip(rows, cases) if c.get("heldout")]
+    config, component, impl = run.config, run.component, run.impl
+    held = [r for r, c in zip(rows, run.cases) if c.get("heldout")]
     return dict(component=component, impl=impl, cases=len(rows), passed=sum(bool(r["ok"]) for r in rows),
                 dev=f"{sum(bool(r['ok']) for r in rows if r not in held)}/{len(rows) - len(held)}",
                 heldout=f"{sum(bool(r['ok']) for r in held)}/{len(held)}",
@@ -105,23 +120,31 @@ def build_summary(component: str, impl: str, config: Config, rows: List[Dict[str
                 cli_reported_cost_usd=round(own_at[3] + reused["cost"], 4),
                 seconds=round(own_at[4] - started + reused["seconds"], 1),
                 model=SIMULATED_MODEL if declares_simulated(impl_path(config, component, variants.base_of(impl))) else meter.model,
-                sample=sample)
+                sample=run.sample)
 
 
-def score_summary(summary: Dict[str, Any], config: Config, component: str, parts: list, builds: list, rows: list) -> Tuple[int, int, Any]:
-    """Add the balanced score (blended with the foundation's parts when there are any); returns (passed, total, cost)."""
+class Totals(NamedTuple):
+    """What a run passed, out of how many, and what it cost."""
+    passed: int
+    total: int
+    cost: Any
+
+
+def score_summary(run: Run, summary: Dict[str, Any], parts: list, rows: list) -> Totals:
+    """Add the balanced score (blended with the foundation's parts when there are any); returns the run's totals."""
+    config, component, builds = run.config, run.component, run.builds
     cost = run_cost(config, summary, summary["model"])
     if parts:
         summary.update(foundation_parts.blend(summary, cost, parts, builds, config.balance.get(component)))
-        return summary["passed"], summary["cases"], run_cost(config, summary, summary["model"])
+        return Totals(summary["passed"], summary["cases"], run_cost(config, summary, summary["model"]))
     summary.update(balance.balanced(summary["passed"], len(rows), cost, summary["seconds"], config.balance.get(component)))
-    return summary["passed"], len(rows), cost
+    return Totals(summary["passed"], len(rows), cost)
 
 
-def say_totals(summary: Dict[str, Any], component: str, arm: str, passed: int, total: int, cost: Any, parts: list,
-               say: Callable[[str], None]) -> None:
+def say_totals(run: Run, summary: Dict[str, Any], totals: Totals, parts: list) -> None:
     """Print the run's headline line and the notes that explain how to read it."""
-    say(f"\n{component} / {arm}: {passed}/{total} passed (dev {summary['dev']}, held-out "
+    say, component, (passed, total, cost) = run.say, run.component, totals
+    say(f"\n{component} / {run.args.impl}: {passed}/{total} passed (dev {summary['dev']}, held-out "
         f"{summary['heldout']}), {summary['model_calls']} model calls, {summary['tokens_in']} in / {summary['tokens_out']} out tokens, "
         f"cost {'$' + str(cost) if cost != '' else 'unknown (no price for the model in `prices`)'}, {summary['seconds']}s")
     if parts:   # the composed headline weights each part by its share, so its counts are not the raw ones that dev and held-out add up
@@ -165,9 +188,10 @@ def run_notes(meter: CallMeter, reused: Dict[str, Any], parts: list, builds: lis
     return notes
 
 
-def record_run(summary: Dict[str, Any], config: Config, component: str, circs: Any, cases: list, rows: list, parts: list,
-               say: Callable[[str], None]) -> None:
+def record_run(run: Run, summary: Dict[str, Any], rows: list, parts: list) -> None:
     """Append the summary to the results log, with the derived slices and the foundation's per-case outcomes."""
+    config, component, circs, say = run.config, run.component, run.circs, run.say
+    cases = run.cases[:len(rows)]
     record_result(summary, config)
     say(f"recorded in {config.results}")
     if not summary["sample"].startswith("only:"):
@@ -182,9 +206,9 @@ def record_run(summary: Dict[str, Any], config: Config, component: str, circs: A
             write_per_case(config, joined)
 
 
-def finish_run(summary: Dict[str, Any], rows: list, notes: list, args: argparse.Namespace, config: Config, stopped: str,
-               say: Callable[[str], None]) -> None:
+def finish_run(run: Run, summary: Dict[str, Any], rows: list, notes: list, stopped: str) -> None:
     """Fold the notes into the details, write ``--out`` and say how a stopped run is continued."""
+    args, config, say = run.args, run.config, run.say
     if notes:
         summary["details"] = run_guards.note_details(summary.get("details", ""), notes)
     if args.out:
@@ -210,7 +234,7 @@ def open_run(component: str, argv: List[str], config: Config, say: Callable[[str
     impl = args.impl if ":" in args.impl else variants.canonical(args.impl)   # one spelling of a variant in every record
     refuse_offline_network(config, component, impl)
     cases_sha = cases_digest(component, config.evaluation)
-    name_cases_to_run(args, config, component, impl, cases_sha, say, guards)
+    name_cases_to_run(args, Target(config, component, impl, cases_sha), say, guards)
     cases = narrow_cases(args, component, cases)
     sample = sample_label(args, cases, whole)
     budget = args.max_calls if args.max_calls is not None else "none"
@@ -228,22 +252,19 @@ def foundations_to_compose(config: Config, component: str, args: Any, say: Calla
     return declared
 
 
-def measure_run(scene: tuple, work: tuple, tools: tuple, options: tuple) -> tuple:
+def measure_run(run: Run, tools: Tools) -> tuple:
     """Run the cases (and the foundation part) under the guard and the log; ``(rows, reused, stopped, own spend, parts)``.
     What was scored stays in the log when the run is stopped or crashes."""
-    config, component, impl, builds = scene
-    cases, scorer, fn, score = work
-    meter, guard, log = tools
-    reuse, args, say = options
+    meter, guard, log, args = tools.meter, tools.guard, tools.log, run.args
     parts: list = []
     if guard:
         guard.start()
     try:
         # a recorded run is a whole measurement; a development run is for fixing
-        rows, reused, stopped = run_cases(cases, scorer, fn, meter, reuse, log, say, not (args.keep_going or args.record))
+        rows, reused, stopped = run_cases(run.cases, tools, run.say, not (args.keep_going or args.record))
         own_at = (meter.calls, meter.tokens_in, meter.tokens_out, meter.cost_usd, time.time())   # the consumer's own spend, before the foundation part
-        if builds and not stopped:   # the foundation's part: reused when current, else run through the foundation's own scorer
-            parts = foundation_parts.measure(config, component, impl, fn, getattr(score, "foundation_fn", None), meter, say)
+        if run.builds and not stopped:   # the foundation's part: reused when current, else run through the foundation's own scorer
+            parts = foundation_parts.measure(run.config, run.component, run.impl, tools.fn, getattr(tools.score, "foundation_fn", None), meter, run.say)
     except BaseException as exc:   # Ctrl-C, a spent call budget or a crash
         log.end(f"stopped: {type(exc).__name__}")
         raise
@@ -269,14 +290,14 @@ def run_component(component: str, scorer: Callable, argv: List[str], config: Con
                                          recorded="yes" if args.record else "no"))
     log.begin()
     started = time.time()
-    rows, reused, stopped, own_at, parts = measure_run((config, component, impl, builds), (cases, scorer, fn, score), (meter, guard, log), (reuse, args, say))
+    run = Run(config, component, impl, args, say, sample, builds, circs, cases)
+    rows, reused, stopped, own_at, parts = measure_run(run, Tools(scorer, fn, score, meter, guard, log, reuse))
     log.end("done" if not stopped else stopped.replace("stopped at", "stopped: at"))
-    cases = cases[:len(rows)]
-    summary = build_summary(component, impl, config, rows, cases, reused, own_at, started, meter, sample)
-    passed, total, cost = score_summary(summary, config, component, parts, builds, rows)
-    say_totals(summary, component, args.impl, passed, total, cost, parts, say)
+    summary = build_summary(run, rows, reused, own_at, started, meter)
+    totals = score_summary(run, summary, parts, rows)
+    say_totals(run, summary, totals, parts)
     add_component_headline(summary, score, rows, component, say)
-    finish_run(summary, rows, notes + run_notes(meter, reused, parts, builds), args, config, stopped, say)
+    finish_run(run, summary, rows, notes + run_notes(meter, reused, parts, builds), stopped)
     if args.record:
-        record_run(summary, config, component, circs, cases, rows, parts, say)
+        record_run(run, summary, rows, parts)
     return summary, rows
