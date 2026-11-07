@@ -170,6 +170,19 @@ def handle_names(ctx: Context) -> List[str]:
     return out
 
 
+def sub_intent_shape_problems(intent) -> List[str]:
+    """S28 for a sub-intent: its folder is named by its id and it states its own opportunities."""
+    bad: List[str] = []
+    if intent.folder.name != intent.intent_id:
+        bad.append(f"S28 {intent.intent_id}: its folder is named {intent.folder.name!r}; a sub-intent's folder is "
+                   "named by its intent_id (rename the folder, or the id with every record that names it)")
+    if not intent.row.get("opportunities", "").strip():
+        bad.append(f"S28 {intent.intent_id}: a sub-intent states in `opportunities` the opportunities that do not emerge "
+                   "directly from its parent intent or the solution it implements (risks and uncertainties alone "
+                   "belong in an implementation's disadvantages or the solution's metric)")
+    return bad
+
+
 def intent_problems(ctx: Context, intent, template: List[str], by_id: Dict[str, "intents.Intent"]) -> List[str]:
     """S28 for one intent folder: one record, an id used once, the template filled, `implements` and `opportunities` as its level needs."""
     bad: List[str] = []
@@ -196,14 +209,7 @@ def intent_problems(ctx: Context, intent, template: List[str], by_id: Dict[str, 
                        "name the solution of another project's intent it implements, written @project_id/solution_id "
                        f"(optionally :implementation), and says {implements!r}")
         return bad
-    if intent.folder.name != intent.intent_id:
-        bad.append(f"S28 {intent.intent_id}: its folder is named {intent.folder.name!r}; a sub-intent's folder is "
-                   "named by its intent_id (rename the folder, or the id with every record that names it)")
-    if not intent.row.get("opportunities", "").strip():
-        bad.append(f"S28 {intent.intent_id}: a sub-intent states in `opportunities` the opportunities that do not emerge "
-                   "directly from its parent intent or the solution it implements (risks and uncertainties alone "
-                   "belong in an implementation's disadvantages or the solution's metric)")
-    return bad
+    return bad + sub_intent_shape_problems(intent)
 
 
 def sub_intent_link_problems(found: list, records: Dict[str, Dict[str, str]], by_id) -> List[str]:

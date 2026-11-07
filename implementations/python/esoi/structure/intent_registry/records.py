@@ -361,20 +361,26 @@ def check_ideal_links(rs: RecordSet) -> None:
                 rs.bad.append(f"R3 {iid}: lists problem {pid} but {pid} does not list it in ideal_ids")
 
 
-def check_solution_has(rs: RecordSet, sid: str, row: Dict[str, str]) -> None:
-    """R3 for a solution that addresses no problem (or none of its own intent), has no ideal or no metric; an adopted solution inherits these."""
-    inherits = sid in rs.adopted   # the library says what the solution is for
-    problem_ids = ids(row.get("problem_ids", ""))
-    has_problem = bool(problem_ids or ids(row.get("parent_problem_ids", "")))
-    if not has_problem and not inherits:
-        rs.bad.append(f"R3 {sid}: addresses no problem")
+def check_own_intent(rs: RecordSet, sid: str, row: Dict[str, str], problem_ids: List[str]) -> None:
+    """R3 for a solution with problems that none of its own intent's problems motivates."""
     own = row.get("intent_id", "")
-    if own and not inherits and has_problem and not any(rs.index["problem"].get(pid, {}).get("intent_id", "") == own for pid in problem_ids):
+    if own and not any(rs.index["problem"].get(pid, {}).get("intent_id", "") == own for pid in problem_ids):
         rs.bad.append(f"R3 {sid}: addresses no problem of its own intent {own} (it may also link problems of other intents, "
                       "but is motivated by at least one of its own)")
-    if not ids(row.get("ideal_ids", "")) and not ids(row.get("parent_ideal_ids", "")) and not inherits:
+
+
+def check_solution_has(rs: RecordSet, sid: str, row: Dict[str, str]) -> None:
+    """R3 for a solution that addresses no problem (or none of its own intent), has no ideal or no metric; an adopted solution inherits these."""
+    if sid in rs.adopted:   # the library says what the solution is for
+        return
+    problem_ids = ids(row.get("problem_ids", ""))
+    if not (problem_ids or ids(row.get("parent_problem_ids", ""))):
+        rs.bad.append(f"R3 {sid}: addresses no problem")
+    else:
+        check_own_intent(rs, sid, row, problem_ids)
+    if not ids(row.get("ideal_ids", "")) and not ids(row.get("parent_ideal_ids", "")):
         rs.bad.append(f"R3 {sid}: has no ideal")
-    if not ids(row.get("metric_ids", "")) and not inherits:
+    if not ids(row.get("metric_ids", "")):
         rs.bad.append(f"R3 {sid}: has no metric")
 
 

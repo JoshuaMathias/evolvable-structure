@@ -95,11 +95,8 @@ def naming_problems(para: str, mine: List[str], every_solution, uses, host_sid: 
     stray = [s for s in every_solution if s not in allowed and position(s, every_solution[s], para) >= 0]
     if stray:
         found.append(f"names solutions of other intents no edge reaches: {', '.join(stray)}")
-    crowded = []
-    for s in sentences(para):
-        n = len(named_in(s, every_solution, every_solution))
-        if n > max_names:
-            crowded.append(f"{n} in \"{s[:60]}...\"")
+    counted = [(len(named_in(s, every_solution, every_solution)), s) for s in sentences(para)]
+    crowded = [f"{n} in \"{s[:60]}...\"" for n, s in counted if n > max_names]
     if crowded:
         found.append(f"sentences naming more than {max_names} solutions: {'; '.join(crowded)}")
     return found

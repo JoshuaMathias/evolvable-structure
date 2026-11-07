@@ -253,6 +253,24 @@ def balance_problems(h: Hierarchy, mine: List[str], depth: Dict[str, int], lim: 
     return fan
 
 
+def report_row(intent, mine: List[str], inner: set, roots: List[str], depth: Dict[str, int], fan: Dict[str, int], para: str,
+               problems: Dict[str, List[str]], scores: Dict[str, object], code_recall_: Tuple[int, Optional[float]], lim: Dict[str, float]) -> Dict[str, object]:
+    """The coherence report row of one intent, from the measures taken."""
+    verdicts = scores["verdicts"]
+    import_edges, recall = code_recall_
+    return dict(
+        intent=intent.intent_id, solutions=len(mine), uses_edges=len(inner), roots=roots,
+        max_fan_out=max(fan.values() or [0]), max_depth=max(depth.values() or [0]),
+        paragraph_words=len(para.split()), paragraph_ok=not problems["paragraph"] and not problems["roots"],
+        diagram_ok=not problems["diagram"], code_edges=len(verdicts), code_edges_checkable=len(scores["checkable"]),
+        code_edges_strong=len(scores["strong"]), evidence=dict(Counter(verdicts.values())), code_precision=scores["precision"],
+        code_coverage=scores["coverage"], code_lift=scores["lift"],
+        code_lift_note="n/a (no recorded edges)" if not verdicts else "", code_import_edges=import_edges,
+        code_recall=recall,
+        verdicts=verdicts, wide={s: n for s, n in fan.items() if n > lim["max_fan_out"]},
+        deep={s: d for s, d in depth.items() if d > lim["max_depth"]}, problems={k: v for k, v in problems.items() if v})
+
+
 def intent_report(h: Hierarchy, intent, base_rate: Optional[float]) -> Dict[str, object]:
     """The coherence report of one intent: paragraph, roots, diagram, code evidence and balance."""
     lim = limits(h.cfg, intent.intent_id)   # the floors of this intent
@@ -266,20 +284,9 @@ def intent_report(h: Hierarchy, intent, base_rate: Optional[float]) -> Dict[str,
     diagram_problems(h, intent, mine, problems)
     checked = set(inner) | ({(host_sid, r) for r in roots if r in host_uses} if host_sid else set())
     scores = code_scores(h, checked, base_rate, lim, problems)
-    import_edges, recall = code_recall(h, mine)
+    recall = code_recall(h, mine)
     fan = balance_problems(h, mine, depth, lim, problems)
-    verdicts = scores["verdicts"]
-    return dict(
-        intent=intent.intent_id, solutions=len(mine), uses_edges=len(inner), roots=roots,
-        max_fan_out=max(fan.values() or [0]), max_depth=max(depth.values() or [0]),
-        paragraph_words=len(para.split()), paragraph_ok=not problems["paragraph"] and not problems["roots"],
-        diagram_ok=not problems["diagram"], code_edges=len(verdicts), code_edges_checkable=len(scores["checkable"]),
-        code_edges_strong=len(scores["strong"]), evidence=dict(Counter(verdicts.values())), code_precision=scores["precision"],
-        code_coverage=scores["coverage"], code_lift=scores["lift"],
-        code_lift_note="n/a (no recorded edges)" if not verdicts else "", code_import_edges=import_edges,
-        code_recall=recall,
-        verdicts=verdicts, wide={s: n for s, n in fan.items() if n > lim["max_fan_out"]},
-        deep={s: d for s, d in depth.items() if d > lim["max_depth"]}, problems={k: v for k, v in problems.items() if v})
+    return report_row(intent, mine, inner, roots, depth, fan, para, problems, scores, recall, lim)
 
 
 def summarize(report: List[Dict[str, object]], overall: Dict[str, float], base: Counter, base_rate: Optional[float]) -> Dict[str, object]:

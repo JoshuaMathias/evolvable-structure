@@ -139,8 +139,8 @@ def effective_ceiling(rules: Dict[str, Any], intent: str, key: str) -> float:
     return own.get(key, table.get(key, DEFAULT_CEILINGS[key]))
 
 
-def waiver_trends(config: Any, root: Path, base: str, was_on: Set[str]) -> List[Trend]:
-    """The waivers of each rule that was enabled at the base, now against then."""
+def waiver_sets(config: Any, root: Path, base: str) -> Tuple[Set[Tuple[str, str]], Set[Tuple[str, str]]]:
+    """The waivers now and at the base, each as ``(rule, path)`` pairs, across every records folder."""
     from esoi.structure.intent_registry import intents
     folders = [i.folder for i in intents.discover(config)] if config.intent_mode else [config.structure]
     now: Set[Tuple[str, str]] = set()
@@ -150,6 +150,12 @@ def waiver_trends(config: Any, root: Path, base: str, was_on: Set[str]) -> List[
         if (folder / "waivers.csv").is_file():
             now |= waivers_of((folder / "waivers.csv").read_text(encoding="utf-8"))
         before |= waivers_of(show(root, base, rel))
+    return now, before
+
+
+def waiver_trends(config: Any, root: Path, base: str, was_on: Set[str]) -> List[Trend]:
+    """The waivers of each rule that was enabled at the base, now against then."""
+    now, before = waiver_sets(config, root, base)
     out: List[Trend] = []
     for rule in RULES:
         if rule not in was_on:
@@ -163,8 +169,8 @@ def waiver_trends(config: Any, root: Path, base: str, was_on: Set[str]) -> List[
     return out
 
 
-def intent_limit_trends(base_rules: Dict[str, Any], config: Any, names: Set[str]) -> List[Trend]:
-    """The floors, and the ceilings written for one intent, that changed since the base."""
+def floor_trends(base_rules: Dict[str, Any], config: Any, names: Set[str]) -> List[Trend]:
+    """The floors of each intent that changed since the base."""
     out: List[Trend] = []
     for intent in sorted(names):
         old, new = effective(base_rules, intent), effective(config.rules, intent)
@@ -172,6 +178,12 @@ def intent_limit_trends(base_rules: Dict[str, Any], config: Any, names: Set[str]
             if old[flat] != new[flat]:
                 out.append(Trend(f"floor {key} of {intent}", old[flat], new[flat], "rose" if new[flat] > old[flat] else "fell",
                                  adverse=new[flat] < old[flat]))
+    return out
+
+
+def intent_limit_trends(base_rules: Dict[str, Any], config: Any, names: Set[str]) -> List[Trend]:
+    """The floors, and the ceilings written for one intent, that changed since the base."""
+    out = floor_trends(base_rules, config, names)
     for intent in sorted(names):   # a ceiling written for one intent in its floors table
         for key in ("max_fan_out", "max_names_per_sentence"):
             written = [((r.get("S38", {}) or {}).get("floors", {}) or {}).get(intent, {}) for r in (base_rules, config.rules)]

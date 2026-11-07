@@ -87,6 +87,12 @@ def one_level_below(registry: Registry, view: View, folder: Path) -> List[str]:
     return ["## One level below", ""] + lines + [""] if lines else []
 
 
+def part_of_name(view: View, above: tuple) -> str:
+    """The name shown for the page above: the top intent's own name when that page is the top, else the trail's label."""
+    top = next((i for i in view.intents if not i.parent), None)
+    return (one_line(top.row.get("name", "")) or top.intent_id) if above[0] == "Top" and top is not None else above[0]
+
+
 def folder_heading(registry: Registry, view: View, owner: str, folder: Path, solutions: List[dict]) -> List[str]:
     """The title, the purpose of a lone solution, the breadcrumb and the line naming the page above."""
     heading_text = one_line(solutions[0].get("name", "")) if len(solutions) == 1 else folder.name
@@ -102,9 +108,7 @@ def folder_heading(registry: Registry, view: View, owner: str, folder: Path, sol
     lines += [readme_trail.breadcrumb(folder, steps), ""]
     above = readme_trail.immediate_parent(steps)
     if above is not None:
-        top = next((i for i in view.intents if not i.parent), None)
-        shown = (one_line(top.row.get("name", "")) or top.intent_id) if above[0] == "Top" and top is not None else above[0]
-        lines += [f"Part of [{shown}]({link(folder, above[1] / FILE)})", ""]
+        lines += [f"Part of [{part_of_name(view, above)}]({link(folder, above[1] / FILE)})", ""]
     return lines
 
 

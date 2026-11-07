@@ -181,6 +181,14 @@ def problem_rows(src: Sources) -> List[Row]:
     return rows
 
 
+def result_cells(res: Optional[Row]) -> Row:
+    """The latest-result cells of an implementation row, empty when it has no recorded run."""
+    if not res:
+        return {"latest_result": "", "latest_cost_usd": "", "cases_sha": ""}
+    return {"latest_result": f"{res.get('passed', '')}/{res.get('cases', '')}", "latest_cost_usd": res.get("cost_usd", ""),
+            "cases_sha": res.get("cases_sha", "")}
+
+
 def implementation_rows(src: Sources, s: Row, comp: str, chosen_impl: str) -> Tuple[List[Row], List[str], str]:
     """The implementation rows of one solution, their ids, and the id of the selected one."""
     sid = s["solution_id"]
@@ -200,9 +208,7 @@ def implementation_rows(src: Sources, s: Row, comp: str, chosen_impl: str) -> Tu
             **{k: rec.get(k, "") for k in src.extra["implementations"]},
             **{k: rec.get(k, "") for k in fields(src.template, "implementation", True)}, "kind": kind_of(src.config, path),
             "selected": "yes" if is_sel else "",
-            "latest_result": f"{res.get('passed', '')}/{res.get('cases', '')}" if res else "",
-            "latest_cost_usd": res.get("cost_usd", "") if res else "",
-            "cases_sha": res.get("cases_sha", "") if res else "",
+            **result_cells(res),
             "auto_status": "selected" if is_sel else ("measured" if res else "unmeasured")})
     return rows, impl_ids, selected_id
 
@@ -240,6 +246,13 @@ def solution_and_implementation_rows(src: Sources) -> Tuple[List[Row], List[Row]
     return sol_rows, impls, metric_users
 
 
+def metric_status(users: List[tuple]) -> str:
+    """A metric's status from the solutions that use it: a specification when none of them records a run, measured when one has a result."""
+    if not any(u[2] for u in users):
+        return "specification"
+    return "measured" if any(u[1] for u in users) else "needs_run"
+
+
 def metric_row(src: Sources, mid: str, users: List[tuple]) -> Row:
     """The row of one metric, however many solutions it serves."""
     m = src.metric_by_id[mid]
@@ -249,9 +262,7 @@ def metric_row(src: Sources, mid: str, users: List[tuple]) -> Row:
         **{k: m.get(k, "") for k in src.extra["metrics"]},
         **{k: m.get(k, "") for k in ["metric_id"] + fields(src.template, "metric", True) + ["solution_ids", "command"]},
         "latest_result": " ".join(t for t in texts if t) if many else (texts[0] if texts else ""),
-        "auto_status": "specification" if not any(u[2] for u in users)
-        else "measured" if any(u[1] for u in users)
-        else ("needs_run" if any(u[2] for u in users) else "needs_metric")}
+        "auto_status": metric_status(users)}
 
 
 def metric_rows(src: Sources, metric_users: Dict[str, List[tuple]]) -> List[Row]:
