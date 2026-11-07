@@ -38,39 +38,58 @@ def format_rows(rows: Rows, sel: Optional[str], eval_dir: Optional[Path] = None)
     return lines
 
 
+def has_arm_or_result(row: Row, measured: set) -> bool:
+    """Whether an implementation record has code, a sub-intent that holds its specification, or a result of any component."""
+    impl_id = row.get("implementation_id", "")
+    return bool((row.get("filepath") or "").strip() or (row.get("sub_intent") or "").strip()
+                or impl_id.split(":", 1)[-1] in measured or impl_id in measured)
+
+
 def unmeasured_candidates(registry: Registry, history: Dict[str, Dict[str, List[Row]]]) -> List[str]:
     """What the leaderboard would otherwise leave out: implementations recorded with no code (an empty ``filepath``, no sub-intent
     that holds their specification) and no result of any component. Each is a rival nobody could run yet, named with its solution."""
     measured = {impl for impls in history.values() for impl in impls}
-    found = []
-    for row in registry.implementations:
-        impl_id = row.get("implementation_id", "")
-        short = impl_id.split(":", 1)[-1]
-        if (row.get("filepath") or "").strip() or (row.get("sub_intent") or "").strip() or short in measured or impl_id in measured:
-            continue
-        found.append(f"  NOT MEASURED  {row.get('solution_id', '')}: {row.get('name') or short} ({impl_id}) has no arm yet, so no result")
+    found = [f"  NOT MEASURED  {row.get('solution_id', '')}: {row.get('name') or row.get('implementation_id', '').split(':', 1)[-1]} "
+             f"({row.get('implementation_id', '')}) has no arm yet, so no result"
+             for row in registry.implementations if not has_arm_or_result(row, measured)]
     return (["\nCandidates with no arm yet (recorded, so they are not forgotten; `esoi admit` registers one, declaring its code and "
              "`esoi records sync` make it an arm)"] + found) if found else []
+
+
+def say_attested(config: Config, component: str, rows: Dict[str, Row], stale, attested, say: Callable[[str], None]) -> None:
+    """Print the rows that are current by attestation."""
+    for impl, r in sorted(rows.items()):
+        if (said := attested(config, component, impl, r.get("git_sha", ""))) and not stale(config, component, r, True):
+            say(f"  = {impl}: {said}")
+
+
+def say_comparisons(config: Config, rows: Dict[str, Row], sel: str, history: List[Row], say: Callable[[str], None]) -> None:
+    """Print each comparison of the selected arm with a rival that was made on other rows than the latest ones."""
+    for own, rival in rival_pairs(rows, sel, config.evaluation, history)[0]:
+        if own is not rows.get(sel) or rival is not rows.get(rival["impl"]):
+            say(f"  = compared on {describe_cases(own)}: {sel} {own['passed']}/{own['cases']} ({own.get('date', '')}) "
+                f"against {rival['impl']} {rival['passed']}/{rival['cases']} ({rival.get('date', '')})")
 
 
 def say_component(config: Config, component: str, rows: Dict[str, Row], sel: Optional[str], history: Dict[str, List[Row]], per_case: List[Row],
                   policy, strict: bool, say: Callable[[str], None], stale, attested) -> int:
     """Print one component's verdict, rows, comparisons and flags; returns how many flags count against a strict run."""
-    flagged = 0
     label, detail = verdict(rows, sel, config.evaluation, history, per_case, policy) if sel else ("UNMEASURED", "no selected implementation: " + best_guess(rows, config.evaluation)[1])
     say(f"{component} (selected: {sel or 'none recorded'}) {label}: {detail}")
     for line in format_rows(rows, sel, config.evaluation):
         say(line)
     if stale and attested:
-        for impl, r in sorted(rows.items()):
-            if (said := attested(config, component, impl, r.get("git_sha", ""))) and not stale(config, component, r, True):
-                say(f"  = {impl}: {said}")
+        say_attested(config, component, rows, stale, attested, say)
     if not sel:
         return 0
-    for own, rival in rival_pairs(rows, sel, config.evaluation, history)[0]:
-        if own is not rows.get(sel) or rival is not rows.get(rival["impl"]):
-            say(f"  = compared on {describe_cases(own)}: {sel} {own['passed']}/{own['cases']} ({own.get('date', '')}) "
-                f"against {rival['impl']} {rival['passed']}/{rival['cases']} ({rival.get('date', '')})")
+    say_comparisons(config, rows, sel, history, say)
+    return say_flags(config, component, (rows, sel, history, per_case, policy), strict, say, stale)
+
+
+def say_flags(config: Config, component: str, scene: tuple, strict: bool, say: Callable[[str], None], stale) -> int:
+    """Print the rivals that are not comparable, the challengers and the stale rivals; returns how many count against a strict run."""
+    rows, sel, history, per_case, policy = scene
+    flagged = 0
     for impl, why in incomparable_rivals(rows, sel, config.evaluation, history):
         flagged += 1 if strict else 0
         say(f"  ? {impl} is not comparable with {sel}: {why}; re-run both on the same sample "
@@ -97,6 +116,17 @@ def say_solutions(config: Config, registry: Registry, results: Dict, history: Di
         say(f"  {v['verdict']:<10} {title}: {v['detail']}{reason}")
 
 
+def say_complementary(config: Config, apart: Dict[str, Dict[str, Row]], selected: Dict[str, str], say: Callable[[str], None]) -> None:
+    """Print the arms that are not alternatives, each with its recorded run."""
+    if not apart:
+        return
+    say("\nComplementary arms (not alternatives; listed with their recorded run, never ranked)")
+    for component, rows in sorted(apart.items()):
+        say(f"{component}: {invariant_reason(component, config.evaluation)}")
+        for line in format_rows(rows, selected.get(component), config.evaluation):
+            say(line)
+
+
 def board(config: Config, registry: Registry, strict: bool = False, say: Callable[[str], None] = print,
           stale: Optional[Callable[[Config, str, Row, bool], str]] = None,
           attested: Optional[Callable[[Config, str, str, str], str]] = None) -> int:
@@ -117,10 +147,5 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
     say_solutions(config, registry, results, history, per_case, say)
     for line in unmeasured_candidates(registry, history):
         say(line)
-    if apart:
-        say("\nComplementary arms (not alternatives; listed with their recorded run, never ranked)")
-        for component, rows in sorted(apart.items()):
-            say(f"{component}: {invariant_reason(component, config.evaluation)}")
-            for line in format_rows(rows, selected.get(component), config.evaluation):
-                say(line)
+    say_complementary(config, apart, selected, say)
     return 1 if flagged and strict else 0
