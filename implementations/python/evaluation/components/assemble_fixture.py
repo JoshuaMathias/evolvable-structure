@@ -224,6 +224,14 @@ def substitute(text: str, pkg: str, marker: Path) -> str:
     return text.replace("PKG", pkg).replace("MARKER", repr(str(marker)))
 
 
+def write_case_files(site: Path, pkg: str, marker: Path, args: Dict[str, Any]) -> None:
+    """Write the case's files beside the package (``outside``) and inside it (``inside``), with ``PKG`` and ``MARKER`` substituted."""
+    for where, key in ((site, "outside"), (site / pkg, "inside")):
+        for relative, text in args.get(key, {}).items():
+            (where / relative).parent.mkdir(parents=True, exist_ok=True)
+            (where / relative).write_text(substitute(text, pkg, marker))
+
+
 def package_case(args: Dict[str, Any], strategy: Callable[[str, Path, Any, Dict[str, Any]], Dict[str, Any]]) -> Dict[str, Any]:
     """Run ``strategy(pkg, site, consumer, args)`` on a fresh package and report ``error`` (the exception class, '' for none),
     ``text`` (its message), the strategy's own keys, and three facts about the world afterwards: ``executed`` (a hostile file
@@ -236,10 +244,7 @@ def package_case(args: Dict[str, Any], strategy: Callable[[str, Path, Any, Dict[
         site, marker, arms = root / "site", root / "marker", root / "arms"
         module = substitute(args["snapshot_module"], pkg, marker) if args.get("snapshot_module") else None
         write_package(site, pkg, module, marker=str(arms) if args.get("count_arm_imports") else "")
-        for where, key in ((site, "outside"), (site / pkg, "inside")):
-            for relative, text in args.get(key, {}).items():
-                (where / relative).parent.mkdir(parents=True, exist_ok=True)
-                (where / relative).write_text(substitute(text, pkg, marker))
+        write_case_files(site, pkg, marker, args)
         sys.path.insert(0, str(site))
         before = list(sys.path)
         out: Dict[str, Any] = {"error": "", "text": "", "built": {}, "order": []}
@@ -250,13 +255,18 @@ def package_case(args: Dict[str, Any], strategy: Callable[[str, Path, Any, Dict[
         out["executed"], out["path_same"] = marker.exists(), sys.path == before
         out["arm_imports"] = len(arms.read_text()) if arms.exists() else 0
         out["arm_loaded"] = f"{pkg}.arms" in sys.modules
-        sys.path[:] = [p for p in sys.path if p != str(site)]
-        for name in [m for m in sys.modules if m.split(".")[0] in (pkg, f"{pkg}consumer")]:
-            sys.modules.pop(name)
-        for key in [k for k in selection_registry.REGISTRY if k[0] == pkg]:
-            selection_registry.REGISTRY.pop(key)
-        selection_registry.PROJECTS.clear()
+        forget_package(pkg, site)
     return out
+
+
+def forget_package(pkg: str, site: Path) -> None:
+    """Undo what a case did to the process: the path entry, the imported modules and the selection registry."""
+    sys.path[:] = [p for p in sys.path if p != str(site)]
+    for name in [m for m in sys.modules if m.split(".")[0] in (pkg, f"{pkg}consumer")]:
+        sys.modules.pop(name)
+    for key in [k for k in selection_registry.REGISTRY if k[0] == pkg]:
+        selection_registry.REGISTRY.pop(key)
+    selection_registry.PROJECTS.clear()
 
 
 def docs_case(args: Dict[str, Any]) -> Dict[str, Any]:

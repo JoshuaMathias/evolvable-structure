@@ -34,19 +34,34 @@ def disagreement_lines(ctx: Context, metric: Dict[str, str], component: str, sel
     advice: List[str] = []
     mid = metric.get("metric_id", "")
     for sid in ids(metric.get("solution_ids", "")):
-        owner = next((s for s in ctx.registry.solutions if s["solution_id"] == sid), None)
-        if owner is not None:
-            selected = arm_selection.selected_arm(ctx.config, owner, component, ctx.registry)[1] or selected   # the records' `selected`
+        selected = recorded_selection(ctx, sid, component, selected)
         if not (differs(selected, current) or differs(selected, recorded)) or ctx.waived("S33", sid):
             continue
-        decision = current if differs(selected, current) else recorded
-        line = (f"S33 {sid}: selected is {selected} but the cascade of {mid} chooses {decision.winner} "
-                f"({'; '.join(decision.notes) or 'the highest result at ' + stages[decision.stage].name})")
+        line = disagreement_line(sid, mid, selected, current if differs(selected, current) else recorded, stages)
         if current.winner == recorded.winner and current.winner != selected:   # current and recorded results agree: a real disagreement
             bad.append(line + "; switch `selected` (esoi select --promote) or waive naming the pending decision")
         else:   # the choice differs only because some results were recorded on other cases, so it informs
-            advice.append(line + f"; some results were recorded on other cases or changed code, so re-run `esoi run {component} --impl {selected} --record` when the decision depends on it")
+            advice.append(line + advice_tail(component, selected))
     return bad, advice
+
+
+def recorded_selection(ctx: Context, sid: str, component: str, selected: str) -> str:
+    """The arm the records' `selected` names for the solution, else the one given."""
+    owner = next((s for s in ctx.registry.solutions if s["solution_id"] == sid), None)
+    if owner is None:
+        return selected
+    return arm_selection.selected_arm(ctx.config, owner, component, ctx.registry)[1] or selected
+
+
+def disagreement_line(sid: str, mid: str, selected: str, decision, stages) -> str:
+    """The S33 line saying the selected arm is not the one the cascade chooses, with the cascade's reasons."""
+    return (f"S33 {sid}: selected is {selected} but the cascade of {mid} chooses {decision.winner} "
+            f"({'; '.join(decision.notes) or 'the highest result at ' + stages[decision.stage].name})")
+
+
+def advice_tail(component: str, selected: str) -> str:
+    """The advice appended to a disagreement that only informs."""
+    return f"; some results were recorded on other cases or changed code, so re-run `esoi run {component} --impl {selected} --record` when the decision depends on it"
 
 
 def run(ctx: Context) -> list:

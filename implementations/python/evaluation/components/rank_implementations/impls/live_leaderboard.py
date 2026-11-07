@@ -17,6 +17,12 @@ def rank(args):
             "unverified": [i for i, r in rows.items() if case_identity.unverified(r)]}
 
 
+def case_rows(name: str, rows: dict, outcomes: dict) -> list:
+    """One per-case row for each recorded outcome of each implementation."""
+    return [{"component": name, "impl": impl, "cases_sha": rows[impl].get("cases_sha", ""), "sample": rows[impl].get("sample", ""),
+             "case_id": f"k{i}", "ok": "1" if ok else "0"} for impl, found in outcomes.items() for i, ok in enumerate(found)]
+
+
 def verdict(args):
     listed = [{"date": "d", "component": "mini", **r} for r in args["rows"]]   # in the order recorded
     history = {}
@@ -26,9 +32,7 @@ def verdict(args):
     with harness_fixture.mini_component(markers=args.get("markers")) as (config, name):
         for row in rows.values():
             row["component"] = name
-        per_case = [{"component": name, "impl": impl, "cases_sha": rows[impl].get("cases_sha", ""), "sample": rows[impl].get("sample", ""),
-                     "case_id": f"k{i}", "ok": "1" if ok else "0"} for impl, found in (args.get("outcomes") or {}).items()
-                    for i, ok in enumerate(found)]
+        per_case = case_rows(name, rows, args.get("outcomes") or {})
         policy = switching_policy.Policy(alpha=args.get("alpha", switching_policy.ALPHA), require_significance=args.get("require_significance", False))
         label, detail = verdict_labels.verdict(rows, args["selected"], config.evaluation, history, per_case, policy)
         return {"verdict": label, "text": detail,

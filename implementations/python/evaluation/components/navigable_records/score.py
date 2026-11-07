@@ -60,14 +60,20 @@ def hop(root, goal_folder, solution_id, files):
     return wanted <= reached
 
 
+def spec_folder(held: dict, sid: str, repo: str):
+    """The folder that holds the solution's record; LookupError when the repository has none."""
+    spec = next((folder for row, folder, _ in held["solutions.csv"] if row.get("solution_id", "").strip() == sid), None)
+    if spec is None:
+        raise LookupError(f"no solution {sid} in {repo}")
+    return spec
+
+
 def verdicts(arm, args, again):
     cfg, loaded = navigable_fixture.load(args["repo"], arm)
     root, digest = navigable_fixture.layout(args["repo"], arm)
     held = besidecode.rows_by_file(cfg)
     sid = args["solution"]
-    spec = next((folder for row, folder, _ in held["solutions.csv"] if row.get("solution_id", "").strip() == sid), None)
-    if spec is None:
-        raise LookupError(f"no solution {sid} in {args['repo']}")
+    spec = spec_folder(held, sid, args["repo"])
     mine = [(row, folder) for row, folder, _ in held["implementations.csv"] if row.get("solution_id", "").strip() == sid]
     code = [c for c in (besidecode.code_folder(cfg, row.get("filepath", "")) for row, _ in mine) if c is not None]
     out = {"together": all(distance(spec, c) <= 1 for c in code)}

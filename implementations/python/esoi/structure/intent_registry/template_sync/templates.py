@@ -452,21 +452,30 @@ def wanted_files(config: Config, path: Path, skill_text: str, rows: List[Dict[st
     return wanted
 
 
-def sync(config: Config, source: Optional[str] = None, check: bool = False, say: Callable[[str], None] = print) -> int:
-    """Write (or with ``check`` only compare) the parsed template and every generated document. Exit codes: 0 ok,
-    1 stale, 2 source not found."""
+def read_source(config: Config, source: Optional[str], say: Callable[[str], None]):
+    """(path, text, parsed rows) of the template source, or None after saying why it cannot be used."""
     path = config.template_source_path(source)
     if path is None or not path.exists():
         say(f"template source not found ({path.name if path else 'none configured'}); set template_source in the "
             "config, ESOI_TEMPLATE_SOURCE, or pass --source")
-        return 2
+        return None
     skill_text = path.read_text(encoding="utf-8")
     rows, notes = parse(skill_text)
     for note in notes:
         say(f"note: {note}")
     if not rows:
         say("nothing parsed; refusing to write")
+        return None
+    return path, skill_text, rows
+
+
+def sync(config: Config, source: Optional[str] = None, check: bool = False, say: Callable[[str], None] = print) -> int:
+    """Write (or with ``check`` only compare) the parsed template and every generated document. Exit codes: 0 ok,
+    1 stale, 2 source not found."""
+    parsed = read_source(config, source, say)
+    if parsed is None:
         return 2
+    path, skill_text, rows = parsed
     wanted = wanted_files(config, path, skill_text, rows)
     stale = [p for p, text in wanted.items() if not p.exists() or p.read_text(encoding="utf-8") != text]
     if check:

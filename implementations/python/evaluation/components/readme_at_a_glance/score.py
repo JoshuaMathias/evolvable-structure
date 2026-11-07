@@ -50,14 +50,16 @@ def resolves(view, folder, target):
 def solutions_listed(text: str, loaded, view, intent) -> bool:
     """Whether every solution of the intent has a table row naming its entry call and its selected implementation."""
     rows = [r for r in loaded.every_solution() if r.get("intent_id", intent.intent_id) == intent.intent_id]
-    good = True
-    for r in rows:
-        sid = r.get("solution_id", "")
-        lines = [ln for ln in text.splitlines() if f"`{sid}`" in ln and ln.startswith("|")]
-        call = f'run("{sid}"' if sid in view.declared and (view.declared[sid].entry or view.declared[sid].kind) else (readme_view.recorded_call(r) or "no entry declared")
-        picked = readme_view.one_line(r.get("selected", "")) or "none selected"
-        good = good and any(call in ln and picked in ln for ln in lines)
-    return good
+    return all(row_listed(text, r, view) for r in rows)
+
+
+def row_listed(text: str, r: dict, view) -> bool:
+    """Whether a table row names the solution's entry call and its selected implementation."""
+    sid = r.get("solution_id", "")
+    lines = [ln for ln in text.splitlines() if f"`{sid}`" in ln and ln.startswith("|")]
+    call = f'run("{sid}"' if sid in view.declared and (view.declared[sid].entry or view.declared[sid].kind) else (readme_view.recorded_call(r) or "no entry declared")
+    picked = readme_view.one_line(r.get("selected", "")) or "none selected"
+    return any(call in ln and picked in ln for ln in lines)
 
 
 def links_resolve(text: str, view, intent) -> bool:

@@ -56,22 +56,27 @@ def layout(label: str, arm: str, fresh: bool = False) -> Tuple[Path, str]:
         scratch = tempfile.TemporaryDirectory(prefix="navigable-")
         KEEPERS.append(scratch)   # removed when the process exits, so no laid-out tree is left in the temporary folder
         target = Path(scratch.name)
-        copy_records(cfg, target)
-        stand_in_code(cfg, target)
-        records = dict(cfg.records) if isinstance(cfg.records, dict) else {}
-        if arm == "beside_code" and not records.get("beside_code"):
-            records["beside_code"] = besidecode.code_hosts(cfg)
-        moved = dataclasses.replace(cfg, root=target, records=records)
-        besidecode.apply(moved, besidecode.plan(moved, "beside" if arm == "beside_code" else "gather"))
-        final = moved if arm == "beside_code" else dataclasses.replace(moved, records={**records, "beside_code": []})
-        loaded = registry.load(final)
-        pages = readme.pages(final, loaded)
-        for path, text in pages:
-            path.write_text(text, encoding="utf-8")
-        digest = hashlib.sha256("".join(f"{p.relative_to(target)}\n{t}" for p, t in sorted(pages)).encode()).hexdigest()[:16]
+        final, digest = lay_out(cfg, arm, target)
         CACHE[(label, arm)] = (target, digest)
         RECORDS[(label, arm)] = final.records
     return CACHE[(label, arm)]
+
+
+def lay_out(cfg, arm: str, target: Path):
+    """Copy the records into ``target`` under one arm, move them to where the arm puts them, write the READMEs; (the final config, their digest)."""
+    copy_records(cfg, target)
+    stand_in_code(cfg, target)
+    records = dict(cfg.records) if isinstance(cfg.records, dict) else {}
+    if arm == "beside_code" and not records.get("beside_code"):
+        records["beside_code"] = besidecode.code_hosts(cfg)
+    moved = dataclasses.replace(cfg, root=target, records=records)
+    besidecode.apply(moved, besidecode.plan(moved, "beside" if arm == "beside_code" else "gather"))
+    final = moved if arm == "beside_code" else dataclasses.replace(moved, records={**records, "beside_code": []})
+    pages = readme.pages(final, registry.load(final))
+    for path, text in pages:
+        path.write_text(text, encoding="utf-8")
+    digest = hashlib.sha256("".join(f"{p.relative_to(target)}\n{t}" for p, t in sorted(pages)).encode()).hexdigest()[:16]
+    return final, digest
 
 
 def load(label: str, arm: str, fresh: bool = False):

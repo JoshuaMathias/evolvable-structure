@@ -61,6 +61,19 @@ def check_all(config: Config, strict: bool = False, files: Optional[List[str]] =
         return check_in_session(config, strict, files)
 
 
+def waiver_problems(ctx: Context) -> List[str]:
+    """S9 for each waiver that is no longer needed or gives no reason."""
+    bad: List[str] = []
+    for w in ctx.registry.waivers:
+        if ctx.config.is_disabled(w["rule"]):
+            continue
+        if (w["rule"], w["path"]) not in ctx.used_waivers:
+            bad.append(f"S9 {w['rule']} {w['path']}: waiver no longer needed, delete it")
+        if not w["reason"].strip():
+            bad.append(f"S9 {w['rule']} {w['path']}: waiver has no reason")
+    return bad
+
+
 def check_in_session(config: Config, strict: bool, files: Optional[List[str]]) -> Tuple[List[str], List[str]]:
     """``check_all`` inside an open ``intents.session``."""
     ctx = build_context(config, strict, files)
@@ -72,13 +85,7 @@ def check_in_session(config: Config, strict: bool, files: Optional[List[str]]) -
         bad.extend(line for line in group.run(ctx) if not config.is_disabled(rule_id(line)))
     wait(list(ctx.background.values()))   # a started check no rule collected still ends before the check does
     if not config.is_disabled("S9"):
-        for w in ctx.registry.waivers:
-            if config.is_disabled(w["rule"]):
-                continue
-            if (w["rule"], w["path"]) not in ctx.used_waivers:
-                bad.append(f"S9 {w['rule']} {w['path']}: waiver no longer needed, delete it")
-            if not w["reason"].strip():
-                bad.append(f"S9 {w['rule']} {w['path']}: waiver has no reason")
+        bad += waiver_problems(ctx)
     if ctx.modules is not None:
         ctx.modules.save(keep=set(ctx.files))
     return bad, list(ctx.advisory)
@@ -131,6 +138,18 @@ def write_docs(config: Config, say: Callable[[str], None] = print) -> None:
             hook(ctx)
 
 
+def advisory_lines(advisory: List[str], findings: bool) -> List[str]:
+    """The to-do summary of the advisory findings: a count per rule, then every line (``findings``) or how to list them."""
+    if not advisory:
+        return ["to do: no findings of the advisory rules"] if findings else []
+    counts: dict = {}
+    for line in advisory:
+        counts[rule_id(line)] = counts.get(rule_id(line), 0) + 1
+    total = ", ".join(f"{rule} {n}" for rule, n in sorted(counts.items()))
+    head = f"to do: {len(advisory)} finding(s) of the advisory rules ({total}); they inform and never fail the check"
+    return [head] + (["  " + line for line in advisory] if findings else ["  list them with `esoi check --findings`"])
+
+
 def run_cli(config: Config, strict: bool, write: bool, say: Callable[[str], None] = print, findings: bool = False) -> int:
     """Print the problems (they decide the exit code), then the findings of the opt-in rules S36 to S39: a count per rule, and with
     ``findings`` every line. Those findings are information: they never change the exit code."""
@@ -139,19 +158,8 @@ def run_cli(config: Config, strict: bool, write: bool, say: Callable[[str], None
     bad, advisory = check_all(config, strict)
     for line in bad:
         say(line)
-    if advisory:
-        counts: dict = {}
-        for line in advisory:
-            counts[rule_id(line)] = counts.get(rule_id(line), 0) + 1
-        total = ", ".join(f"{rule} {n}" for rule, n in sorted(counts.items()))
-        say(f"to do: {len(advisory)} finding(s) of the advisory rules ({total}); they inform and never fail the check")
-        if findings:
-            for line in advisory:
-                say("  " + line)
-        else:
-            say("  list them with `esoi check --findings`")
-    elif findings:
-        say("to do: no findings of the advisory rules")
+    for line in advisory_lines(advisory, findings):
+        say(line)
     for line in notes(config):
         say(line)
     say(f"structure check: {'FAIL, ' + str(len(bad)) + ' problem(s)' if bad else 'ok'}")

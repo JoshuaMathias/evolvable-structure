@@ -56,16 +56,23 @@ def overlapping(ctx: Context, libraries: resolve.Libraries) -> List[str]:
         theirs = [(r, content(" ".join([r.get("purpose", ""), r.get("description", "")]))) for r in lib.registry.every_solution()]
         for own in ctx.registry.every_solution():
             sid = own.get("solution_id", "")
-            if (own.get("specializes") or "").strip() or ctx.waived("S53", sid):
-                continue
-            words = content(" ".join([own.get("purpose", ""), own.get("description", "")]))
-            for row, other in theirs:
-                shared = words & other
-                key = f"{sid}+@{lib.name}/{row.get('solution_id', '')}"
-                if len(shared) >= OVERLAP_WORDS and len(shared) / max(1, len(words | other)) >= OVERLAP and not ctx.waived("S53", key):
-                    out.append(f"S53 {sid}: its purpose and description say much the same job as {row.get('solution_id', '')} of the library {lib.name} "
-                               f"({', '.join(sorted(shared)[:6])}); next: adopt it (`adopts` = @{lib.name}/{row.get('solution_id', '')}) and move your "
-                               "code in as an arm, specialize it (`specializes`) if it needs this application's data, or waive it with the reason the job differs")
+            if not (own.get("specializes") or "").strip() and not ctx.waived("S53", sid):
+                out += overlap_lines(ctx, lib, own, theirs)
+    return out
+
+
+def overlap_lines(ctx: Context, lib, own: dict, theirs: list) -> List[str]:
+    """S53 for each library solution whose purpose and description share most of their content words with an own solution."""
+    sid = own.get("solution_id", "")
+    words = content(" ".join([own.get("purpose", ""), own.get("description", "")]))
+    out: List[str] = []
+    for row, other in theirs:
+        shared = words & other
+        key = f"{sid}+@{lib.name}/{row.get('solution_id', '')}"
+        if len(shared) >= OVERLAP_WORDS and len(shared) / max(1, len(words | other)) >= OVERLAP and not ctx.waived("S53", key):
+            out.append(f"S53 {sid}: its purpose and description say much the same job as {row.get('solution_id', '')} of the library {lib.name} "
+                       f"({', '.join(sorted(shared)[:6])}); next: adopt it (`adopts` = @{lib.name}/{row.get('solution_id', '')}) and move your "
+                       "code in as an arm, specialize it (`specializes`) if it needs this application's data, or waive it with the reason the job differs")
     return out
 
 
