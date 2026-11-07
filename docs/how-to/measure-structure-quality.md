@@ -34,6 +34,13 @@ Why: [code quality is structure quality](../explanation/code-quality-is-structur
    ```
    S54 is scope, S55 size and cohesion, S56 coupling, S57 reuse, S58 public surface, S59 behavior preserved (flow fidelity is S38). Each finding
    says its next action; waive one as the path or unit it opens with.
+   What S57 counts as copied: a file's tokens (names, numbers and strings reduced to their kind; imports, docstrings, constant tables, dataclass
+   fields, constant registration decorators and Protocols left out) are matched in windows of 30 against every other file, and the matching windows
+   merge into stretches. A stretch counts only when it is at least 40 tokens (about four lines) and holds at least three tokens that decide, loop or
+   compute (`if`, `for`, `and`, a comparison, arithmetic): a shared signature, a dict of attributes or an argument parser is shape, not logic written
+   twice. On this repository that took the copied share from 7.8 to 0.5 percent of the code, yet a function of seven lines copied into six files
+   and a 30-line block copied once are both still found (`tests/test_structure_quality.py`). The two minimums are budgets (`clone_run`,
+   `clone_logic`); a project may tighten them, never loosen them.
 6. **Tighten, never loosen.** A library names the consumers it must not mention, and a project may tighten a budget, from code:
    ```python
    from esoi.structure.structure_quality import assess

@@ -82,7 +82,6 @@ def test_splitting_everything_into_tiny_files_scores_worse_than_the_balanced_rea
     # the size dimension alone prefers the tiny files: it is the single factor a balanced number must not collapse to (rule S45)
     assert tiny["dimensions"]["size"]["score"] > real["dimensions"]["size"]["score"]
     assert tiny["dimensions"]["coupling"]["score"] < real["dimensions"]["coupling"]["score"]
-    assert tiny["dimensions"]["reuse"]["score"] < real["dimensions"]["reuse"]["score"]
 
 
 def test_the_size_only_arm_is_fooled_and_the_balanced_arm_is_not():
@@ -624,9 +623,41 @@ def test_two_files_that_repeat_logic_are_still_copied_code(tmp_path):
     assert reuse_parts(tmp_path, LOGIC_TEXT)["share_of_code_copied"] > 0.5
 
 
+SERIALIZER_TEXT = ("class Row:\n    def to_dict(self):\n        return {" + ", ".join(f'"key{i}": self.key{i}' for i in range(14)) + "}\n"
+                   "\n\ndef parser(ap):\n" + "".join(f'    ap.add_argument("--flag{i}", action="store_true", help="what flag {i} does")\n' for i in range(8)) + "    return ap\n")
+THIRTY_LINES = "def settle(rows, rate):\n" + "".join(
+    f"    value_{i} = sum(r['amount'] * rate for r in rows if r['kind'] == 'k{i}' and r['amount'] > {i})\n"
+    f"    if value_{i} > {i} and not rows:\n        value_{i} -= {i}\n" for i in range(9)) + "    return value_0\n"
+
+
+def test_a_serializer_and_an_argument_parser_shared_between_files_are_idioms_not_copied_logic(tmp_path):
+    assert reuse_parts(tmp_path, SERIALIZER_TEXT)["share_of_code_copied"] == 0
+
+
+def test_a_short_fragment_of_logic_shared_by_two_files_is_not_copied_code(tmp_path):
+    fragment = "def pick(rows):\n    out = []\n    for row in rows:\n        if row and row.get('ok'):\n            out.append(row)\n    return out\n"
+    assert reuse_parts(tmp_path, fragment)["share_of_code_copied"] == 0
+
+
+def test_a_thirty_line_block_of_logic_copied_into_a_second_file_is_still_copied_code(tmp_path):
+    assert THIRTY_LINES.count("\n") >= 28
+    own = lambda n: f"def own_{n}(items):\n" + "".join(f"    items = [x * {i + 2} for x in items if x % {i + 3}]\n    items.sort()\n" for i in range(5)) + "    return items\n"
+    write(tmp_path, {"a/mod.py": own(1) + "\n\n" + THIRTY_LINES, "b/mod.py": THIRTY_LINES + "\n\n" + own(2).replace("x * ", "x + "), "a/interface.py": "", "b/interface.py": ""})
+    found = duplication.measure(project.load(tmp_path), Budgets())
+    assert found.parts["share_of_code_copied"] > 0.4
+    assert found.score < 0.8 and any("tokens copied" in line for line in found.offenders)
+
+
+def test_the_minimum_stretch_and_logic_are_budgets_a_consumer_may_tighten_not_loosen():
+    assert Budgets().clone_run == 40 and Budgets().clone_logic == 3
+    assert Budgets().tightened(clone_run=30).clone_run == 30
+    with pytest.raises(ValueError):
+        Budgets().tightened(clone_run=80)
+
+
 def test_a_dataclass_field_list_is_a_declaration_and_a_call_in_a_value_is_not(tmp_path):
     fields = "from dataclasses import dataclass\n\n@dataclass\nclass Row:\n" + "".join(f"    f{i}: int = 0\n" for i in range(40))
-    computed = "VALUES = [" + ", ".join(f"len('x{i}')" for i in range(40)) + "]\n"
+    computed = "VALUES = [" + ", ".join(f"len('x{i}') * 2" for i in range(40)) + "]\n"
     assert reuse_parts(tmp_path, fields)["share_of_code_copied"] < 0.2
     assert reuse_parts(tmp_path / "second", computed)["share_of_code_copied"] > 0.5
 

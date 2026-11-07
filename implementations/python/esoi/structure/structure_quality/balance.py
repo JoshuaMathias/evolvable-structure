@@ -38,7 +38,9 @@ class Budgets:
     children_per_intent: int = 8
     depth: int = 7
     protocols_per_unit: int = 2
-    clone_window: int = 30   # tokens in a window that counts as copied code
+    clone_window: int = 30   # tokens in a window that is compared between files
+    clone_run: int = 40   # tokens in one unbroken stretch of matching windows before it can count as copied code (about four lines): a shorter match is a fragment, not a function written twice
+    clone_logic: int = 3   # deciding, looping or computing tokens (if, for, and, comparisons, arithmetic) the stretch must hold: a signature, an attribute list or a run of calls is shape, not logic
     family_files: int = 4   # files that share one copied window for it to count as boilerplate (a family of same-shaped wrappers) rather than an accidental clone
     min_cochange_support: int = 5
     min_cochange_confidence: float = 0.8
