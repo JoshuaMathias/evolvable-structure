@@ -21,26 +21,23 @@ def describe_api(item: Api) -> str:
     return ", ".join(bits)
 
 
+DESCRIBERS = (
+    (Env, lambda item: item.label + (" (secret)" if item.secret else "") + (f", fills {item.option}" if item.option else "")),
+    (Api, describe_api),
+    (Python, lambda item: f"python module {item.module} from {item.pip_spec}"),
+    (Binary, lambda item: f"binary {item.name} on PATH"),
+    (Service, lambda item: f"service {item.name} at {item.url_env}" + (f" (default {item.default_url})" if item.default_url else "")),
+    (Network, lambda item: "network access" + (f" to {item.host}" if item.host else "")),
+    (Download, lambda item: f"download {item.name}" + (f", about {item.size_mb:g} MB" if item.size_mb else "")),
+    (ScriptFile, lambda item: f"{item.role} file {item.path}"),
+)
+
+
 def describe(item: Requirement) -> str:
     """One short factual line about what the requirement is."""
-    if isinstance(item, Env):
-        return item.label + (" (secret)" if item.secret else "") + (f", fills {item.option}" if item.option else "")
-    if isinstance(item, Api):
-        return describe_api(item)
-    if isinstance(item, Python):
-        return f"python module {item.module} from {item.pip_spec}"
-    if isinstance(item, Binary):
-        return f"binary {item.name} on PATH"
-    if isinstance(item, Service):
-        return f"service {item.name} at {item.url_env}" + (f" (default {item.default_url})" if item.default_url else "")
-    if isinstance(item, Network):
-        return "network access" + (f" to {item.host}" if item.host else "")
-    if isinstance(item, Download):
-        return f"download {item.name}" + (f", about {item.size_mb:g} MB" if item.size_mb else "")
-    if isinstance(item, ScriptFile):
-        return f"{item.role} file {item.path}"
-    if isinstance(item, Isolate):
-        return item.label
+    for kind, say in DESCRIBERS:
+        if isinstance(item, kind):
+            return say(item)
     return item.label
 
 
@@ -62,19 +59,20 @@ def report(entries: Sequence[Entry], checks: Optional[Sequence[Check]] = None) -
     return "\n".join(lines) + "\n"
 
 
+def requirement_fields(item: Requirement) -> Dict[str, Any]:
+    """The set fields of a requirement as plain data (tuples as lists), with an api's key nested; never a value."""
+    fields = {k: v for k, v in vars(item).items() if v not in (None, "", ()) or k == "required"}
+    if isinstance(item, Api) and item.key is not None:
+        fields["key"] = {k: (list(v) if isinstance(v, tuple) else v) for k, v in vars(item.key).items() if v not in (None, "", ())}
+    return {k: list(v) if isinstance(v, tuple) else v for k, v in fields.items()}
+
+
 def as_json(entries: Sequence[Entry], checks: Optional[Sequence[Check]] = None, notes: Sequence[str] = ()) -> Dict[str, Any]:
     """The requirements as plain data under a versioned schema: ``{"schema", "requirements": [...], "notes": [...]}``. Names
     only: no variable's value is ever included."""
     out = []
     for i, entry in enumerate(entries):
-        fields = {k: v for k, v in vars(entry.requirement).items() if v not in (None, "", ()) or k == "required"}
-        item = entry.requirement
-        if isinstance(item, Api) and item.key is not None:
-            fields["key"] = {k: (list(v) if isinstance(v, tuple) else v) for k, v in vars(item.key).items() if v not in (None, "", ())}
-        for k, v in list(fields.items()):
-            if isinstance(v, tuple):
-                fields[k] = list(v)
-        row: Dict[str, Any] = {**fields, "used_by": list(entry.used_by)}
+        row: Dict[str, Any] = {**requirement_fields(entry.requirement), "used_by": list(entry.used_by)}
         if checks:
             row["status"], row["remedy"] = checks[i].status, checks[i].remedy
         out.append(row)

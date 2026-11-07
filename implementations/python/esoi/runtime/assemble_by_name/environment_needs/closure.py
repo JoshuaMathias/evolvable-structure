@@ -29,14 +29,47 @@ def imported_names(tree: ast.AST, module: ModuleType, path: Path, notes: List[st
             names.add(base)
             names.update(f"{base}.{alias.name}" for alias in node.names if alias.name != "*")
         elif isinstance(node, ast.Call):
-            callee = node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", "")
-            if callee in ("import_module", "__import__") and node.args:
-                argument = node.args[0]
-                if isinstance(argument, ast.Constant) and isinstance(argument.value, str):
-                    names.add(argument.value)
-                else:
-                    notes.append(f"{module.__name__} line {node.lineno}: dynamic import not followed; declare what it needs with REQUIRES")
+            names.update(called_import(node, module, notes))
     return sorted(name for name in names if name)
+
+
+def called_import(node: ast.Call, module: ModuleType, notes: List[str]) -> List[str]:
+    """The module an ``import_module(x)`` or ``__import__(x)`` call names when ``x`` is a literal; a computed argument is noted."""
+    callee = node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", "")
+    if callee not in ("import_module", "__import__") or not node.args:
+        return []
+    argument = node.args[0]
+    if isinstance(argument, ast.Constant) and isinstance(argument.value, str):
+        return [argument.value]
+    notes.append(f"{module.__name__} line {node.lineno}: dynamic import not followed; declare what it needs with REQUIRES")
+    return []
+
+
+def parse_source(module: ModuleType, path: Optional[Path], is_start: bool, notes: List[str]) -> Optional[ast.AST]:
+    """The parsed source of a module, or None when it has none to follow (noted when it is the start or cannot be parsed)."""
+    if path is None or path.suffix != ".py":
+        if is_start and path is not None:
+            notes.append(f"{module.__name__}: not Python source, imports not followed")
+        return None
+    try:
+        return ast.parse(path.read_text(encoding="utf-8"))
+    except (OSError, SyntaxError, UnicodeDecodeError, ValueError) as error:
+        notes.append(f"{module.__name__}: unknown, cannot parse {path.name} ({type(error).__name__}: {error})")
+        return None
+
+
+def import_new(name: str, notes: List[str]) -> Optional[ModuleType]:
+    """The module ``name``, imported; None when it is not a module (a name imported from one) or cannot be imported (noted)."""
+    try:
+        if importlib.util.find_spec(name) is None:
+            return None
+    except (ImportError, ValueError, AttributeError):
+        return None   # not a module (for example a name imported from a module): nothing to follow
+    try:
+        return importlib.import_module(name)
+    except Exception as error:   # reported, never raised: the arm's own load says whether it is fatal
+        notes.append(f"{name}: unknown, cannot import ({type(error).__name__}: {error})")
+        return None
 
 
 def walk_imports(start: ModuleType, notes: Optional[List[str]] = None) -> List[ModuleType]:
@@ -51,14 +84,8 @@ def walk_imports(start: ModuleType, notes: Optional[List[str]] = None) -> List[M
     while queue:
         module = queue.popleft()
         path = source_path(module)
-        if path is None or path.suffix != ".py":
-            if module is start and path is not None:
-                notes.append(f"{module.__name__}: not Python source, imports not followed")
-            continue
-        try:
-            tree = ast.parse(path.read_text(encoding="utf-8"))
-        except (OSError, SyntaxError, UnicodeDecodeError, ValueError) as error:
-            notes.append(f"{module.__name__}: unknown, cannot parse {path.name} ({type(error).__name__}: {error})")
+        tree = parse_source(module, path, module is start, notes)
+        if tree is None:
             continue
         edges[module.__name__] = []
         for name in imported_names(tree, module, path, notes):
@@ -66,20 +93,10 @@ def walk_imports(start: ModuleType, notes: Optional[List[str]] = None) -> List[M
                 continue
             if name in seen:
                 edges[module.__name__].append(name)
-                continue
-            try:
-                if importlib.util.find_spec(name) is None:
-                    continue
-            except (ImportError, ValueError, AttributeError):
-                continue   # not a module (for example a name imported from a module): nothing to follow
-            try:
-                found = importlib.import_module(name)
-            except Exception as error:   # reported, never raised: the arm's own load says whether it is fatal
-                notes.append(f"{name}: unknown, cannot import ({type(error).__name__}: {error})")
-                continue
-            seen[name] = found
-            edges[module.__name__].append(name)
-            queue.append(found)
+            elif (found := import_new(name, notes)) is not None:
+                seen[name] = found
+                edges[module.__name__].append(name)
+                queue.append(found)
     cycle = import_cycle(edges)
     if cycle:
         notes.append("import cycle (followed once): " + " -> ".join(cycle))

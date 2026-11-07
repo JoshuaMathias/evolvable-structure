@@ -118,12 +118,15 @@ def check_api(item: Api, environ: Mapping[str, str], probe: bool) -> Check:
     unreachable = Check(item, UNMET, f"{item.service} did not answer at {item.probe_url}; check the network")
     if item.key is None:
         ok = reach(item.probe_url) if probe and item.probe_url else None
-        if ok is False:
-            return unreachable
-        return Check(item, MET if ok else UNKNOWN if item.probe_url else MET)
+        return unreachable if ok is False else Check(item, UNKNOWN if not ok and item.probe_url else MET)
     if present(environ, item.key.names):
-        return unreachable if probe and item.probe_url and not reach(item.probe_url) else Check(item, MET)
+        return unreachable if answers_nothing(item, probe) else Check(item, MET)
     return Check(item, MET if item.keyless else UNMET, api_hint(item))
+
+
+def answers_nothing(item: Api, probe: bool) -> bool:
+    """Whether a probe was asked for, the api declares one, and it got no answer."""
+    return bool(probe and item.probe_url and not reach(item.probe_url))
 
 
 def check_binary(item: Binary, probe: bool) -> Check:
@@ -195,15 +198,19 @@ def check(requirements: Iterable[Any], environ: Mapping[str, str], probe: bool =
     probe = probe and not offline   # --offline disables every network call
     results = [check_one(item, environ, probe) for item in items]
     for group in {item.group for item in items if isinstance(item, Env) and item.group}:
-        members = [i for i, item in enumerate(items) if isinstance(item, Env) and item.group == group]
-        if any(results[i].status == MET for i in members):
-            for i in members:
-                results[i] = Check(items[i], MET)
-        else:
-            names = " or ".join(name for i in members for name in items[i].names)
-            for i in members:
-                results[i] = Check(items[i], UNMET, f"set {names}")
+        settle_group([i for i, item in enumerate(items) if isinstance(item, Env) and item.group == group], items, results)
     return results
+
+
+def settle_group(members: List[int], items: List[Any], results: List[Check]) -> None:
+    """Make the checks of one ``group`` of alternative variables agree: all met when any is, else all unmet naming every alternative."""
+    if any(results[i].status == MET for i in members):
+        for i in members:
+            results[i] = Check(items[i], MET)
+        return
+    names = " or ".join(name for i in members for name in items[i].names)
+    for i in members:
+        results[i] = Check(items[i], UNMET, f"set {names}")
 
 
 def blocking(checks: Iterable[Check]) -> List[Check]:
