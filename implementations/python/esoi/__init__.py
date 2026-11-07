@@ -33,7 +33,7 @@ from typing import Any, Dict, Tuple
 from esoi.runtime.implementation_selection.declare import implementation, override, register, resolve, solution
 from esoi.runtime.implementation_selection.selection_registry import SelectionError
 
-__version__ = "0.4.0"   # the package's version: pyproject.toml carries the same number (a test keeps them equal)
+__version__ = "0.5.0"   # the package's version: pyproject.toml carries the same number (a test keeps them equal)
 
 
 # Flat public names: name -> (module, attribute). A name here may differ from the attribute when the attribute alone would be unclear.
