@@ -127,6 +127,29 @@ def stage_values(name: str, body: str) -> Tuple[Dict[str, str], List[str]]:
     return values, errors
 
 
+def parse_stage(position: int, part: str) -> Tuple[Optional[Stage], List[str]]:
+    """The stage one item of a cascade cell stands for, and what is wrong with it; no stage when the item is not a stage at all."""
+    found = ITEM.match(part)
+    if not found:
+        return None, [f"stage {position} ({part.strip()[:40]!r}) is not `name` or `name [key=value | key=value]`"]
+    name = found.group(1)
+    values, errors = stage_values(name, found.group(2) or "")
+    stage, problems = build(name, values)
+    errors.extend(f"stage {name}: {p}" for p in problems)
+    if stage.public and stage.real is not False:
+        errors.append(f"stage {name} stands for public evidence, so it needs real=no (it runs nothing)")
+    return stage, errors
+
+
+def sequence_problems(stages: List[Stage]) -> List[str]:
+    """What is wrong across the stages: a name used twice, a stage with no gate that something follows."""
+    names = [s.name for s in stages]
+    errors = [f"stage name {n!r} is used twice" for n in sorted({n for n in names if names.count(n) > 1})]
+    errors.extend(f"stage {s.name} has no gate or min-pass-rate, so nothing says when to move on to {stages[i + 1].name}"
+                  for i, s in enumerate(stages[:-1]) if not s.gated and not s.unrun and not s.inherited)
+    return errors
+
+
 def parse(text: str) -> Tuple[List[Stage], List[str]]:
     """The stages in a ``cascading_conditionals`` cell and what is wrong with it. An empty cell is no cascade."""
     text = UNCONFIRMED.sub("", text or "")
@@ -135,23 +158,11 @@ def parse(text: str) -> Tuple[List[Stage], List[str]]:
     stages: List[Stage] = []
     errors: List[str] = []
     for position, part in enumerate(text.split(SEPARATOR), 1):
-        found = ITEM.match(part)
-        if not found:
-            errors.append(f"stage {position} ({part.strip()[:40]!r}) is not `name` or `name [key=value | key=value]`")
-            continue
-        name = found.group(1)
-        values, bad = stage_values(name, found.group(2) or "")
+        stage, bad = parse_stage(position, part)
         errors.extend(bad)
-        stage, problems = build(name, values)
-        errors.extend(f"stage {name}: {p}" for p in problems)
-        if stage.public and stage.real is not False:
-            errors.append(f"stage {name} stands for public evidence, so it needs real=no (it runs nothing)")
-        stages.append(stage)
-    names = [s.name for s in stages]
-    errors.extend(f"stage name {n!r} is used twice" for n in sorted({n for n in names if names.count(n) > 1}))
-    errors.extend(f"stage {s.name} has no gate or min-pass-rate, so nothing says when to move on to {stages[i + 1].name}"
-                  for i, s in enumerate(stages[:-1]) if not s.gated and not s.unrun and not s.inherited)
-    return stages, errors
+        if stage is not None:
+            stages.append(stage)
+    return stages, errors + sequence_problems(stages)
 
 
 def pass_floor(values: Dict[str, str], problems: List[str]) -> Optional[float]:
@@ -178,6 +189,19 @@ def max_age(values: Dict[str, str], problems: List[str]) -> Optional[int]:
     return None
 
 
+def stage_kind(values: Dict[str, str], problems: List[str]) -> str:
+    """The ``kind`` of a stage (blank when unknown), with the problems of its kind, its scale and its inherited stage."""
+    kind = values.get("kind", "")
+    if kind and kind not in KINDS:
+        problems.append(f"kind={kind} is not one of {', '.join(KINDS)}")
+        kind = ""
+    if kind == IDEA_KIND and not values.get("scale"):
+        problems.append("kind=idea needs scale=, where the meaning of every rating value is specified")
+    if values.get("inherits") and not ITEM.match(values["inherits"]):
+        problems.append(f"inherits={values['inherits']} is not the name of a foundation stage")
+    return kind
+
+
 def build(name: str, values: Dict[str, str]) -> Tuple[Stage, List[str]]:
     problems: List[str] = []
     sample = values.get("sample", "")
@@ -192,14 +216,7 @@ def build(name: str, values: Dict[str, str]) -> Tuple[Stage, List[str]]:
         problems.append(f"gate={gate} is not one of {', '.join(GATES)}")
         gate = ""
     floor, age = pass_floor(values, problems), max_age(values, problems)
-    kind = values.get("kind", "")
-    if kind and kind not in KINDS:
-        problems.append(f"kind={kind} is not one of {', '.join(KINDS)}")
-        kind = ""
-    if kind == IDEA_KIND and not values.get("scale"):
-        problems.append("kind=idea needs scale=, where the meaning of every rating value is specified")
-    if values.get("inherits") and not ITEM.match(values["inherits"]):
-        problems.append(f"inherits={values['inherits']} is not the name of a foundation stage")
+    kind = stage_kind(values, problems)
     return Stage(name, sample, real, gate, floor, age, values.get("when", ""), kind, values.get("scale", ""), values.get("inherits", "")), problems
 
 
@@ -291,6 +308,12 @@ def order_notes(stages: List[Stage], own: List[Stage]) -> List[str]:
     return notes
 
 
+def narrower(after: Stage, before: Stage) -> bool:
+    """Whether ``after`` is known to run fewer cases than ``before``."""
+    low, high = breadth(before), breadth(after)
+    return low is not None and high is not None and high < low
+
+
 def breadth_notes(own: List[Stage]) -> List[str]:
     """Notes on the model-calling stages: a single real case first, then growing, the last the most comprehensive."""
     notes: List[str] = []
@@ -298,13 +321,16 @@ def breadth_notes(own: List[Stage]) -> List[str]:
     if paid and breadth(paid[0]) not in (None, 1.0) and len(paid) > 1:
         notes.append(f"the first stage that calls a model, {paid[0].name}, should be a real single case or end-to-end run (sample=sample:1), "
                      "simulated if needed, before more cases")
-    for before, after in zip(paid, paid[1:]):
-        low, high = breadth(before), breadth(after)
-        if low is not None and high is not None and high < low:
-            notes.append(f"stage {after.name} runs fewer cases than {before.name} before it; later stages should be progressively more comprehensive")
+    notes.extend(f"stage {after.name} runs fewer cases than {before.name} before it; later stages should be progressively more comprehensive"
+                 for before, after in zip(paid, paid[1:]) if narrower(after, before))
+    return notes + last_stage_notes(own, paid)
+
+
+def last_stage_notes(own: List[Stage], paid: List[Stage]) -> List[str]:
+    """A note when the last stage that calls a model covers fewer cases than an earlier one."""
     widest = max((b for b in (breadth(s) for s in paid[:-1]) if b is not None), default=None)
     last = breadth(own[-1])
     if own[-1].real is not False and widest is not None and last is not None and last < widest:
-        notes.append(f"the last stage, {own[-1].name}, should be the most comprehensive and as objective as possible, "
-                     "yet an earlier stage that calls a model covers more cases")
-    return notes
+        return [f"the last stage, {own[-1].name}, should be the most comprehensive and as objective as possible, "
+                "yet an earlier stage that calls a model covers more cases"]
+    return []

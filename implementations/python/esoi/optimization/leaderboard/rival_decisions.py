@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from esoi.optimization.leaderboard import stats
 from esoi.optimization.leaderboard.arm_kinds import is_ablation
@@ -65,13 +65,19 @@ class Decision:
         return "two-sided exact Fisher test" if "Fisher" in self.text else "two-sided paired test"
 
 
+def same_cases(a: Optional[Dict[str, Any]], b: Optional[Dict[str, Any]]) -> bool:
+    """Whether both runs have per-case figures and over the same cases."""
+    return a is not None and b is not None and a.keys() == b.keys()
+
+
 def disagreements(per_case: Optional[List[Row]], own: Row, rival: Row) -> Optional[Tuple[int, int, int, str]]:
     """``(cases the rival is ahead on, cases the selected arm is ahead on, shared cases, test name)`` from per-case rows of exactly
     these two runs, or ``None``. Pass or fail per case uses McNemar's exact test; a balanced-score metric compares the scores of
     each case with the exact sign test (cases with equal scores are left out)."""
     balanced = uses_balanced(own, rival)
-    a, b = (case_numbers if balanced else case_outcomes)(per_case, own), (case_numbers if balanced else case_outcomes)(per_case, rival)
-    if a is None or b is None or a.keys() != b.keys():
+    read = case_numbers if balanced else case_outcomes
+    a, b = read(per_case, own), read(per_case, rival)
+    if not same_cases(a, b):
         return None
     if balanced:
         return (sum(round(b[c] - a[c], 9) > 0 for c in a), sum(round(b[c] - a[c], 9) < 0 for c in a), len(a), "exact sign test on per-case balanced scores")
