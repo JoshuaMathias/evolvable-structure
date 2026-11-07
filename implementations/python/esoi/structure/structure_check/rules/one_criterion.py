@@ -66,27 +66,31 @@ def recorded_arms(ctx: Context, metric: Dict[str, str]) -> Tuple[str, ...]:
     return tuple(sorted(found))
 
 
-def separate_leaderboards(ctx: Context) -> List[str]:
+def shared_leaderboard_lines(ctx: Context, solution: Dict[str, str], by_id: Dict[str, dict]) -> List[str]:
+    """S42 for the metrics of one solution that rank the same arms in separate leaderboards."""
+    sid = solution.get("solution_id", "")
+    mine = [by_id[m] for m in ids(solution.get("metric_ids", "")) if m in by_id]
+    grouped: Dict[Tuple[str, ...], List[str]] = {}
+    for m in mine:
+        found = recorded_arms(ctx, m)
+        if len(found) >= 2:
+            grouped.setdefault(found, []).append(m["metric_id"])
     out: List[str] = []
-    by_id = {m.get("metric_id", ""): m for m in ctx.registry.metrics}
-    for solution in ctx.registry.every_solution():
-        sid = solution.get("solution_id", "")
-        mine = [by_id[m] for m in ids(solution.get("metric_ids", "")) if m in by_id]
-        arms = {m["metric_id"]: recorded_arms(ctx, m) for m in mine}
-        grouped: Dict[Tuple[str, ...], List[str]] = {}
-        for mid, found in arms.items():
-            if len(found) >= 2:
-                grouped.setdefault(found, []).append(mid)
-        for found, metrics in grouped.items():
-            if len(metrics) < 2 or ctx.waived("S42", sid):
-                continue
-            chosen = (solution.get("authoritative_metric_id") or "").strip()
-            say = (f"{chosen} is authoritative, so make the others case sources of it" if chosen in metrics
-                   else "name one `authoritative_metric_id` and make the others case sources of it")
-            out.append(f"S42 {sid}: metrics {', '.join(metrics)} each rank the same arms ({', '.join(found)}) in separate leaderboards; "
-                       f"one solution has one best, so {say} (cases of each kind mixed in proportion to real inputs, one balanced score), "
-                       "not stages with their own pass tests and not separate leaderboards")
+    for found, metrics in grouped.items():
+        if len(metrics) < 2 or ctx.waived("S42", sid):
+            continue
+        chosen = (solution.get("authoritative_metric_id") or "").strip()
+        say = (f"{chosen} is authoritative, so make the others case sources of it" if chosen in metrics
+               else "name one `authoritative_metric_id` and make the others case sources of it")
+        out.append(f"S42 {sid}: metrics {', '.join(metrics)} each rank the same arms ({', '.join(found)}) in separate leaderboards; "
+                   f"one solution has one best, so {say} (cases of each kind mixed in proportion to real inputs, one balanced score), "
+                   "not stages with their own pass tests and not separate leaderboards")
     return out
+
+
+def separate_leaderboards(ctx: Context) -> List[str]:
+    by_id = {m.get("metric_id", ""): m for m in ctx.registry.metrics}
+    return [line for solution in ctx.registry.every_solution() for line in shared_leaderboard_lines(ctx, solution, by_id)]
 
 
 VALUE = re.compile(r"([A-Za-z_][\w.]*)\s*=\s*(-?\d+(?:\.\d+)?)")
@@ -105,6 +109,23 @@ def diagnostic_values(row: Dict[str, str]) -> Dict[str, float]:
     return found
 
 
+def degenerate_lines(component: str, leader: str, values: Dict[str, float], declared: dict) -> List[str]:
+    """S45 for each diagnostic of the leading arm that lies outside the bounds the metric declares."""
+    out: List[str] = []
+    for name, bound in sorted(declared.items()):
+        value = values.get(name)
+        if value is None:
+            continue
+        low, high = bound.get("min"), bound.get("max")
+        if (low is not None and value < float(low)) or (high is not None and value > float(high)):
+            limit = f"below {low}" if low is not None and value < float(low) else f"above {high}"
+            out.append(f"S45 {component}: {leader} scores best but its {name} is {value:g}, {limit}, which the metric's own diagnostics "
+                       f"([balance.{component}.diagnostics.{name}]) call degenerate. The arm is not excluded: the metric is missing the "
+                       f"factor. Next: put {name} into the balanced score (weights and budgets in [balance.{component}]) and re-record, "
+                       "or, if this arm is the right answer, change the diagnostic and say why")
+    return out
+
+
 def degenerate_leader(ctx: Context) -> List[str]:
     """S45: the arm that scores best is degenerate by the diagnostics the metric itself declares. Every arm competes on the one balanced
     metric and none is excluded; when a trivial arm (one card per file, say) wins, the metric is missing a factor, so this only informs."""
@@ -115,20 +136,8 @@ def degenerate_leader(ctx: Context) -> List[str]:
         if not declared or not rows or ctx.waived("S45", component):
             continue
         leader, _ = rival_decisions.best_guess(rows, ctx.config.evaluation)
-        if leader is None:
-            continue
-        values = diagnostic_values(rows[leader])
-        for name, bound in sorted(declared.items()):
-            value = values.get(name)
-            if value is None:
-                continue
-            low, high = bound.get("min"), bound.get("max")
-            if (low is not None and value < float(low)) or (high is not None and value > float(high)):
-                limit = f"below {low}" if low is not None and value < float(low) else f"above {high}"
-                out.append(f"S45 {component}: {leader} scores best but its {name} is {value:g}, {limit}, which the metric's own diagnostics "
-                           f"([balance.{component}.diagnostics.{name}]) call degenerate. The arm is not excluded: the metric is missing the "
-                           f"factor. Next: put {name} into the balanced score (weights and budgets in [balance.{component}]) and re-record, "
-                           "or, if this arm is the right answer, change the diagnostic and say why")
+        if leader is not None:
+            out += degenerate_lines(component, leader, diagnostic_values(rows[leader]), declared)
     return out
 
 
@@ -152,20 +161,22 @@ def balance_tables(ctx: Context, sha: str) -> Dict[str, dict]:
         return {}
 
 
-def weights_fixed_first(ctx: Context) -> List[str]:
-    out: List[str] = []
+def first_scored(ctx: Context) -> Dict[str, str]:
+    """The date of the first row of each balanced component that was scored with its balance table."""
     scored: Dict[str, str] = {}
     for component in ctx.config.balance:
         dates = [r.get("date", "")[:10] for rows in ctx.history.get(component, {}).values() for r in rows
                  if str(r.get("balanced") or "").strip() and r.get("date")]
         if dates:
             scored[component] = min(dates)
-    if not scored:
-        return out
-    commits = [line.split(" ", 1) for line in git_lines(ctx, "log", "--reverse", "--format=%H %cs", "--", config_file(ctx))]
+    return scored
+
+
+def table_changes(ctx: Context, scored: Dict[str, str]) -> Dict[str, str]:
+    """For each component, the date of the latest commit that changed its balance table after the table existed."""
     previous: Dict[str, dict] = {}
-    changed: Dict[str, str] = {}   # component -> date of the latest commit that changed its table after it had one
-    for sha, day in commits:
+    changed: Dict[str, str] = {}
+    for sha, day in [line.split(" ", 1) for line in git_lines(ctx, "log", "--reverse", "--format=%H %cs", "--", config_file(ctx))]:
         tables = balance_tables(ctx, sha)
         for component in scored:
             now = tables.get(component)
@@ -173,6 +184,15 @@ def weights_fixed_first(ctx: Context) -> List[str]:
                 changed[component] = day
             if now is not None:
                 previous[component] = now
+    return changed
+
+
+def weights_fixed_first(ctx: Context) -> List[str]:
+    out: List[str] = []
+    scored = first_scored(ctx)
+    if not scored:
+        return out
+    changed = table_changes(ctx, scored)
     for component, first in sorted(scored.items()):
         day = changed.get(component)
         if day and day > first and not ctx.waived("S44", component):

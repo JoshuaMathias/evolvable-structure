@@ -66,6 +66,36 @@ def rel(config, path: Path) -> str:
     return besidecode.relative_to_root(config, path)
 
 
+def readme_finding(ctx: Context, row: Dict[str, str], here: Path, arms) -> List[str]:
+    """S40 for a folder that holds an implementation's code but has no README page."""
+    config = ctx.config
+    if (here / "README.md").is_file() or ctx.waived("S40", rel(config, here)):
+        return []
+    if here in arms:
+        owners = ", ".join(sorted({o for o, _ in arms[here]}))
+        return [f"S40 {rel(config, here)}: holds arms owned by {owners} but its generated README.md is not written; "
+                "next: run `esoi readmes`"]
+    return [f"S40 {rel(config, here)}: holds the code of {row.get('implementation_id', '')} but has no README.md; "
+            "next: run `esoi records place --apply`, which moves the records here and writes the page, "
+            "or list this folder under [records] beside_code (or [records] arm_folders when the record "
+            "belongs to an intent elsewhere)"]
+
+
+def far_finding(ctx: Context, sid: str, folder: Path, codes, arms, moves, graph, intent_code, interfaces, resolved) -> List[str]:
+    """S40 for a solution whose spec is more than one link away from its code."""
+    config = ctx.config
+    near: Dict[Path, bool] = {}
+    for c, row_folder, code_file in codes.get(sid, []):   # one file of the solution in a shared layer the intent reaches covers its arms there
+        near[c] = near.get(c, False) or shared_in(config, folder, code_file, graph, intent_code, sid, interfaces.get(sid, ""), resolved)
+    far = sorted({rel(config, c) for c, row_folder, code_file in codes.get(sid, []) if reach(arms, folder, c, row_folder, near[c]) > 1})
+    if not far or ctx.waived("S40", sid):
+        return []
+    target = moves.get(("solutions.csv", sid))
+    action = (f"run `esoi records place --apply` (it moves the row to {rel(config, target)})" if target is not None
+              else "list the folder that holds its code under [records] beside_code, then run `esoi records place --apply`")
+    return [f"S40 {sid}: its spec is in {rel(config, folder)} and its code in {', '.join(far)}, more than one link apart; next: {action}"]
+
+
 def findings(ctx: Context) -> List[str]:
     config = ctx.config
     out: List[str] = []
@@ -85,29 +115,13 @@ def findings(ctx: Context) -> List[str]:
     for row, folder, _ in held["implementations.csv"]:
         here = besidecode.code_folder(config, row.get("filepath", ""))
         if here is not None:
-            codes.setdefault(row.get("solution_id", "").strip(), []).append((here, folder, besidecode.root_relative_file(config, row.get("filepath", ""))))
-            intent_code.setdefault(folder.resolve(), set()).add(besidecode.root_relative_file(config, row.get("filepath", "")))
-            if not (here / "README.md").is_file() and not ctx.waived("S40", rel(config, here)):
-                if here in arms:
-                    owners = ", ".join(sorted({o for o, _ in arms[here]}))
-                    out.append(f"S40 {rel(config, here)}: holds arms owned by {owners} but its generated README.md is not written; "
-                               "next: run `esoi readmes`")
-                else:
-                    out.append(f"S40 {rel(config, here)}: holds the code of {row.get('implementation_id', '')} but has no README.md; "
-                               "next: run `esoi records place --apply`, which moves the records here and writes the page, "
-                               "or list this folder under [records] beside_code (or [records] arm_folders when the record "
-                               "belongs to an intent elsewhere)")
+            code_file = besidecode.root_relative_file(config, row.get("filepath", ""))
+            codes.setdefault(row.get("solution_id", "").strip(), []).append((here, folder, code_file))
+            intent_code.setdefault(folder.resolve(), set()).add(code_file)
+            out += readme_finding(ctx, row, here, arms)
     out = list(dict.fromkeys(out))
     for sid, folder in sorted(solution_folder.items()):
-        near: Dict[Path, bool] = {}
-        for c, row_folder, code_file in codes.get(sid, []):   # one file of the solution in a shared layer the intent reaches covers its arms there
-            near[c] = near.get(c, False) or shared_in(config, folder, code_file, graph, intent_code, sid, interfaces.get(sid, ""), resolved)
-        far = sorted({rel(config, c) for c, row_folder, code_file in codes.get(sid, []) if reach(arms, folder, c, row_folder, near[c]) > 1})
-        if far and not ctx.waived("S40", sid):
-            target = moves.get(("solutions.csv", sid))
-            action = (f"run `esoi records place --apply` (it moves the row to {rel(config, target)})" if target is not None
-                      else "list the folder that holds its code under [records] beside_code, then run `esoi records place --apply`")
-            out.append(f"S40 {sid}: its spec is in {rel(config, folder)} and its code in {', '.join(far)}, more than one link apart; next: {action}")
+        out += far_finding(ctx, sid, folder, codes, arms, moves, graph, intent_code, interfaces, resolved)
     return out
 
 

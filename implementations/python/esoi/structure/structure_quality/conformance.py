@@ -68,14 +68,20 @@ def is_stub(function: ast.AST) -> bool:
     return True
 
 
+def sole_call(function: ast.AST) -> Optional[ast.Call]:
+    """The call a method consists of, when its body is one ``return call`` or call statement of a same-named method on another object."""
+    statements = body_statements(function)
+    if len(statements) != 1 or not isinstance(statements[0], (ast.Return, ast.Expr)) or not isinstance(statements[0].value, ast.Call):
+        return None
+    call = statements[0].value
+    return call if isinstance(call.func, ast.Attribute) and call.func.attr == function.name else None
+
+
 def passes_through(function: ast.AST, own_modules: Set[str]) -> bool:
     """Whether a method is one call of a same-named method on another object with its own parameters handed on unchanged; ``own_modules`` are the
     local names bound to modules of the arm's own unit (a call into them is the arm's own work)."""
-    statements = body_statements(function)
-    if len(statements) != 1 or not isinstance(statements[0], (ast.Return, ast.Expr)) or not isinstance(statements[0].value, ast.Call):
-        return False
-    call = statements[0].value
-    if not isinstance(call.func, ast.Attribute) or call.func.attr != function.name:
+    call = sole_call(function)
+    if call is None:
         return False
     owner = call.func.value
     while isinstance(owner, (ast.Attribute, ast.Call)):   # own_runner().assembler.names(...) is rooted in own_runner
@@ -85,6 +91,19 @@ def passes_through(function: ast.AST, own_modules: Set[str]) -> bool:
     params = [a.arg for a in [*function.args.posonlyargs, *function.args.args] if a.arg not in ("self", "cls")]
     handed = [a.id for a in call.args if isinstance(a, ast.Name)] + [k.value.id for k in call.keywords if isinstance(k.value, ast.Name)]
     return len(handed) == len(call.args) + len(call.keywords) and sorted(handed) == sorted(params + [a.arg for a in function.args.kwonlyargs])
+
+
+def self_attributes(node: ast.ClassDef) -> Set[str]:
+    """The public ``self.x = ...`` attributes assigned in any method of a class."""
+    attributes: Set[str] = set()
+    for item in node.body:
+        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            for sub in ast.walk(item):
+                if isinstance(sub, (ast.Assign, ast.AnnAssign)):
+                    for target in (sub.targets if isinstance(sub, ast.Assign) else [sub.target]):
+                        if isinstance(target, ast.Attribute) and getattr(target.value, "id", "") == "self" and public(target.attr):
+                            attributes.add(target.attr)
+    return attributes
 
 
 def members_of(node: ast.ClassDef) -> Tuple[Dict[str, ast.AST], Set[str]]:
@@ -98,14 +117,7 @@ def members_of(node: ast.ClassDef) -> Tuple[Dict[str, ast.AST], Set[str]]:
             attributes.add(item.target.id)
         elif isinstance(item, ast.Assign):
             attributes |= {t.id for t in item.targets if isinstance(t, ast.Name) and public(t.id)}
-    for item in node.body:
-        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            for sub in ast.walk(item):
-                if isinstance(sub, (ast.Assign, ast.AnnAssign)):
-                    for target in (sub.targets if isinstance(sub, ast.Assign) else [sub.target]):
-                        if isinstance(target, ast.Attribute) and getattr(target.value, "id", "") == "self" and public(target.attr):
-                            attributes.add(target.attr)
-    return methods, attributes
+    return methods, attributes | self_attributes(node)
 
 
 def protocol_members(node: ast.ClassDef, index: Optional[Dict[str, ast.ClassDef]] = None) -> Dict[str, Optional[ast.AST]]:
@@ -127,11 +139,8 @@ def inherited_members(node: ast.ClassDef, index: Dict[str, ast.ClassDef], seen: 
     return methods, attributes
 
 
-def mismatch(want: ast.AST, have: ast.AST) -> str:
-    """Why an arm's method does not fit the Protocol's, or an empty string when it does."""
-    w, h = signature(want), signature(have)
-    if w[4] != h[4]:
-        return "async differs"
+def parameter_mismatch(w: tuple, h: tuple) -> str:
+    """Why the positional and keyword parameters of an arm's method do not fit the interface's, or an empty string."""
     for position, name in enumerate(w[0]):
         if position < len(h[0]):
             if h[0][position] != name:
@@ -141,6 +150,17 @@ def mismatch(want: ast.AST, have: ast.AST) -> str:
     for name in w[1]:
         if name not in h[0] + h[1] and not h[3]:
             return f"keyword parameter {name} is missing"
+    return ""
+
+
+def mismatch(want: ast.AST, have: ast.AST) -> str:
+    """Why an arm's method does not fit the Protocol's, or an empty string when it does."""
+    w, h = signature(want), signature(have)
+    if w[4] != h[4]:
+        return "async differs"
+    found = parameter_mismatch(w, h)
+    if found:
+        return found
     if h[5] > len(w[0]):
         return "takes more required parameters than the interface passes"
     extra_keywords = [a.arg for a, d in zip(have.args.kwonlyargs, have.args.kw_defaults) if d is None and a.arg not in w[1]]

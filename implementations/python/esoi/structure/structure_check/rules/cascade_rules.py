@@ -5,6 +5,7 @@ S32 a metric's cascading conditionals can be read, S33 the selected implementati
 from __future__ import annotations
 
 import datetime
+from typing import Dict, List, Tuple
 
 from esoi.optimization.leaderboard import arm_selection, cascade_stages, stage_standings
 from esoi.optimization.measurement_harness.interface import defect_reason, stale_reason
@@ -19,6 +20,29 @@ SUMMARIES = {
            "chooses (the highest result at the latest stage run, unless another scored higher at an earlier shared stage "
            "and has not been run there yet), or a waiver names the pending decision (waive as `<solution>`).",
 }
+
+
+def disagreement_lines(ctx: Context, metric: Dict[str, str], component: str, selected: str, stages, current, recorded) -> Tuple[List[str], List[str]]:
+    """(problems, advice) for each solution of a metric whose selected arm is not the one its cascade chooses."""
+    bad: List[str] = []
+    advice: List[str] = []
+    mid = metric.get("metric_id", "")
+    for sid in ids(metric.get("solution_ids", "")):
+        owner = next((s for s in ctx.registry.solutions if s["solution_id"] == sid), None)
+        if owner is not None:
+            selected = arm_selection.selected_arm(ctx.config, owner, component, ctx.registry)[1] or selected   # the records' `selected`
+        if not (current.winner and selected and selected != current.winner) and not (recorded.winner and selected and selected != recorded.winner):
+            continue
+        decision = current if current.winner and selected != current.winner else recorded
+        line = (f"S33 {sid}: selected is {selected} but the cascade of {mid} chooses {decision.winner} "
+                f"({'; '.join(decision.notes) or 'the highest result at ' + stages[decision.stage].name})")
+        if ctx.waived("S33", sid):
+            continue
+        if current.winner == recorded.winner and current.winner != selected:   # current and recorded results agree: a real disagreement
+            bad.append(line + "; switch `selected` (esoi select --promote) or waive naming the pending decision")
+        else:   # the choice differs only because some results were recorded on other cases, so it informs
+            advice.append(line + f"; some results were recorded on other cases or changed code, so re-run `esoi run {component} --impl {selected} --record` when the decision depends on it")
+    return bad, advice
 
 
 def run(ctx: Context) -> list:
@@ -36,20 +60,9 @@ def run(ctx: Context) -> list:
         recorded = stage_standings.decide(stages, stage_standings.standings(stages, ctx.history[component], datetime.date.today(),
                                   lambda row, c=component: defect_reason(ctx.config, c, row),
                                   ctx.config.evaluation), ctx.config.evaluation)   # every well-formed row, whatever changed since
-        for sid in ids(metric.get("solution_ids", "")):
-            owner = next((s for s in ctx.registry.solutions if s["solution_id"] == sid), None)
-            if owner is not None:
-                selected = arm_selection.selected_arm(ctx.config, owner, component, ctx.registry)[1] or selected   # the records' `selected`
-            if not (current.winner and selected and selected != current.winner) and not (recorded.winner and selected and selected != recorded.winner):
-                continue
-            decision = current if current.winner and selected != current.winner else recorded
-            line = (f"S33 {sid}: selected is {selected} but the cascade of {mid} chooses {decision.winner} "
-                    f"({'; '.join(decision.notes) or 'the highest result at ' + stages[decision.stage].name})")
-            if current.winner == recorded.winner and current.winner != selected:   # current and recorded results agree: a real disagreement
-                if not ctx.waived("S33", sid):
-                    bad.append(line + "; switch `selected` (esoi select --promote) or waive naming the pending decision")
-            elif not ctx.waived("S33", sid):   # the choice differs only because some results were recorded on other cases, so it informs
-                ctx.advisory.append(line + f"; some results were recorded on other cases or changed code, so re-run `esoi run {component} --impl {selected} --record` when the decision depends on it")
+        found, advice = disagreement_lines(ctx, metric, component, selected, stages, current, recorded)
+        bad += found
+        ctx.advisory.extend(advice)
     return bad
 
 

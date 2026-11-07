@@ -433,6 +433,25 @@ def link_docs(text: str, path: Path, config: Config, docs_root: str) -> str:
     return text.replace("@DOCS@", docs).replace("@TEMPLATES@", templates)
 
 
+def wanted_files(config: Config, path: Path, skill_text: str, rows: List[Dict[str, str]]) -> Dict[Path, str]:
+    """Every file the template sync writes, with the text it should hold: the parsed template, its stamp, the standard and the generated documents."""
+    wanted: Dict[Path, str] = {template_csv_path(config): render_template_csv(rows)}
+    if records.TEMPLATE_DATA.resolve().is_relative_to(config.root.resolve()):
+        wanted[records.TEMPLATE_DATA] = wanted[template_csv_path(config)]   # the library's own shipped copy follows the template
+    stamp = versioning.stamp_path(config)
+    if stamp is not None:
+        before = template_csv_path(config)
+        wanted[stamp] = versioning.render_stamp(versioning.template_stamp(
+            versioning.read_stamp(stamp), before.read_text(encoding="utf-8") if before.exists() else "",
+            wanted[before], versioning.source_identity(path.parent, [path.name]), skill_text))
+    standard = standard_doc_path(config)
+    if standard.exists():
+        current = standard.read_text(encoding="utf-8")
+        wanted[standard] = apply_section(current, render_section(rows))
+    wanted.update(generated_files(rows, skill_text, config))
+    return wanted
+
+
 def sync(config: Config, source: Optional[str] = None, check: bool = False, say: Callable[[str], None] = print) -> int:
     """Write (or with ``check`` only compare) the parsed template and every generated document. Exit codes: 0 ok,
     1 stale, 2 source not found."""
@@ -448,20 +467,7 @@ def sync(config: Config, source: Optional[str] = None, check: bool = False, say:
     if not rows:
         say("nothing parsed; refusing to write")
         return 2
-    wanted: Dict[Path, str] = {template_csv_path(config): render_template_csv(rows)}
-    if records.TEMPLATE_DATA.resolve().is_relative_to(config.root.resolve()):
-        wanted[records.TEMPLATE_DATA] = wanted[template_csv_path(config)]   # the library's own shipped copy follows the template
-    stamp = versioning.stamp_path(config)
-    if stamp is not None:
-        before = template_csv_path(config)
-        wanted[stamp] = versioning.render_stamp(versioning.template_stamp(
-            versioning.read_stamp(stamp), before.read_text(encoding="utf-8") if before.exists() else "",
-            wanted[before], versioning.source_identity(path.parent, [path.name]), skill_text))
-    standard = standard_doc_path(config)
-    if standard.exists():
-        current = standard.read_text(encoding="utf-8")
-        wanted[standard] = apply_section(current, render_section(rows))
-    wanted.update(generated_files(rows, skill_text, config))
+    wanted = wanted_files(config, path, skill_text, rows)
     stale = [p for p, text in wanted.items() if not p.exists() or p.read_text(encoding="utf-8") != text]
     if check:
         say("stale: " + ", ".join(str(p.relative_to(config.root)) for p in stale) + " (run `esoi template sync`)"

@@ -41,12 +41,23 @@ def within(sizes: List[int], budget: int):
     return None if total <= 0 else round(1 - sum(max(0, n - budget) for n in sizes) / total, 4)
 
 
+def size_offenders(project: Project, budgets: Budgets, functions: list, long_modules: list, crowded: dict, wide: list, deep: list) -> List[str]:
+    """The lines naming what is over a size budget, worst first within each kind."""
+    long_functions = sorted((f for f in functions if f[5] and f[3] > budgets.function_lines), key=lambda f: -f[3])
+    complex_functions = sorted((f for f in functions if f[4] > budgets.complexity), key=lambda f: -f[4])
+    offenders = [f"{p}: function {n} is {length} lines (budget {budgets.function_lines})" for p, n, _, length, _, _ in long_functions]
+    offenders += [f"{m.path}: {m.lines} lines (budget {budgets.module_lines})" for m in long_modules]
+    offenders += [f"{p}: function {n} has complexity {c} (budget {budgets.complexity})" for p, n, _, _, c, _ in complex_functions[:50]]
+    offenders += [f"{f}: {n} files in one folder (budget {budgets.files_per_folder})" for f, n in sorted(crowded.items(), key=lambda kv: -kv[1])]
+    offenders += [f"{f}: groups {n} solutions (budget {budgets.children_per_intent})" for f, n in sorted(wide, key=lambda kv: -kv[1])]
+    offenders += [f"{m.path}: {len(PurePosixPath(m.path).parts) - 1} folders deep (budget {budgets.depth})" for m in deep[:10]]
+    return offenders
+
+
 def measure(project: Project, budgets: Budgets) -> Dimension:
     modules = list(project.modules.values())
     functions = [(m.path, name, line, length, decisions, outermost) for m in modules for name, line, length, decisions, outermost in m.functions]
     outermost = [f for f in functions if f[5]]
-    long_functions = sorted((f for f in outermost if f[3] > budgets.function_lines), key=lambda f: -f[3])
-    complex_functions = sorted((f for f in functions if f[4] > budgets.complexity), key=lambda f: -f[4])
     long_modules = sorted((m for m in modules if m.lines > budgets.module_lines), key=lambda m: -m.lines)
     counts = project.folder_files()
     crowded = {f: n for f, n in counts.items() if n > budgets.files_per_folder}
@@ -60,10 +71,5 @@ def measure(project: Project, budgets: Budgets) -> Dimension:
              "files_in_folders_within_budget": share(len(modules) - files_in_crowded, len(modules)),
              "intents_within_children_budget": share(len(children) - len(wide), len(children)),
              "files_within_depth_budget": share(len(modules) - len(deep), len(modules))}
-    offenders = [f"{p}: function {n} is {length} lines (budget {budgets.function_lines})" for p, n, _, length, _, _ in long_functions]
-    offenders += [f"{m.path}: {m.lines} lines (budget {budgets.module_lines})" for m in long_modules]
-    offenders += [f"{p}: function {n} has complexity {c} (budget {budgets.complexity})" for p, n, _, _, c, _ in complex_functions[:50]]
-    offenders += [f"{f}: {n} files in one folder (budget {budgets.files_per_folder})" for f, n in sorted(crowded.items(), key=lambda kv: -kv[1])]
-    offenders += [f"{f}: groups {n} solutions (budget {budgets.children_per_intent})" for f, n in sorted(wide, key=lambda kv: -kv[1])]
-    offenders += [f"{m.path}: {len(PurePosixPath(m.path).parts) - 1} folders deep (budget {budgets.depth})" for m in deep[:10]]
+    offenders = size_offenders(project, budgets, functions, long_modules, crowded, wide, deep)
     return Dimension("size", combine(list(parts.values())), {k: v for k, v in parts.items() if v is not None}, offenders)

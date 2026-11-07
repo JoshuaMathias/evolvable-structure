@@ -5,6 +5,8 @@ is never reported. See ``esoi.runtime.assemble_by_name.hierarchy`` and the guide
 """
 from __future__ import annotations
 
+from typing import List
+
 from esoi.runtime.assemble_by_name import hierarchy
 from esoi.runtime.implementation_selection import variants
 from esoi.runtime.implementation_selection.select import default_name
@@ -17,6 +19,22 @@ SUMMARIES = {
 }
 
 
+def override_problem(ctx: Context, row: dict, parent: dict, reasons: dict, own: set) -> List[str]:
+    """S35 for a solution whose selected arm differs from the parent's default without a reason from its own records."""
+    sid = row.get("solution_id", "")
+    chosen = variants.base_of(default_name(row, ctx.registry.implementations)).lower()
+    if not (sid in parent and chosen and chosen != parent[sid]):
+        return []
+    cited = [i for i in reasons.get(sid, ()) if i in own]
+    missing = [i for i in reasons.get(sid, ()) if i not in own]
+    if (cited and not missing) or ctx.waived("S35", sid):
+        return []
+    return [f"S35 {sid}: selected is {chosen} but the parent's default is {parent[sid]}, and "
+            + (f"overrides.csv cites {', '.join(missing)}, which no problem, ideal or metric of this repository has" if missing
+               else "no reason id in overrides.csv names a problem, ideal or metric of this repository")
+            + "; cite one (reason_ids) or waive naming the pending decision"]
+
+
 def run(ctx: Context) -> list:
     if not ctx.config.parent:
         return []
@@ -27,21 +45,9 @@ def run(ctx: Context) -> list:
         return [f"S35 esoi.toml: {error}"]
     own = {r.get(key, "") for rows, key in ((ctx.registry.problems, "problem_id"), (ctx.registry.ideals, "ideal_id"),
                                             (ctx.registry.metrics, "metric_id")) for r in rows}
-    bad = []
+    bad: List[str] = []
     for row in ctx.every_solution():
-        sid = row.get("solution_id", "")
-        chosen = variants.base_of(default_name(row, ctx.registry.implementations)).lower()
-        if not (sid in parent and chosen and chosen != parent[sid]):
-            continue
-        cited = [i for i in reasons.get(sid, ()) if i in own]
-        missing = [i for i in reasons.get(sid, ()) if i not in own]
-        if cited and not missing:
-            continue
-        if not ctx.waived("S35", sid):
-            bad.append(f"S35 {sid}: selected is {chosen} but the parent's default is {parent[sid]}, and "
-                       + (f"overrides.csv cites {', '.join(missing)}, which no problem, ideal or metric of this repository has" if missing
-                          else "no reason id in overrides.csv names a problem, ideal or metric of this repository")
-                       + "; cite one (reason_ids) or waive naming the pending decision")
+        bad += override_problem(ctx, row, parent, reasons, own)
     return bad
 
 

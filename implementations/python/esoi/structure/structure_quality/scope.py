@@ -37,14 +37,8 @@ def classes(project: Project):
                 yield module, node
 
 
-def arm_rows(project: Project) -> List[tuple]:
-    """Each arm with what it lacks of its solution's Protocol: ``(path, class, solution id, problems, members)``, where ``members`` is how many members the
-    Protocol it was measured against declares, or 0 when the arm has none to be measured against (see ``conformance.arm_problems``). The Protocols and
-    base classes of the libraries the project adopts from and of installed packages count (``adopted.py``), and a Protocol counts the members of the
-    Protocols it extends; an arm whose solution id names no solution, or whose solution declares no Protocol, has that as its one problem. An arm that
-    does not implement its solution's Protocol but does implement a plain Protocol (one with no ``@solution``) in its own folder is told so: the
-    solution's interface was demoted beside it, the way a merge once stripped the declaration from 22 Protocols and left their arms registered."""
-    libraries = adopted_projects(project)
+def collect_classes(project: Project, libraries: list):
+    """Index every class of the project and its libraries, the Protocols by solution id, the plain Protocols by unit, and the project's arms."""
     protocols: Dict[str, List[ast.ClassDef]] = {}
     plain: Dict[str, List[ast.ClassDef]] = defaultdict(list)
     arms = []
@@ -64,6 +58,18 @@ def arm_rows(project: Project) -> List[tuple]:
             arm = decorator_id(node, "implementation")
             if arm and source is project:
                 arms.append((module, node, arm))
+    return protocols, plain, arms, index, adopted_index
+
+
+def arm_rows(project: Project) -> List[tuple]:
+    """Each arm with what it lacks of its solution's Protocol: ``(path, class, solution id, problems, members)``, where ``members`` is how many members the
+    Protocol it was measured against declares, or 0 when the arm has none to be measured against (see ``conformance.arm_problems``). The Protocols and
+    base classes of the libraries the project adopts from and of installed packages count (``adopted.py``), and a Protocol counts the members of the
+    Protocols it extends; an arm whose solution id names no solution, or whose solution declares no Protocol, has that as its one problem. An arm that
+    does not implement its solution's Protocol but does implement a plain Protocol (one with no ``@solution``) in its own folder is told so: the
+    solution's interface was demoted beside it, the way a merge once stripped the declaration from 22 Protocols and left their arms registered."""
+    libraries = adopted_projects(project)
+    protocols, plain, arms, index, adopted_index = collect_classes(project, libraries)
     wanted = {getattr(b, "id", getattr(b, "attr", "")) for _, node, _ in arms for b in node.bases} - set(index)
     index.update(installed_classes(project, wanted))
     known = declared_solutions([project, *libraries], set(protocols))
@@ -96,6 +102,22 @@ def base_index(arm: ast.ClassDef, module, index: Dict[str, object], adopted_inde
     return out
 
 
+def imported_class(node: ast.ImportFrom, module, project: Project, wanted: set) -> Dict[str, object]:
+    """The classes of other project modules that one import statement brings in under a name the arm's bases use."""
+    found_classes: Dict[str, object] = {}
+    resolved = resolve_import(node, module.path)
+    for position, alias in enumerate(node.names):
+        if alias.name not in wanted or (alias.asname or alias.name) not in wanted:
+            continue
+        base = resolved[0][0] if len(resolved) == 1 else resolved[position][0]
+        target = project.index.get(f"{base}.{alias.name}") or project.index.get(base)
+        if target in project.modules:
+            for found, node_class in classes(project):
+                if found.path == project.modules[target].path and node_class.name == alias.name:
+                    found_classes[alias.asname or alias.name] = node_class
+    return found_classes
+
+
 def imported_bases(arm: ast.ClassDef, module, project: Project, index: Dict[str, object]) -> Dict[str, object]:
     """The index with each base of the arm that the module imports from another module of the project read as the class of that module, so two
     classes of one name in different modules (two ``CardsMixin``) are not mixed up."""
@@ -103,16 +125,7 @@ def imported_bases(arm: ast.ClassDef, module, project: Project, index: Dict[str,
     out = index
     for node in nodes_of(module.tree) if module.tree is not None else ():
         if isinstance(node, ast.ImportFrom):
-            resolved = resolve_import(node, module.path)
-            for position, alias in enumerate(node.names):
-                if alias.name not in wanted or (alias.asname or alias.name) not in wanted:
-                    continue
-                base = resolved[0][0] if len(resolved) == 1 else resolved[position][0]
-                target = project.index.get(f"{base}.{alias.name}") or project.index.get(base)
-                if target in project.modules:
-                    for found, node_class in classes(project):
-                        if found.path == project.modules[target].path and node_class.name == alias.name:
-                            out = {**out, alias.asname or alias.name: node_class}
+            out = {**out, **imported_class(node, module, project, wanted)}
     return out
 
 

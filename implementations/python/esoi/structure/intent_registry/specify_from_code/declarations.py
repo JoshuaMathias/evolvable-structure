@@ -73,15 +73,15 @@ def string_arg(node: ast.AST) -> Optional[str]:
     return node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) else None
 
 
+def imports_esoi_node(node: ast.AST) -> bool:
+    """Whether one node imports esoi, or (inside esoi itself) the decorators from the sibling ``runtime`` module."""
+    if isinstance(node, ast.ImportFrom):
+        return (node.module or "").split(".")[0] == "esoi" or bool(node.level and (node.module or "") == "runtime")
+    return isinstance(node, ast.Import) and any(a.name.split(".")[0] == "esoi" for a in node.names)
+
+
 def imports_esoi(tree: ast.AST) -> bool:
-    for node in nodes_of(tree):
-        if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] == "esoi":
-            return True
-        if isinstance(node, ast.ImportFrom) and node.level and (node.module or "") == "runtime":
-            return True   # esoi's own modules import the decorators from their sibling (``from .runtime import solution``)
-        if isinstance(node, ast.Import) and any(a.name.split(".")[0] == "esoi" for a in node.names):
-            return True
-    return False
+    return any(imports_esoi_node(node) for node in nodes_of(tree))
 
 
 def decorator_call(node: ast.AST) -> Optional[Tuple[str, ast.Call]]:
@@ -121,38 +121,48 @@ def scan_file(rel: str, text: str, out: Declared) -> None:
         return
 
 
+def declare_decorated(rel: str, node: ast.AST, out: Declared) -> None:
+    """Record the solution or implementation each ``@solution`` / ``@implementation`` decorator of a function or class declares."""
+    for decorator in node.decorator_list:
+        found = decorator_call(decorator)
+        if not found or not found[1].args or string_arg(found[1].args[0]) is None:
+            continue
+        kind, call = found
+        sid = string_arg(call.args[0]) or ""
+        purpose = first_paragraph(ast.get_docstring(node))
+        if kind == "solution":
+            params, returns = signature(node)
+            keywords = {k.arg: k.value for k in call.keywords if k.arg}
+            example, has_example = literal(keywords.get("example"))
+            out.solutions[sid] = SolutionDecl(sid, rel, node.lineno, node.name, purpose, params, returns,
+                                              node.name if isinstance(node, ast.ClassDef) else "",
+                                              string_arg(keywords["kind"]) or "" if "kind" in keywords else "",
+                                              string_arg(keywords["entry"]) or "" if "entry" in keywords else "",
+                                              example, has_example)
+        else:
+            given = string_arg(call.args[1]) if len(call.args) > 1 else None
+            given = given or next((string_arg(k.value) for k in call.keywords if k.arg == "name"), None)
+            name = (given or node.name).strip().lower()
+            out.implementations[(sid, name)] = ImplementationDecl(sid, name, rel, node.lineno, purpose)
+
+
+def declare_registered(rel: str, node: ast.Call, out: Declared) -> None:
+    """Record the implementation a ``register("solution", "name", ...)`` call declares."""
+    word = node.func.id if isinstance(node.func, ast.Name) else node.func.attr
+    strings = [string_arg(a) for a in node.args[:2]]
+    if word == "register" and len(strings) == 2 and all(strings):
+        name = (strings[1] or "").strip().lower()
+        out.implementations[(strings[0] or "", name)] = ImplementationDecl(strings[0] or "", name, rel, node.lineno)
+
+
 def scan_tree(rel: str, tree: Optional[ast.Module], out: Declared) -> None:
     if tree is None or not imports_esoi(tree):
         return
     for node in nodes_of(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            for decorator in node.decorator_list:
-                found = decorator_call(decorator)
-                if not found or not found[1].args or string_arg(found[1].args[0]) is None:
-                    continue
-                kind, call = found
-                sid = string_arg(call.args[0]) or ""
-                purpose = first_paragraph(ast.get_docstring(node))
-                if kind == "solution":
-                    params, returns = signature(node)
-                    keywords = {k.arg: k.value for k in call.keywords if k.arg}
-                    example, has_example = literal(keywords.get("example"))
-                    out.solutions[sid] = SolutionDecl(sid, rel, node.lineno, node.name, purpose, params, returns,
-                                                      node.name if isinstance(node, ast.ClassDef) else "",
-                                                      string_arg(keywords["kind"]) or "" if "kind" in keywords else "",
-                                                      string_arg(keywords["entry"]) or "" if "entry" in keywords else "",
-                                                      example, has_example)
-                else:
-                    given = string_arg(call.args[1]) if len(call.args) > 1 else None
-                    given = given or next((string_arg(k.value) for k in call.keywords if k.arg == "name"), None)
-                    name = (given or node.name).strip().lower()
-                    out.implementations[(sid, name)] = ImplementationDecl(sid, name, rel, node.lineno, purpose)
+            declare_decorated(rel, node, out)
         elif isinstance(node, ast.Call) and isinstance(node.func, (ast.Name, ast.Attribute)):
-            word = node.func.id if isinstance(node.func, ast.Name) else node.func.attr
-            strings = [string_arg(a) for a in node.args[:2]]
-            if word == "register" and len(strings) == 2 and all(strings):
-                name = (strings[1] or "").strip().lower()
-                out.implementations[(strings[0] or "", name)] = ImplementationDecl(strings[0] or "", name, rel, node.lineno)
+            declare_registered(rel, node, out)
 
 
 def code_files(config: Config) -> List[str]:
@@ -180,6 +190,26 @@ def scan(config: Config, files: Optional[List[str]] = None) -> Declared:
     return out
 
 
+def implementation_drift(decl: ImplementationDecl, sid: str, name: str, records, solutions, declared: Declared) -> List[str]:
+    """S30 lines for one declared implementation: its solution is known, its record exists, and the record points at the declaring file."""
+    if sid not in solutions and sid not in declared.solutions and not sid.startswith("@"):
+        return [f"S30 {sid}:{name}: declared at {decl.file}:{decl.line} for a solution that is neither declared "
+                "nor in solutions.csv"]
+    record = records.get(decl.implementation_id)
+    if record is None:   # a record whose id follows no pattern still counts when its path is this file and it is alone there
+        alone = [r for r in records.values() if r.get("solution_id") == sid and (r.get("filepath") or "").strip() == decl.file]
+        siblings = [d for (s, _), d in declared.implementations.items() if s == sid and d.file == decl.file]
+        record = alone[0] if len(alone) == 1 and len(siblings) == 1 else None
+    if record is None:
+        return [f"S30 {decl.implementation_id}: declared at {decl.file}:{decl.line} but implementations.csv has no "
+                "such record (`esoi records sync` writes it)"]
+    if (record.get("filepath") or "").strip().split("::")[0] != decl.file and decl.line:
+        return [f"S30 {decl.implementation_id}: declared in {decl.file} but its record's `filepath` says "
+                f"{(record.get('filepath') or '').strip() or 'nothing'} (`esoi records sync` fills an empty filepath; "
+                "a wrong one is yours to correct)"]
+    return []
+
+
 def drift(config: Config, registry: Registry, declared: Declared) -> List[str]:
     """What the code declares and the records do not say, as S30 lines."""
     solutions = {r.get("solution_id", "") for r in registry.every_solution()}
@@ -190,22 +220,7 @@ def drift(config: Config, registry: Registry, declared: Declared) -> List[str]:
             bad.append(f"S30 {sid}: declared at {decl.file}:{decl.line} but no solutions.csv row has that solution_id "
                        "(`esoi records sync` writes it)")
     for (sid, name), decl in sorted(declared.implementations.items()):
-        if sid not in solutions and sid not in declared.solutions and not sid.startswith("@"):
-            bad.append(f"S30 {sid}:{name}: declared at {decl.file}:{decl.line} for a solution that is neither declared "
-                       "nor in solutions.csv")
-            continue
-        record = records.get(decl.implementation_id)
-        if record is None:   # a record whose id follows no pattern still counts when its path is this file and it is alone there
-            alone = [r for r in records.values() if r.get("solution_id") == sid and (r.get("filepath") or "").strip() == decl.file]
-            siblings = [d for (s, _), d in declared.implementations.items() if s == sid and d.file == decl.file]
-            record = alone[0] if len(alone) == 1 and len(siblings) == 1 else None
-        if record is None:
-            bad.append(f"S30 {decl.implementation_id}: declared at {decl.file}:{decl.line} but implementations.csv has no "
-                       "such record (`esoi records sync` writes it)")
-        elif (record.get("filepath") or "").strip().split("::")[0] != decl.file and decl.line:
-            bad.append(f"S30 {decl.implementation_id}: declared in {decl.file} but its record's `filepath` says "
-                       f"{(record.get('filepath') or '').strip() or 'nothing'} (`esoi records sync` fills an empty filepath; "
-                       "a wrong one is yours to correct)")
+        bad += implementation_drift(decl, sid, name, records, solutions, declared)
     return bad
 
 
@@ -249,6 +264,69 @@ def holder(config: Config, default: Path, name: str, key: str, ident: str) -> Pa
     return default
 
 
+class HeldTables:
+    """The solutions and implementations tables of each folder a sync touches, read once and written back when changed."""
+
+    def __init__(self, template: Dict[str, List[Dict[str, str]]]) -> None:
+        self.template = template
+        self.held: Dict[Path, Dict[str, Any]] = {}
+
+    def of(self, folder: Path) -> Dict[str, Any]:
+        if folder not in self.held:
+            sol_cols, sol_rows = table_rows(folder, "solutions.csv", "solution_id", self.template, "solution")
+            imp_cols, imp_rows = table_rows(folder, "implementations.csv", "implementation_id", self.template, "implementation")
+            self.held[folder] = {"sc": sol_cols, "sr": sol_rows, "ic": imp_cols, "ir": imp_rows, "changed": False}
+        return self.held[folder]
+
+    def write(self) -> None:
+        for folder, t in self.held.items():
+            if t["changed"]:
+                write_csv(folder / "solutions.csv", t["sc"], t["sr"])
+                write_csv(folder / "implementations.csv", t["ic"], t["ir"])
+
+
+def add_solution(config: Config, default: Path, tables: HeldTables, sid: str, decl: SolutionDecl, declared: Declared) -> str:
+    """Add the row of a declared solution the records lack; returns the line describing it."""
+    names = sorted(n for s, n in declared.implementations if s == sid)
+    t = tables.of(code_home(config, default, decl.file))
+    row = blank(t["sc"], solution_id=sid, name=title(decl.name or sid), purpose=decl.purpose,
+                parameters=decl.parameters, outputs=decl.outputs, interface_name=decl.port, implementations=";".join(names),
+                selected=names[0] if len(names) == 1 else "")
+    t["sr"].append(row)
+    t["changed"] = True
+    return f"solutions.csv: add {sid} (from {decl.file}:{decl.line})"
+
+
+def sync_implementation(config: Config, default: Path, tables: HeldTables, sid: str, decl: ImplementationDecl, known_records: set) -> List[str]:
+    """Add the record of a declared implementation the records lack, or fill the empty filepath of the one they have."""
+    if decl.implementation_id not in known_records:
+        t = tables.of(code_home(config, default, decl.file))
+        t["ir"].append(blank(t["ic"], implementation_id=decl.implementation_id, solution_id=sid, filepath=decl.file,
+                             name=title(decl.name), description=decl.purpose))
+        t["changed"] = True
+        return [f"implementations.csv: add {decl.implementation_id} (from {decl.file}:{decl.line})"]
+    t = tables.of(holder(config, default, "implementations.csv", "implementation_id", decl.implementation_id))
+    record = next((r for r in t["ir"] if r.get("implementation_id") == decl.implementation_id), None)
+    if record is not None and "filepath" in record and not record["filepath"].strip():
+        record["filepath"] = decl.file
+        t["changed"] = True
+        return [f"implementations.csv: fill the empty filepath of {decl.implementation_id}"]
+    return []
+
+
+def list_in_solution(config: Config, default: Path, tables: HeldTables, sid: str, name: str, decl: ImplementationDecl) -> List[str]:
+    """List a declared implementation in the `implementations` cell of its solution when neither its name nor its file is there."""
+    st = tables.of(holder(config, default, "solutions.csv", "solution_id", sid))
+    row = next((r for r in st["sr"] if r.get("solution_id") == sid), None)
+    listed = ids(row["implementations"]) if row is not None and "implementations" in row else []
+    if row is not None and "implementations" in row and name not in listed \
+            and decl.file not in [e.split("::")[0] for e in listed]:
+        row["implementations"] = ";".join(listed + [name])
+        st["changed"] = True
+        return [f"solutions.csv: list {name} in the implementations of {sid}"]
+    return []
+
+
 def sync(config: Config, registry: Registry, declared: Declared, intent_id: Optional[str] = None,
          apply: bool = True) -> List[str]:
     """Write the solution rows and implementation records the code declares and the records lack, into the folder of
@@ -257,55 +335,16 @@ def sync(config: Config, registry: Registry, declared: Declared, intent_id: Opti
     already exists is completed in the folder that holds it. Returns what changed, one line each (and writes nothing when
     ``apply`` is false)."""
     default = intent_folder(config, intent_id)
-    template = load_template(TEMPLATE_DATA)
+    tables = HeldTables(load_template(TEMPLATE_DATA))
     known_solutions = {r.get("solution_id", "") for r in registry.every_solution()}
     known_records = {r.get("implementation_id", "") for r in registry.implementations}
-    held: Dict[Path, Dict[str, Any]] = {}
-
-    def tables(folder: Path) -> Dict[str, Any]:
-        if folder not in held:
-            sol_cols, sol_rows = table_rows(folder, "solutions.csv", "solution_id", template, "solution")
-            imp_cols, imp_rows = table_rows(folder, "implementations.csv", "implementation_id", template, "implementation")
-            held[folder] = {"sc": sol_cols, "sr": sol_rows, "ic": imp_cols, "ir": imp_rows, "changed": False}
-        return held[folder]
-
     done: List[str] = []
     for sid, decl in sorted(declared.solutions.items()):
-        if sid in known_solutions:
-            continue
-        names = sorted(n for s, n in declared.implementations if s == sid)
-        t = tables(code_home(config, default, decl.file))
-        row = blank(t["sc"], solution_id=sid, name=title(decl.name or sid), purpose=decl.purpose,
-                    parameters=decl.parameters, outputs=decl.outputs, interface_name=decl.port, implementations=";".join(names),
-                    selected=names[0] if len(names) == 1 else "")
-        t["sr"].append(row)
-        t["changed"] = True
-        done.append(f"solutions.csv: add {sid} (from {decl.file}:{decl.line})")
+        if sid not in known_solutions:
+            done.append(add_solution(config, default, tables, sid, decl, declared))
     for (sid, name), decl in sorted(declared.implementations.items()):
-        if decl.implementation_id not in known_records:
-            t = tables(code_home(config, default, decl.file))
-            t["ir"].append(blank(t["ic"], implementation_id=decl.implementation_id, solution_id=sid, filepath=decl.file,
-                                 name=title(name), description=decl.purpose))
-            t["changed"] = True
-            done.append(f"implementations.csv: add {decl.implementation_id} (from {decl.file}:{decl.line})")
-        else:
-            t = tables(holder(config, default, "implementations.csv", "implementation_id", decl.implementation_id))
-            record = next((r for r in t["ir"] if r.get("implementation_id") == decl.implementation_id), None)
-            if record is not None and "filepath" in record and not record["filepath"].strip():
-                record["filepath"] = decl.file
-                t["changed"] = True
-                done.append(f"implementations.csv: fill the empty filepath of {decl.implementation_id}")
-        st = tables(holder(config, default, "solutions.csv", "solution_id", sid))
-        row = next((r for r in st["sr"] if r.get("solution_id") == sid), None)
-        listed = ids(row["implementations"]) if row is not None and "implementations" in row else []
-        if row is not None and "implementations" in row and name not in listed \
-                and decl.file not in [e.split("::")[0] for e in listed]:
-            row["implementations"] = ";".join(listed + [name])
-            st["changed"] = True
-            done.append(f"solutions.csv: list {name} in the implementations of {sid}")
+        done += sync_implementation(config, default, tables, sid, decl, known_records)
+        done += list_in_solution(config, default, tables, sid, name, decl)
     if apply:
-        for folder, t in held.items():
-            if t["changed"]:
-                write_csv(folder / "solutions.csv", t["sc"], t["sr"])
-                write_csv(folder / "implementations.csv", t["ic"], t["ir"])
+        tables.write()
     return done

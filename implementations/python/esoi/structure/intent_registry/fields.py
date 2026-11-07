@@ -39,6 +39,18 @@ NEW_METRIC_COLUMNS = ["purpose", "disadvantages"]
 
 # ---- tags ---------------------------------------------------------------------------------------------------------
 
+def tag_of(item: object) -> Tag:
+    """One tag from an item of the ``tags`` list: a label, or an object with a label and its risk ids. Raises ``ValueError`` for anything else."""
+    if isinstance(item, str):
+        return {"tag": item.strip(), "risk_ids": []}
+    if isinstance(item, dict) and isinstance(item.get("tag"), str):
+        risks = item.get("risk_ids") or []
+        if not isinstance(risks, list) or not all(isinstance(r, str) for r in risks):
+            raise ValueError(f"risk_ids of tag {item['tag']!r} must be a list of strings")
+        return {"tag": item["tag"].strip(), "risk_ids": [r.strip() for r in risks if r.strip()]}
+    raise ValueError(f"not a tag: {item!r}")
+
+
 def parse_tags(cell: Optional[str]) -> List[Tag]:
     """The tags of a ``tags`` cell as ``[{"tag": label, "risk_ids": [problem ids]}]``. An empty cell is no tags. A cell that
     is not JSON is the older form, labels separated by ``;``, and gives tags with no risk ids. Raises ``ValueError`` for
@@ -54,18 +66,7 @@ def parse_tags(cell: Optional[str]) -> List[Tag]:
         raise ValueError(f"tags cell is not valid JSON: {exc}") from exc
     if not isinstance(data, list):
         raise ValueError("tags cell must be a JSON list of {\"tag\", \"risk_ids\"} objects")
-    out: List[Tag] = []
-    for item in data:
-        if isinstance(item, str):
-            out.append({"tag": item.strip(), "risk_ids": []})
-        elif isinstance(item, dict) and isinstance(item.get("tag"), str):
-            risks = item.get("risk_ids") or []
-            if not isinstance(risks, list) or not all(isinstance(r, str) for r in risks):
-                raise ValueError(f"risk_ids of tag {item['tag']!r} must be a list of strings")
-            out.append({"tag": item["tag"].strip(), "risk_ids": [r.strip() for r in risks if r.strip()]})
-        else:
-            raise ValueError(f"not a tag: {item!r}")
-    return out
+    return [tag_of(item) for item in data]
 
 
 def format_tags(tags: Iterable[Tag]) -> str:
@@ -84,6 +85,19 @@ MET = re.compile(r"\s*\[met(?::\s*([^\]]*?))?\s*\]\s*$", re.I)
 NUMBERED = re.compile(r"(?:(?<=^)|(?<=\s))(\d+)\.\s+(?=\S)")
 
 
+def milestone_marks(text: str, in_order: bool) -> list:
+    """The matches of the milestone numbers in a cell; with ``in_order``, only a list that starts at ``1.`` and runs 1, 2, 3."""
+    marks = list(NUMBERED.finditer(text))
+    if not in_order:
+        return marks
+    expect, kept = 1, []
+    for mark in marks:
+        if int(mark.group(1)) == expect:
+            kept.append(mark)
+            expect += 1
+    return kept if kept and kept[0].start() == 0 else []
+
+
 def parse_milestones(cell: Optional[str], in_order: bool = False) -> List[Dict[str, object]]:
     """The milestones of a ``milestones`` cell, in order, as ``[{"text": str, "met": bool, "met_on": str}]`` (``met_on`` is
     empty when unmet or when no date was written). A cell with no numbers is one milestone; an empty cell is none. The
@@ -94,14 +108,7 @@ def parse_milestones(cell: Optional[str], in_order: bool = False) -> List[Dict[s
     text = (cell or "").strip()
     if not text:
         return []
-    marks = list(NUMBERED.finditer(text))
-    if in_order:
-        expect, kept = 1, []
-        for mark in marks:
-            if int(mark.group(1)) == expect:
-                kept.append(mark)
-                expect += 1
-        marks = kept if kept and kept[0].start() == 0 else []
+    marks = milestone_marks(text, in_order)
     parts = [text[m.end():(marks[i + 1].start() if i + 1 < len(marks) else len(text))] for i, m in enumerate(marks)] if marks else [text]
     out: List[Dict[str, object]] = []
     for part in parts:
@@ -159,6 +166,29 @@ def split_metric_text(text: str) -> Tuple[str, str]:
 
 # ---- rows ---------------------------------------------------------------------------------------------------------
 
+def split_old_text(entity: str, out: Row) -> None:
+    """Replace the old ``scoped_purpose`` of a row by its split text, never overwriting a new field that already has text."""
+    old = out.pop(OLD)
+    first, second = (split_solution_text(old) if entity == "solution" else split_metric_text(old))
+    second_key = "out_of_scope" if entity == "solution" else "disadvantages"
+    if not out.get("purpose", "").strip():
+        out["purpose"] = first
+    if not out.get(second_key, "").strip():
+        out[second_key] = second
+
+
+def attach_flat_risk(out: Row) -> None:
+    """Drop a flat ``risk_addressed`` from a solution row, attaching it to the tags when there is exactly one tag."""
+    flat = out.pop(FLAT_RISK, "")
+    if out.get("tags", "").lstrip().startswith("["):
+        return
+    tags = parse_tags(out.get("tags", ""))
+    risks = [r for r in flat.split(SEP) if r.strip()]
+    if len(tags) == 1 and risks:
+        tags[0]["risk_ids"] = [r.strip() for r in risks]
+    out["tags"] = format_tags(tags)
+
+
 def upgrade_row(entity: str, row: Row) -> Row:
     """A solution or metric row in the current fields. A row that already has them is returned as it is; a row with the old
     ``scoped_purpose`` gets the split text in the new fields (a new field that already has text is never overwritten) and
@@ -168,21 +198,9 @@ def upgrade_row(entity: str, row: Row) -> Row:
         return row
     out = dict(row)
     if OLD in out:
-        old = out.pop(OLD)
-        first, second = (split_solution_text(old) if entity == "solution" else split_metric_text(old))
-        second_key = "out_of_scope" if entity == "solution" else "disadvantages"
-        if not out.get("purpose", "").strip():
-            out["purpose"] = first
-        if not out.get(second_key, "").strip():
-            out[second_key] = second
+        split_old_text(entity, out)
     if entity == "solution":
-        flat = out.pop(FLAT_RISK, "")
-        tags = parse_tags(out.get("tags", "")) if not out.get("tags", "").lstrip().startswith("[") else None
-        if tags is not None:
-            risks = [r for r in flat.split(SEP) if r.strip()]
-            if len(tags) == 1 and risks:
-                tags[0]["risk_ids"] = [r.strip() for r in risks]
-            out["tags"] = format_tags(tags)
+        attach_flat_risk(out)
     return out
 
 
@@ -190,33 +208,42 @@ def upgrade_rows(entity: str, rows: List[Row]) -> List[Row]:
     return [upgrade_row(entity, row) for row in rows]
 
 
-def migrated_header(entity: str, header: List[str]) -> List[str]:
-    """The header of a records file after migration: new columns take the place of the old one, in template order."""
-    new = NEW_SOLUTION_COLUMNS if entity == "solution" else NEW_METRIC_COLUMNS
-    out: List[str] = []
-    for column in header:
-        if column == OLD:
-            out += [c for c in (new if entity == "solution" else ["purpose"]) if c not in header and c not in out]
-        elif column == FLAT_RISK:
-            continue
-        else:
-            out.append(column)
+def add_new_columns(entity: str, out: List[str]) -> None:
+    """Add the columns an entity gains in the migration, each beside the column it belongs after."""
     if entity == "solution":
         if "description" not in out:
             out.insert(out.index("name") + 1 if "name" in out else 0, "description")
-        for column in NEW_SOLUTION_COLUMNS:
-            if column not in out:
-                out.append(column)
+        out += [c for c in NEW_SOLUTION_COLUMNS if c not in out]
         if "tags" not in out:
             out.insert(out.index("measures_of_success") + 1 if "measures_of_success" in out else len(out), "tags")
-    else:
-        for column in NEW_METRIC_COLUMNS:
-            if column not in out:
-                out.insert(out.index("record") + 1 if column == "disadvantages" and "record" in out else len(out), column)
+        return
+    for column in NEW_METRIC_COLUMNS:
+        if column not in out:
+            out.insert(out.index("record") + 1 if column == "disadvantages" and "record" in out else len(out), column)
+
+
+def migrated_header(entity: str, header: List[str]) -> List[str]:
+    """The header of a records file after migration: new columns take the place of the old one, in template order."""
+    new = NEW_SOLUTION_COLUMNS if entity == "solution" else ["purpose"]
+    out: List[str] = []
+    for column in header:
+        if column == OLD:
+            out += [c for c in new if c not in header and c not in out]
+        elif column != FLAT_RISK:
+            out.append(column)
+    add_new_columns(entity, out)
     return out
 
 
 FILES = {"solution": "solutions.csv", "metric": "metrics.csv"}
+
+
+def is_current(entity: str, header: List[str]) -> bool:
+    """Whether a records file's header already has the current fields and none of the old ones."""
+    if OLD in header or FLAT_RISK in header:
+        return False
+    needed = NEW_SOLUTION_COLUMNS + ["tags"] if entity == "solution" else ["disadvantages", "purpose"]
+    return all(c in header for c in needed)
 
 
 def migrate_folder(folder: Path, apply: bool = True) -> List[str]:
@@ -228,8 +255,7 @@ def migrate_folder(folder: Path, apply: bool = True) -> List[str]:
         if not path.is_file():
             continue
         header = read_header(path)
-        if OLD not in header and FLAT_RISK not in header and (entity == "metric" and "disadvantages" in header and "purpose" in header
-                or entity == "solution" and all(c in header for c in NEW_SOLUTION_COLUMNS + ["tags"])):
+        if is_current(entity, header):
             continue
         rows = upgrade_rows(entity, read_csv(path))
         new_header = migrated_header(entity, header)

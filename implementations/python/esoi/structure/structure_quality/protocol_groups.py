@@ -58,17 +58,8 @@ class Groups:
         self.parent[self.find(first)] = self.find(second)
 
 
-def group_protocols(protocols: Dict[str, List[Tuple[str, str]]], arms: List[Tuple[str, ast.ClassDef, str]],
-                    extends: Optional[Dict[str, Set[str]]] = None) -> List[List[str]]:
-    """The groups of Protocol names of one folder. ``protocols`` maps each Protocol name of the folder to its ``(path, solution id)`` and ``arms`` are
-    ``(path, class, solution id)`` for every arm of the project (an arm anywhere may build on a Protocol of this folder). ``extends`` maps a Protocol
-    name to the base class names it lists: one that extends another Protocol of the folder is in its group."""
-    names = sorted(protocols)
-    groups = Groups(names)
-    for name in names:
-        for base in (extends or {}).get(name, ()):
-            if base in groups.parent and base != name:
-                groups.join(name, base)
+def join_by_arms(groups: Groups, names: List[str], protocols, arms) -> Dict[str, Set[str]]:
+    """Join the Protocols one arm takes as a need to those its own solution declares; returns the arms that implement each Protocol."""
     implementers: Dict[str, Set[str]] = {n: set() for n in names}
     for _, arm, sid in arms:
         extended = {getattr(b, "id", getattr(b, "attr", "")) for b in arm.bases}
@@ -81,6 +72,21 @@ def group_protocols(protocols: Dict[str, List[Tuple[str, str]]], arms: List[Tupl
             for owner in implemented:
                 if owner != taken[0]:
                     groups.join(owner, taken[0])
+    return implementers
+
+
+def group_protocols(protocols: Dict[str, List[Tuple[str, str]]], arms: List[Tuple[str, ast.ClassDef, str]],
+                    extends: Optional[Dict[str, Set[str]]] = None) -> List[List[str]]:
+    """The groups of Protocol names of one folder. ``protocols`` maps each Protocol name of the folder to its ``(path, solution id)`` and ``arms`` are
+    ``(path, class, solution id)`` for every arm of the project (an arm anywhere may build on a Protocol of this folder). ``extends`` maps a Protocol
+    name to the base class names it lists: one that extends another Protocol of the folder is in its group."""
+    names = sorted(protocols)
+    groups = Groups(names)
+    for name in names:
+        for base in (extends or {}).get(name, ()):
+            if base in groups.parent and base != name:
+                groups.join(name, base)
+    implementers = join_by_arms(groups, names, protocols, arms)
     for position, first in enumerate(names):
         for second in names[position + 1:]:
             if implementers[first] and implementers[first] == implementers[second]:

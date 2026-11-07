@@ -42,6 +42,18 @@ class Form:
     wrong: List[str] = field(default_factory=list)
 
 
+def linked_paths(config: Config, path: Path) -> List[str]:
+    """The repository paths a markdown reference links to (links outside the repository stay as written; URLs are skipped)."""
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    base = path.parent
+    listed = []
+    for target in LINK.findall(text):
+        if re.match(r"^[a-z][a-z0-9+.-]*:", target):
+            continue
+        listed.append((base / target).resolve().relative_to(config.root.resolve()).as_posix() if (base / target).resolve().is_relative_to(config.root.resolve()) else target)
+    return listed
+
+
 def form_of(config: Config, filepath: str) -> Form:
     """Classify an implementation's ``filepath`` and read what a reference or registry row lists."""
     entry, _, symbol = (filepath or "").partition("::")
@@ -53,21 +65,15 @@ def form_of(config: Config, filepath: str) -> Form:
         return Form("code", entry)
     if not path.is_file():
         return Form("reference", entry, wrong=[f"{entry} does not exist"])
-    if symbol.strip() and path.suffix.lower() in (".csv", ".tsv"):
+    tabular = path.suffix.lower() in (".csv", ".tsv")
+    if symbol.strip() and tabular:
         row = next((r for r in read_csv(path) if symbol.strip() in [v.strip() for v in list(r.values())[:1]]), None)
         if row is None:
             return Form("registry-row", entry, wrong=[f"{symbol.strip()} is not a row of {entry}"])
         return Form("registry-row", entry, cells_of(row))
-    if path.suffix.lower() in (".csv", ".tsv"):
+    if tabular:
         return Form("reference", entry, [p for row in read_csv(path) for p in cells_of(row)])
-    text = path.read_text(encoding="utf-8", errors="ignore")
-    base = path.parent
-    listed = []
-    for target in LINK.findall(text):
-        if re.match(r"^[a-z][a-z0-9+.-]*:", target):
-            continue
-        listed.append((base / target).resolve().relative_to(config.root.resolve()).as_posix() if (base / target).resolve().is_relative_to(config.root.resolve()) else target)
-    return Form("reference", entry, listed)
+    return Form("reference", entry, linked_paths(config, path))
 
 
 def cells_of(row: Dict[str, str]) -> List[str]:

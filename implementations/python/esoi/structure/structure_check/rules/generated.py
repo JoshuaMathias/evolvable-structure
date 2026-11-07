@@ -57,49 +57,64 @@ def render_components_doc(components: List[Dict[str, str]], structure_dir: str) 
     return "\n".join(lines) + "\n"
 
 
-def run(ctx: Context) -> List[str]:
+def generated_page_problems(ctx: Context) -> List[str]:
+    """S8 for the components document, the folder pages and the diagrams that are out of date."""
     bad: List[str] = []
     config = ctx.config
     doc = config.structure / "COMPONENTS.md"
     if not doc.exists() or doc.read_text(encoding="utf-8") != render_components_doc(ctx.components, config.structure_dir):
         bad.append(f"S8 {config.structure_dir}/COMPONENTS.md: out of date (run `esoi check --write-docs`)")
-
     if config.intent_mode:
         for page, text in readme.pages(config, ctx.registry, ctx.results, written_arm_pages_only=True):
             if not page.exists() or page.read_text(encoding="utf-8") != text:
                 bad.append(f"S8 {page.relative_to(config.root)}: out of date (run `esoi readmes`)")
-
         from esoi.understanding.readable_records import diagram
         bad.extend(f"S8 {path.relative_to(config.root)}: out of date (run `esoi diagram` or `esoi check --write-docs`)"
                    for path in diagram.stale(config, ctx.registry))
+    return bad
 
-    if config.tracker_dir.is_dir():
-        template = ctx.template
-        cols = tracker.columns(template, tracker.extras(config))
-        for tab, rows in tracker.build(config, ctx.registry, template).items():
-            key = cols[tab][0]
-            for ident, n in Counter(r[key] for r in rows).items():
-                if n > 1:
-                    bad.append(f"S18 tracker {tab}: id {ident} appears {n} times ({TRACKER_DUPLICATE_HINT.get(tab, 'the ids of one tab must be unique')})")
-        for tab in tracker.stale(config, ctx.registry, template):
-            bad.append(f"S17 {config.structure_dir}/tracker/{tab}.csv: out of date (run `esoi tracker build`)")
 
-    pending = {r["solution_id"] for r in ctx.every_solution() if ctx.waived("S26", r["solution_id"])}
-    adopted = {r.get("solution_id", "") for r in ctx.registry.adopted}
+def tracker_problems(ctx: Context) -> List[str]:
+    """S18 for a tracker tab with a repeated id, and S17 for a tab that is out of date."""
+    config = ctx.config
+    if not config.tracker_dir.is_dir():
+        return []
+    bad: List[str] = []
+    template = ctx.template
+    cols = tracker.columns(template, tracker.extras(config))
+    for tab, rows in tracker.build(config, ctx.registry, template).items():
+        key = cols[tab][0]
+        for ident, n in Counter(r[key] for r in rows).items():
+            if n > 1:
+                bad.append(f"S18 tracker {tab}: id {ident} appears {n} times ({TRACKER_DUPLICATE_HINT.get(tab, 'the ids of one tab must be unique')})")
+    for tab in tracker.stale(config, ctx.registry, template):
+        bad.append(f"S17 {config.structure_dir}/tracker/{tab}.csv: out of date (run `esoi tracker build`)")
+    return bad
+
+
+def intent_record_problems(ctx: Context, pending: set, adopted: set) -> List[str]:
+    """S26 for the records of the intent layout, checked as one set across the tree."""
+    config = ctx.config
+    bad: List[str] = []
+    if config.overall:
+        bad.append(f"S26 {config.overall}: `overall` is the legacy layout and is ignored beside {config.structure_dir}/intent.csv; "
+                   "remove it from the configuration")
+    tree = tables_of(ctx.registry)
+    for _, folder in intents.folders(config):
+        bad += [f"S26 {line}" for line in check_headers(folder, ctx.template, label=str(folder.relative_to(config.root)),
+                                                            approved=config.approved_fields, metric_command=config.metric_command)]
+    every = {entity: {r.get(key, "") for r in tree[entity]} - {""} for entity, key in KEYS.items()}
+    return bad + [f"S26 {line}" for line in check_records(
+        config.structure, ctx.template, pending, overall=every, tables=tree, retired={"overall_solution_ids"}, scope="the intent tree",
+        require_parent=bool(config.option("S26", "require_parent", False)), approved=config.approved_fields, metric_command=config.metric_command, adopted=adopted)]
+
+
+def legacy_record_problems(ctx: Context, pending: set, adopted: set) -> List[str]:
+    """S26 for the records of the legacy layout: the overall network, then the detailed records linked up to it."""
+    config = ctx.config
+    bad: List[str] = []
     overall = None
-    if config.intent_mode:
-        if config.overall:
-            bad.append(f"S26 {config.overall}: `overall` is the legacy layout and is ignored beside {config.structure_dir}/intent.csv; "
-                       "remove it from the configuration")
-        tree = tables_of(ctx.registry)
-        for _, folder in intents.folders(config):
-            bad += [f"S26 {line}" for line in check_headers(folder, ctx.template, label=str(folder.relative_to(config.root)),
-                                                                approved=config.approved_fields, metric_command=config.metric_command)]
-        every = {entity: {r.get(key, "") for r in tree[entity]} - {""} for entity, key in KEYS.items()}
-        bad += [f"S26 {line}" for line in check_records(
-            config.structure, ctx.template, pending, overall=every, tables=tree, retired={"overall_solution_ids"}, scope="the intent tree",
-            require_parent=bool(config.option("S26", "require_parent", False)), approved=config.approved_fields, metric_command=config.metric_command, adopted=adopted)]
-    elif config.overall:
+    if config.overall:
         folder = config.root / config.overall
         if folder.is_dir():
             overall = overall_ids(folder)
@@ -108,10 +123,17 @@ def run(ctx: Context) -> List[str]:
                                   approved=config.approved_fields, metric_command=config.metric_command)]
         else:
             bad.append(f"S26 {config.overall}: overall network folder not found")
-    if not config.intent_mode:
-        bad += [f"S26 {line}" for line in check_records(
-            config.structure, ctx.template, pending, overall=overall,
-            require_parent=bool(config.option("S26", "require_parent", False)), approved=config.approved_fields, metric_command=config.metric_command, adopted=adopted)]
+    return bad + [f"S26 {line}" for line in check_records(
+        config.structure, ctx.template, pending, overall=overall,
+        require_parent=bool(config.option("S26", "require_parent", False)), approved=config.approved_fields, metric_command=config.metric_command, adopted=adopted)]
+
+
+def run(ctx: Context) -> List[str]:
+    config = ctx.config
+    bad = generated_page_problems(ctx) + tracker_problems(ctx)
+    pending = {r["solution_id"] for r in ctx.every_solution() if ctx.waived("S26", r["solution_id"])}
+    adopted = {r.get("solution_id", "") for r in ctx.registry.adopted}
+    bad += intent_record_problems(ctx, pending, adopted) if config.intent_mode else legacy_record_problems(ctx, pending, adopted)
     if template_module.stale_against_source(config):
         bad.append(f"S27 {config.structure_dir}/esoi_template.csv: stale against its source "
                    "(run `esoi template sync`, then fill the columns it adds)")
