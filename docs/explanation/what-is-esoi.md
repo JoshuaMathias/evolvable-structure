@@ -19,15 +19,7 @@ Fuller definitions, each in the author's words: [intent types](intent-types.md).
 
 ## How they fit
 
-```
-Problem  --opposed by-->  Ideal
-   |                        |
-   v                        v
-Solution  <--measured by--  Metric
-   |
-   v
-Implementation A, B, C ...  --> the metric picks the best one
-```
+![How an intent holds a problem, an ideal, a solution, its implementations and the metric that picks the best one](../assets/esoi-structure.svg)
 
 [How the records connect](how-they-connect.md) has the exact links between them.
 
