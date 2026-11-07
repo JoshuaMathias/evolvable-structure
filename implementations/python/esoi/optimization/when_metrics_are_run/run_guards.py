@@ -87,23 +87,31 @@ def ceiling_reason(config: Config, component: str, impl: str, sample: str, paid:
     mine = history.get(impl, [])
     own = mine[-1] if mine else None
     for name, rows in sorted(history.items()):
-        if variants.canonical(name) == impl:
-            continue
-        same = [r for r in rows if r.get("cases_sha") == now and (r.get("sample") or "").strip() == sample]
-        if not same or not perfect(same[-1]):
-            continue
-        best = same[-1]
-        if arm_kinds.is_ablation(best, config.evaluation) or stale(config, component, best):
-            continue
-        if can_exceed(config, component, own, best):
-            continue
-        kind = "balanced score" if config.balance.get(component) else "pass or fail result"
-        where = f"sample {sample}" if sample else "the full set"
-        return (f"{name} already passed {best['passed']}/{best['cases']} on these cases ({where}) at "
-                f"{money(per_case(best, 'cost_usd'))}, and {impl} ({money(per_case(own, 'cost_usd') if own else None)}, "
-                f"may spend money: {paid}) cannot beat it on the {kind}; pass --force \"reason\" to run it anyway "
-                f"(the reason is recorded in the row's details)")
+        best = cap_holder(config, component, (name, rows), impl, (sample, now), own, stale)
+        if best is not None:
+            kind = "balanced score" if config.balance.get(component) else "pass or fail result"
+            where = f"sample {sample}" if sample else "the full set"
+            return (f"{name} already passed {best['passed']}/{best['cases']} on these cases ({where}) at "
+                    f"{money(per_case(best, 'cost_usd'))}, and {impl} ({money(per_case(own, 'cost_usd') if own else None)}, "
+                    f"may spend money: {paid}) cannot beat it on the {kind}; pass --force \"reason\" to run it anyway "
+                    f"(the reason is recorded in the row's details)")
     return ""
+
+
+def cap_holder(config: Config, component: str, other: Tuple[str, List[Row]], impl: str, scene: Tuple[str, str], own: Optional[Row],
+               stale: Callable[[Config, str, Optional[Row]], str]) -> Optional[Row]:
+    """The other arm's perfect, current row on these cases and sample that ``impl`` cannot beat, or None."""
+    name, rows = other
+    sample, now = scene
+    if variants.canonical(name) == impl:
+        return None
+    same = [r for r in rows if r.get("cases_sha") == now and (r.get("sample") or "").strip() == sample]
+    if not same or not perfect(same[-1]):
+        return None
+    best = same[-1]
+    if arm_kinds.is_ablation(best, config.evaluation) or stale(config, component, best) or can_exceed(config, component, own, best):
+        return None
+    return best
 
 
 def unsolved_cases(config: Config, component: str, impl: str) -> List[str]:

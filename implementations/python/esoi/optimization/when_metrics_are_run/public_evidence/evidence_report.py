@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import datetime
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from esoi.optimization.when_metrics_are_run.public_evidence.evidence_grading import estimates
 from esoi.optimization.when_metrics_are_run.public_evidence.evidence_ranking import rank
@@ -69,6 +69,16 @@ def show_rank(rows, weights: str, today: Optional[datetime.date], say: Callable[
     return 0
 
 
+def wanted_row(e: Any, candidate: str, dimension: str) -> bool:
+    """Whether a row matches the candidate and dimension asked for (blank asks for all)."""
+    return (not candidate or norm(e.candidate) == norm(candidate)) and (not dimension or e.dimension == dimension)
+
+
+def shown_path(path: Path, root: Path) -> Path:
+    """The path relative to the repository root when it lies inside it."""
+    return path.relative_to(root) if path.is_relative_to(root) else path
+
+
 def run_cli(config, action: str = "list", candidate: str = "", dimension: str = "", weights: str = "", file: str = "",
             say: Callable[[str], None] = print, today: Optional[datetime.date] = None) -> int:
     """``esoi evidence list|grade|rank|table``. ``list`` checks and shows the rows; ``grade`` prints each (candidate, dimension)
@@ -80,8 +90,7 @@ def run_cli(config, action: str = "list", candidate: str = "", dimension: str = 
         return 0
     path = Path(file) if file else evidence_path(config)
     if not path.is_file():
-        say(f"no evidence file at {path.relative_to(config.root) if path.is_relative_to(config.root) else path}; "
-            f"columns: {header_line()}")
+        say(f"no evidence file at {shown_path(path, config.root)}; columns: {header_line()}")
         return 0
     try:
         rows = load(path)
@@ -89,12 +98,9 @@ def run_cli(config, action: str = "list", candidate: str = "", dimension: str = 
         for line in error.problems:
             say(f"problem: {line}")
         return 1
-    rows = [e for e in rows if (not candidate or norm(e.candidate) == norm(candidate)) and (not dimension or e.dimension == dimension)]
-    if action == "list":
-        return show_list(rows, say)
-    if action == "grade":
-        return show_grade(rows, today, say)
-    if action == "rank":
-        return show_rank(rows, weights, today, say)
-    say(f"unknown action {action!r}; use list, grade, rank or table")
-    return 1
+    rows = [e for e in rows if wanted_row(e, candidate, dimension)]
+    shown = {"list": lambda: show_list(rows, say), "grade": lambda: show_grade(rows, today, say), "rank": lambda: show_rank(rows, weights, today, say)}
+    if action not in shown:
+        say(f"unknown action {action!r}; use list, grade, rank or table")
+        return 1
+    return shown[action]()

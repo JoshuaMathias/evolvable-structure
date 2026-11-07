@@ -73,14 +73,19 @@ def place_candidates(picked: Mapping[str, Estimate], dim: str, p: Params) -> Lis
     for index, est in enumerate(usable + weak, 1):
         tied = tuple(q.candidate for q in placements
                      if q.estimate.grade != "D" and est.grade != "D" and spread(q.estimate.value, est.value) <= p.tolerance[dim])
-        note = (f"grade {est.grade}: {est.value:g} {est.unit}" + (f"; flags: {', '.join(est.flags)}" if est.flags else "")
-                + ("; " + est.settle if est.needs_own_run and est.settle else ""))
-        if est.grade == "D":
-            note = ("provisional, placed below every candidate with better evidence: " if usable else "provisional: ") + note
-        if tied:
-            note += f"; within {p.tolerance[dim]:.0%} of {', '.join(tied)}, so not a real difference"
-        placements.append(Placement(est.candidate, index, est, note, tied))
+        placements.append(Placement(est.candidate, index, est, placement_note(est, bool(usable), tied, p.tolerance[dim]), tied))
     return placements
+
+
+def placement_note(est: Estimate, others_usable: bool, tied: Tuple[str, ...], tolerance: float) -> str:
+    """The note on one placement: the grade and figure, flags, how to settle it, whether it is provisional and whom it ties with."""
+    note = (f"grade {est.grade}: {est.value:g} {est.unit}" + (f"; flags: {', '.join(est.flags)}" if est.flags else "")
+            + ("; " + est.settle if est.needs_own_run and est.settle else ""))
+    if est.grade == "D":
+        note = ("provisional, placed below every candidate with better evidence: " if others_usable else "provisional: ") + note
+    if tied:
+        note += f"; within {tolerance:.0%} of {', '.join(tied)}, so not a real difference"
+    return note
 
 
 def rank_dimension(dim: str, weight: float, asked: Sequence[str], names: Mapping[str, str], found: Mapping, p: Params) -> DimensionRanking:
@@ -111,22 +116,28 @@ def overall_of(cand: str, name: str, dimensions: Mapping[str, float], result: Ma
     return Overall(name, score / total, covered / total, notes)
 
 
+def candidate_names(rows: List[Evidence], candidates: Optional[Sequence[str]]) -> Tuple[Dict[str, str], List[str]]:
+    """``(display name per normalised candidate, the candidates asked for)``; all candidates of the rows when none are named."""
+    names: Dict[str, str] = {}
+    for name in [e.candidate for e in rows]:
+        names.setdefault(norm(name), name)
+    asked = [norm(c) for c in candidates] if candidates else sorted(names)
+    for c in (candidates or []):
+        names.setdefault(norm(c), c)
+    return names, asked
+
+
 def rank(evidence: Iterable[Evidence], dimensions: Mapping[str, float], candidates: Optional[Sequence[str]] = None,
          today: Optional[datetime.date] = None, p: Params = DEFAULTS) -> Ranking:
     """Per-dimension ordered shortlists and a weighted overall. ``dimensions`` is ``{dimension: weight}``. Candidates are compared
     only on one shared basis per dimension (the measure and comparator most candidates have); the rest are listed as not comparable.
     A candidate with only vendor-side evidence (grade D) is placed below every candidate with better evidence."""
     rows = list(evidence)
-    for dim in dimensions:
-        if dim not in DIMENSIONS:
-            raise ValueError(f"unknown dimension {dim!r}; use one of {', '.join(DIMENSIONS)}")
+    unknown = [dim for dim in dimensions if dim not in DIMENSIONS]
+    if unknown:
+        raise ValueError(f"unknown dimension {unknown[0]!r}; use one of {', '.join(DIMENSIONS)}")
     found = all_estimates(rows, today, p)
-    names: Dict[str, str] = {}
-    for e in rows:
-        names.setdefault(norm(e.candidate), e.candidate)
-    asked = [norm(c) for c in candidates] if candidates else sorted(names)
-    for c in (candidates or []):
-        names.setdefault(norm(c), c)
+    names, asked = candidate_names(rows, candidates)
     result = {dim: rank_dimension(dim, weight, asked, names, found, p) for dim, weight in dimensions.items()}
     total = sum(dimensions.values()) or 1.0
     overall = sorted((overall_of(cand, names[cand], dimensions, result, p, total) for cand in asked), key=lambda o: (-o.score, o.candidate))
@@ -168,9 +179,16 @@ def agrees_with_results(ranking: DimensionRanking, own_results: Mapping[str, flo
     it never changes our result and is recorded, not raised."""
     own = {norm(k): v for k, v in own_results.items()}
     public = [q for q in ranking.ordered if q.estimate.grade != "D" and norm(q.candidate) in own]
-    excluded = [f"{q.candidate}: " + ("grade D evidence is not compared" if q.estimate.grade == "D" else "")
-                for q in ranking.ordered if q.estimate.grade == "D" and norm(q.candidate) in own]
+    excluded = [f"{q.candidate}: grade D evidence is not compared" for q in ranking.ordered if q.estimate.grade == "D" and norm(q.candidate) in own]
     excluded += [f"{q.candidate}: no result of ours" for q in ranking.ordered if norm(q.candidate) not in own]
+    pairs, lines = compare_public_order(public, own, better, tolerance)
+    kinds = {kind for _, _, kind in pairs if kind != "tie"}
+    verdict = "insufficient" if not kinds else "mixed" if len(kinds) > 1 else kinds.pop()
+    return Agreement(ranking.dimension, verdict, pairs, excluded, lines)
+
+
+def compare_public_order(public: List[Placement], own: Mapping[str, float], better: str, tolerance: float) -> Tuple[List[Tuple[str, str, str]], List[str]]:
+    """``(pairs, lines)``: every pair of publicly ordered candidates that is not a tie in the public order, judged against our scores."""
     pairs: List[Tuple[str, str, str]] = []
     lines: List[str] = []
     for i, a in enumerate(public):
@@ -180,9 +198,7 @@ def agrees_with_results(ranking: DimensionRanking, own_results: Mapping[str, flo
             kind, line = judge_pair(a, b, own[norm(a.candidate)] - own[norm(b.candidate)], better, tolerance)
             pairs.append((a.candidate, b.candidate, kind))
             lines.append(line)
-    kinds = {kind for _, _, kind in pairs if kind != "tie"}
-    verdict = "insufficient" if not kinds else "mixed" if len(kinds) > 1 else kinds.pop()
-    return Agreement(ranking.dimension, verdict, pairs, excluded, lines)
+    return pairs, lines
 
 
 def own_scores(rows: Mapping[str, Mapping[str, str]]) -> Dict[str, float]:

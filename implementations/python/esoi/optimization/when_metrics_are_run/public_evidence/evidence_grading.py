@@ -41,7 +41,7 @@ import statistics
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from esoi import implementation, solution
+from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.optimization.when_metrics_are_run.public_evidence.evidence_records import Evidence, FLAGS, LETTERS, norm
 from esoi.optimization.when_metrics_are_run.public_evidence.grading_table import DEFAULTS, Params, UNIT_FAMILY
 

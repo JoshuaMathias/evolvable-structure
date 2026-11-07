@@ -107,16 +107,27 @@ def cell_problems(cell: Dict[str, str]) -> Dict[str, str]:
                             ("run_by_independent", RUN_BY), ("method_disclosed", METHOD), ("benchmark_status", STATUS)):
         if cell[column] and cell[column] not in allowed:
             found[column] = f"is {cell[column]!r}, not one of {', '.join(allowed)}"
+    found.update(shape_problems(cell))
+    return found
+
+
+def shape_problems(cell: Dict[str, str]) -> Dict[str, str]:
+    """``{column: what is wrong}`` for the value, count, link and dates of one row."""
+    found: Dict[str, str] = {}
     if cell["value"] and finite_number(cell["value"]) is None:
         found["value"] = f"is {cell['value']!r}, not a finite number"
     if cell["n"] and not (cell["n"].isdigit() and int(cell["n"]) > 0):
         found["n"] = f"is {cell['n']!r}, not a positive whole number (leave it empty when unstated)"
     if cell["source_url"] and not re.match(r"^https?://\S+$", cell["source_url"]):
         found["source_url"] = "is not an http(s) link"
-    for column in ("date_published", "date_checked"):
-        if cell[column] and as_date(cell[column]) is None:
-            found[column] = f"is {cell[column]!r}, not a date like 2026-10-31"
+    found.update(date_problems(cell))
     return found
+
+
+def date_problems(cell: Dict[str, str]) -> Dict[str, str]:
+    """``{column: what is wrong}`` for the two date columns."""
+    return {column: f"is {cell[column]!r}, not a date like 2026-10-31"
+            for column in ("date_published", "date_checked") if cell[column] and as_date(cell[column]) is None}
 
 
 def as_date(text: str) -> Optional[datetime.date]:
@@ -125,6 +136,15 @@ def as_date(text: str) -> Optional[datetime.date]:
         return datetime.date.fromisoformat(text) if text else None
     except ValueError:
         return None
+
+
+def repeat_problems(cell: Dict[str, str], seen: Dict[str, int], position: int, found: Dict[str, str]) -> Dict[str, str]:
+    """``found`` plus a problem when the row repeats an earlier ``evidence_id``; records the line the id first appears on."""
+    if cell["evidence_id"]:
+        if cell["evidence_id"] in seen:
+            found.setdefault("evidence_id", f"repeats line {seen[cell['evidence_id']]}")
+        seen.setdefault(cell["evidence_id"], position)
+    return found
 
 
 def parse_rows(rows: Iterable[Mapping[str, str]], header: Optional[Sequence[str]] = None) -> Tuple[List[Evidence], List[str]]:
@@ -136,25 +156,32 @@ def parse_rows(rows: Iterable[Mapping[str, str]], header: Optional[Sequence[str]
     seen: Dict[str, int] = {}
     for position, row in enumerate(rows, 2):
         cell = {c: (row.get(c) or "").strip() for c in COLUMNS}
-        found = cell_problems(cell)
-        if cell["evidence_id"] and cell["evidence_id"] in seen:
-            found.setdefault("evidence_id", f"repeats line {seen[cell['evidence_id']]}")
-        if cell["evidence_id"]:
-            seen.setdefault(cell["evidence_id"], position)
+        found = repeat_problems(cell, seen, position, cell_problems(cell))
         problems.extend(f"line {position} ({cell['evidence_id'] or 'no id'}): {column} {message}" for column, message in found.items())
         if not found:
-            out.append(Evidence(
-                cell["evidence_id"], cell["candidate"], cell["dimension"], cell["measure"], finite_number(cell["value"]) if cell["value"] else None,
-                cell["unit"], cell["better"], cell["comparator"], cell["source_url"], cell["source_kind"], cell["run_by_independent"],
-                cell["method_disclosed"], int(cell["n"]) if cell["n"] else None, cell["benchmark_status"], as_date(cell["date_published"]),
-                as_date(cell["date_checked"]), tuple(c.strip() for c in cell["confounds"].split(LIST_SEPARATOR) if c.strip()), cell["note"], position))
+            out.append(evidence_of(cell, position))
+    return out, problems + direction_problems(out)
+
+
+def evidence_of(cell: Dict[str, str], position: int) -> Evidence:
+    """The ``Evidence`` of one valid row's cells."""
+    return Evidence(
+        cell["evidence_id"], cell["candidate"], cell["dimension"], cell["measure"], finite_number(cell["value"]) if cell["value"] else None,
+        cell["unit"], cell["better"], cell["comparator"], cell["source_url"], cell["source_kind"], cell["run_by_independent"],
+        cell["method_disclosed"], int(cell["n"]) if cell["n"] else None, cell["benchmark_status"], as_date(cell["date_published"]),
+        as_date(cell["date_checked"]), tuple(c.strip() for c in cell["confounds"].split(LIST_SEPARATOR) if c.strip()), cell["note"], position)
+
+
+def direction_problems(out: List[Evidence]) -> List[str]:
+    """A problem for each row that says the opposite direction of better from the first row for the same measure."""
+    problems: List[str] = []
     direction: Dict[Tuple[str, str], Evidence] = {}
     for e in out:
         first = direction.setdefault((e.dimension, e.measure.lower()), e)
         if first.better != e.better:
             problems.append(f"line {e.line} ({e.evidence_id}): better is {e.better} but {first.evidence_id} (line {first.line}) "
                             f"says {first.better} for the same measure {e.measure!r}")
-    return out, problems
+    return problems
 
 
 def parse_text(text: str) -> List[Evidence]:
