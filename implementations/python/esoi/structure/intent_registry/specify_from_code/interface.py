@@ -3,6 +3,7 @@ from typing import List, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
+from esoi.structure.intent_registry.specify_from_code import newsolution  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 
 
 @solution("specify-from-code", kind="evaluate", entry="drift", example=".")

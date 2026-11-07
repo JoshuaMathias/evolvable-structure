@@ -3,6 +3,7 @@ from typing import List, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
+from esoi.understanding.review_tracker import sheets, tracker  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 
 
 @solution("review-tracker", kind="evaluate", entry="stale", example=".")

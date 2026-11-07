@@ -12,7 +12,7 @@ Part of [Intent Registry](../README.md)
 - Entry call: `esoi.run("template-sync", '.')`
 - Selected implementation: Template parser (`template-parser`)
 - Metric: Template agreement
-- Implemented by: [`implementations/python/esoi/__main__.py`](../../../__main__.py), [`implementations/python/esoi/data/esoi_template.csv`](../../../data/esoi_template.csv), [`implementations/python/esoi/data/skill_version.json`](../../../data/skill_version.json), [`implementations/python/esoi/structure/intent_registry/template_sync/interface.py`](interface.py), [`implementations/python/esoi/structure/intent_registry/template_sync/template.py`](template.py), [`implementations/python/esoi/structure/intent_registry/template_sync/templates.py`](templates.py), [`implementations/python/esoi/structure/intent_registry/template_sync/versioning.py`](versioning.py), [`implementations/python/esoi/structure/structure_check/rules/generated.py`](../../structure_check/rules/generated.py) and 9 more
+- Implemented by: [`implementations/python/esoi/__main__.py`](../../../__main__.py), [`implementations/python/esoi/command_table.py`](../../../command_table.py), [`implementations/python/esoi/data/esoi_template.csv`](../../../data/esoi_template.csv), [`implementations/python/esoi/data/skill_version.json`](../../../data/skill_version.json), [`implementations/python/esoi/structure/intent_registry/template_sync/interface.py`](interface.py), [`implementations/python/esoi/structure/intent_registry/template_sync/template.py`](template.py), [`implementations/python/esoi/structure/intent_registry/template_sync/templates.py`](templates.py), [`implementations/python/esoi/structure/intent_registry/template_sync/versioning.py`](versioning.py) and 10 more
 
 ## Implementations
 

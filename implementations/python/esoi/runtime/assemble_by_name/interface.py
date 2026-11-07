@@ -2,6 +2,10 @@
 from typing import List, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
+from esoi.runtime.assemble_by_name import intent_map  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.runtime.assemble_by_name.entry import own_runner  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.runtime.assemble_by_name.environment_needs import checking, closure, declarations, generated_files, report  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.runtime.assemble_by_name.installation import assembly_plan, execution, plan_report, resolution_ladder, resolvers  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 
 
 @solution("assemble-by-name", kind="event", entry="names", example="structure-check")

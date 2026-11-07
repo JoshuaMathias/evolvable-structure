@@ -5,16 +5,18 @@ import argparse
 import sys
 from pathlib import Path
 
-from esoi.runtime.implementation_selection.lock_command import run_lock
+from esoi import command_table
+
+from esoi.runtime.implementation_selection.interface import run_lock
 
 
 def run_follow(config, args: argparse.Namespace) -> int:
-    from esoi.runtime.consumer_check import follow
+    from esoi.runtime.consumer_check.interface import follow
     return follow.run_cli(config, args.parent, tuple(args.solution or ()), args.plan, args.run_free, args.json, args.lock)
 
 
 def run_consumer(config, args: argparse.Namespace) -> int:
-    from esoi.runtime.consumer_check import consumer
+    from esoi.runtime.consumer_check.interface import consumer
     try:
         options = consumer.Options.from_config(config, args.library)
     except ValueError as exc:
@@ -37,7 +39,7 @@ def closure_for(config, args: argparse.Namespace, environ):
     """``(assembler or None, members)`` for the CLI's ``--package`` / ``--scope`` / ``--solution`` choice. With ``--package`` the
     closure follows the assembly (selected arms, the arms filling their needs); with ``--scope`` it is every declared arm of the scope."""
     import importlib
-    from esoi.runtime.assemble_by_name.environment_needs import closure
+    from esoi.runtime.assemble_by_name.interface import closure
     from esoi.runtime.implementation_selection import selection_cascade
     from esoi.runtime.implementation_selection import selection_registry
     from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
@@ -65,8 +67,7 @@ def run_requirements(config, args: argparse.Namespace) -> int:
     Exit codes: 0 all met, 1 something unmet (or, with --coherence, selected arms that conflict), 2 error."""
     import json
     import os
-    from esoi.runtime.assemble_by_name.installation import assembly_plan, plan_report, resolvers
-    from esoi.runtime.assemble_by_name.environment_needs import checking, closure, declarations, generated_files, report
+    from esoi.runtime.assemble_by_name.interface import assembly_plan, checking, closure, declarations, generated_files, plan_report, report, resolvers
     environ = dict(os.environ)
     try:
         assembler, members, cfg = closure_for(config, args, environ)
@@ -120,8 +121,7 @@ def run_install(config, args: argparse.Namespace) -> int:
     Exit codes: 0 done or nothing to do, 1 something to do (dry run), failed, or still missing, 2 error."""
     import json
     import os
-    from esoi.runtime.assemble_by_name.installation import assembly_plan, execution, plan_report, resolution_ladder
-    from esoi.runtime.assemble_by_name.environment_needs import closure, declarations, report
+    from esoi.runtime.assemble_by_name.interface import assembly_plan, closure, declarations, execution, plan_report, report, resolution_ladder
     environ = dict(os.environ)
     try:
         assembler, members, cfg = closure_for(config, args, environ)
@@ -152,64 +152,63 @@ def run_install(config, args: argparse.Namespace) -> int:
     return report.EXIT_UNMET if (done.code or chosen.binaries or chosen.missing) else report.EXIT_MET
 
 
+TABLE = """
+lock | | pin the selected implementations per solution, see what a newer release would change, update on your schedule
+    --package | default=None | an importable package whose assembler() (or ASSEMBLER) gives the solutions to lock
+    --scope | default=None | the scope (the package's top-level name) to lock; default: the configured package
+    --file | default=esoi.lock.json | the lock file (default: esoi.lock.json)
+    --solution | action=append | only this solution id (repeatable)
+    --update | action=store_true group=mode | move the lock to the latest selections, printing each change with its evidence
+    --diff | action=store_true group=mode | show what --update would change, with the requirement changes; changes nothing
+    --status | action=store_true group=mode | the plan for an agent: exit 0 up to date, 3 safe updates, 4 blocked by requirements, 2 error
+    --safe | action=store_true | with --update, move only solutions whose new closure adds no unmet requirement
+    --latest | action=store_true | with --update, move everything even when the lock file says update = safe
+    --policy | choices=latest,safe default=None | when writing, record this update policy in the lock file
+    --json | action=store_true |
+requirements | | what implementations need from their environment: report, check, .env template, install script, coherence
+    --package | default=None | an importable package whose assembler() (or ASSEMBLER) gives the arms an assembly would use
+    --scope | default=None | the registry scope whose declared arms to report (default: the configured package)
+    --solution | action=append | only this solution id (repeatable)
+    --all-arms | action=store_true | every named arm, not only the selected ones
+    --arm | action=append metavar=SOLUTION=NAME | use this arm for a solution instead of the package default (repeatable)
+    --check | action=store_true | check against the process environment; exit 1 when a required one is unmet
+    --coherence | action=store_true | check that the selected implementations' requirements resolve together; exit 1 with the proposed fix if not
+    --online | action=store_true | with --coherence, ask pip for a dry run in a temporary virtualenv (network)
+    --probe | action=store_true | with --check, call each requirement's declared cheap probe (network)
+    --offline | action=store_true | never touch the network, whatever else is asked
+    --json | action=store_true |
+    --env-template | default=None metavar=FILE | write a .env template (secrets blank)
+    --env-file | default=None metavar=FILE | add the missing variables, commented out, to this env file (never overwrites; mode 600)
+    --install-script | default=None metavar=FILE | write an install script
+install | | install only what the solutions in use need (dry run unless --yes)
+    --package | default=None |
+    --scope | default=None |
+    --solution | action=append | a solution id to install for (repeatable); default: what a default assembly would use
+    --assembly | action=store_true | what a default assembly would use (the default when no --solution is given)
+    --all-arms | action=store_true | every named arm of the solutions, not only the selected ones
+    --arm | action=append metavar=SOLUTION=NAME | use this arm for a solution instead of the package default (repeatable)
+    --project | default=. | the project folder; isolated environments go under <project>/.esoi/venvs
+    --yes | action=store_true | actually run the plan (pip in the current environment, and the files inside the package)
+    --json | action=store_true |
+consumer | | check a consuming repository
+    action | choices=check |
+    --registry | required=True |
+    --root | default=. |
+    --library | default=None | the importable library (default: [consumer] library)
+    --requirements | default=None |
+    --solutions | default=None |
+    --results | default=None |
+    --fail-on-lag | action=store_true |
+follow | | compare the parent repository's current selections with this one's lock and overrides, judged on this repository's own metric (advice only)
+    --parent | default= metavar=PACKAGE_OR_PATH | the parent's records folder or esoi_selection.json, or an importable package with an assembler() (default: [parent] in the configuration)
+    --solution | action=append | only this solution id (repeatable)
+    --plan | action=store_true | print only what would be run; run nothing
+    --run-free | action=store_true | record the arms that are free (offline, no model); a paid arm is never run
+    --lock | default=esoi.lock.json | this repository's lock file (default: esoi.lock.json)
+    --json | action=store_true |
+"""
+
+
 def register(sub) -> None:
     """Add this container's sub-commands to the ``esoi`` parser."""
-    p = sub.add_parser("lock", help="pin the selected implementations per solution, see what a newer release would change, update on your schedule")
-    p.add_argument("--package", default=None, help="an importable package whose assembler() (or ASSEMBLER) gives the solutions to lock")
-    p.add_argument("--scope", default=None, help="the scope (the package's top-level name) to lock; default: the configured package")
-    p.add_argument("--file", default="esoi.lock.json", help="the lock file (default: esoi.lock.json)")
-    p.add_argument("--solution", action="append", help="only this solution id (repeatable)")
-    mode = p.add_mutually_exclusive_group()
-    mode.add_argument("--update", action="store_true", help="move the lock to the latest selections, printing each change with its evidence")
-    mode.add_argument("--diff", action="store_true", help="show what --update would change, with the requirement changes; changes nothing")
-    mode.add_argument("--status", action="store_true", help="the plan for an agent: exit 0 up to date, 3 safe updates, 4 blocked by requirements, 2 error")
-    p.add_argument("--safe", action="store_true", help="with --update, move only solutions whose new closure adds no unmet requirement")
-    p.add_argument("--latest", action="store_true", help="with --update, move everything even when the lock file says update = safe")
-    p.add_argument("--policy", choices=["latest", "safe"], default=None, help="when writing, record this update policy in the lock file")
-    p.add_argument("--json", action="store_true")
-    p.set_defaults(handler=run_lock)
-    p = sub.add_parser("requirements", help="what implementations need from their environment: report, check, .env template, install script, coherence")
-    p.add_argument("--package", default=None, help="an importable package whose assembler() (or ASSEMBLER) gives the arms an assembly would use")
-    p.add_argument("--scope", default=None, help="the registry scope whose declared arms to report (default: the configured package)")
-    p.add_argument("--solution", action="append", help="only this solution id (repeatable)")
-    p.add_argument("--all-arms", action="store_true", help="every named arm, not only the selected ones")
-    p.add_argument("--arm", action="append", metavar="SOLUTION=NAME", help="use this arm for a solution instead of the package default (repeatable)")
-    p.add_argument("--check", action="store_true", help="check against the process environment; exit 1 when a required one is unmet")
-    p.add_argument("--coherence", action="store_true", help="check that the selected implementations' requirements resolve together; exit 1 with the proposed fix if not")
-    p.add_argument("--online", action="store_true", help="with --coherence, ask pip for a dry run in a temporary virtualenv (network)")
-    p.add_argument("--probe", action="store_true", help="with --check, call each requirement's declared cheap probe (network)")
-    p.add_argument("--offline", action="store_true", help="never touch the network, whatever else is asked")
-    p.add_argument("--json", action="store_true")
-    p.add_argument("--env-template", default=None, metavar="FILE", help="write a .env template (secrets blank)")
-    p.add_argument("--env-file", default=None, metavar="FILE", help="add the missing variables, commented out, to this env file (never overwrites; mode 600)")
-    p.add_argument("--install-script", default=None, metavar="FILE", help="write an install script")
-    p.set_defaults(handler=run_requirements)
-    p = sub.add_parser("install", help="install only what the solutions in use need (dry run unless --yes)")
-    p.add_argument("--package", default=None)
-    p.add_argument("--scope", default=None)
-    p.add_argument("--solution", action="append", help="a solution id to install for (repeatable); default: what a default assembly would use")
-    p.add_argument("--assembly", action="store_true", help="what a default assembly would use (the default when no --solution is given)")
-    p.add_argument("--all-arms", action="store_true", help="every named arm of the solutions, not only the selected ones")
-    p.add_argument("--arm", action="append", metavar="SOLUTION=NAME", help="use this arm for a solution instead of the package default (repeatable)")
-    p.add_argument("--project", default=".", help="the project folder; isolated environments go under <project>/.esoi/venvs")
-    p.add_argument("--yes", action="store_true", help="actually run the plan (pip in the current environment, and the files inside the package)")
-    p.add_argument("--json", action="store_true")
-    p.set_defaults(handler=run_install)
-    p = sub.add_parser("consumer", help="check a consuming repository")
-    p.add_argument("action", choices=["check"])
-    p.add_argument("--registry", required=True)
-    p.add_argument("--root", default=".")
-    p.add_argument("--library", default=None, help="the importable library (default: [consumer] library)")
-    p.add_argument("--requirements", default=None)
-    p.add_argument("--solutions", default=None)
-    p.add_argument("--results", default=None)
-    p.add_argument("--fail-on-lag", action="store_true")
-    p.set_defaults(handler=run_consumer)
-    p = sub.add_parser("follow", help="compare the parent repository's current selections with this one's lock and overrides, judged on this repository's own metric (advice only)")
-    p.add_argument("--parent", default="", metavar="PACKAGE_OR_PATH", help="the parent's records folder or esoi_selection.json, or an importable package with an assembler() (default: [parent] in the configuration)")
-    p.add_argument("--solution", action="append", help="only this solution id (repeatable)")
-    p.add_argument("--plan", action="store_true", help="print only what would be run; run nothing")
-    p.add_argument("--run-free", action="store_true", help="record the arms that are free (offline, no model); a paid arm is never run")
-    p.add_argument("--lock", default="esoi.lock.json", help="this repository's lock file (default: esoi.lock.json)")
-    p.add_argument("--json", action="store_true")
-    p.set_defaults(handler=run_follow)
+    command_table.register(sub, TABLE, globals())

@@ -4,6 +4,8 @@ from typing import List, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
+from esoi.structure.structure_check import check, hygiene  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.structure.structure_check.rules import structure_quality_rules  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 
 
 @solution("structure-check", kind="evaluate", entry="check", example=".")

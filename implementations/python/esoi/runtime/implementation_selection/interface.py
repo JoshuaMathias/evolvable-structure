@@ -2,6 +2,7 @@
 from typing import Any, Dict, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
+from esoi.runtime.implementation_selection.lock_command import run_lock  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 
 
 @solution("implementation-selection", kind="event", entry="choose", example="structure-check")

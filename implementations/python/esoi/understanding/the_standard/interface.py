@@ -4,6 +4,8 @@ from typing import Dict, Protocol, runtime_checkable
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
 from esoi.structure.intent_registry.tables import read_lines
+from esoi.understanding.the_standard import docs  # noqa: F401  (re-exported: the command line calls this unit through its interface)
+from esoi.understanding.the_standard.scaffold import init  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 
 
 @solution("the-standard", kind="event", entry="describe", example=".")

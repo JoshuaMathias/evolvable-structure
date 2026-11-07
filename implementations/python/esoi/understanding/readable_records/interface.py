@@ -3,6 +3,7 @@ from typing import Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
+from esoi.understanding.readable_records import diagram, readme  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 
 
 @solution("readable-records", kind="evaluate", entry="page", example=".")

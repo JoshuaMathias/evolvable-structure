@@ -13,7 +13,7 @@ Part of [Implementations Chosen on Evidence](../README.md)
 - Entry call: `esoi.run("leaderboard", '.')`
 - Selected implementation: Margin leaderboard (`margin-leaderboard`)
 - Metric: Ranking correctness
-- Implemented by: [`implementations/python/esoi/__main__.py`](../../__main__.py), [`implementations/python/esoi/optimization/leaderboard/arm_kinds.py`](arm_kinds.py), [`implementations/python/esoi/optimization/leaderboard/arm_selection.py`](arm_selection.py), [`implementations/python/esoi/optimization/leaderboard/board_report.py`](board_report.py), [`implementations/python/esoi/optimization/leaderboard/cascade_report.py`](cascade_report.py), [`implementations/python/esoi/optimization/leaderboard/cascade_stages.py`](cascade_stages.py), [`implementations/python/esoi/optimization/leaderboard/case_identity.py`](case_identity.py), [`implementations/python/esoi/optimization/leaderboard/circumstances.py`](circumstances.py) and 31 more
+- Implemented by: [`implementations/python/esoi/__main__.py`](../../__main__.py), [`implementations/python/esoi/command_table.py`](../../command_table.py), [`implementations/python/esoi/optimization/leaderboard/arm_kinds.py`](arm_kinds.py), [`implementations/python/esoi/optimization/leaderboard/arm_selection.py`](arm_selection.py), [`implementations/python/esoi/optimization/leaderboard/board_report.py`](board_report.py), [`implementations/python/esoi/optimization/leaderboard/cascade_report.py`](cascade_report.py), [`implementations/python/esoi/optimization/leaderboard/cascade_stages.py`](cascade_stages.py), [`implementations/python/esoi/optimization/leaderboard/case_identity.py`](case_identity.py) and 32 more
 
 ## Implementations
 

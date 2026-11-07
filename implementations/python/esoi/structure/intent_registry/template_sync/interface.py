@@ -3,6 +3,7 @@ from typing import Dict, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
+from esoi.structure.intent_registry.template_sync import templates, versioning  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 
 
 @solution("template-sync", kind="evaluate", entry="fields", example=".")

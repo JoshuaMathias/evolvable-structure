@@ -3,6 +3,7 @@ from typing import Any, Callable, Dict, Optional, Protocol, runtime_checkable
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.structure_quality.balance import REFERENCE_LINE
+from esoi.structure.structure_quality import compare, report  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 
 __all__ = ["StructureQualityAssessing"]
 
