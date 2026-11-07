@@ -85,7 +85,7 @@ def build_scope(config: Config, component: str, impl: str, rule: str) -> Scope:
     add_ownership(scope, config, index, solutions, owners)
     scope.rule = "component_paths"
     if rule == "import_closure":
-        add_import_closure(scope, config, index, component, impl, solutions, root)
+        add_import_closure(scope, config, index, start_files(config, index, component, impl, solutions), root)
         if scope.closure is None or not scope.complete:
             scope.note = ("its imports cannot be read completely (not Python, or a computed import), so the files it does import "
                           "and its component's files count")
@@ -94,9 +94,8 @@ def build_scope(config: Config, component: str, impl: str, rule: str) -> Scope:
     return scope
 
 
-def add_import_closure(scope: Scope, config: Config, index, component: str, impl: str, solutions, root) -> None:
+def add_import_closure(scope: Scope, config: Config, index, starts, root) -> None:
     """Fill the scope's own files, foreign and shared files and import closure from the arm's start files."""
-    starts = start_files(config, index, component, impl, solutions)
     if not starts:
         return
     scope.own_files = {p.resolve().relative_to(root).as_posix() for p in starts if p.resolve().is_relative_to(root)}

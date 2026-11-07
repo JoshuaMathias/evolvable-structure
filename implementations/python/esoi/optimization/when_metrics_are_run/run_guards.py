@@ -87,8 +87,9 @@ def ceiling_reason(config: Config, component: str, impl: str, sample: str, paid:
     mine = history.get(impl, [])
     own = mine[-1] if mine else None
     for name, rows in sorted(history.items()):
-        best = cap_holder(config, component, (name, rows), impl, (sample, now), own, stale)
-        if best is not None:
+        best = current_perfect_row(rows, sample, now) if variants.canonical(name) != impl else None
+        if best is not None and not (arm_kinds.is_ablation(best, config.evaluation) or stale(config, component, best)
+                                     or can_exceed(config, component, own, best)):
             kind = "balanced score" if config.balance.get(component) else "pass or fail result"
             where = f"sample {sample}" if sample else "the full set"
             return (f"{name} already passed {best['passed']}/{best['cases']} on these cases ({where}) at "
@@ -98,20 +99,10 @@ def ceiling_reason(config: Config, component: str, impl: str, sample: str, paid:
     return ""
 
 
-def cap_holder(config: Config, component: str, other: Tuple[str, List[Row]], impl: str, scene: Tuple[str, str], own: Optional[Row],
-               stale: Callable[[Config, str, Optional[Row]], str]) -> Optional[Row]:
-    """The other arm's perfect, current row on these cases and sample that ``impl`` cannot beat, or None."""
-    name, rows = other
-    sample, now = scene
-    if variants.canonical(name) == impl:
-        return None
-    same = [r for r in rows if r.get("cases_sha") == now and (r.get("sample") or "").strip() == sample]
-    if not same or not perfect(same[-1]):
-        return None
-    best = same[-1]
-    if arm_kinds.is_ablation(best, config.evaluation) or stale(config, component, best) or can_exceed(config, component, own, best):
-        return None
-    return best
+def current_perfect_row(rows: List[Row], sample: str, cases_sha: str) -> Optional[Row]:
+    """The arm's latest perfect row on these cases and sample, or None."""
+    same = [r for r in rows if r.get("cases_sha") == cases_sha and (r.get("sample") or "").strip() == sample]
+    return same[-1] if same and perfect(same[-1]) else None
 
 
 def unsolved_cases(config: Config, component: str, impl: str) -> List[str]:

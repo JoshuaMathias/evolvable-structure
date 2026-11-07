@@ -157,9 +157,21 @@ def settle_text(candidate: str, measure: str, comparator: str, flags: Sequence[s
     return ordered[0] if ordered else f"one more independent measurement of {measure} for {candidate}{where}"
 
 
-def cap_by_sources(letter: str, comparable: List[Evidence], used: List[Evidence], independent: List[Evidence],
-                   flags: set, reasons: List[str]) -> str:
+@dataclass(frozen=True)
+class Basis:
+    """The rows of one candidate, dimension and basis as the grading sorts them: all, comparable, independent and counting, with the tolerance, base unit and parameters."""
+    rows: Sequence[Evidence]
+    comparable: List[Evidence]
+    independent: List[Evidence]
+    used: List[Evidence]
+    tol: float
+    unit: str
+    p: Params
+
+
+def cap_by_sources(basis: Basis, letter: str, flags: set, reasons: List[str]) -> str:
     """The letter after the caps that come from what the sources are: vendor-side only, no independent row, one source only."""
+    comparable, used, independent = basis.comparable, basis.used, basis.independent
     if all(e.vendor_side for e in comparable):
         flags.add("vendor_only")
         letter = worse(letter, "D")
@@ -185,10 +197,10 @@ def find_contradictions(used: List[Evidence], converted: Dict[str, Tuple[float, 
     return found
 
 
-def adjust_by_agreement(letter: str, contradictions: List[Tuple[str, str, float]], independent: List[Evidence], used: List[Evidence],
-                        tol: float, flags: set, reasons: List[str]) -> str:
+def adjust_by_agreement(basis: Basis, letter: str, contradictions: List[Tuple[str, str, float]], flags: set, reasons: List[str]) -> str:
     """Lower the letter for a contradiction, raise it when two independent sources agree."""
-    agree_rows = [e for e in independent if e in used]
+    independent, tol = basis.independent, basis.tol
+    agree_rows = [e for e in independent if e in basis.used]
     if contradictions:
         flags.add("contradicts")
         reasons.append("contradiction: " + "; ".join(f"{a} and {b} differ by {s:.0%}, over the {tol:.0%} tolerance"
@@ -224,9 +236,10 @@ def headline_value(agree_rows: List[Evidence], converted: Dict[str, Tuple[float,
     return converted[best_used.evidence_id][0]
 
 
-def own_run_need(rows: Sequence[Evidence], letter: str, flags: Tuple[str, ...], contradictions: List[Tuple[str, str, float]],
-                 confounds: Tuple[str, ...], unit: str, p: Params, reasons: List[str]) -> Tuple[bool, str]:
+def own_run_need(basis: Basis, letter: str, flags: Tuple[str, ...], contradictions: List[Tuple[str, str, float]],
+                 confounds: Tuple[str, ...], reasons: List[str]) -> Tuple[bool, str]:
     """Whether the grade is too low or a blocking flag is raised, and the one run that would settle it."""
+    rows, p = basis.rows, basis.p
     blocked = sorted(set(flags) & set(p.blocking))
     low = LETTERS.index(letter) > LETTERS.index(p.needs_grade)
     if not (low or blocked):
@@ -235,7 +248,7 @@ def own_run_need(rows: Sequence[Evidence], letter: str, flags: Tuple[str, ...], 
     ids = [x for pair in contradictions[:1] for x in pair[:2]] or [e.evidence_id for e in rows]
     why = ([f"grade {letter} is below {p.needs_grade}"] if low else []) + ([f"flags block use: {', '.join(blocked)}"] if blocked else [])
     reasons.append("needs an own run: " + "; ".join(why))
-    return True, settle_text(first.candidate, first.measure, first.comparator, flags, ids, confounds, unit)
+    return True, settle_text(first.candidate, first.measure, first.comparator, flags, ids, confounds, basis.unit)
 
 
 def not_counted_reasons(comparable: List[Evidence], used: List[Evidence], converted: Dict[str, Tuple[float, str]],
@@ -279,19 +292,20 @@ def grade_basis(rows: Sequence[Evidence], today: datetime.date, p: Params = DEFA
     independent = [e for e in comparable if e.independent]
     used = [e for e in comparable if not e.vendor_side] or comparable
     tol = p.tolerance[dim]
+    basis = Basis(rows, comparable, independent, used, tol, base_unit, p)
     best_used = max(used, key=lambda e: (scored[e.evidence_id][0], e.date_checked))
     points, parts = scored[best_used.evidence_id]
     letter = letter_for(points, p)
     reasons.append(f"best row {best_used.evidence_id}: {points} points ({', '.join(parts)}) gives {letter}")
-    letter = cap_by_sources(letter, comparable, used, independent, flags, reasons)
+    letter = cap_by_sources(basis, letter, flags, reasons)
     contradictions = find_contradictions(used, converted, tol)
-    letter = adjust_by_agreement(letter, contradictions, independent, used, tol, flags, reasons)
+    letter = adjust_by_agreement(basis, letter, contradictions, flags, reasons)
     reasons.extend(not_counted_reasons(comparable, used, converted, best_used, tol))
     quality_flags(used, today, p, dim, flags, reasons)
     confounds = confound_notes(comparable, reasons)
     agree_rows = [] if contradictions else [e for e in independent if e in used]
     ordered = tuple(sorted(flags, key=FLAGS.index))
-    need, settle = own_run_need(rows, letter, ordered, contradictions, confounds, base_unit, p, reasons)
+    need, settle = own_run_need(basis, letter, ordered, contradictions, confounds, reasons)
     return Estimate(first.candidate, dim, first.measure, first.comparator, base_unit, first.better,
                     headline_value(agree_rows, converted, best_used), [(e.evidence_id, converted[e.evidence_id][0]) for e in comparable],
                     letter, points, ordered, tuple(e.evidence_id for e in rows), contradictions, reasons, need, settle, other_bases, confounds)
