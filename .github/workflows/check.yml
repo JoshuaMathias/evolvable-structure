@@ -7,8 +7,8 @@ on:
 
 jobs:
   offline-metrics:
-    # Every recorded metric of this repository is offline (no paid service, no network), so every one of them runs on every change.
-    # The arms that call a model are declared PAID and run only on a decision, never here.
+    # No metric runs here: a metric runs on a decision (esoi/metric-run-policy.md), and a stale result only informs.
+    # This job runs the tests, the structure check (a structure problem fails it) and the hygiene scan; arms that call a model run only on a decision.
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -22,9 +22,9 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: pip install -e "implementations/python[dev]"
       - run: python -m pytest implementations/python/tests
-      # Structure findings are reports for the reader, not a gate: the step prints them and the job stays green.
-      - run: esoi check || echo "::warning::esoi check reported structure findings, see the log above"
+      # A structure problem fails the job; advisory findings are printed and exit 0.
+      - run: esoi check
       - run: esoi hygiene
-      # Recorded results must be current on the default branch: a result is stale once the measured code changed since its commit.
+      # A stale recorded result only informs (the measured code changed since its commit): warn, never fail.
       - if: github.ref == 'refs/heads/main'
         run: esoi check --strict || echo "::warning::esoi check --strict reported stale results or structure findings, see the log above"
