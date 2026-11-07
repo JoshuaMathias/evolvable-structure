@@ -10,8 +10,8 @@ its budget with the long record tables below it.
 import posixpath
 import re
 
-import glance_fixture
-from verdict_score import tally, verdict_row
+from shared_fixtures.interface import glance_fixture
+from shared_fixtures.interface import verdict_score
 from esoi.understanding.readable_records.interface import diagram, readme_view
 
 CHECKS = ("vision", "coherence", "diagram", "solutions", "links", "finished", "pure", "size")
@@ -101,8 +101,8 @@ def score_case(fn, case):
         found = verdicts(text, loaded, view, intent, again)
     except LookupError as exc:
         return dict(ok=False, got="unavailable", note=str(exc))
-    return verdict_row(found, CHECKS)
+    return verdict_score.verdict_row(found, CHECKS)
 
 
 def aggregate(rows):
-    return tally(rows, CHECKS)
+    return verdict_score.tally(rows, CHECKS)

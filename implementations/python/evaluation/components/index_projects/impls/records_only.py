@@ -4,7 +4,7 @@ start with and no relation. Zero model calls."""
 ALTERNATIVE = True   # it does not drive the live package code, so S12 asks for the declaration
 from pathlib import Path
 
-import index_world as world
+from shared_fixtures.interface import index_world as world
 
 
 def build(meter):

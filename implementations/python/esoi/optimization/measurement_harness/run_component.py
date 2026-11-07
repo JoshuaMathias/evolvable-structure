@@ -33,12 +33,11 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from esoi.structure.intent_registry import circumstances
+from esoi.structure.intent_registry.interface import circumstances
 from esoi.optimization.leaderboard.case_identity import cases_digest
 from esoi.optimization.measurement_harness import balance
 from esoi.optimization.measurement_harness import cassette as cassettes
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import code_provenance
-from esoi.optimization.when_metrics_are_run import run_log
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import builds_on, code_provenance
 from esoi.optimization.measurement_harness.arm_loading import load_impl
 from esoi.optimization.measurement_harness.call_meter import CallMeter
 from esoi.optimization.measurement_harness.case_loading import load_cases, sample_label
@@ -51,10 +50,8 @@ from esoi.optimization.measurement_harness.run_arguments import build_parser, na
 from esoi.optimization.measurement_harness.run_cases import run_cases
 from esoi.optimization.measurement_harness.run_cost import run_cost
 from esoi.optimization.measurement_harness.run_errors import RunError
-from esoi.optimization.when_metrics_are_run import run_guards
-from esoi.optimization.when_metrics_are_run.paid_gating import SIMULATED_MODEL, declared_live, declares_simulated, impl_path
+from esoi.optimization.when_metrics_are_run.interface import SIMULATED_MODEL, declared_live, declares_simulated, impl_path, run_guards, run_log
 from esoi.optimization.measurement_harness import foundation_parts
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import builds_on
 from esoi.runtime.implementation_selection import variants
 from esoi.structure.intent_registry.config import Config
 

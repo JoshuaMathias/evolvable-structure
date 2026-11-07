@@ -17,7 +17,7 @@ from typing import List
 
 from esoi.optimization.measurement_harness.interface import access
 from esoi.optimization.leaderboard import cascade_stages
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import builds_on as foundation
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import builds_on as foundation
 from esoi.structure.intent_registry import registry as registry_module
 from esoi.structure.intent_registry.config import ConfigError
 from esoi.structure.structure_check.rules.base import Context, RuleGroup

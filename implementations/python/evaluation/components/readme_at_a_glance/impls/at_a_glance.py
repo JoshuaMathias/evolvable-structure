@@ -1,5 +1,5 @@
 """CURRENT: the live at-a-glance layout of ``esoi.understanding.readable_records.readme``, with the full record below a divider. Zero model calls."""
-import glance_fixture
+from shared_fixtures.interface import glance_fixture
 from esoi.understanding.readable_records.interface import readme
 
 

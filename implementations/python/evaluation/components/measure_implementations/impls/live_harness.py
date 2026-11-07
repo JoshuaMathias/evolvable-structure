@@ -6,7 +6,7 @@ import hashlib
 import importlib
 import io
 
-import harness_fixture
+from shared_fixtures.interface import harness_fixture
 from esoi.optimization.measurement_harness.interface import case_loading
 from esoi.optimization.when_metrics_are_run.interface import paid_gating
 from esoi.optimization.measurement_harness.interface import record_result

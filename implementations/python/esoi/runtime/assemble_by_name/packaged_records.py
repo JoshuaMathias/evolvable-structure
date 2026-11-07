@@ -8,7 +8,7 @@ from typing import Any, Dict, Mapping, Tuple
 
 from esoi.optimization.leaderboard.interface import lock_evidence
 from esoi.runtime.assemble_by_name import hierarchy
-from esoi.structure.intent_registry.assembly_errors import AssemblyError
+from esoi.structure.intent_registry.interface import AssemblyError
 from esoi.runtime.implementation_selection import selection_cascade
 from esoi.runtime.implementation_selection import selection_registry
 from esoi.runtime.implementation_selection.select import default_name

@@ -1,5 +1,5 @@
 """ALTERNATIVE: the record tables only, the page as it was before the at-a-glance standard (the rival `full` layout of ``esoi.understanding.readable_records.readme``). Zero model calls."""
-import glance_fixture
+from shared_fixtures.interface import glance_fixture
 from esoi.understanding.readable_records.interface import readme
 
 

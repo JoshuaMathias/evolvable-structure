@@ -1,5 +1,5 @@
 """ALTERNATIVE: a compact layout of mostly links (the rival `links` layout of ``esoi.understanding.readable_records.readme``). Zero model calls."""
-import glance_fixture
+from shared_fixtures.interface import glance_fixture
 from esoi.understanding.readable_records.interface import readme
 
 

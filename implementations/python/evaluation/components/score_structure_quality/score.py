@@ -4,7 +4,7 @@
 """
 from collections import Counter
 
-import structure_fixture
+from shared_fixtures.interface import structure_fixture
 
 
 def run(fn, shape, stage=1):

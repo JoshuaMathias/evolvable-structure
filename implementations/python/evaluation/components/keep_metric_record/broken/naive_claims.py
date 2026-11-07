@@ -6,7 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-import metric_record_fixture as fixture
+from shared_fixtures.interface import metric_record_fixture as fixture
 from esoi.structure.intent_registry import config
 from esoi.understanding.spec_search import spec_index
 from esoi.optimization.keep_metric_record.interface import AFTER, BEFORE

@@ -1,5 +1,5 @@
 """ALTERNATIVE: the records of the top intent all in the structure folder (``esoi records gather``), the layout before records beside the code. Zero model calls."""
-import navigable_fixture
+from shared_fixtures.interface import navigable_fixture
 from esoi.structure.intent_registry import besidecode
 
 

@@ -12,7 +12,7 @@ import tempfile
 from pathlib import Path
 from typing import Dict, Tuple
 
-import glance_fixture
+from shared_fixtures import glance_fixture
 from esoi.structure.intent_registry import besidecode, config, intents, registry
 from esoi.understanding.readable_records.interface import readme
 

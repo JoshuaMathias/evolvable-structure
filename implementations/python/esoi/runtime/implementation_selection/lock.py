@@ -37,7 +37,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from esoi.optimization.leaderboard.interface import lock_evidence
 from esoi.runtime.assemble_by_name.interface import Assembler, AssemblyConfig, checking, closure, declarations, lock_file
-from esoi.structure.intent_registry.assembly_errors import LockError
+from esoi.structure.intent_registry.interface import LockError
 
 read, locked_arm, CACHE, SCHEMA = lock_file.read, lock_file.locked_arm, lock_file.CACHE, lock_file.SCHEMA
 records_evidence, attach_evidence = lock_evidence.records_evidence, lock_evidence.attach_evidence

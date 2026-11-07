@@ -143,7 +143,7 @@ def write_package(site: Path, pkg: str = "esoitoy", module: Optional[str] = None
 # The examples of the docs: run in a fresh interpreter on a package named mylib, so they cannot rot.
 
 ESOI_PATH = str(Path(esoi.__file__).resolve().parent.parent)
-GUIDE = Path(__file__).resolve().parents[4] / "docs" / "how-to" / "assemble-by-name.md"
+GUIDE = Path(__file__).resolve().parents[5] / "docs" / "how-to" / "assemble-by-name.md"
 RUNNER = """
 import json, sys
 from pathlib import Path

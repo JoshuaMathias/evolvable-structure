@@ -11,6 +11,8 @@ code_paths = ["implementations/python/esoi", ":(exclude)implementations/python/e
 layers = ["core", "tools", "cli"]
 structure_dir = "esoi"
 evaluation_dir = "implementations/python/evaluation/components"
+# The folder the evaluation components share their fixtures from: no metric, so not an evaluation folder of its own.
+shared_eval_dirs = ["__pycache__", "shared_fixtures"]
 # The intent template is read from the evolvable-structure skill's SKILL.md when ESOI_TEMPLATE_SOURCE (or --source)
 # names it; the documents below are generated from it by `esoi template sync`.
 templates_dir = "docs/reference/templates"

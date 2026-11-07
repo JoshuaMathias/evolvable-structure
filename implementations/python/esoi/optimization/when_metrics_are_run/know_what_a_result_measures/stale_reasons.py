@@ -5,7 +5,7 @@ import datetime
 import subprocess
 from typing import Dict, Optional
 
-from esoi.structure.intent_registry import circumstances
+from esoi.structure.intent_registry.interface import circumstances
 from esoi.optimization.leaderboard.case_identity import cases_digest
 from esoi.optimization.leaderboard.results_log import is_partial, per_case_rows
 from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import builds_on

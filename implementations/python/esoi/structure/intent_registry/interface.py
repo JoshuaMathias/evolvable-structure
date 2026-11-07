@@ -4,9 +4,11 @@ from typing import Dict, Protocol, runtime_checkable
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
 from esoi.structure.intent_registry import admit, besidecode, migrate  # noqa: F401  (re-exported: the command line calls this unit through its interface)
-from esoi.structure.intent_registry import implementedby  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.structure.intent_registry import circumstances, implementedby  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.structure.intent_registry.assembly_errors import AssemblyError, LockError  # noqa: F401  (re-exported: other units call this unit through its interface)
+from esoi.structure.intent_registry.name_check import check_name  # noqa: F401  (re-exported: other units call this unit through its interface)
 
-__all__ = ["IntentRegistering", "admit", "besidecode", "counted", "implementedby", "load_project", "migrate"]
+__all__ = ["AssemblyError", "IntentRegistering", "LockError", "admit", "besidecode", "check_name", "circumstances", "counted", "implementedby", "load_project", "migrate"]
 
 
 @solution("intent-registry", kind="event", entry="count", example=".")

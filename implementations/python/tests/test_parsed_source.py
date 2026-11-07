@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "evaluation" / "components"))
 
-import repo_fixture
+from shared_fixtures import repo_fixture
 from esoi.structure.intent_registry import config, parsed_source
 from esoi.structure.structure_check import check
 

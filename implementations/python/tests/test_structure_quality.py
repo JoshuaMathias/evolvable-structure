@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "evaluation" / "components"))
 
-import structure_fixture
+from shared_fixtures import structure_fixture
 from esoi.structure.structure_check.rules import structure_quality_rules
 from esoi.structure.intent_registry import parsed_source
 from esoi.structure.structure_quality import assess, balance, compare, expert_review, interface, overlap, project, report as report_module, scope

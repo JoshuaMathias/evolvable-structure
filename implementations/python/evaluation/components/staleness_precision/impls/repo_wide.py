@@ -1,5 +1,5 @@
 """The live staleness check under the rule `repo_wide`, the whole repository counts (what the check did before the other rules). Zero model calls."""
-import staleness_fixture
+from shared_fixtures.interface import staleness_fixture
 from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import staleness  # noqa: F401  (the live code under test)
 
 

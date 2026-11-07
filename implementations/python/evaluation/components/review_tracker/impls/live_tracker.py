@@ -1,7 +1,7 @@
 """CURRENT: the live tracker, ``esoi.understanding.review_tracker.tracker`` (``stale``, ``write``), over the clean fixture repository.
 Zero model calls."""
-import repo_fixture
-import tracker_fixture
+from shared_fixtures.interface import repo_fixture
+from shared_fixtures.interface import tracker_fixture
 from esoi.structure.intent_registry import config, registry
 from esoi.understanding.review_tracker.interface import tracker
 

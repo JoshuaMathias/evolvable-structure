@@ -4,14 +4,12 @@ from __future__ import annotations
 import importlib
 from typing import Callable, Dict, List, Optional, Tuple
 
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import stale_reasons
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import stale_reasons
 from esoi.optimization.measurement_harness.case_loading import sample_args
 from esoi.optimization.measurement_harness.component_folder import prepare_path
 from esoi.optimization.measurement_harness.run_component import run_component
 from esoi.optimization.measurement_harness.run_errors import PendingNetwork, RunError
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.stale_reasons import expired_reason
-from esoi.optimization.when_metrics_are_run import run_guards
-from esoi.optimization.when_metrics_are_run.paid_gating import paid_reason
+from esoi.optimization.when_metrics_are_run.interface import paid_reason, run_guards
 from esoi.structure.intent_registry.config import Config
 
 
@@ -45,7 +43,7 @@ def not_rerun_reason(config: Config, component: str, impl: str, row: Optional[Di
         return ""
     if row is None and selected:
         return ""
-    if selected and expired_reason(config, component, row):
+    if selected and stale_reasons.expired_reason(config, component, row):
         return ""
     if not selected:
         return "nothing depends on it (a rival is measured when a decision needs the comparison: name it with --include)"
@@ -59,7 +57,7 @@ def why_stale(config: Config, comp: str, impl: str, row: Optional[Dict[str, str]
     selected arm's, a sample when ``--full`` asks for the whole set, or an expiration that has passed."""
     return (stale_reasons.stale_reason(config, comp, row) or other_sample(config, comp, row, is_selected, flags)
             or (full_reason(config, comp, row) if full else "")
-            or (expired_reason(config, comp, row) if is_selected else ""))   # an expiration the metric or project declares and that has passed
+            or (stale_reasons.expired_reason(config, comp, row) if is_selected else ""))   # an expiration the metric or project declares and that has passed
 
 
 def full_reason(config: Config, comp: str, row: Optional[Dict[str, str]]) -> str:

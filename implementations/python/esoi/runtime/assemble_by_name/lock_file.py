@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Tuple
 
-from esoi.structure.intent_registry.assembly_errors import LockError
+from esoi.structure.intent_registry.interface import LockError
 
 SCHEMA = "esoi.lock/1"
 

@@ -27,8 +27,8 @@ from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
 from esoi.structure.intent_registry.assembly_errors import AssemblyError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "evaluation" / "components"))
-import assemble_fixture  # noqa: E402
-from assemble_fixture import ESOI_PATH, INDEX, REPORT, STORE, write_package  # noqa: E402
+from shared_fixtures import assemble_fixture  # noqa: E402
+from shared_fixtures.assemble_fixture import ESOI_PATH, INDEX, REPORT, STORE, write_package  # noqa: E402
 
 
 @pytest.fixture(scope="session")

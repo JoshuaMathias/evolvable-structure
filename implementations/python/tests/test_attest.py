@@ -15,7 +15,7 @@ from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import a
 from esoi.structure.intent_registry import config as config_module
 from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import stale_reasons
 from esoi.optimization.leaderboard import board_report
-import staleness_fixture  # noqa: E402
+from shared_fixtures import staleness_fixture  # noqa: E402
 
 
 def project(tmp_path, step="touch-the-measured-file", component="alpha"):

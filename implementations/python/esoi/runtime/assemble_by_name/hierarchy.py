@@ -123,9 +123,9 @@ def entries(value: Any) -> List[Tuple[str, str, Dict[str, str]]]:
 
 def met(conditions: Mapping[str, str], facts: Mapping[str, Any]) -> str:
     """'' when every ``key=value`` holds in the caller's circumstance mapping, else which one does not."""
-    from esoi.structure.intent_registry.circumstances import holds
+    from esoi.structure.intent_registry.interface import circumstances
     for key, value in conditions.items():
-        if not holds((key, "=", [value]), facts):
+        if not circumstances.holds((key, "=", [value]), facts):
             return f"circumstance {key}={value} not met" + ("" if key in facts else f" ({key} not given)")
     return ""
 

@@ -456,7 +456,7 @@ def add_history(root: Path, kind: str) -> None:
 
 def history_checkout(ref: str) -> Path:
     """A throwaway worktree of this library's own repository at one commit (a case from git history), removed when the process ends."""
-    repo = Path(__file__).resolve().parents[4]
+    repo = Path(__file__).resolve().parents[5]
     found = subprocess.run(["git", "-C", str(repo), "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"], capture_output=True, text=True)
     if found.returncode != 0:
         raise ValueError(f"commit {ref} is not in this clone (a git-history case needs the full history)")

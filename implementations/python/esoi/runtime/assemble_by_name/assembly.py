@@ -8,7 +8,7 @@ from esoi.runtime.assemble_by_name import hierarchy
 from esoi.runtime.assemble_by_name.environment_needs import declarations
 from esoi.runtime.assemble_by_name.environment_needs.closure import Member, members_pairs
 from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
-from esoi.structure.intent_registry.assembly_errors import AssemblyError
+from esoi.structure.intent_registry.interface import AssemblyError
 from esoi.runtime.implementation_selection import selection_registry
 
 

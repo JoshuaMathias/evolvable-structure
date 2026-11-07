@@ -1,6 +1,6 @@
 """BASELINE: a checker that only does file coverage (every file belongs to exactly one component, every glob
 matches a file). The naive alternative the full check is measured against. Zero model calls."""
-import repo_fixture
+from shared_fixtures.interface import repo_fixture
 from esoi.structure.intent_registry.tables import glob_re, ids, read_csv, repo_files
 
 

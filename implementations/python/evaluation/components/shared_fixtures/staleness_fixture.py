@@ -18,7 +18,7 @@ from esoi.structure.intent_registry import config
 from esoi.optimization.measurement_harness.interface import stale_reasons
 from esoi.optimization.leaderboard.case_identity import cases_digest
 
-RECIPE = Path(__file__).resolve().parent / "staleness_precision" / "datasets" / "fixture.json"
+RECIPE = Path(__file__).resolve().parent.parent / "staleness_precision" / "datasets" / "fixture.json"
 BUILT: Dict[str, "Built"] = {}
 FOLDERS: list = []
 

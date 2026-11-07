@@ -36,7 +36,8 @@ inside it: `the_standard/the_steps`, `the_standard/skill_distribution`, `esoi_fo
 - Helper code that belongs to no arm of its own sits in the lowest folder that all its users share, with a plain name
   (`runtime/assemble_by_name/environment_needs/`, `runtime/assemble_by_name/installation/`).
 - Evaluation components stay in `implementations/python/evaluation/components/`, and a record whose arm lives there stays in the
-  folder of its solution.
+  folder of its solution. The fixtures several components share (synthetic repositories, model arms) have one home,
+  `implementations/python/evaluation/components/shared_fixtures/`, with `interface.py` as the way in.
 - The rules of Structure Check stay together under `structure/structure_check/rules/`, because Structure Check owns the rule
   set.
 

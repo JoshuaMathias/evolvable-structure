@@ -4,7 +4,7 @@ up from the package. Zero model calls."""
 import importlib
 import typing
 
-import assemble_fixture as world
+from shared_fixtures.interface import assemble_fixture as world
 from esoi.runtime.implementation_selection import declare
 from esoi.runtime.implementation_selection import selection_registry
 

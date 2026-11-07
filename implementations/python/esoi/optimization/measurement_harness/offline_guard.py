@@ -100,7 +100,7 @@ class OfflineGuard:
 def refuse_offline_network(config: Config, component: str, impl: str, environ: Optional[Dict[str, str]] = None) -> None:
     """Raise ``PendingNetwork`` when ``ESOI_OFFLINE=1`` and the arm declares a required ``network`` requirement: the same answer
     ``esoi.runtime.assemble_by_name.entry`` gives (pending-network), before any case runs, any provider is built or any row is recorded."""
-    from esoi.runtime.assemble_by_name.environment_needs import checking, declarations
+    from esoi.runtime.assemble_by_name.interface import checking, declarations
     environ = os.environ if environ is None else environ
     if environ.get(OFFLINE_ENV) != "1":
         return

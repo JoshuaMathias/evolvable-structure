@@ -46,4 +46,6 @@ package under test (rule S12), so a number measures what ships.
 Ten components ship in `implementations/python/evaluation/components/`: the structure check, placement and layering, the
 records, template reading, selection, the harness, the leaderboard, the tracker, the consumer check and the public copy of the skill. Their cases build
 small synthetic repositories (`repo_fixture.py`, `harness_fixture.py`, `consumer_fixture.py`) and inject one defect at a
-time, so a case passes only when the right rule reports the right path.
+time, so a case passes only when the right rule reports the right path. The shared fixtures and model arms live in one folder,
+`evaluation/components/shared_fixtures/`, entered through its `interface.py` (`from shared_fixtures.interface import repo_fixture`); the
+harness puts the evaluation folder on the import path, so no component adds a path of its own.

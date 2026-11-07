@@ -8,7 +8,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-import repo_fixture
+from shared_fixtures import repo_fixture
 from esoi.runtime.consumer_check.interface import consumer
 from esoi.runtime.consumer_check.interface import Options
 

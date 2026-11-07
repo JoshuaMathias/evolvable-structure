@@ -16,8 +16,8 @@ import re
 from collections import deque
 from pathlib import Path
 
-import navigable_fixture
-from verdict_score import tally, verdict_row
+from shared_fixtures.interface import navigable_fixture
+from shared_fixtures.interface import verdict_score
 from esoi.structure.intent_registry import besidecode, intents
 from esoi.structure.structure_check.interface import distance
 
@@ -95,8 +95,8 @@ def score_case(fn, case):
         found = verdicts(first["arm"], args, again)
     except LookupError as exc:
         return dict(ok=False, got="unavailable", note=str(exc))
-    return verdict_row(found, CHECKS)
+    return verdict_score.verdict_row(found, CHECKS)
 
 
 def aggregate(rows):
-    return tally(rows, CHECKS)
+    return verdict_score.tally(rows, CHECKS)

@@ -6,17 +6,16 @@ from esoi.optimization.measurement_harness.arm_loading import load_impl
 from esoi.optimization.measurement_harness.balance import balanced
 from esoi.optimization.measurement_harness.case_loading import load_cases, sample_args
 from esoi.optimization.measurement_harness.case_count import count_cases
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.code_provenance import current_sha
 from esoi.optimization.measurement_harness.component_folder import prepare_path
 from esoi.optimization.measurement_harness.run_command import run_cli
 from esoi.optimization.measurement_harness.run_errors import RunError
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.stale_reasons import defect_reason, stale_reason
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.code_changed import code_changed_reason
 from esoi.runtime.implementation_selection.declare import implementation, solution
 from esoi.structure.intent_registry.registry import load_project
 from esoi.optimization.measurement_harness import cassette  # noqa: F401  (re-exported: the command line calls this unit through its interface)
 from esoi.optimization.measurement_harness import access, case_loading, record_result, run_component  # noqa: F401  (re-exported: other units call this unit through its interface)
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import stale_reasons
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import code_changed, code_provenance, ownership_index, stale_reasons, staleness
+
+stale_reason, defect_reason, code_changed_reason, current_sha = stale_reasons.stale_reason, stale_reasons.defect_reason, code_changed.code_changed_reason, code_provenance.current_sha
 
 # What a consumer of the harness needs: load and run a component's cases for an arm, fold the result into the balanced number, narrow the
 # source-access limits, and ask whether a recorded row still describes the code (``stale_reason``, ``defect_reason``, ``code_changed_reason``).
@@ -43,7 +42,6 @@ class ComponentHarness:
 
     def stale(self, project: str) -> Dict[str, Dict[str, str]]:
         """Per staleness rule, which implementations' recorded rows a change has made stale (what ``esoi stale --count`` prints)."""
-        from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import ownership_index, staleness
         cfg, found = load_project(project)
         return {rule: staleness.count_stale(cfg, rule) for rule in ownership_index.RULES}
 

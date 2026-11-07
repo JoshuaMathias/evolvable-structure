@@ -3,7 +3,7 @@ records in a temporary folder. Zero model calls."""
 import tempfile
 from pathlib import Path
 
-import harness_fixture
+from shared_fixtures.interface import harness_fixture
 from esoi.optimization.promote_the_winner.interface import promote
 from esoi.structure.intent_registry import registry as registry_module, tables
 from esoi.structure.intent_registry.config import Config

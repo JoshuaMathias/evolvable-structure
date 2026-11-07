@@ -5,7 +5,7 @@ import py_compile
 import tempfile
 from pathlib import Path
 
-import repo_fixture
+from shared_fixtures.interface import repo_fixture
 from esoi.structure.structure_check.interface import check
 from esoi.structure.intent_registry import config, registry, tables
 from esoi.structure.intent_registry.specify_from_code import declarations

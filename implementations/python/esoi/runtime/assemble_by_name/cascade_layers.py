@@ -5,8 +5,7 @@ from typing import Any, List, Optional
 
 from esoi.runtime.assemble_by_name import hierarchy, lock_file
 from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
-from esoi.structure.intent_registry.assembly_errors import AssemblyError, LockError
-from esoi.structure.intent_registry.name_check import check_name
+from esoi.structure.intent_registry.interface import AssemblyError, LockError, check_name
 from esoi.runtime.implementation_selection import selection_cascade
 from esoi.runtime.implementation_selection import variants
 

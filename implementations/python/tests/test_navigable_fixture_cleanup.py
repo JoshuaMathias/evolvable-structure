@@ -9,7 +9,7 @@ COMPONENTS = Path(__file__).resolve().parents[1] / "evaluation" / "components"
 SCRIPT = (
     "import sys\n"
     f"sys.path.insert(0, {str(COMPONENTS)!r})\n"
-    "import navigable_fixture\n"
+    "from shared_fixtures import navigable_fixture\n"
     "navigable_fixture.layout('this', 'beside_code')\n"
     "navigable_fixture.layout('this', 'beside_code', True)\n"
 )

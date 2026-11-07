@@ -2,7 +2,7 @@
 ``esoi.optimization.keep_metric_record.iteration``, over a throwaway repository (see ``metric_record_fixture``). Zero model calls."""
 import time
 
-import metric_record_fixture as fixture
+from shared_fixtures.interface import metric_record_fixture as fixture
 from esoi.optimization.keep_metric_record.interface import MetricIteration
 from esoi.optimization.keep_metric_record.interface import BEFORE, OfflineArmMeter, RecordedRowMeter, read_value
 from esoi.optimization.keep_metric_record.interface import FileMetricLedger, MetricResult, reconcile, render_line

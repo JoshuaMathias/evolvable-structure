@@ -2,7 +2,7 @@
 load it (one call); when it does, the full SKILL.md is the system text of the answer (a second call); then the model judge
 grades the reply. Two to three model calls per case, which costs money: run only after Joshua has approved the spend
 (structure/metric-run-policy.md). It measures the loading decision as well as the instructions."""
-import model_arms
+from shared_fixtures.interface import model_arms
 from esoi.understanding.esoi_for_ai.interface import behaviour
 from esoi.understanding.the_standard.skill_distribution.interface import skill
 

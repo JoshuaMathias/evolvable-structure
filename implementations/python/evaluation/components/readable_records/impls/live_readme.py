@@ -1,6 +1,6 @@
 """CURRENT: the live README generator, ``esoi.understanding.readable_records.readme.render`` as written by ``esoi check --write-docs`` and checked by rule
 S8, over throwaway projects. Zero model calls."""
-import repo_fixture
+from shared_fixtures.interface import repo_fixture
 from esoi.structure.intent_registry import config
 
 

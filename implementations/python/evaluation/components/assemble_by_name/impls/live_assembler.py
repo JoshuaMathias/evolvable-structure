@@ -3,7 +3,7 @@
 import contextlib
 import threading
 
-import assemble_fixture as world
+from shared_fixtures.interface import assemble_fixture as world
 from esoi.runtime.implementation_selection import declare
 from esoi.runtime.assemble_by_name.interface import Assembler
 from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig

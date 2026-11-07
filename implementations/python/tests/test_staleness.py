@@ -22,7 +22,7 @@ from esoi.optimization.measurement_harness import offline_guard
 from esoi.optimization.measurement_harness import run_errors
 from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import stale_reasons
 from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import import_scan, import_world, ownership_index, stale_scope, staleness
-import staleness_fixture  # noqa: E402
+from shared_fixtures import staleness_fixture  # noqa: E402
 
 SCORE = importlib.import_module("staleness_precision.score")
 CASES = case_loading.load_cases("staleness_precision", config_module.Config(root=ROOT, package="esoi", evaluation_dir="evaluation/components"))

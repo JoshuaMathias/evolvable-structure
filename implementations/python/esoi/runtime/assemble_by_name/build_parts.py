@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 from esoi.runtime.assemble_by_name.arm_inspection import builder_of, config_hash, package_version
 from esoi.runtime.assemble_by_name.assembly import Assembly
 from esoi.runtime.assemble_by_name.assembly_config import AssemblyConfig
-from esoi.structure.intent_registry.assembly_errors import AssemblyError
+from esoi.structure.intent_registry.interface import AssemblyError
 from esoi.runtime.assemble_by_name.environ_options import environ_fill
 from esoi.runtime.assemble_by_name.lazy_need import LazyNeed
 from esoi.runtime.implementation_selection import variants

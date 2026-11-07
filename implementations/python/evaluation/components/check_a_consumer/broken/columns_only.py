@@ -2,7 +2,7 @@
 version a first draft would write. Zero model calls."""
 import csv
 
-import consumer_fixture
+from shared_fixtures.interface import consumer_fixture
 
 
 def build(meter):

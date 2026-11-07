@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import List, Sequence, Tuple
 
-from esoi.structure.intent_registry.assembly_errors import AssemblyError
+from esoi.structure.intent_registry.interface import AssemblyError
 from esoi.runtime.assemble_by_name.entry_types import EntryError, Pending, Reason
 from esoi.runtime.assemble_by_name.offline_guard import Offline
 from esoi.runtime.implementation_selection.selection_registry import SelectionError

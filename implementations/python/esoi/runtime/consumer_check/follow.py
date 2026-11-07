@@ -25,11 +25,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
-from esoi.runtime.assemble_by_name import hierarchy
+from esoi.runtime.assemble_by_name.interface import hierarchy
 from esoi.optimization.measurement_harness import interface as harness
 from esoi.optimization.when_metrics_are_run import interface as gating
-from esoi.optimization.leaderboard import arm_selection, case_identity, ranking, results_log, rival_decisions, rival_pairing, switching_policy
-from esoi.runtime.implementation_selection import lock as lock_module, variants
+from esoi.optimization.leaderboard import arm_selection, case_identity, ranking, results_log, rival_decisions, switching_policy
+from esoi.optimization.leaderboard.interface import rival_pairing
+from esoi.runtime.implementation_selection import variants
+from esoi.runtime.implementation_selection.interface import lock as lock_module
 from esoi.structure.intent_registry import registry as registry_module
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.intents import read_rows

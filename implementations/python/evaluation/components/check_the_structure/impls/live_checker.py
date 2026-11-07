@@ -3,7 +3,7 @@ reimplemented, only the repository under inspection is fake. A ``scale`` case ge
 and reports how long the check takes cold and with a warm cache. Zero model calls."""
 import time
 
-import repo_fixture
+from shared_fixtures.interface import repo_fixture
 from esoi.structure.structure_check.interface import check
 from esoi.structure.intent_registry import config
 

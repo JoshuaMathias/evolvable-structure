@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Sequence, Set, Tuple
 
-from esoi.structure.intent_registry.assembly_errors import AssemblyError
+from esoi.structure.intent_registry.interface import AssemblyError
 from esoi.runtime.assemble_by_name.dependency_graph import problems
 from esoi.structure.intent_registry import intents
 from esoi.structure.intent_registry.tables import read_csv, read_header, write_csv

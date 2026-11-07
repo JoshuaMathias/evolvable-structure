@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import Callable, List, Tuple
 
 from esoi.optimization.leaderboard import cascade_stages, results_log, stage_standings
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures import builds_on
-from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.stale_reasons import stale_reason
+from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import builds_on, stale_reasons
 from esoi.structure.intent_registry import registry as registry_module
 from esoi.structure.intent_registry.config import Config
 
@@ -46,7 +45,7 @@ def foundation_stage_checks(f: builds_on.Foundation, arm: str, stage: cascade_st
 def stage_check(f: builds_on.Foundation, arm: str, stage: cascade_stages.Stage, fconf: Config, stages: List[cascade_stages.Stage], theirs: int) -> Tuple[bool, str]:
     """Whether the foundation's own stage ``theirs`` passed for ``arm``, by the foundation's gate, floor, expiry and staleness."""
     history = results_log.all_results(fconf.results_path).get(f.target, {}).get(arm, [])
-    standing = stage_standings.standings(stages, {arm: history}, None, lambda row, c=fconf: stale_reason(c, f.target, row, True),
+    standing = stage_standings.standings(stages, {arm: history}, None, lambda row, c=fconf: stale_reasons.stale_reason(c, f.target, row, True),
                                          fconf.evaluation).get(arm)
     row = standing.rows.get(theirs) if standing else None
     if row is None:

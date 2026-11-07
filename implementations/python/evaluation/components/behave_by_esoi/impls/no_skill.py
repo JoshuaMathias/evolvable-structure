@@ -1,7 +1,7 @@
 """The same model with no ESOI instructions at all, so the gain from the skill is a number. One model call per
 case plus the judge call, which costs money: run only after Joshua has approved the spend (structure/metric-run-policy.md)."""
 ALTERNATIVE = True   # it does not drive the live package code, so S12 asks for the declaration
-import model_arms
+from shared_fixtures.interface import model_arms
 
 PAID = True
 SYSTEM = "You are a helpful assistant."

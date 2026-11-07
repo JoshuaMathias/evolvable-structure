@@ -1,6 +1,6 @@
 """CURRENT: the live consumer check, ``esoi.runtime.consumer_check.consumer.check_consumer``, over a synthetic library and consumer.
 Zero model calls."""
-import consumer_fixture
+from shared_fixtures.interface import consumer_fixture
 from esoi.runtime.consumer_check.interface import consumer
 
 

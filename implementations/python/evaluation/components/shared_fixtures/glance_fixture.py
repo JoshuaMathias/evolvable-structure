@@ -16,7 +16,7 @@ CACHE: Dict[str, Tuple] = {}
 
 def root_of(label: str) -> Path:
     if label == "this":
-        return Path(__file__).resolve().parents[4]
+        return Path(__file__).resolve().parents[5]
     chosen = [p for p in os.environ.get(ADOPTERS, "").split(os.pathsep) if p]
     number = int(label.rsplit("-", 1)[1]) if label.startswith("adopter-") and label.rsplit("-", 1)[1].isdigit() else 0
     if not 1 <= number <= len(chosen):
