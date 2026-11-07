@@ -1,4 +1,5 @@
 """The flow of Optimizing: how a project comes to run the implementation the evidence shows is best. It calls the one-line entry of each part in the order the work happens."""
+from dataclasses import dataclass
 from typing import Any, Dict
 
 from esoi.runtime.assemble_by_name.lazy_need import Lazy
@@ -13,16 +14,16 @@ from esoi.optimization.keep_metric_record.interface import MetricRecordKeeping
 
 
 @implementation("esoi-optimization", "composition")
+@dataclass
 class OptimizationFlow:
     """Hands the call to each part of Optimization in turn and gathers what each reports; the parts are typed needs, so each one can be
     replaced without changing this flow."""
 
-    def __init__(self, harness: Lazy[MeasurementHarnessing], when: Lazy[WhenMetricsAreRun], board: Lazy[Leaderboarding], promotion: Lazy[WinnerPromoting], record: Lazy[MetricRecordKeeping]):
-        self.harness = harness
-        self.when = when
-        self.board = board
-        self.promotion = promotion
-        self.record = record
+    harness: Lazy[MeasurementHarnessing]
+    when: Lazy[WhenMetricsAreRun]
+    board: Lazy[Leaderboarding]
+    promotion: Lazy[WinnerPromoting]
+    record: Lazy[MetricRecordKeeping]
 
     def review(self, project: str) -> Dict[str, Any]:
         with intents.session():    # the record folders are found once for the whole review

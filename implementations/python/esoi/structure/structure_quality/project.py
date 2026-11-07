@@ -16,6 +16,7 @@ from io import StringIO
 from pathlib import Path, PurePosixPath
 from typing import Dict, List, Set, Tuple
 
+from esoi.structure.intent_registry.import_base import import_base
 from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
 from esoi.structure.structure_quality.complexity import cyclomatic
 
@@ -100,12 +101,8 @@ def resolve_import(node: ast.AST, path: str) -> List[Tuple[str, Tuple[str, ...]]
     """The dotted modules an import statement names, relative imports resolved against the file's own package."""
     if isinstance(node, ast.Import):
         return [(alias.name, ()) for alias in node.names]
-    base = node.module or ""
-    if node.level:
-        package = dotted(path).split(".")
-        package = package[:-1] if not path.endswith("__init__.py") else package
-        package = package[: len(package) - (node.level - 1)] if node.level > 1 else package
-        base = ".".join(package + ([base] if base else []))
+    package = dotted(path).split(".")
+    base = import_base(package if path.endswith("__init__.py") else package[:-1], node.level, node.module)
     return [(base, tuple(alias.name for alias in node.names))]
 
 

@@ -13,10 +13,11 @@ arm lays out. A case passes when every check passes; ``aggregate`` reports how m
 """
 import posixpath
 import re
-from collections import Counter, deque
+from collections import deque
 from pathlib import Path
 
 import navigable_fixture
+from verdict_score import tally, verdict_row
 from esoi.structure.intent_registry import besidecode, intents
 from esoi.structure.structure_check.rules.beside_rules import distance
 
@@ -88,14 +89,8 @@ def score_case(fn, case):
         found = verdicts(first["arm"], args, again)
     except LookupError as exc:
         return dict(ok=False, got="unavailable", note=str(exc))
-    failed = [c for c in CHECKS if not found.get(c)]
-    return dict(ok=not failed, got=",".join(c for c in CHECKS if found.get(c)), note="ok" if not failed else "fails " + ", ".join(failed))
+    return verdict_row(found, CHECKS)
 
 
 def aggregate(rows):
-    seen = Counter()
-    for r in rows:
-        for c in (r.get("got") or "").split(","):
-            if c in CHECKS:
-                seen[c] += 1
-    return ", ".join(f"{c} {seen[c]}/{len(rows)}" for c in CHECKS)
+    return tally(rows, CHECKS)

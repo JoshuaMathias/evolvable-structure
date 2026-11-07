@@ -24,8 +24,7 @@ def strategy(pkg, site, consumer, args):
         parts.register(solution_id, name, getattr(consumer, ref.split(":")[1]), replace)
     for solution_id, name, ref in args.get("behind", []):
         declare.register(solution_id, name, getattr(consumer, ref.split(":")[1]), scope=pkg, replace=True)
-    provided = {sid: (object() if ref == "object" else getattr(consumer, ref.split(":")[1])())
-                for sid, ref in args.get("provided", {}).items()}
+    provided = world.provided_instances(args, consumer)
     config = configure(pkg, args.get("config", {}))
     with contextlib.ExitStack() as stack:
         for solution_id, name in args.get("override", {}).items():
@@ -53,7 +52,4 @@ def threaded(parts, config, provided, count):
     return {"built": results[0] if results else {}, "agree": agree, "errors": errors}
 
 
-def build(meter):
-    def assemble(kind, args):
-        return world.docs_case(args) if kind == "docs" else world.package_case(args, strategy)
-    return assemble
+build = world.arm_builder(strategy)

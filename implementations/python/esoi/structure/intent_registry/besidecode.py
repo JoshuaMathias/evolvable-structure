@@ -27,6 +27,7 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from esoi.structure.intent_registry import intents
 from esoi.structure.intent_registry.config import Config
+from esoi.structure.intent_registry.import_base import import_base
 from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
 from esoi.structure.intent_registry.records import FILES
 from esoi.structure.intent_registry.tables import ids, read_csv, read_header, write_csv
@@ -141,12 +142,7 @@ def import_graph(config: Config) -> Dict[str, Set[str]]:
             if isinstance(node, ast.Import):
                 names = [a.name for a in node.names]
             elif isinstance(node, ast.ImportFrom):
-                base = node.module or ""
-                if node.level:
-                    parts = dotted.split(".")
-                    parts = parts if is_pkg else parts[:-1]
-                    parts = parts[: len(parts) - (node.level - 1)] if node.level > 1 else parts
-                    base = ".".join(parts + ([base] if base else []))
+                base = import_base(dotted.split(".") if is_pkg else dotted.split(".")[:-1], node.level, node.module)
                 names = [base] + [f"{base}.{a.name}" for a in node.names]
             else:
                 continue

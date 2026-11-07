@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 from esoi.structure.intent_registry.config import Config, DEFAULT_STALENESS_RULE, STALENESS_RULES
+from esoi.structure.intent_registry.tables import glob_source, ids as cells
 
 
 RULES = STALENESS_RULES
@@ -29,21 +30,7 @@ class Index:
 
 def glob_pattern(text: str) -> re.Pattern:
     """A path glob as a regular expression: ``**`` crosses folders, ``*`` and ``?`` stay in one; a plain folder owns what is in it."""
-    out, i = "", 0
-    while i < len(text):
-        if text.startswith("**", i):
-            out, i = out + ".*", i + 2
-        elif text[i] == "*":
-            out, i = out + "[^/]*", i + 1
-        elif text[i] == "?":
-            out, i = out + "[^/]", i + 1
-        else:
-            out, i = out + re.escape(text[i]), i + 1
-    return re.compile(out + r"(?:/.*)?$")
-
-
-def cells(text: str) -> List[str]:
-    return [part.strip() for part in (text or "").split(";") if part.strip()]
+    return re.compile(glob_source(text) + r"(?:/.*)?$")
 
 
 def normal(name: str) -> str:

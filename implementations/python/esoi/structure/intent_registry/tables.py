@@ -76,8 +76,8 @@ def document_entries(cell: str) -> List["tuple[str, str]"]:
     return out
 
 
-def glob_re(pattern: str) -> "re.Pattern[str]":
-    """``*`` stays inside a path segment, ``**`` crosses segments, ``?`` is one character."""
+def glob_source(pattern: str) -> str:
+    """A path glob as regular expression text, without an end: ``*`` stays inside a path segment, ``**`` crosses segments, ``?`` is one character."""
     out, i = "", 0
     while i < len(pattern):
         if pattern.startswith("**", i):
@@ -88,7 +88,12 @@ def glob_re(pattern: str) -> "re.Pattern[str]":
             out, i = out + "[^/]", i + 1
         else:
             out, i = out + re.escape(pattern[i]), i + 1
-    return re.compile(out + r"\Z")
+    return out
+
+
+def glob_re(pattern: str) -> "re.Pattern[str]":
+    """``*`` stays inside a path segment, ``**`` crosses segments, ``?`` is one character."""
+    return re.compile(glob_source(pattern) + r"\Z")
 
 
 def repo_files(root: Path) -> List[str]:

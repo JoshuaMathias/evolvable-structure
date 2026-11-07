@@ -70,20 +70,26 @@ def all_implementation_files(config: Config, index: Index) -> Set[str]:
     return found
 
 
-def world_stamp(config: Config, world: World) -> tuple:
+def file_stats(config: Config, files) -> tuple:
+    """``(path, modification time, size)`` of each of the repository-relative ``files``, in path order; a file that cannot be read counts as ``(path, 0, 0)``."""
     root = config.root.resolve()
-    stats = []
-    for rel in sorted(world.seen):
+    found = []
+    for rel in sorted(files):
         try:
             info = (root / rel).stat()
-            stats.append((rel, info.st_mtime_ns, info.st_size))
+            found.append((rel, info.st_mtime_ns, info.st_size))
         except OSError:
-            stats.append((rel, 0, 0))
+            found.append((rel, 0, 0))
+    return tuple(found)
+
+
+def world_stamp(config: Config, world: World) -> tuple:
+    stats = file_stats(config, world.seen)
     folders = []
     for path in sorted(config.evaluation.glob("*/impls")):   # a new or removed arm changes its folder's time
         info = path.stat()
         folders.append((path.name, info.st_mtime_ns))
-    return (signature(config), tuple(folders), tuple(stats))
+    return (signature(config), tuple(folders), stats)
 
 
 def world_of(config: Config, index: Index) -> World:

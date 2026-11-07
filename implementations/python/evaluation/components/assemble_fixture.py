@@ -267,3 +267,17 @@ def docs_case(args: Dict[str, Any]) -> Dict[str, Any]:
             return {"error": "", "text": ""}
         except AssertionError as error:
             return {"error": "AssertionError", "text": str(error)}
+
+
+def provided_instances(args: Dict[str, Any], consumer: Any) -> Dict[str, Any]:
+    """The ready-made solutions a case hands over (``args['provided']``): ``object`` stands for a bare object, else the consumer's class named by the reference, built."""
+    return {sid: (object() if ref == "object" else getattr(consumer, ref.split(":")[1])()) for sid, ref in args.get("provided", {}).items()}
+
+
+def arm_builder(strategy: Callable[[str, Path, Any, Dict[str, Any]], Dict[str, Any]]) -> Callable:
+    """The ``build(meter)`` of an assembly arm that assembles with ``strategy``: a case of kind ``docs`` runs the documentation examples, any other builds a package."""
+    def build(meter):
+        def assemble(kind, args):
+            return docs_case(args) if kind == "docs" else package_case(args, strategy)
+        return assemble
+    return build

@@ -12,6 +12,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
+from esoi.structure.intent_registry.import_base import import_base
 from esoi.runtime.assemble_by_name.environment_needs.source_location import source_path
 
 
@@ -24,11 +25,7 @@ def imported_names(tree: ast.AST, module: ModuleType, path: Path, notes: List[st
         if isinstance(node, ast.Import):
             names.update(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom):
-            base = node.module or ""
-            if node.level:
-                parts = package.split(".")
-                parts = parts[: max(len(parts) - (node.level - 1), 0)]
-                base = ".".join(parts + ([base] if base else []))
+            base = import_base(package.split("."), node.level, node.module)
             names.add(base)
             names.update(f"{base}.{alias.name}" for alias in node.names if alias.name != "*")
         elif isinstance(node, ast.Call):

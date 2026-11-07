@@ -1,4 +1,5 @@
 """The flow of RuntimeServing: how a better measurement changes what runs inside other people's programs. It calls the one-line entry of each part in the order the work happens."""
+from dataclasses import dataclass
 from typing import Any, Dict
 
 from esoi.runtime.assemble_by_name.lazy_need import Lazy
@@ -11,14 +12,14 @@ from esoi.runtime.consumer_check.interface import ConsumerChecking
 
 
 @implementation("esoi-runtime", "composition")
+@dataclass
 class RuntimeFlow:
     """Hands the call to each part of Runtime in turn and gathers what each reports; the parts are typed needs, so each one can be
     replaced without changing this flow."""
 
-    def __init__(self, selection: Lazy[ImplementationSelecting], assembly: Lazy[AssemblingByName], consumer: Lazy[ConsumerChecking]):
-        self.selection = selection
-        self.assembly = assembly
-        self.consumer = consumer
+    selection: Lazy[ImplementationSelecting]
+    assembly: Lazy[AssemblingByName]
+    consumer: Lazy[ConsumerChecking]
 
     def review(self, solution_id: str = "structure-check") -> Dict[str, Any]:
         with intents.session():    # the record folders are found once for the whole review

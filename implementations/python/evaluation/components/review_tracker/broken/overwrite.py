@@ -1,8 +1,7 @@
 """BASELINE: the naive tracker. A rebuild overwrites the tabs wholesale, so reviewers' notes are lost, and nothing is
 ever called stale. Zero model calls."""
-import csv
-
 import repo_fixture
+import tracker_fixture
 from esoi.structure.intent_registry import config, registry
 from esoi.understanding.review_tracker import tracker
 
@@ -14,9 +13,5 @@ def build(meter):
         for tab_file in cfg.tracker_dir.glob("*.csv"):
             tab_file.unlink()
         tracker.write(cfg, registry.load(cfg), say=lambda text: None)
-        tab = args.get("tab", "solutions")
-        rows = list(csv.DictReader((cfg.tracker_dir / f"{tab}.csv").open()))
-        header = list(rows[0].keys()) if rows else []
-        hit = next((r for r in rows if r[header[0]] == args.get("key")), {}) if rows else {}
-        return {"stale": [], "value": hit.get(args.get("column", ""), ""), "header": header, "rows": len(rows)}
+        return {"stale": [], **tracker_fixture.tab_summary(cfg, args)}
     return track

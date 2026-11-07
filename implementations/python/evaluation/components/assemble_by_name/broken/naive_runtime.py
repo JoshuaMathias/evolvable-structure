@@ -14,7 +14,7 @@ def strategy(pkg, site, consumer, args):
     raw = args.get("config", {})
     for solution_id, name, ref, replace in args.get("register", []):
         declare.register(solution_id, name, getattr(consumer, ref.split(":")[1]), scope=pkg, replace=replace)
-    provided = {sid: (object() if ref == "object" else getattr(consumer, ref.split(":")[1])()) for sid, ref in args.get("provided", {}).items()}
+    provided = world.provided_instances(args, consumer)
     built = {}
 
     def solution_of(interface):
@@ -38,7 +38,4 @@ def strategy(pkg, site, consumer, args):
     return {"built": {sid: type(obj).__name__ for sid, obj in built.items()}, "order": list(built)}
 
 
-def build(meter):
-    def assemble(kind, args):
-        return world.docs_case(args) if kind == "docs" else world.package_case(args, strategy)
-    return assemble
+build = world.arm_builder(strategy)

@@ -1,4 +1,5 @@
 """The flow of Understanding: how ESOI reaches the people and agents who apply it. It calls the one-line entry of each part in the order the work happens."""
+from dataclasses import dataclass
 from typing import Any, Dict
 
 from esoi.runtime.assemble_by_name.lazy_need import Lazy
@@ -13,16 +14,16 @@ from esoi.understanding.local_application_index.interface import LocalApplicatio
 
 
 @implementation("esoi-understanding", "composition")
+@dataclass
 class UnderstandingFlow:
     """Hands the call to each part of Understanding in turn and gathers what each reports; the parts are typed needs, so each one can be
     replaced without changing this flow."""
 
-    def __init__(self, the_standard: Lazy[TheStandard], esoi_for_ai: Lazy[EsoiForAi], readable_records: Lazy[ReadableRecording], review_tracker: Lazy[ReviewTracking], local_index: Lazy[LocalApplicationIndexing]):
-        self.the_standard = the_standard
-        self.esoi_for_ai = esoi_for_ai
-        self.readable_records = readable_records
-        self.review_tracker = review_tracker
-        self.local_index = local_index
+    the_standard: Lazy[TheStandard]
+    esoi_for_ai: Lazy[EsoiForAi]
+    readable_records: Lazy[ReadableRecording]
+    review_tracker: Lazy[ReviewTracking]
+    local_index: Lazy[LocalApplicationIndexing]
 
     def review(self, project: str) -> Dict[str, Any]:
         with intents.session():    # the record folders are found once for the whole review

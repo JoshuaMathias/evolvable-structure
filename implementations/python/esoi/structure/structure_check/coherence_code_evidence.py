@@ -10,6 +10,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
+from esoi.structure.intent_registry.import_base import import_base
 from esoi.structure.intent_registry.parsed_source import nodes_of, tree_of
 from esoi.structure.intent_registry.tables import document_entries, glob_re
 from esoi.structure.structure_check.coherence_paragraph import position
@@ -230,13 +231,7 @@ class Code:
             if isinstance(node, ast.Import):
                 out.update(a.name for a in node.names)
             elif isinstance(node, ast.ImportFrom):
-                base = node.module or ""
-                if node.level:
-                    parts = module.split(".")
-                    if not is_pkg:
-                        parts = parts[:-1]
-                    parts = parts[: len(parts) - (node.level - 1)] if node.level > 1 else parts
-                    base = ".".join(parts + ([base] if base else []))
+                base = import_base(module.split(".") if is_pkg else module.split(".")[:-1], node.level, node.module)
                 out.add(base)
                 out.update(f"{base}.{a.name}" for a in node.names)
         return {m for m in out if m in self.files}
@@ -273,13 +268,8 @@ class Code:
         out: Set[str] = set()
         for node in (n for top in (nodes or [tree]) for n in (nodes_of(top) if top is not None else [])):
             if isinstance(node, ast.ImportFrom):
-                base = node.module or ""
-                if node.level:
-                    parts = module.split(".")
-                    if self.files[module].name != "__init__.py":
-                        parts = parts[:-1]
-                    parts = parts[: len(parts) - (node.level - 1)] if node.level > 1 else parts
-                    base = ".".join(parts + ([base] if base else []))
+                package = module.split(".") if self.files[module].name == "__init__.py" else module.split(".")[:-1]
+                base = import_base(package, node.level, node.module)
                 if base == target:
                     out.update(a.name for a in node.names)
         return out

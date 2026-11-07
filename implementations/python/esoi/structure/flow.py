@@ -1,4 +1,5 @@
 """The flow of Structuring: the project's records and code as one true and lean structure. It calls the one-line entry of each part in the order the work happens."""
+from dataclasses import dataclass
 import os
 from collections import Counter
 from pathlib import Path
@@ -16,17 +17,16 @@ from esoi.structure.structure_budget.interface import StructureBudgeting
 
 
 @implementation("esoi-structure", "composition")
+@dataclass
 class StructureFlow:
     """Hands the call to each part of Structure in turn and gathers what each reports; the parts are typed needs, so each one can be
     replaced without changing this flow."""
 
-    def __init__(self, registry: Lazy[IntentRegistering], ownership: Lazy[OwnershipMapping], check: Lazy[StructureChecking], budget: Lazy[StructureBudgeting],
-                 adoption: Lazy[LibraryAdopting]):
-        self.registry = registry
-        self.ownership = ownership
-        self.check = check
-        self.budget = budget
-        self.adoption = adoption
+    registry: Lazy[IntentRegistering]
+    ownership: Lazy[OwnershipMapping]
+    check: Lazy[StructureChecking]
+    budget: Lazy[StructureBudgeting]
+    adoption: Lazy[LibraryAdopting]
 
     def review(self, project: str) -> Dict[str, Any]:
         with intents.session():    # the record folders are found once for the whole review
