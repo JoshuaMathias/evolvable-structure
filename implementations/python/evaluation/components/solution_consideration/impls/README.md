@@ -4,7 +4,7 @@ Breadcrumb: [Top](../../../../../../esoi/README.md) > [How People and Agents Com
 
 | Implementation | Handle | Code | Selected |
 |---|---|---|---|
-| The solution's record alone | `solution-consideration:definition-only` | [`implementations/python/evaluation/components/solution_consideration/impls/definition_only.py`](definition_only.py) |  |
+| The solution's record alone | `solution-consideration:definition_only` | [`implementations/python/evaluation/components/solution_consideration/impls/definition_only.py`](definition_only.py) |  |
 
 ## Where to go next
 

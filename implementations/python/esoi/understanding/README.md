@@ -52,8 +52,8 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 | Local ESOI Index | `local-application-index` | `esoi.run("local-application-index", '.')` | Index folder in the user's home (`live_index`) | Local index lookup cases |
 | Readable Records | `readable-records` | `esoi.run("readable-records", '.')` | At a glance, full record below (`at_a_glance`) | README glanceability, README fidelity |
 | Review Tracker | `review-tracker` | `esoi.run("review-tracker", '.')` | Tracker and sheet (`tracker-and-sheet`) | Review coverage |
-| Solution Consideration | `solution-consideration` | `esoi.run("solution-consideration", {'project': '.', 'solution_id': ''})` | Network by tiers (`network-tiered`) | Deciding records reach the pass |
-| Solution Relevance | `solution-relevance` | `esoi.run("solution-relevance", ...)` | Index with links (`index-with-links`) | Relevant solutions named, recall first |
+| Solution Consideration | `solution-consideration` | `esoi.run("solution-consideration", {'project': '.', 'solution_id': ''})` | Network by tiers (`network_tiered`) | Deciding records reach the pass |
+| Solution Relevance | `solution-relevance` | `esoi.run("solution-relevance", ...)` | Lexical index (`lexical_index`) | Relevant solutions named, recall first |
 | Spec Search | `spec-search` | `esoi.run("spec-search", ...)` | Lexical vector gated (`lexical-vector-gated`) | Spec search correctness, Specification recall at k |
 | The Standard | `the-standard` | `esoi.run("the-standard", '.')` | Standard document (`standard-document`) | Adoption effort, Newcomer effort |
 | ESOI Behaviour Judge | `esoi-behaviour-judge` | `esoi.run("esoi-behaviour-judge", '.')` | Model judge on the rubric (`model-judge-on-the-rubric`) | Judge agreement |
@@ -97,8 +97,8 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 - README fidelity (`metric-readme-fidelity`): leader `live_readme`, 10 of 10 cases
 - README glanceability (`metric-readme-glanceability`): leader `at_a_glance`, 2 of 4 cases
 - Review coverage (`metric-review-coverage`): leader `live_tracker`, 10 of 10 cases
-- Deciding records reach the pass (`metric-solution-consideration`): no result recorded
-- Relevant solutions named, recall first (`metric-solution-relevance`): no result recorded
+- Deciding records reach the pass (`metric-solution-consideration`): leader `network_tiered`, 12 of 12 cases
+- Relevant solutions named, recall first (`metric-solution-relevance`): leader `lexical_index`, 26 of 86 cases
 - Specification recall at k (`metric-spec-index-recall`): leader `weighted_tfidf`, 31 of 35 cases
 - Spec search correctness (`metric-spec-search`): leader `gated`, 6 of 6 cases
 - Newcomer effort (`metric-docs-and-templates`)
@@ -153,8 +153,8 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 | Local ESOI Index | `local-application-index` | Index folder in the user's home (`live_index`) | Local index lookup cases |
 | Readable Records | `readable-records` | At a glance, full record below (`at_a_glance`) | README glanceability, README fidelity |
 | Review Tracker | `review-tracker` | Tracker and sheet (`tracker-and-sheet`) | Review coverage |
-| Solution Consideration | `solution-consideration` | Network by tiers (`network-tiered`) | Deciding records reach the pass |
-| Solution Relevance | `solution-relevance` | Index with links (`index-with-links`) | Relevant solutions named, recall first |
+| Solution Consideration | `solution-consideration` | Network by tiers (`network_tiered`) | Deciding records reach the pass |
+| Solution Relevance | `solution-relevance` | Lexical index (`lexical_index`) | Relevant solutions named, recall first |
 | Spec Search | `spec-search` | Lexical vector gated (`lexical-vector-gated`) | Spec search correctness, Specification recall at k |
 | The Standard | `the-standard` | Standard document (`standard-document`) | Adoption effort, Newcomer effort |
 | ESOI Behaviour Judge | `esoi-behaviour-judge` | Model judge on the rubric (`model-judge-on-the-rubric`) | Judge agreement |
@@ -178,10 +178,10 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 | README written by hand | `readable-records:hand-written-readme` |  |  |
 | Tracker and sheet | `review-tracker:tracker-and-sheet` | [implementations/python/esoi/understanding/review_tracker/interface.py::TrackerAndSheet](review_tracker/interface.py) |  |
 | Review in the pull request | `review-tracker:pull-request-review` |  |  |
-| Network by tiers | `solution-consideration:network-tiered` | [implementations/python/esoi/understanding/solution_consideration/fan_out.py](solution_consideration/fan_out.py) |  |
-| The solution's record alone | `solution-consideration:definition-only` | [implementations/python/evaluation/components/solution_consideration/impls/definition_only.py](../../evaluation/components/solution_consideration/impls/definition_only.py) |  |
-| Index with links | `solution-relevance:index-with-links` | [implementations/python/esoi/understanding/solution_relevance/relevance.py](solution_relevance/relevance.py) |  |
-| Lexical index | `solution-relevance:lexical-index` | [implementations/python/esoi/understanding/solution_relevance/relevance.py](solution_relevance/relevance.py) |  |
+| Network by tiers | `solution-consideration:network_tiered` | [implementations/python/esoi/understanding/solution_consideration/fan_out.py](solution_consideration/fan_out.py) |  |
+| The solution's record alone | `solution-consideration:definition_only` | [implementations/python/evaluation/components/solution_consideration/impls/definition_only.py](../../evaluation/components/solution_consideration/impls/definition_only.py) |  |
+| Index with links | `solution-relevance:index_with_links` | [implementations/python/esoi/understanding/solution_relevance/relevance.py](solution_relevance/relevance.py) |  |
+| Lexical index | `solution-relevance:lexical_index` | [implementations/python/esoi/understanding/solution_relevance/relevance.py](solution_relevance/relevance.py) |  |
 | Lexical only | `spec-search:lexical-only` | [implementations/python/esoi/understanding/spec_search/spec_search.py](spec_search/spec_search.py) |  |
 | Lexical vector gated | `spec-search:lexical-vector-gated` | [implementations/python/esoi/understanding/spec_search/spec_search.py](spec_search/spec_search.py) |  |
 | Field-weighted TF-IDF over the index | `spec-search:weighted-tfidf` | [implementations/python/esoi/understanding/spec_search/spec_index.py](spec_search/spec_index.py) |  |

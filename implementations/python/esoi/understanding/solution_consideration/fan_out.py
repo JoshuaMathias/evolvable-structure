@@ -55,7 +55,7 @@ def consider_solution(project: str, solution_id: str = "", task: str = "", budge
     """The prompt for one solution's own consideration in the repository at ``project`` (the first solution when none is named)."""
 
 
-@implementation("solution-consideration", "network-tiered")
+@implementation("solution-consideration", "network_tiered")
 def network_tiered(project: str, solution_id: str = "", task: str = "", budget: int = 0) -> Dict[str, Any]:
     """Every record connected to the solution, by tier within the budget: definition, results and selection first, then problems,
     ideals, metric, findings, evidence and implementations, then the parent, children, dependencies and dependents."""

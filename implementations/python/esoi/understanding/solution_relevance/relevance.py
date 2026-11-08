@@ -48,13 +48,13 @@ def relevant_solutions(index: Dict[str, Any], text: str, limit: int = DEFAULT_LI
     """The solutions a text concerns, best first, each ``{solution_id, score, via}``, from the specification index."""
 
 
-@implementation("solution-relevance", "lexical-index")
+@implementation("solution-relevance", "lexical_index")
 def lexical_index(index: Dict[str, Any], text: str, limit: int = DEFAULT_LIMIT) -> List[Dict[str, Any]]:
     """The baseline: the field-weighted lexical hits of the index, each mapped to the solution it belongs to."""
     return rank_solutions(index, spec_index.find_specs(index, text, k=max(limit * 4, 12)), limit)
 
 
-@implementation("solution-relevance", "index-with-links")
+@implementation("solution-relevance", "index_with_links")
 def index_with_links(index: Dict[str, Any], text: str, limit: int = DEFAULT_LIMIT) -> List[Dict[str, Any]]:
     """The lexical hits plus the records each hit links to, so a problem, metric or ideal that matched brings its solutions; a linked
     record scores half of the hit that brought it."""
@@ -65,7 +65,7 @@ def index_with_links(index: Dict[str, Any], text: str, limit: int = DEFAULT_LIMI
     return rank_solutions(index, hits + linked, limit)
 
 
-ARMS: Dict[str, Callable[..., List[Dict[str, Any]]]] = {"lexical-index": lexical_index, "index-with-links": index_with_links}
+ARMS: Dict[str, Callable[..., List[Dict[str, Any]]]] = {"lexical_index": lexical_index, "index_with_links": index_with_links}
 
 
 def ranked(index: Dict[str, Any], text: str, limit: int = DEFAULT_LIMIT, arm: str = "") -> List[Dict[str, Any]]:

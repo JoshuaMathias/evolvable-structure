@@ -279,7 +279,7 @@ consider | | one generated prompt per solution a change, candidate or request co
     text | nargs=? default= | the change, candidate or request
     --solution | action=append | name the solution instead of classifying the text (repeatable)
     --max | type=int default=5 | how many relevant solutions to return before their parents
-    --arm | default= choices=,index-with-links,lexical-index | the Solution Relevance arm that classifies the text (default: the selected one)
+    --arm | default= choices=,index_with_links,lexical_index | the Solution Relevance arm that classifies the text (default: the selected one)
     --budget | type=int default=None | the size budget of each prompt in characters
     --with | dest=with_records action=append | a CSV of findings or candidates to join the prompts (repeatable)
     --list | action=store_true | print one line per prompt instead of the JSON

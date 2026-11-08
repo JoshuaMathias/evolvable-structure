@@ -297,26 +297,26 @@
   }
  },
  "solution-consideration": {
-  "default": "network-tiered",
+  "default": "network_tiered",
   "evidence": {
-   "detail": "the selected implementation has no recorded row",
-   "p": null,
-   "verdict": "UNMEASURED"
+   "detail": "network_tiered is better than definition_only (two-sided exact sign test on per-case balanced scores, Holm-adjusted p=0.000488, 12 of 12 cases disagree)",
+   "p": 0.000488,
+   "verdict": "WIN"
   },
   "modules": {
-   "network-tiered": "esoi.understanding.solution_consideration.fan_out"
+   "network_tiered": "esoi.understanding.solution_consideration.fan_out"
   }
  },
  "solution-relevance": {
-  "default": "index-with-links",
+  "default": "lexical_index",
   "evidence": {
-   "detail": "the selected implementation has no recorded row",
-   "p": null,
-   "verdict": "UNMEASURED"
+   "detail": "lexical_index leads index_with_links (index_with_links 0.503 against lexical_index 0.511; best guess, not yet significant, two-sided exact sign test on per-case balanced scores, Holm-adjusted p=1, 3 of 86 cases disagree)",
+   "p": 1.0,
+   "verdict": "WIN"
   },
   "modules": {
-   "index-with-links": "esoi.understanding.solution_relevance.relevance",
-   "lexical-index": "esoi.understanding.solution_relevance.relevance"
+   "index_with_links": "esoi.understanding.solution_relevance.relevance",
+   "lexical_index": "esoi.understanding.solution_relevance.relevance"
   }
  },
  "spec-search": {

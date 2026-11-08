@@ -11,7 +11,7 @@ Part of [How People and Agents Come to Apply ESOI](../README.md)
 - Out of scope: Calling a model or judging the matter, which the caller does with one pass per prompt; deciding which solutions a text concerns (Solution Relevance does that); finding records for a request (Spec Search does that).
 - Delegates to: solution-relevance, spec-search
 - Entry call: `esoi.run("solution-consideration", {'project': '.', 'solution_id': ''})`
-- Selected implementation: Network by tiers (`network-tiered`)
+- Selected implementation: Network by tiers (`network_tiered`)
 - Metric: Deciding records reach the pass
 - Implemented by: [`implementations/python/esoi/structure/structure_check/rules/consideration_rules.py`](../../structure/structure_check/rules/consideration_rules.py), [`implementations/python/esoi/understanding/solution_consideration/fan_out.py`](fan_out.py), [`implementations/python/esoi/understanding/solution_consideration/network_records.py`](network_records.py), [`implementations/python/esoi/understanding/solution_consideration/solution_prompt.py`](solution_prompt.py), [`implementations/python/evaluation/components/solution_consideration/__init__.py`](../../../evaluation/components/solution_consideration/__init__.py), [`implementations/python/evaluation/components/solution_consideration/cases.json`](../../../evaluation/components/solution_consideration/cases.json), [`implementations/python/evaluation/components/solution_consideration/impls/__init__.py`](../../../evaluation/components/solution_consideration/impls/__init__.py), [`implementations/python/evaluation/components/solution_consideration/impls/definition_only.py`](../../../evaluation/components/solution_consideration/impls/definition_only.py) and 4 more
 
@@ -19,12 +19,12 @@ Part of [How People and Agents Come to Apply ESOI](../README.md)
 
 | Implementation | Handle | Purpose | Code | Selected |
 |---|---|---|---|---|
-| Network by tiers | `solution-consideration:network-tiered` | The solution's definition, recorded results and selection first; then its metric and cascade, problems, ideals, queued findings, public evidence and implementations; then its parent briefly, its children and dependencies by purpose, interface and selected arm, and its dependents by what they rely on. A solution with children adds how they combine. Sections fill a budget in tier order and a cut is named. | [`implementations/python/esoi/understanding/solution_consideration/fan_out.py`](fan_out.py) | selected |
-| The solution's record alone | `solution-consideration:definition-only` | BASELINE: the solution's own row and nothing connected to it, cut to the budget. It is what a pass reads when no network forms its prompt. | [`implementations/python/evaluation/components/solution_consideration/impls/definition_only.py`](../../../evaluation/components/solution_consideration/impls/definition_only.py) |  |
+| Network by tiers | `solution-consideration:network_tiered` | The solution's definition, recorded results and selection first; then its metric and cascade, problems, ideals, queued findings, public evidence and implementations; then its parent briefly, its children and dependencies by purpose, interface and selected arm, and its dependents by what they rely on. A solution with children adds how they combine. Sections fill a budget in tier order and a cut is named. | [`implementations/python/esoi/understanding/solution_consideration/fan_out.py`](fan_out.py) | selected |
+| The solution's record alone | `solution-consideration:definition_only` | BASELINE: the solution's own row and nothing connected to it, cut to the budget. It is what a pass reads when no network forms its prompt. | [`implementations/python/evaluation/components/solution_consideration/impls/definition_only.py`](../../../evaluation/components/solution_consideration/impls/definition_only.py) |  |
 
 ## Metrics
 
-- Deciding records reach the pass (`metric-solution-consideration`): no result recorded
+- Deciding records reach the pass (`metric-solution-consideration`): leader `network_tiered`, 12 of 12 cases
 
 ## Problems
 

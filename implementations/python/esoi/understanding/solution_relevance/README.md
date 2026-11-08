@@ -11,7 +11,7 @@ Part of [How People and Agents Come to Apply ESOI](../README.md)
 - Out of scope: Assembling the prompt for each solution (Solution Consideration does that); ranking records rather than solutions (Spec Search does that); deciding what kind of answer a request wants.
 - Delegates to: spec-search
 - Entry call: `esoi.run("solution-relevance", ...)`
-- Selected implementation: Index with links (`index-with-links`)
+- Selected implementation: Lexical index (`lexical_index`)
 - Metric: Relevant solutions named, recall first
 - Implemented by: [`implementations/python/esoi/understanding/solution_relevance/relevance.py`](relevance.py), [`implementations/python/esoi/understanding/solution_relevance/relevance_cases.py`](relevance_cases.py), [`implementations/python/evaluation/components/solution_relevance/__init__.py`](../../../evaluation/components/solution_relevance/__init__.py), [`implementations/python/evaluation/components/solution_relevance/build_cases.py`](../../../evaluation/components/solution_relevance/build_cases.py), [`implementations/python/evaluation/components/solution_relevance/cases.json`](../../../evaluation/components/solution_relevance/cases.json), [`implementations/python/evaluation/components/solution_relevance/hand_cases.json`](../../../evaluation/components/solution_relevance/hand_cases.json), [`implementations/python/evaluation/components/solution_relevance/impls/__init__.py`](../../../evaluation/components/solution_relevance/impls/__init__.py), [`implementations/python/evaluation/components/solution_relevance/impls/index_with_links.py`](../../../evaluation/components/solution_relevance/impls/index_with_links.py) and 3 more
 
@@ -19,12 +19,12 @@ Part of [How People and Agents Come to Apply ESOI](../README.md)
 
 | Implementation | Handle | Purpose | Code | Selected |
 |---|---|---|---|---|
-| Index with links | `solution-relevance:index-with-links` | The field-weighted lexical hits of the specification index plus the solutions and implementations each hit links to (a linked record scores half of the hit that brought it), summed per solution, keeping those near the best. | [`implementations/python/esoi/understanding/solution_relevance/relevance.py`](relevance.py) | selected |
-| Lexical index | `solution-relevance:lexical-index` | BASELINE: the field-weighted lexical hits of the specification index, each carried to the solution it belongs to. | [`implementations/python/esoi/understanding/solution_relevance/relevance.py`](relevance.py) |  |
+| Index with links | `solution-relevance:index_with_links` | The field-weighted lexical hits of the specification index plus the solutions and implementations each hit links to (a linked record scores half of the hit that brought it), summed per solution, keeping those near the best. | [`implementations/python/esoi/understanding/solution_relevance/relevance.py`](relevance.py) |  |
+| Lexical index | `solution-relevance:lexical_index` | BASELINE: the field-weighted lexical hits of the specification index, each carried to the solution it belongs to. | [`implementations/python/esoi/understanding/solution_relevance/relevance.py`](relevance.py) | selected |
 
 ## Metrics
 
-- Relevant solutions named, recall first (`metric-solution-relevance`): no result recorded
+- Relevant solutions named, recall first (`metric-solution-relevance`): leader `lexical_index`, 26 of 86 cases
 
 ## Problems
 

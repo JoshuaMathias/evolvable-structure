@@ -18,7 +18,7 @@ Exit 1 for an unknown solution.
 |---|---|
 | `--solution ID` | name the solutions instead of classifying the text (repeatable) |
 | `--max N` | how many relevant solutions before their parents (default 5) |
-| `--arm NAME` | `index-with-links` or `lexical-index` (default: the selected arm of Solution Relevance) |
+| `--arm NAME` | `index_with_links` or `lexical_index` (default: the selected arm of Solution Relevance) |
 | `--budget N`, `--with FILE`, `--no-stale`, `--cache FILE` | as above; `--cache` reuses the specification index |
 | `--list` | one line per prompt instead of the JSON |
 

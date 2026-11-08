@@ -34,7 +34,7 @@ esoi consider "..." > prompts.json                            # one prompt per s
 esoi consider "" --solution cards-from-files                  # name the solutions instead of classifying the text
 ```
 
-Solution Relevance picks the solutions (the selected arm, or `--arm lexical-index`), and the parent of each is added after them so
+Solution Relevance picks the solutions (the selected arm, or `--arm lexical_index`), and the parent of each is added after them so
 the scope above gets its own pass. Run one pass per prompt in `prompts.json`; the library calls no model.
 
 From Python:
