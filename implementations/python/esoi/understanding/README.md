@@ -180,6 +180,8 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 | Review in the pull request | `review-tracker:pull-request-review` |  |  |
 | Network by tiers | `solution-consideration:network_tiered` | [implementations/python/esoi/understanding/solution_consideration/fan_out.py](solution_consideration/fan_out.py) |  |
 | The solution's record alone | `solution-consideration:definition_only` | [implementations/python/evaluation/components/solution_consideration/impls/definition_only.py](../../evaluation/components/solution_consideration/impls/definition_only.py) |  |
+| Every knowledge item written in | `solution-consideration:all_knowledge` | [implementations/python/evaluation/components/solution_consideration/impls/all_knowledge.py](../../evaluation/components/solution_consideration/impls/all_knowledge.py) |  |
+| No knowledge | `solution-consideration:no_knowledge` | [implementations/python/evaluation/components/solution_consideration/impls/no_knowledge.py](../../evaluation/components/solution_consideration/impls/no_knowledge.py) |  |
 | Index with links | `solution-relevance:index_with_links` | [implementations/python/esoi/understanding/solution_relevance/relevance.py](solution_relevance/relevance.py) |  |
 | Lexical index | `solution-relevance:lexical_index` | [implementations/python/esoi/understanding/solution_relevance/relevance.py](solution_relevance/relevance.py) |  |
 | Lexical only | `spec-search:lexical-only` | [implementations/python/esoi/understanding/spec_search/spec_search.py](spec_search/spec_search.py) |  |
@@ -208,7 +210,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 - README fidelity (`metric-readme-fidelity`): `esoi run readable_records --impl live_readme`
 - README glanceability (`metric-readme-glanceability`): `esoi run readme_at_a_glance --impl at_a_glance; esoi run readme_at_a_glance --impl full_page; esoi run readme_at_a_glance --impl links_page`
 - Review coverage (`metric-review-coverage`): `esoi run review_tracker --impl live_tracker`
-- Deciding records reach the pass (`metric-solution-consideration`): `esoi run solution_consideration --impl network_tiered; esoi run solution_consideration --impl definition_only`
+- Deciding records reach the pass (`metric-solution-consideration`): `esoi run solution_consideration --impl network_tiered; esoi run solution_consideration --impl definition_only; esoi run solution_consideration --impl all_knowledge; esoi run solution_consideration --impl no_knowledge`
 - Relevant solutions named, recall first (`metric-solution-relevance`): `esoi run solution_relevance --impl index_with_links; esoi run solution_relevance --impl lexical_index`
 - Specification recall at k (`metric-spec-index-recall`): `esoi run spec_index --impl weighted_tfidf; esoi run spec_index --impl term_overlap`
 - Spec search correctness (`metric-spec-search`): `esoi run spec_search --impl gated; esoi run spec_search --impl lexical_only`

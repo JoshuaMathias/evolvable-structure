@@ -1,4 +1,5 @@
-"""Rule S60: a finding or candidate rated against a solution that has recorded results cites those results, and is about one solution.
+"""Rules S60 and S61. S60: a finding or candidate rated against a solution that has recorded results cites those results, and is about
+one solution. S61: a knowledge item has a source and stays current (``esoi.understanding.solution_consideration.knowledge.problems``).
 
 The files are the ones ``[[consider.records]]`` in the configuration declares with ``kind = "finding"`` or ``"candidate"``
 (``esoi.understanding.solution_consideration.network_records``). A row reaches a solution through its solution column, or through a
@@ -22,6 +23,8 @@ SUMMARIES = {
     "S60": "A finding or candidate in a file `[[consider.records]]` declares is about one solution, and when that solution has recorded "
            "results it cites them (its `results` column, or the results log named in its text); the file has a column naming the solution "
            "(waive as the row id, or the file path).",
+    "S61": "A knowledge item (knowledge.csv) has a source, a known kind, status and solution; an active item is not past its expiration, and "
+           "one sourced on a result is re-confirmed when a newer result of that arm departs from it (waive as the knowledge id).",
 }
 
 
@@ -41,7 +44,16 @@ def measured_solutions(ctx: Context) -> Dict[str, str]:
     return out
 
 
+def knowledge_lines(ctx: Context) -> List[str]:
+    from esoi.understanding.solution_consideration import knowledge
+    return [f"S61 {key}: {problem}" for key, problem in knowledge.problems(ctx.config, ctx.registry, ctx.history) if not ctx.waived("S61", key)]
+
+
 def run(ctx: Context) -> List[str]:
+    return finding_lines(ctx) + knowledge_lines(ctx)
+
+
+def finding_lines(ctx: Context) -> List[str]:
     from esoi.optimization.when_metrics_are_run.public_evidence.evidence_records import aliases
     from esoi.understanding.solution_consideration import network_records
     files = [f for f in network_records.declared(ctx.config) if f.checked]

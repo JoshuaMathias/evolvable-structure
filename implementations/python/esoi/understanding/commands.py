@@ -105,7 +105,7 @@ def spec_prompt_action(config, args: argparse.Namespace) -> int:
         return 2
     network = solution_prompt.load(config, args.with_records or (), stale=not args.no_stale)
     try:
-        made = solution_prompt.prompt(network, args.target, args.task, solution_prompt.budget_of(config, args.budget))
+        made = solution_prompt.prompt(network, args.target, args.task, solution_prompt.budget_of(config, args.budget), knowledge=args.knowledge)
     except KeyError:
         print(f"esoi: no solution {args.target!r}", file=sys.stderr)
         return 1
@@ -137,7 +137,46 @@ def run_consider(config, args: argparse.Namespace) -> int:
         return 1
     index = spec_index.cached(config, Path(args.cache)) if args.cache else spec_index.build(config)
     print_consider(fan_out.consider(network, index, args.text, args.max, solution_prompt.budget_of(config, args.budget), args.arm,
-                                    args.solution or ()), args.list)
+                                    args.solution or (), args.knowledge), args.list)
+    return 0
+
+
+def knowledge_cards(config, args: argparse.Namespace) -> int:
+    """``esoi knowledge cards SOLUTION``: the solution's stable part as a managed card and each knowledge item as a card, as JSON."""
+    import json
+    from esoi.understanding.solution_consideration import knowledge, solution_prompt
+    network = solution_prompt.load(config, stale=False)
+    if args.solution not in network.solutions:
+        print(f"esoi: no solution {args.solution!r}", file=sys.stderr)
+        return 1
+    made = solution_prompt.prompt(network, args.solution, "", solution_prompt.budget_of(config, None))
+    cards = [knowledge.stable_card(network, args.solution, made["text"])] + [knowledge.item_card(i) for i in made["knowledge"]]
+    print(json.dumps({"cards": cards, "quarantine": [knowledge.item_card(i) for i in made["knowledge_inactive"]]}, indent=1))
+    return 0
+
+
+def run_knowledge(config, args: argparse.Namespace) -> int:
+    """``esoi knowledge``: add one item, migrate free-text Knowledge cells, list items, or export cards."""
+    from esoi.understanding.solution_consideration import knowledge
+    if args.action == "cards":
+        return knowledge_cards(config, args)
+    if args.action == "migrate":
+        for line in knowledge.migrate(config, args.apply):
+            print(line)
+        print("applied" if args.apply else "dry run: add --apply to write")
+        return 0
+    if args.action == "add":
+        try:
+            found, created = knowledge.add(config, {"claim": args.claim, "kind": args.kind, "source": args.source,
+                                                    "solution_ids": [args.solution] if args.solution else [], "expiration": args.expiration})
+        except ValueError as exc:
+            print(f"esoi: {exc}", file=sys.stderr)
+            return 2
+        print(f"{'added' if created else 'already held'} {found}")
+        return 0
+    for item in knowledge.all_items(config):
+        if not args.solution or args.solution in item["solution_ids"]:
+            print(knowledge.line(item))
     return 0
 
 
@@ -273,7 +312,8 @@ spec | | the specification index: a deterministic, non-AI map of the records
     --task | default= | prompt: the change, candidate or request the pass considers
     --budget | type=int default=None | prompt: the size budget in characters (default: [consider] budget, else 24000)
     --with | dest=with_records action=append | prompt: a CSV of findings or candidates to join the prompt (repeatable; esoi.toml [[consider.records]] declares them for good)
-    --json | action=store_true | prompt: print the prompt with its sections and what was cut, as JSON
+    --json | action=store_true | prompt: print the prompt with its sections, what was cut and its knowledge items, as JSON
+    --knowledge | default=candidates choices=candidates,ranked,none | prompt: candidates beside the text for your retrieval, ranked into the text, or none
     --no-stale | action=store_true | prompt: skip the check of which results describe older code (faster)
 consider | | one generated prompt per solution a change, candidate or request concerns, and per parent level, as JSON
     text | nargs=? default= | the change, candidate or request
@@ -283,8 +323,17 @@ consider | | one generated prompt per solution a change, candidate or request co
     --budget | type=int default=None | the size budget of each prompt in characters
     --with | dest=with_records action=append | a CSV of findings or candidates to join the prompts (repeatable)
     --list | action=store_true | print one line per prompt instead of the JSON
+    --knowledge | default=candidates choices=candidates,ranked,none | knowledge items beside each prompt for your retrieval, ranked into it, or none
     --no-stale | action=store_true | skip the check of which results describe older code (faster)
     --cache | default=None | read the index from this file when the records have not changed, else rebuild it there
+knowledge | | knowledge records: one row per piece of knowledge, linked to solutions (knowledge.csv beside problems.csv)
+    action | choices=list,add,migrate,cards |
+    --solution | default= | list, add: the solution; cards: the solution whose cards to export
+    --claim | default= | add: one sentence
+    --kind | default= | add: assumption, best guess (the default), evidence, theory, perspective or lesson
+    --source | default= | add: result:<component>/<arm>@<date>, url:<address> grade <A-D>, person:<who>, <date>: "<words>", or mistake:<id>
+    --expiration | default= | add: the date it must be re-confirmed by (YYYY-MM-DD)
+    --apply | action=store_true | migrate: write the rows and replace each Knowledge cell with its ids (a dry run without it)
 docs | needs_config=False | the four-category docs standard, and the wiki generated from it
     action | choices=check,wiki |
     --root | default=. |

@@ -37,6 +37,27 @@ IDEAL = ["ideal_id", "name", "principle", "hints_of_measurement", "problem_ids"]
 RESULT = ["date", "component", "impl", "cases", "passed", "dev", "heldout", "model_calls", "tokens_in", "tokens_out", "cost_usd",
           "seconds", "git_sha", "cases_sha", "model", "details", "sample", "balanced"]
 FINDING = ["finding_id", "solution_id", "candidate", "rating", "summary"]
+KNOWLEDGE = ["knowledge_id", "claim", "kind", "source", "solution_ids", "status", "status_by", "recorded", "expiration"]
+# Knowledge of Card Builder: each case of the knowledge kind needs one item, and the others (a contradicted theory, an expired
+# guess, a vendor claim) would mislead a pass that was handed all of them.
+KNOWLEDGE_ROWS = [
+    {"knowledge_id": "k-cb-1", "claim": "Graph groups lost to import cards on the file-finding cases.", "kind": "evidence",
+     "source": "result:card_builder/graph_groups@2026-01-02", "solution_ids": "card-builder", "status": "active", "recorded": "2026-01-02"},
+    {"knowledge_id": "k-cb-2", "claim": "Cards must carry the words people search for, not only file names.", "kind": "perspective",
+     "source": 'person:the maintainer, 2026-01-03: "a card nobody can find by its words is no card"', "solution_ids": "card-builder",
+     "status": "active", "recorded": "2026-01-03"},
+    {"knowledge_id": "k-cb-3", "claim": "Import graphs exist only for code; a folder of prose needs another builder.", "kind": "assumption",
+     "source": "a best guess by the maintainer", "solution_ids": "card-builder", "status": "active", "recorded": "2026-01-01"},
+    {"knowledge_id": "k-cb-4", "claim": "A card per file is an index of files, not a set of cards.", "kind": "lesson", "source": "mistake:M-1",
+     "solution_ids": "card-builder", "status": "active", "recorded": "2026-01-01"},
+    {"knowledge_id": "k-cb-5", "claim": "Graph tools group files better than import graphs do.", "kind": "theory",
+     "source": "url:https://example.org/graph-tools grade D", "solution_ids": "card-builder", "status": "contradicted", "status_by": "k-cb-1",
+     "recorded": "2025-12-01"},
+    {"knowledge_id": "k-cb-6", "claim": "A vendor study reports that topic cards halve reading time.", "kind": "evidence",
+     "source": "url:https://example.org/vendor-study grade D", "solution_ids": "card-builder", "status": "active", "recorded": "2025-11-01"},
+    {"knowledge_id": "k-cb-7", "claim": "The store will stay under one hundred cards.", "kind": "best guess", "source": "an estimate at design time",
+     "solution_ids": "card-builder;card-store", "status": "active", "recorded": "2025-01-01", "expiration": "2025-06-30"},
+]
 
 
 def table(columns: List[str], rows: List[Dict[str, str]]) -> str:
@@ -61,7 +82,7 @@ FILES = {
         "solution_diagram": "Card Builder -> Card Store (cards)"}]),
     "esoi/recall_parts/solutions.csv": table(SOLUTION, [
         {"solution_id": "card-builder", "name": "Card Builder", "purpose": "Propose the cards a folder of files needs.",
-         "approach": "Group files that belong together and describe each group.", "knowledge": "Code graphs group files by imports.",
+         "approach": "Group files that belong together and describe each group.",
          "inputs": "A folder.", "outputs": "Cards.", "problem_ids": "prob-no-cards", "ideal_ids": "ideal-cards", "metric_ids": "metric-card-builder",
          "implementations": "import_cards;graph_groups", "selected": "import_cards", "delegates_to": "card-store"},
         {"solution_id": "card-store", "name": "Card Store", "purpose": "Keep cards and find them again.", "approach": "Store cards by id.",
@@ -85,6 +106,7 @@ FILES = {
          "cost_usd": "0.0", "seconds": "50", "git_sha": "aaaaaaa", "cases_sha": "c1", "model": "none", "details": "top1=0/63", "balanced": "0.32"},
         {"date": "2026-01-02", "component": "card_builder", "impl": "import_cards", "cases": "63", "passed": "43", "model_calls": "0",
          "cost_usd": "0.0", "seconds": "40", "git_sha": "aaaaaaa", "cases_sha": "c1", "model": "none", "details": "top1=20/63", "balanced": "0.78"}]),
+    "esoi/recall_parts/knowledge.csv": table(KNOWLEDGE, KNOWLEDGE_ROWS),
     "registry/findings.csv": table(FINDING, [
         {"finding_id": "F-1", "solution_id": "card-builder", "candidate": "Graph groups", "rating": "0.85",
          "summary": "A popular graph tool; strongest candidate by reputation."},

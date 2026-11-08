@@ -9,6 +9,7 @@
 | `--with FILE` | a CSV of findings or candidates to join the prompt (repeatable) |
 | `--json` | print `{solution_id, name, role, parent, children, text, chars, sections, omitted, digest}` |
 | `--no-stale` | skip the check of which results describe older code (faster) |
+| `--knowledge MODE` | `candidates` (default: items beside the text), `ranked` (written in) or `none`; see [knowledge records](knowledge-records.md) |
 
 Exit 1 for an unknown solution.
 

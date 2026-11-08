@@ -35,7 +35,8 @@ def classify(network: solution_prompt.Network, index: Dict[str, Any], text: str,
 
 
 def consider(network: solution_prompt.Network, index: Dict[str, Any], text: str, limit: int = DEFAULT_LIMIT,
-             budget: int = solution_prompt.DEFAULT_BUDGET, arm: str = "", only: Sequence[str] = ()) -> Dict[str, Any]:
+             budget: int = solution_prompt.DEFAULT_BUDGET, arm: str = "", only: Sequence[str] = (),
+             knowledge: str = "candidates") -> Dict[str, Any]:
     """One prompt per relevant solution and per parent level, as plain data a caller runs one pass each with. ``only`` names the
     solutions directly instead of classifying the text."""
     found = ([{"solution_id": s, "score": 0.0, "via": [], "role": "solution"} for s in only] if only
@@ -44,7 +45,7 @@ def consider(network: solution_prompt.Network, index: Dict[str, Any], text: str,
         found = with_parents(network, found)
     prompts = []
     for item in found:
-        made = solution_prompt.prompt(network, item["solution_id"], text, budget, item["role"])
+        made = solution_prompt.prompt(network, item["solution_id"], text, budget, item["role"], knowledge)
         prompts.append({**made, "score": item["score"], "reached_by": item["via"]})
     return {"input": text, "arm": "named" if only else (arm or "selected"), "index_digest": index.get("digest", ""), "budget": budget,
             "prompts": prompts}

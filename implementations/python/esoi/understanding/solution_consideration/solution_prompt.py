@@ -33,8 +33,9 @@ INSTRUCTIONS = (
     "them before any general knowledge. A recorded result of this solution outranks a reputation or a public claim: when a "
     "candidate or an arm has already been measured here, your verdict cites that measurement. Say which records your verdict "
     "rests on, and say what is missing when the records do not settle it. Write plainly and use no em dashes.")
+KNOWLEDGE_MODES = ("candidates", "ranked", "none")
 DEFINITION_FIELDS = (("description", "Description"), ("purpose", "Purpose"), ("approach", "Approach"), ("out_of_scope", "Out of scope"),
-                     ("milestones", "Milestones"), ("measures_of_success", "Measures of success"), ("knowledge", "Knowledge"),
+                     ("milestones", "Milestones"), ("measures_of_success", "Measures of success"),
                      ("parameters", "Parameters"), ("inputs", "Inputs"), ("outputs", "Outputs"), ("effects", "Effects"),
                      ("usage_notes", "Usage notes"))
 
@@ -58,6 +59,7 @@ class Network:
     graded: Dict[Any, Any]
     today: Optional[datetime.date] = None
     stale: bool = True
+    knowledge: Optional[List[Dict[str, Any]]] = None   # every knowledge item of the repository, read once (``knowledge.all_items``)
 
     @property
     def solutions(self) -> Dict[str, Dict[str, str]]:
@@ -72,8 +74,10 @@ def load(config, extra: Sequence[str] = (), stale: bool = True, today: Optional[
         graded = graded_evidence(config, today)
     except ValueError:
         graded = {}   # malformed evidence is rule S-territory, not a reason to withhold the prompt
-    return Network(config, registry_module.load(config), intents_module.discover(config), results_log.all_results(config.results_path),
-                   network_records.declared(config, extra), graded, today, stale)
+    from esoi.understanding.solution_consideration import knowledge
+    loaded = registry_module.load(config)
+    return Network(config, loaded, intents_module.discover(config), results_log.all_results(config.results_path),
+                   network_records.declared(config, extra), graded, today, stale, knowledge.all_items(config, loaded, today))
 
 
 def clip(text: str, chars: int) -> str:
@@ -378,7 +382,20 @@ def combination_section(network: Network, sid: str) -> Section:
     return Section(1, "How its children combine", lines)
 
 
-def sections_of(network: Network, sid: str, task: str = "") -> List[Section]:
+def knowledge_section(network: Network, sid: str, mode: str) -> Section:
+    """``ranked``: every item in the no-retriever order, the inactive ones after and labelled. ``candidates``: one line saying how many
+    items wait for the caller's retrieval. ``none``: nothing."""
+    from esoi.understanding.solution_consideration import knowledge
+    active, inactive = knowledge.items(network, sid)
+    if mode == "ranked":
+        return Section(1, "Knowledge", [knowledge.line(i) for i in active + inactive])
+    if mode == "candidates" and (active or inactive):
+        return Section(0, "Knowledge", [f"{len(active)} knowledge item(s) are offered beside this prompt for the situation to choose from"
+                                        + (f" ({len(inactive)} superseded, contradicted or expired)" if inactive else "") + "."])
+    return Section(1, "Knowledge", [])
+
+
+def sections_of(network: Network, sid: str, task: str = "", knowledge: str = "candidates") -> List[Section]:
     """Every section of one solution's prompt, in reading order within each tier."""
     from esoi.runtime.implementation_selection.select import default_name
     if sid not in network.solutions:
@@ -387,8 +404,8 @@ def sections_of(network: Network, sid: str, task: str = "") -> List[Section]:
     head = Section(0, "How to read this", [INSTRUCTIONS] + ([f"The matter to consider: {task}"] if task else []))
     return [head, definition_section(network, sid), results_section(network, sid, selected), selection_section(network, sid),
             queued_section(network, sid), combination_section(network, sid), metric_section(network, sid),
-            problems_ideals_section(network, sid), evidence_section(network, sid), implementations_section(network, sid),
-            *connected_sections(network, sid)]
+            problems_ideals_section(network, sid), knowledge_section(network, sid, knowledge), evidence_section(network, sid),
+            implementations_section(network, sid), *connected_sections(network, sid)]
 
 
 def omission_note(count: int) -> str:
@@ -433,11 +450,19 @@ def render(sections: List[Section], budget: int) -> Dict[str, Any]:
             "omitted": omitted}
 
 
-def prompt(network: Network, sid: str, task: str = "", budget: int = DEFAULT_BUDGET, role: str = "solution") -> Dict[str, Any]:
-    """One solution's prompt as plain data: ``{solution_id, name, role, parent, children, text, chars, sections, omitted, digest}``."""
-    out = render(sections_of(network, sid, task), budget)
-    return {"solution_id": sid, "name": network.solutions[sid].get("name", ""), "role": role, "parent": parent_of(network, sid),
+def prompt(network: Network, sid: str, task: str = "", budget: int = DEFAULT_BUDGET, role: str = "solution",
+           knowledge: str = "candidates") -> Dict[str, Any]:
+    """One solution's prompt as plain data: ``{solution_id, name, role, parent, children, text, chars, sections, omitted, digest}``, and
+    with ``knowledge`` ``candidates`` or ``ranked`` also ``knowledge`` (active items, best first) and ``knowledge_inactive``."""
+    from esoi.understanding.solution_consideration import knowledge as knowledge_module
+    if knowledge not in KNOWLEDGE_MODES:
+        raise ValueError(f"knowledge must be one of {', '.join(KNOWLEDGE_MODES)}, not {knowledge!r}")
+    out = render(sections_of(network, sid, task, knowledge), budget)
+    made = {"solution_id": sid, "name": network.solutions[sid].get("name", ""), "role": role, "parent": parent_of(network, sid),
             "children": children_of(network, sid), **out, "digest": hashlib.sha256(out["text"].encode("utf-8")).hexdigest()[:12]}
+    if knowledge != "none":
+        made["knowledge"], made["knowledge_inactive"] = knowledge_module.items(network, sid)
+    return made
 
 
 def budget_of(config, asked: Optional[int] = None) -> int:

@@ -6,6 +6,7 @@ missed solution is a skipped consideration). No arm here calls a model; a model 
 """
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Callable, Dict, List
 
 from esoi.runtime.implementation_selection.declare import implementation, solution
@@ -68,8 +69,19 @@ def index_with_links(index: Dict[str, Any], text: str, limit: int = DEFAULT_LIMI
 ARMS: Dict[str, Callable[..., List[Dict[str, Any]]]] = {"lexical_index": lexical_index, "index_with_links": index_with_links}
 
 
+def library_default() -> str:
+    """The arm esoi's own records select, read from the selection snapshot shipped with the package: a library-internal choice, never
+    resolved through the records of the repository that calls it (which hold no such solution)."""
+    from esoi.runtime.implementation_selection.select import snapshot_defaults
+    try:
+        found = snapshot_defaults(Path(__file__).resolve().parents[2] / "esoi_selection.json").get("solution-relevance", "")
+    except (OSError, ValueError, KeyError):
+        found = ""
+    return found if found in ARMS else "lexical_index"
+
+
 def ranked(index: Dict[str, Any], text: str, limit: int = DEFAULT_LIMIT, arm: str = "") -> List[Dict[str, Any]]:
-    """The arm named, else the one the records select (``relevant_solutions`` runs it)."""
-    return ARMS[arm](index, text, limit) if arm else relevant_solutions(index, text, limit)
+    """The arm named, else the one esoi's own records select."""
+    return ARMS[arm or library_default()](index, text, limit)
 
 

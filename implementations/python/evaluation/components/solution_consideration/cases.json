@@ -203,8 +203,8 @@
  {
   "id": "SC-012",
   "kind": "prompt",
-  "area": "live knowledge",
-  "description": "the Knowledge field reaches the pass",
+  "area": "live knowledge offered",
+  "description": "the knowledge of a solution is offered beside the prompt, not dumped into it",
   "args": {
    "solution": "spec-search",
    "repo": "live",
@@ -213,7 +213,127 @@
   },
   "expect": {
    "contains": [
-    "Knowledge: Reciprocal rank fusion"
+    "## Knowledge",
+    "knowledge item(s) are offered beside this prompt"
+   ]
+  }
+ },
+ {
+  "id": "KN-001",
+  "kind": "knowledge",
+  "area": "knowledge chosen by the situation",
+  "description": "the measured loss bears on adopting the tool; a contradicted theory and a vendor claim would mislead",
+  "args": {
+   "solution": "card-builder",
+   "repo": "fixture",
+   "budget": 24000,
+   "task": "Should we adopt the graph tool for building cards?"
+  },
+  "expect": {
+   "has": {
+    "knowledge_ids": [
+     "k-cb-1"
+    ]
+   },
+   "not_contains": [
+    "A vendor study reports that topic cards halve reading time.",
+    "Graph tools group files better than import graphs do.",
+    "The store will stay under one hundred cards."
+   ]
+  }
+ },
+ {
+  "id": "KN-002",
+  "kind": "knowledge",
+  "area": "knowledge chosen by the situation",
+  "description": "the assumption about prose folders bears; the others do not",
+  "args": {
+   "solution": "card-builder",
+   "repo": "fixture",
+   "budget": 24000,
+   "task": "Our docs folder is prose with no imports; which builder fits it?"
+  },
+  "expect": {
+   "has": {
+    "knowledge_ids": [
+     "k-cb-3"
+    ]
+   },
+   "not_contains": [
+    "A vendor study reports that topic cards halve reading time.",
+    "Graph tools group files better than import graphs do.",
+    "The store will stay under one hundred cards."
+   ]
+  }
+ },
+ {
+  "id": "KN-003",
+  "kind": "knowledge",
+  "area": "knowledge chosen by the situation",
+  "description": "the lesson from a past mistake bears",
+  "args": {
+   "solution": "card-builder",
+   "repo": "fixture",
+   "budget": 24000,
+   "task": "Should each file get its own card?"
+  },
+  "expect": {
+   "has": {
+    "knowledge_ids": [
+     "k-cb-4"
+    ]
+   },
+   "not_contains": [
+    "A vendor study reports that topic cards halve reading time.",
+    "Graph tools group files better than import graphs do.",
+    "The store will stay under one hundred cards.",
+    "Import graphs exist only for code"
+   ]
+  }
+ },
+ {
+  "id": "KN-004",
+  "kind": "knowledge",
+  "area": "knowledge chosen by the situation",
+  "description": "a person's words bear",
+  "args": {
+   "solution": "card-builder",
+   "repo": "fixture",
+   "budget": 24000,
+   "task": "Which words should a card carry so people can find it?"
+  },
+  "expect": {
+   "has": {
+    "knowledge_ids": [
+     "k-cb-2"
+    ]
+   },
+   "not_contains": [
+    "A vendor study reports that topic cards halve reading time.",
+    "Graph tools group files better than import graphs do.",
+    "The store will stay under one hundred cards.",
+    "Import graphs exist only for code"
+   ]
+  }
+ },
+ {
+  "id": "KN-005",
+  "kind": "knowledge",
+  "area": "knowledge chosen by the situation",
+  "description": "the only item about it expired, so nothing is offered as current",
+  "args": {
+   "solution": "card-builder",
+   "repo": "fixture",
+   "budget": 24000,
+   "task": "How many cards will the store hold next year?"
+  },
+  "expect": {
+   "has": {
+    "knowledge_ids": []
+   },
+   "not_contains": [
+    "The store will stay under one hundred cards.",
+    "Graph tools group files better than import graphs do."
    ]
   }
  }

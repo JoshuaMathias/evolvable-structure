@@ -51,6 +51,13 @@ for item in found["prompts"]:
     run_one_pass(item["text"])                      # your model call
 ```
 
+## Knowledge: offered, chosen by the situation
+
+Which knowledge bears on a pass depends on the request, so the prompt holds the solution's stable part and its knowledge items come
+back beside it as candidates (`--knowledge candidates`, the default; `--json` shows them). Pick the ones that bear with your own
+retrieval (or `knowledge.select(items, task)`), and append them; `--knowledge ranked` writes all of them in, in a fixed order, when
+there is no retriever. The records and commands are in [knowledge records](../reference/knowledge-records.md).
+
 ## Let findings and candidates join the prompt
 
 Declare each file of findings or candidates once:

@@ -9,9 +9,10 @@ import pytest
 from esoi import __main__ as cli
 from esoi.optimization.leaderboard import results_log
 from esoi.structure.intent_registry import config as config_module, registry
+from esoi.structure.intent_registry.tables import read_csv, write_csv
 from esoi.structure.structure_check.rules import consideration_rules
 from esoi.structure.structure_check.rules.base import Context
-from esoi.understanding.solution_consideration import fan_out, network_records, solution_prompt
+from esoi.understanding.solution_consideration import fan_out, knowledge, network_records, solution_prompt
 from esoi.understanding.solution_relevance import relevance, relevance_cases
 from esoi.understanding.spec_search import spec_index
 
@@ -101,6 +102,7 @@ def rule_lines(cfg):
 
 def test_s60_asks_a_rating_to_cite_the_recorded_results(toy):
     lines = rule_lines(toy)
+    lines = [line for line in lines if line.startswith("S60")]
     assert len(lines) == 1 and lines[0].startswith("S60 registry/findings.csv F-1: rated against card-builder")
     path = toy.root / "registry" / "findings.csv"
     path.write_text(path.read_text() + "F-3,card-builder;card-store,,0.5,both (esoi/results.csv)\n")
@@ -122,3 +124,67 @@ def test_the_command_line_prints_a_prompt_and_the_fan_out(toy, capsys):
     out = json.loads(capsys.readouterr().out)
     assert out["prompts"][0]["solution_id"] == "card-builder"
     assert cli.main(["--config", root, "spec", "prompt", "nothing", "--no-stale"]) == 1
+
+
+def test_knowledge_is_offered_beside_the_stable_prompt_not_dumped_into_it(net):
+    made = solution_prompt.prompt(net, "card-builder")
+    assert [i["id"] for i in made["knowledge"]] == ["k-cb-2", "k-cb-1", "k-cb-4", "k-cb-6", "k-cb-3"]
+    assert {i["id"]: i["status"] for i in made["knowledge_inactive"]} == {"k-cb-5": "contradicted", "k-cb-7": "expired"}
+    assert "Graph groups lost to import cards" not in made["text"] and "5 knowledge item(s) are offered" in made["text"]
+    ranked = solution_prompt.prompt(net, "card-builder", knowledge="ranked")["text"]
+    assert "k-cb-5 (theory; evidence, grade D) [CONTRADICTED by k-cb-1]" in ranked
+    assert "knowledge" not in solution_prompt.prompt(net, "card-builder", knowledge="none")
+    with pytest.raises(ValueError):
+        solution_prompt.prompt(net, "card-builder", knowledge="everything")
+
+
+def test_the_situation_chooses_the_knowledge(net):
+    active, _ = knowledge.items(net, "card-builder")
+    assert [i["id"] for i in knowledge.select(active, "Should we adopt the graph tool for building cards?")][0] == "k-cb-1"
+    assert "k-cb-6" not in [i["id"] for i in knowledge.select(active, "Should each file get its own card?")]
+    assert knowledge.select(active, "") == []
+
+
+def test_sources_are_read_by_kind():
+    assert knowledge.source_kind("result:cards/graph@2026-01-02") == ("result", "")
+    assert knowledge.source_kind("url:https://example.org grade B") == ("evidence", "B")
+    assert knowledge.source_kind('person:the owner, 2026-01-01: "yes"')[0] == "person"
+    assert knowledge.source_kind("mistake:M-1")[0] == "mistake"
+
+
+def test_add_is_ensure_one_and_migrate_moves_free_text(toy):
+    found, created = knowledge.add(toy, {"claim": "Cards age.", "kind": "lesson", "source": "mistake:M-2", "solution_ids": ["card-store"]})
+    assert created and found.startswith("k-card-store-")
+    assert knowledge.add(toy, {"claim": "Cards  age.", "kind": "lesson", "source": "x", "solution_ids": ["card-store"]}) == (found, False)
+    with pytest.raises(ValueError):
+        knowledge.add(toy, {"claim": "No source.", "solution_ids": ["card-store"]})
+    path = toy.root / "esoi" / "recall_parts" / "solutions.csv"
+    rows = read_csv(path)
+    rows[1]["knowledge"] = "[lesson] Ids last. (source: mistake:M-3)"
+    write_csv(path, list(rows[0]), rows)
+    assert knowledge.migrate(toy) == ["card-store: 1 item(s) -> new"] and "knowledge.csv:" not in path.read_text()
+    assert knowledge.migrate(toy, apply=True) == ["card-store: 1 item(s) -> k-card-store-2"]
+    assert "knowledge.csv: k-card-store-2" in path.read_text() and knowledge.migrate(toy) == []
+    assert any(i["id"] == "k-card-store-2" and i["kind"] == "lesson" and i["source"] == "mistake:M-3" for i in knowledge.all_items(toy))
+
+
+def test_s61_flags_a_missing_source_an_expired_item_and_a_newer_result(toy):
+    lines = [line for line in rule_lines(toy) if line.startswith("S61")]
+    assert lines == ["S61 k-cb-7: expired on 2025-06-30; renew it with a new source or set its status to expired"]
+    results = toy.root / "esoi" / "results.csv"
+    results.write_text(results.read_text() + "2026-02-01,card_builder,graph_groups,63,40,,,0,0,0,0.0,50,bbbbbbb,c1,none,,,0.7\n")
+    path = toy.root / "esoi" / "recall_parts" / "knowledge.csv"
+    path.write_text(path.read_text() + "k-cb-8,An unsourced claim.,lesson,,card-builder,active,,,\n")
+    found = [line for line in rule_lines(toy) if line.startswith("S61")]
+    assert any("S61 k-cb-1: a newer result may contradict it" in line for line in found)
+    assert any("S61 k-cb-8: has no source" in line for line in found)
+
+
+def test_cards_carry_kind_and_source_and_the_stable_part_is_managed(toy, capsys):
+    assert cli.main(["--config", str(toy.root), "knowledge", "cards", "--solution", "card-builder"]) == 0
+    out = json.loads(capsys.readouterr().out)
+    stable, *items = out["cards"]
+    assert stable["id"] == "solution-card-builder" and "content" in stable["managed_fields"]
+    assert {c["id"] for c in items} == {"knowledge-k-cb-1", "knowledge-k-cb-2", "knowledge-k-cb-3", "knowledge-k-cb-4", "knowledge-k-cb-6"}
+    assert all(c["tags"][0] == "solution:card-builder" and c["source"] for c in items)
+    assert {c["status"] for c in out["quarantine"]} == {"contradicted", "expired"}
