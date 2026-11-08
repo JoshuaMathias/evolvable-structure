@@ -7,4 +7,4 @@ ROOT = next(p for p in Path(__file__).resolve().parents if (p / "esoi.toml").is_
 
 
 def build(meter):
-    return relevance_cases.runner(ROOT, "index-with-links")
+    return relevance_cases.runner(ROOT, "index_with_links")
