@@ -97,7 +97,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 - README fidelity (`metric-readme-fidelity`): leader `live_readme`, 10 of 10 cases
 - README glanceability (`metric-readme-glanceability`): leader `at_a_glance`, 2 of 4 cases
 - Review coverage (`metric-review-coverage`): leader `live_tracker`, 10 of 10 cases
-- Deciding records reach the pass (`metric-solution-consideration`): leader `network_tiered`, 12 of 12 cases
+- Deciding records reach the pass (`metric-solution-consideration`): leader `network_tiered`, 17 of 17 cases
 - Relevant solutions named, recall first (`metric-solution-relevance`): leader `lexical_index`, 26 of 86 cases
 - Specification recall at k (`metric-spec-index-recall`): leader `weighted_tfidf`, 31 of 35 cases
 - Spec search correctness (`metric-spec-search`): leader `gated`, 6 of 6 cases

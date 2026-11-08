@@ -908,3 +908,7 @@ date,component,impl,cases,passed,dev,heldout,model_calls,tokens_in,tokens_out,co
 2026-11-08,solution_consideration,definition_only,12,0,0/12,0/0,0,0,0,0.0,0.2,a9f40dc,67b9215c,none,prompt 0/12,,0.2995
 2026-11-08,solution_relevance,index_with_links,86,25,22/71,3/15,0,0,0,0.0,0.1,a9f40dc,a692a1b8,none,recall=0.686; precision=0.2457; missed_cases=33 | forced past unsolved failures: first recorded run on the committed code,,0.5034
 2026-11-08,solution_relevance,lexical_index,86,26,22/71,4/15,0,0,0,0.0,0.1,a9f40dc,a692a1b8,none,recall=0.6628; precision=0.2405; missed_cases=34 | forced past unsolved failures: first recorded run on the committed code,,0.5115
+2026-11-08,solution_consideration,network_tiered,17,17,17/17,0/0,0,0,0,0.0,0.7,6f64547,e798c0cd,none,"knowledge 5/5, prompt 12/12",,0.9988
+2026-11-08,solution_consideration,definition_only,17,1,1/17,0/0,0,0,0,0.0,0.2,6f64547,e798c0cd,none,"knowledge 1/5, prompt 0/12 | forced past unsolved failures: knowledge cases added",,0.3408
+2026-11-08,solution_consideration,all_knowledge,17,11,11/17,0/0,0,0,0,0.0,0.7,6f64547,e798c0cd,none,"knowledge 0/5, prompt 11/12 | forced past unsolved failures: knowledge cases added",,0.7517
+2026-11-08,solution_consideration,no_knowledge,17,12,12/17,0/0,0,0,0,0.0,0.8,6f64547,e798c0cd,none,"knowledge 1/5, prompt 11/12 | forced past unsolved failures: knowledge cases added",,0.7927

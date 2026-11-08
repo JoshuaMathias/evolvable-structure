@@ -26,7 +26,7 @@ Part of [How People and Agents Come to Apply ESOI](../README.md)
 
 ## Metrics
 
-- Deciding records reach the pass (`metric-solution-consideration`): leader `network_tiered`, 12 of 12 cases
+- Deciding records reach the pass (`metric-solution-consideration`): leader `network_tiered`, 17 of 17 cases
 
 ## Problems
 
