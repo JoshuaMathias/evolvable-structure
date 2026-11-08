@@ -53,7 +53,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 | Readable Records | `readable-records` | `esoi.run("readable-records", '.')` | At a glance, full record below (`at_a_glance`) | README glanceability, README fidelity |
 | Review Tracker | `review-tracker` | `esoi.run("review-tracker", '.')` | Tracker and sheet (`tracker-and-sheet`) | Review coverage |
 | Solution Consideration | `solution-consideration` | `esoi.run("solution-consideration", {'project': '.', 'solution_id': ''})` | Network by tiers (`network_tiered`) | Deciding records reach the pass |
-| Solution Relevance | `solution-relevance` | `esoi.run("solution-relevance", ...)` | Lexical index (`lexical_index`) | Relevant solutions named, recall first |
+| Solution Relevance | `solution-relevance` | `esoi.run("solution-relevance", ...)` | Index with links (`index_with_links`) | Relevant solutions named, recall first |
 | Spec Search | `spec-search` | `esoi.run("spec-search", ...)` | Lexical vector gated (`lexical-vector-gated`) | Spec search correctness, Specification recall at k |
 | The Standard | `the-standard` | `esoi.run("the-standard", '.')` | Standard document (`standard-document`) | Adoption effort, Newcomer effort |
 | ESOI Behaviour Judge | `esoi-behaviour-judge` | `esoi.run("esoi-behaviour-judge", '.')` | Model judge on the rubric (`model-judge-on-the-rubric`) | Judge agreement |
@@ -97,8 +97,8 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 - README fidelity (`metric-readme-fidelity`): leader `live_readme`, 10 of 10 cases
 - README glanceability (`metric-readme-glanceability`): leader `at_a_glance`, 2 of 4 cases
 - Review coverage (`metric-review-coverage`): leader `live_tracker`, 10 of 10 cases
-- Deciding records reach the pass (`metric-solution-consideration`): leader `network_tiered`, 17 of 17 cases
-- Relevant solutions named, recall first (`metric-solution-relevance`): leader `lexical_index`, 26 of 86 cases
+- Deciding records reach the pass (`metric-solution-consideration`): leader `network_tiered`, 22 of 22 cases
+- Relevant solutions named, recall first (`metric-solution-relevance`): leader `index_with_links`, 53 of 86 cases
 - Specification recall at k (`metric-spec-index-recall`): leader `weighted_tfidf`, 31 of 35 cases
 - Spec search correctness (`metric-spec-search`): leader `gated`, 6 of 6 cases
 - Newcomer effort (`metric-docs-and-templates`)
@@ -154,7 +154,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 | Readable Records | `readable-records` | At a glance, full record below (`at_a_glance`) | README glanceability, README fidelity |
 | Review Tracker | `review-tracker` | Tracker and sheet (`tracker-and-sheet`) | Review coverage |
 | Solution Consideration | `solution-consideration` | Network by tiers (`network_tiered`) | Deciding records reach the pass |
-| Solution Relevance | `solution-relevance` | Lexical index (`lexical_index`) | Relevant solutions named, recall first |
+| Solution Relevance | `solution-relevance` | Index with links (`index_with_links`) | Relevant solutions named, recall first |
 | Spec Search | `spec-search` | Lexical vector gated (`lexical-vector-gated`) | Spec search correctness, Specification recall at k |
 | The Standard | `the-standard` | Standard document (`standard-document`) | Adoption effort, Newcomer effort |
 | ESOI Behaviour Judge | `esoi-behaviour-judge` | Model judge on the rubric (`model-judge-on-the-rubric`) | Judge agreement |

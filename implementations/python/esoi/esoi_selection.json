@@ -299,8 +299,8 @@
  "solution-consideration": {
   "default": "network_tiered",
   "evidence": {
-   "detail": "network_tiered leads all_knowledge (all_knowledge 0.752 against network_tiered 0.999; best guess, not yet significant, two-sided exact sign test on per-case balanced scores, Holm-adjusted p=0.0625, 6 of 17 cases disagree); network_tiered is better than definition_only (two-sided exact sign test on per-case balanced scores, Holm-adjusted p=9.16e-05, 16 of 17 cases disagree); network_tiered leads no_knowledge (no_knowledge 0.793 against network_tiered 0.999; best guess, not yet significant, two-sided exact sign test on per-case balanced scores, Holm-adjusted p=0.0625, 6 of 17 cases disagree)",
-   "p": 9.2e-05,
+   "detail": "network_tiered is better than all_knowledge (two-sided exact sign test on per-case balanced scores, Holm-adjusted p=0.00391, 10 of 22 cases disagree); network_tiered is better than definition_only (two-sided exact sign test on per-case balanced scores, Holm-adjusted p=2.86e-06, 21 of 22 cases disagree); network_tiered is better than no_knowledge (two-sided exact sign test on per-case balanced scores, Holm-adjusted p=0.00391, 10 of 22 cases disagree)",
+   "p": 3e-06,
    "verdict": "WIN"
   },
   "modules": {
@@ -308,10 +308,10 @@
   }
  },
  "solution-relevance": {
-  "default": "lexical_index",
+  "default": "index_with_links",
   "evidence": {
-   "detail": "lexical_index leads index_with_links (index_with_links 0.503 against lexical_index 0.511; best guess, not yet significant, two-sided exact sign test on per-case balanced scores, Holm-adjusted p=1, 3 of 86 cases disagree)",
-   "p": 1.0,
+   "detail": "index_with_links leads lexical_index (lexical_index 0.624 against index_with_links 0.629; best guess, not yet significant, two-sided exact sign test on per-case balanced scores, Holm-adjusted p=1, 4 of 86 cases disagree); index_with_links is better than lexical_then_model (two-sided exact sign test on per-case balanced scores, Holm-adjusted p=8.16e-11, 86 of 86 cases disagree); index_with_links is better than model_classifier (two-sided exact sign test on per-case balanced scores, Holm-adjusted p=8.16e-11, 86 of 86 cases disagree)",
+   "p": 0.0,
    "verdict": "WIN"
   },
   "modules": {

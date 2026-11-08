@@ -912,3 +912,17 @@ date,component,impl,cases,passed,dev,heldout,model_calls,tokens_in,tokens_out,co
 2026-11-08,solution_consideration,definition_only,17,1,1/17,0/0,0,0,0,0.0,0.2,6f64547,e798c0cd,none,"knowledge 1/5, prompt 0/12 | forced past unsolved failures: knowledge cases added",,0.3408
 2026-11-08,solution_consideration,all_knowledge,17,11,11/17,0/0,0,0,0,0.0,0.7,6f64547,e798c0cd,none,"knowledge 0/5, prompt 11/12 | forced past unsolved failures: knowledge cases added",,0.7517
 2026-11-08,solution_consideration,no_knowledge,17,12,12/17,0/0,0,0,0,0.0,0.8,6f64547,e798c0cd,none,"knowledge 1/5, prompt 11/12 | forced past unsolved failures: knowledge cases added",,0.7927
+2026-11-08,solution_relevance,lexical_index,86,53,45/71,8/15,0,0,0,0.0,0.1,baeb086,a692a1b8,none,recall=0.6744; precision=0.2483; f2=0.4626; missed_cases=33 | forced past unsolved failures: rescored: F2 grading and real knowledge cases,,0.6237
+2026-11-08,solution_relevance,index_with_links,86,53,46/71,7/15,0,0,0,0.0,0.1,baeb086,a692a1b8,none,recall=0.6783; precision=0.2556; f2=0.4704; missed_cases=33,,0.6292
+2026-11-08,solution_consideration,network_tiered,22,22,22/22,0/0,0,0,0,0.0,1.0,baeb086,c1fe1917,none,"knowledge 10/10, prompt 12/12",,0.9986
+2026-11-08,solution_consideration,definition_only,22,1,1/22,0/0,0,0,0,0.0,0.3,baeb086,c1fe1917,none,"knowledge 1/10, prompt 0/12",,0.3314
+2026-11-08,solution_consideration,all_knowledge,22,12,12/22,0/0,0,0,0,0.0,1.0,baeb086,c1fe1917,none,"knowledge 1/10, prompt 11/12",,0.6805
+2026-11-08,solution_consideration,no_knowledge,22,12,12/22,0/0,0,0,0,0.0,0.9,baeb086,c1fe1917,none,"knowledge 1/10, prompt 11/12",,0.6806
+2026-11-08,solution_relevance,model_classifier,1,1,1/1,0/0,1,2114,31,0.000227,6.3,baeb086,a692a1b8,claude-haiku-5-5,recall=1.0; precision=0.2; f2=0.5556; missed_cases=0,sample:1,0.5219
+2026-11-08,solution_relevance,model_classifier,10,10,9/9,1/1,10,21114,298,0.00226,62.5,101fb14,a692a1b8,claude-haiku-5-5,recall=1.0; precision=0.225; f2=0.5839; missed_cases=0 | reused 1 case(s) already run for this implementation version,sample:10,0.5418
+2026-11-08,consideration_verdicts,network_prompt_model,6,5,5/6,0/0,6,16625,1270,0.002298,39.6,101fb14,64866d3f,claude-haiku-5-5,verdicts_right=5; cases=6 | forced past unsolved failures: first recorded paid stage: failing cases are the measurement,,
+2026-11-08,consideration_verdicts,record_alone_model,6,2,2/6,0/0,6,4473,1184,0.001039,63.2,101fb14,64866d3f,claude-haiku-5-5,verdicts_right=2; cases=6 | forced past unsolved failures: first recorded paid stage: failing cases are the measurement,,
+2026-11-08,solution_relevance,model_classifier,86,60,48/71,12/15,86,181526,2488,0.019397,537.4,fc185eb,a692a1b8,claude-haiku-5-5,recall=0.7636; precision=0.1948; f2=0.4641; missed_cases=26,,0.458
+2026-11-08,solution_relevance,lexical_then_model,1,0,0/1,0/0,1,274,17,3.6e-05,4.4,fc185eb,a692a1b8,claude-haiku-5-5,recall=0.0; precision=0.0; f2=0.0; missed_cases=1,sample:1,0.1473
+2026-11-08,solution_relevance,lexical_then_model,10,7,6/9,1/1,10,7117,276,0.00085,59.7,fc185eb,a692a1b8,claude-haiku-5-5,recall=0.7; precision=0.175; f2=0.4236; missed_cases=3 | reused 1 case(s) already run for this implementation version,sample:10,0.4402
+2026-11-08,solution_relevance,lexical_then_model,86,64,51/71,13/15,86,56090,2255,0.006737,530.5,fc185eb,a692a1b8,claude-haiku-5-5,recall=0.7907; precision=0.2391; f2=0.5127; missed_cases=22 | forced past unsolved failures: whole set after the sample: failing cases are the measurement | reused 10 case(s) already run for this implementation version,,0.503
