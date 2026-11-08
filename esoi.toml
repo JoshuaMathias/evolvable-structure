@@ -7,7 +7,8 @@ python_path = ["implementations/python"]
 code_paths = ["implementations/python/esoi", ":(exclude)implementations/python/esoi/data", ":(exclude,glob)implementations/python/esoi/**/*.md",
               ":(exclude,glob)implementations/python/esoi/**/problems.csv", ":(exclude,glob)implementations/python/esoi/**/ideals.csv",
               ":(exclude,glob)implementations/python/esoi/**/solutions.csv", ":(exclude,glob)implementations/python/esoi/**/implementations.csv",
-              ":(exclude,glob)implementations/python/esoi/**/metrics.csv", ":(exclude,glob)implementations/python/esoi/**/intent.csv"]
+              ":(exclude,glob)implementations/python/esoi/**/metrics.csv", ":(exclude,glob)implementations/python/esoi/**/intent.csv",
+              ":(exclude,glob)implementations/python/esoi/**/knowledge.csv"]
 layers = ["core", "tools", "cli"]
 structure_dir = "esoi"
 evaluation_dir = "implementations/python/evaluation/components"

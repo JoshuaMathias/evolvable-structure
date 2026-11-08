@@ -196,3 +196,31 @@ def test_a_graded_scorer_sets_the_accuracy_of_the_balanced_score():
     assert balance.graded_credit([{"score": 0.5}, {"ok": True}]) is None
     assert balance.graded_credit([{"score": True}]) is None
     assert relevance_cases.f_score(1.0, 0.03) < relevance_cases.f_score(0.66, 0.24)   # returning everything does not win
+
+
+def test_rows_from_any_source_form_the_same_prompt_and_index(toy, net):
+    import csv
+    root = toy.root
+
+    def table(name):
+        with open(root / name, newline="") as handle:
+            return list(csv.DictReader(handle))
+    parts = "esoi/recall_parts"
+    tables = {"intents": [dict(table("esoi/intent.csv")[0]), dict(table(f"{parts}/intent.csv")[0])],
+              "solutions": [dict(r, intent_id="toy") for r in table("esoi/solutions.csv")]
+              + [dict(r, intent_id="recall_parts") for r in table(f"{parts}/solutions.csv")],
+              "implementations": table("esoi/implementations.csv") + table(f"{parts}/implementations.csv"),
+              "metrics": table(f"{parts}/metrics.csv"), "problems": table(f"{parts}/problems.csv"), "ideals": table(f"{parts}/ideals.csv"),
+              "results": table("esoi/results.csv"), "knowledge": table(f"{parts}/knowledge.csv"),
+              "findings": [dict(r, kind="finding") for r in table("registry/findings.csv")]}
+    supplied = solution_prompt.from_rows(tables, today=net.today)
+    made, held = solution_prompt.prompt(supplied, "card-builder", "Adopt it?"), solution_prompt.prompt(net, "card-builder", "Adopt it?")
+    for line in ("graph_groups: passed 3 of 63", "F-2", "Recall (recall)", "Card Store (card-store)", "5 knowledge item(s) are offered"):
+        assert line in made["text"] and line in held["text"]
+    assert [i["id"] for i in made["knowledge"]] == [i["id"] for i in held["knowledge"]]
+    assert "## How its children combine" in solution_prompt.prompt(supplied, "recall")["text"]
+    index = spec_index.build_from_rows(tables)
+    assert fan_out.classify(supplied, index, "graph groups cards")[0]["solution_id"] == "card-builder"
+    assert {e["id"] for e in index["entries"]} == {e["id"] for e in spec_index.build(toy)["entries"]}
+    with pytest.raises(ValueError):
+        solution_prompt.from_rows({"recipes": []})

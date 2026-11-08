@@ -18,6 +18,9 @@ One row per piece of knowledge a solution's definition or implementations rest o
 | `recorded` | the date it was recorded |
 | `expiration` | the date it must be re-confirmed by (optional) |
 
+A repository that lists its record files in a component's `path` (rule S1) and excludes them from `code_paths` (so editing a record
+does not make a result stale) lists `**/knowledge.csv` the same way.
+
 ## Commands
 
 ```bash

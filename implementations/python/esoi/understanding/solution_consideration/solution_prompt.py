@@ -16,7 +16,7 @@ import datetime
 import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
 from esoi.structure.intent_registry import intents as intents_module
 from esoi.structure.intent_registry import registry as registry_module
@@ -60,6 +60,7 @@ class Network:
     today: Optional[datetime.date] = None
     stale: bool = True
     knowledge: Optional[List[Dict[str, Any]]] = None   # every knowledge item of the repository, read once (``knowledge.all_items``)
+    on_disk: bool = True   # False for a network built from supplied rows: nothing is read from files or git
 
     @property
     def solutions(self) -> Dict[str, Dict[str, str]]:
@@ -67,17 +68,84 @@ class Network:
 
 
 def load(config, extra: Sequence[str] = (), stale: bool = True, today: Optional[datetime.date] = None) -> Network:
-    """The network of a repository: its records, results log, declared extra records and graded public evidence."""
+    """The network of a repository on disk: its record folders are one source of the rows ``from_rows`` takes, and the files add what
+    only they hold (the results log, declared finding files, graded public evidence, intent folders, staleness by git)."""
     from esoi.optimization.leaderboard import results_log
     from esoi.optimization.leaderboard.cascade_report import graded_evidence
-    try:
-        graded = graded_evidence(config, today)
-    except ValueError:
-        graded = {}   # malformed evidence is rule S-territory, not a reason to withhold the prompt
     from esoi.understanding.solution_consideration import knowledge
     loaded = registry_module.load(config)
-    return Network(config, loaded, intents_module.discover(config), results_log.all_results(config.results_path),
-                   network_records.declared(config, extra), graded, today, stale, knowledge.all_items(config, loaded, today))
+    discovered = intents_module.discover(config)
+    network = from_rows({"intents": [dict(i.row, intent_id=i.intent_id) for i in discovered], "solutions": loaded.every_solution(),
+                         "problems": loaded.problems, "ideals": loaded.ideals, "implementations": loaded.implementations,
+                         "metrics": loaded.metrics, "knowledge": knowledge.rows(config)}, config, today)
+    try:
+        network.graded = graded_evidence(config, today)
+    except ValueError:
+        network.graded = {}   # malformed evidence is a finding of its own rule, not a reason to withhold the prompt
+    network.registry, network.intents = loaded, discovered
+    network.history = results_log.all_results(config.results_path)
+    network.files = network_records.declared(config, extra)
+    network.stale, network.on_disk = stale, True
+    return network
+
+
+TABLES = ("intents", "problems", "ideals", "solutions", "implementations", "metrics", "results", "knowledge", "findings", "evidence")
+
+
+def from_rows(tables: Mapping[str, Sequence[Mapping[str, str]]], config=None, today: Optional[datetime.date] = None) -> Network:
+    """The same network built from rows any source supplies (a database, an API), with no file read. ``tables`` maps any of ``TABLES``
+    to lists of row dicts with the record template's columns: ``intents`` (``intent_id``, ``implements`` as ``solution:implementation``
+    for a sub-intent, ``solution_coherence``, ``solution_diagram``), records with ``intent_id`` naming their intent, ``results`` with the
+    results log's columns (``component``, ``impl``, ``passed``, ``cases``, ``date``, ...), ``knowledge`` with the knowledge columns,
+    ``findings`` with ``finding_id``, ``solution_id`` or ``candidate``, and optionally ``kind``, and ``evidence`` with the public
+    evidence columns. ``config`` defaults to an empty configuration (the metric command pattern and balance tables of a real one
+    apply when given)."""
+    from esoi.structure.intent_registry.config import Config
+    from esoi.structure.intent_registry.registry import Registry
+    from esoi.understanding.solution_consideration import knowledge
+    unknown = set(tables) - set(TABLES)
+    if unknown:
+        raise ValueError(f"unknown table(s) {', '.join(sorted(unknown))}; known: {', '.join(TABLES)}")
+    config = config or Config(root=Path("."), structure_dir="esoi")
+    rows = {name: [dict(r) for r in tables.get(name, [])] for name in TABLES}
+    loaded = Registry(solutions=rows["solutions"], problems=rows["problems"], ideals=rows["ideals"], implementations=rows["implementations"],
+                      metrics=rows["metrics"], solution_order=[r.get("solution_id", "") for r in rows["solutions"]])
+    intents = [intents_module.Intent(intent_id=r.get("intent_id", ""), folder=Path(""), row=r) for r in rows["intents"]]
+    on = today or datetime.date.today()
+    items = [knowledge.item_of(r, on) for r in rows["knowledge"]]
+    items += [knowledge.item_of(r, on) for solution in loaded.every_solution() for r in knowledge.field_items(solution)]
+    return Network(config, loaded, intents, history_of(rows["results"]), finding_files(rows["findings"]), graded_of(rows["evidence"], today),
+                   today, False, items, False)
+
+
+def history_of(results: Sequence[Mapping[str, str]]) -> Dict[str, Dict[str, List[Dict[str, str]]]]:
+    """``{component: {impl: [rows, oldest first]}}`` from results rows, as the results log is read (slice rows left out)."""
+    from esoi.optimization.leaderboard.results_log import slice_id
+    out: Dict[str, Dict[str, List[Dict[str, str]]]] = {}
+    for row in results:
+        if row.get("component") and row.get("impl") and not slice_id(row):
+            out.setdefault(row["component"], {}).setdefault(row["impl"], []).append(dict(row))
+    for arms in out.values():
+        for found in arms.values():
+            found.sort(key=lambda r: r.get("date") or "")
+    return out
+
+
+def finding_files(findings: Sequence[Mapping[str, str]]) -> List[network_records.RecordFile]:
+    """One record file per ``kind`` of the supplied finding rows (``finding`` when a row names none)."""
+    by_kind: Dict[str, List[Dict[str, str]]] = {}
+    for row in findings:
+        by_kind.setdefault(row.get("kind") or "finding", []).append({k: v for k, v in row.items() if k != "kind"})
+    return [network_records.RecordFile(Path(f"supplied {kind} rows"), kind, "finding_id", "solution_id", "candidate", "", found)
+            for kind, found in by_kind.items()]
+
+
+def graded_of(evidence: Sequence[Mapping[str, str]], today: Optional[datetime.date]) -> Dict[Any, Any]:
+    if not evidence:
+        return {}
+    from esoi.optimization.when_metrics_are_run.public_evidence import evidence_grading, evidence_records
+    parsed, problems = evidence_records.parse_rows(evidence)
+    return evidence_grading.estimates(parsed, today) if parsed and not problems else {}
 
 
 def clip(text: str, chars: int) -> str:
@@ -216,6 +284,8 @@ def selection_section(network: Network, sid: str) -> Section:
 
 
 def runtime_layer_lines(network: Network, sid: str) -> List[str]:
+    if not network.on_disk:
+        return []
     import os
     from esoi.runtime.implementation_selection import selection_cascade, selection_registry
     environ = dict(os.environ, **{selection_registry.ROOT_ENV: str(network.config.root)})
@@ -322,6 +392,8 @@ def evidence_section(network: Network, sid: str) -> Section:
 
 def beside_files(network: Network, sid: str) -> List[Path]:
     """CSV files kept in the solution's own records folder that are not record files (priors, local registries)."""
+    if not network.on_disk:
+        return []
     skip = {intents_module.INTENT_FILE, *intents_module.RECORD_FILES, "components.csv", "waivers.csv", "results.csv", "per_case.csv", "runs.csv",
             "evidence.csv", "esoi_template.csv"}
     for _, folder in intents_module.folders(network.config):
@@ -374,7 +446,7 @@ def combination_section(network: Network, sid: str) -> Section:
             if (row.get(key) or "").strip():
                 lines.append(f"  {label}: {clip(row[key], 2500)}")
         diagram = intent.folder / "diagram.md"
-        if not (row.get("solution_diagram") or "").strip() and diagram.is_file():
+        if network.on_disk and not (row.get("solution_diagram") or "").strip() and diagram.is_file():
             lines.append(f"  Solution diagram ({diagram.name}): {clip(diagram.read_text(encoding='utf-8'), 2000)}")
     if lines:
         lines.insert(0, "Judge this level as its own scope: does the structure of the combination of its children fulfil its purpose, "

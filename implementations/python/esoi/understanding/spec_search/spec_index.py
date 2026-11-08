@@ -105,14 +105,17 @@ def digest_of(row: Dict[str, str]) -> str:
 def raw_entries(config: Config) -> List[Dict[str, Any]]:
     """One entry per record of every intent, in tree order, each with its source row."""
     loaded = registry_module.load(config)
-    rows_by_kind: Dict[str, List[Dict[str, str]]] = {
+    return raw_entries_from([dict(i.row, intent_id=i.intent_id) for i in intents.discover(config)], {
         "problem": loaded.problems, "ideal": loaded.ideals, "implementation": loaded.implementations,
-        "metric": loaded.metrics, "solution": loaded.every_solution()}
+        "metric": loaded.metrics, "solution": loaded.every_solution()})
+
+
+def raw_entries_from(intent_rows: List[Dict[str, str]], rows_by_kind: Dict[str, List[Dict[str, str]]]) -> List[Dict[str, Any]]:
+    """One entry per record of rows supplied by any source: intent rows (each with ``intent_id``) and the record rows by kind."""
     entries: List[Dict[str, Any]] = []
-    for intent in intents.discover(config):
-        row = dict(intent.row)
-        row["intent_id"] = intent.intent_id
-        entries.append({"id": intent.intent_id, "kind": "intent", "intent": intent.intent_id, "source": row})
+    for row in intent_rows:
+        row = dict(row)
+        entries.append({"id": row.get("intent_id", ""), "kind": "intent", "intent": row.get("intent_id", ""), "source": row})
     for kind, rows in rows_by_kind.items():
         for row in rows:
             if row.get(KINDS[kind], "").strip():
@@ -146,7 +149,11 @@ def links_between(entries: List[Dict[str, Any]]) -> Tuple[Dict[str, List[str]], 
 def entries_of(config: Config) -> List[Dict[str, Any]]:
     """One entry per record of every intent, in tree order. Links are the cells of ``*_id`` and ``*_ids`` columns that
     name another record, and each link is also recorded on the record it points to."""
-    entries = raw_entries(config)
+    return linked_entries(raw_entries(config))
+
+
+def linked_entries(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Raw entries with their titles, summaries, terms, links both ways and digests."""
     forward, back = links_between(entries)
     out = []
     for e in entries:
@@ -162,7 +169,18 @@ def entries_of(config: Config) -> List[Dict[str, Any]]:
 
 def build(config: Config) -> Dict[str, Any]:
     """The whole index: ``version``, ``digest``, entry count ``n``, ``df`` (how many entries hold each term) and ``entries``."""
-    entries = entries_of(config)
+    return index_of(entries_of(config))
+
+
+def build_from_rows(tables: Dict[str, List[Dict[str, str]]]) -> Dict[str, Any]:
+    """The same index from rows any source supplies (a database, an API): ``tables`` maps ``intents``, ``problems``, ``ideals``,
+    ``solutions``, ``implementations`` and ``metrics`` to lists of row dicts with the record template's columns."""
+    kinds = {"problem": "problems", "ideal": "ideals", "implementation": "implementations", "metric": "metrics", "solution": "solutions"}
+    return index_of(linked_entries(raw_entries_from([dict(r) for r in tables.get("intents", [])],
+                                                    {kind: [dict(r) for r in tables.get(name, [])] for kind, name in kinds.items()})))
+
+
+def index_of(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
     df = Counter(term for e in entries for term in e["terms"])
     whole = hashlib.sha256("".join(e["id"] + e["digest"] for e in entries).encode("utf-8")).hexdigest()[:12]
     return {"version": VERSION, "digest": whole, "n": len(entries), "df": dict(sorted(df.items())), "entries": entries}
