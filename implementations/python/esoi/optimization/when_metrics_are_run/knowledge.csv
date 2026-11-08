@@ -1,0 +1,4 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-when-metrics-are-run-1,"Evaluation practice for models (staged and stratified samples, call budgets, noise).",best guess,"the solution's knowledge field of when-metrics-are-run, migrated 2026-11-08",when-metrics-are-run,active,,2026-11-08,
+k-when-metrics-are-run-2,continuous integration practice.,best guess,"the solution's knowledge field of when-metrics-are-run, migrated 2026-11-08",when-metrics-are-run,active,,2026-11-08,
+k-when-metrics-are-run-3,the cost of re-running against the cost of deciding wrongly.,best guess,"the solution's knowledge field of when-metrics-are-run, migrated 2026-11-08",when-metrics-are-run,active,,2026-11-08,

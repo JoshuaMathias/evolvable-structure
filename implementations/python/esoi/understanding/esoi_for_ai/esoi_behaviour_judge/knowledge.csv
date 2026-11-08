@@ -1,0 +1,4 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-esoi-behaviour-judge-1,"Practice for model judges (agreement with human labels, preference for its own phrasing, position and length bias).",best guess,"the solution's knowledge field of esoi-behaviour-judge, migrated 2026-11-08",esoi-behaviour-judge,active,,2026-11-08,
+k-esoi-behaviour-judge-2,the author's verdicts as the authority on what counts as acting by the principles.,best guess,"the solution's knowledge field of esoi-behaviour-judge, migrated 2026-11-08",esoi-behaviour-judge,active,,2026-11-08,
+k-esoi-behaviour-judge-3,the case rubric of expected behaviour and failure mode.,best guess,"the solution's knowledge field of esoi-behaviour-judge, migrated 2026-11-08",esoi-behaviour-judge,active,,2026-11-08,

@@ -1,0 +1,4 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-specify-from-code-1,Decorator registries and plugin systems.,best guess,"the solution's knowledge field of specify-from-code, migrated 2026-11-08",specify-from-code,active,,2026-11-08,
+k-specify-from-code-2,schema derivation from code.,best guess,"the solution's knowledge field of specify-from-code, migrated 2026-11-08",specify-from-code,active,,2026-11-08,
+k-specify-from-code-3,"the author's earlier pipeline decorators, which declare a stage once.",best guess,"the solution's knowledge field of specify-from-code, migrated 2026-11-08",specify-from-code,active,,2026-11-08,

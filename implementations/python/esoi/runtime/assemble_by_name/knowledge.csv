@@ -1,0 +1,3 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-assemble-by-name-1,"Implementations depend on solutions, never on other implementations; a name is data, while an import path read from a file runs code nobody reviewed; a cycle or an unmet need is cheaper to find at startup than on the first call that reaches it.",best guess,"the solution's knowledge field of assemble-by-name, migrated 2026-11-08",assemble-by-name,active,,2026-11-08,
+k-assemble-by-name-2,See docs/explanation/cross-dependency-by-name.md.,best guess,"the solution's knowledge field of assemble-by-name, migrated 2026-11-08",assemble-by-name,active,,2026-11-08,

@@ -9,5 +9,5 @@ def build(meter):
         made = solution_prompt.prompt(repos.network(args["repo"]), args["solution"], args.get("task", ""), args.get("budget", 24000),
                                       knowledge="ranked")
         ids = [i["id"] for i in made.get("knowledge", []) + made.get("knowledge_inactive", [])] if "ranked" == "ranked" else []
-        return {"text": made["text"], "chars": made["chars"], "knowledge_ids": ids}
+        return {"text": made["text"], "chars": made["chars"], "knowledge_ids": ids, "knowledge_count": len(ids)}
     return prompt

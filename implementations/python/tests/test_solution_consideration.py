@@ -83,7 +83,7 @@ def test_relevance_arms_and_the_shared_scorer(toy, net):
     returned = [{"solution_id": "card-builder", "role": "solution"}, {"solution_id": "card-store", "role": "solution"},
                 {"solution_id": "recall", "role": "parent"}]
     judged = relevance_cases.judge(["card-builder", "recall"], returned)
-    assert judged == {"recall": 1.0, "precision": 0.5, "missed": [], "ok": True}
+    assert judged == {"recall": 1.0, "precision": 0.5, "score": 0.8333, "missed": [], "ok": True}
     assert relevance_cases.judge(["card-store"], returned[:1])["missed"] == ["card-store"]
 
 
@@ -188,3 +188,11 @@ def test_cards_carry_kind_and_source_and_the_stable_part_is_managed(toy, capsys)
     assert {c["id"] for c in items} == {"knowledge-k-cb-1", "knowledge-k-cb-2", "knowledge-k-cb-3", "knowledge-k-cb-4", "knowledge-k-cb-6"}
     assert all(c["tags"][0] == "solution:card-builder" and c["source"] for c in items)
     assert {c["status"] for c in out["quarantine"]} == {"contradicted", "expired"}
+
+
+def test_a_graded_scorer_sets_the_accuracy_of_the_balanced_score():
+    from esoi.optimization.measurement_harness import balance
+    assert balance.graded_credit([{"score": 0.5}, {"score": 1.0}]) == 1.5
+    assert balance.graded_credit([{"score": 0.5}, {"ok": True}]) is None
+    assert balance.graded_credit([{"score": True}]) is None
+    assert relevance_cases.f_score(1.0, 0.03) < relevance_cases.f_score(0.66, 0.24)   # returning everything does not win

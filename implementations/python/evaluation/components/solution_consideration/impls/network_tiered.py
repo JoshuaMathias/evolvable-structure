@@ -10,5 +10,5 @@ def build(meter):
         made = solution_prompt.prompt(repos.network(args["repo"]), args["solution"], args.get("task", ""), args.get("budget", 24000))
         chosen = knowledge.select(made["knowledge"], args.get("task", ""))
         text = made["text"] + ("\n\n## Knowledge that bears on this\n" + "\n".join(knowledge.line(i) for i in chosen) if chosen else "")
-        return {"text": text, "chars": len(text), "knowledge_ids": [i["id"] for i in chosen]}
+        return {"text": text, "chars": len(text), "knowledge_ids": [i["id"] for i in chosen], "knowledge_count": len(chosen)}
     return prompt

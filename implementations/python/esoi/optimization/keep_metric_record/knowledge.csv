@@ -1,0 +1,4 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-keep-metric-record-1,ESOI's rule for work is the relevant metric result before and after the change.,best guess,"the solution's knowledge field of keep-metric-record, migrated 2026-11-08",keep-metric-record,active,,2026-11-08,
+k-keep-metric-record-2,"a worker's closing words are only a claim, so a program takes the reading.",best guess,"the solution's knowledge field of keep-metric-record, migrated 2026-11-08",keep-metric-record,active,,2026-11-08,
+k-keep-metric-record-3,"a recorded row says nothing about a tree that has changed since, so a reading after the work is taken from the tree as it is now.",best guess,"the solution's knowledge field of keep-metric-record, migrated 2026-11-08",keep-metric-record,active,,2026-11-08,

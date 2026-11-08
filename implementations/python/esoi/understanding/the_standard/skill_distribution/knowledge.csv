@@ -1,0 +1,4 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-skill-distribution-1,The skill's own layout (one authoritative file and supporting notes).,best guess,"the solution's knowledge field of skill-distribution, migrated 2026-11-08",skill-distribution,active,,2026-11-08,
+k-skill-distribution-2,plugin and skill folder conventions of the agents that read them.,best guess,"the solution's knowledge field of skill-distribution, migrated 2026-11-08",skill-distribution,active,,2026-11-08,
+k-skill-distribution-3,derived-copy practice used for the intent template.,best guess,"the solution's knowledge field of skill-distribution, migrated 2026-11-08",skill-distribution,active,,2026-11-08,

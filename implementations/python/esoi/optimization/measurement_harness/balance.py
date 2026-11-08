@@ -4,7 +4,7 @@ down where a person can change them (``[balance.<component>]`` in the configurat
 Why: an implementation that is two points more accurate but ten times as slow and expensive is not necessarily better, so a
 metric that ranks by accuracy alone picks it anyway. Each of the three parts is turned into a score between 0 and 1:
 
-  accuracy score = cases passed / cases run
+  accuracy score = cases passed / cases run (or the mean of each case's graded ``score`` when the scorer grades every case)
   cost score     = 1 - (dollars per case / cost budget per case), never below 0 (a run that spends the whole budget scores 0)
   time score     = 1 - (seconds per case / time budget per case), never below 0
 
@@ -50,6 +50,16 @@ def balanced(passed: int, cases: int, cost_usd: Any, seconds: float, table: Opti
              + w["time"] * clamp(1 - per_time / cfg["seconds_per_case"]))
     return {"accuracy": round(accuracy, 4), "cost_per_case": round(per_cost, 6), "seconds_per_case": round(per_time, 2),
             "balanced": round(score, 4)}
+
+
+def graded_credit(rows: Sequence[Mapping[str, Any]]) -> Optional[float]:
+    """The accuracy credit of a run whose scorer grades every case (a ``score`` between 0 and 1 on each row, such as an F-score of a
+    multi-label case): the sum of the scores, so ``balanced`` takes the mean score as its accuracy. ``None`` when any row has no
+    score, and the accuracy is then the share of cases passed."""
+    found = [row.get("score") for row in rows]
+    if not found or any(not isinstance(v, (int, float)) or isinstance(v, bool) or not 0 <= v <= 1 for v in found):
+        return None
+    return float(sum(found))
 
 
 def case_scores(oks: Sequence[bool], costs: Sequence[float], seconds: Sequence[float], table: Optional[Mapping[str, Any]]) -> List[float]:

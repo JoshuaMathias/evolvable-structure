@@ -16,6 +16,7 @@ def provider(meter):
     if not command.strip():
         raise ValueError(f"a paid arm needs {COMMAND_ENV}: a command that reads a prompt on standard input and prints a reply "
                          f"(optionally {MODEL_ENV} and {JUDGE_MODEL_ENV} to name the models); nothing was called")
+    meter.model = meter.model or model() or None   # the model the run is priced and recorded by
     return meter.wrap(CommandProvider(command))
 
 

@@ -336,5 +336,115 @@
     "Graph tools group files better than import graphs do."
    ]
   }
+ },
+ {
+  "id": "KR-001",
+  "kind": "knowledge",
+  "area": "knowledge from a recorded result",
+  "description": "a real result-sourced item of this repository's own records bears; the rest of the solution's knowledge does not",
+  "args": {
+   "solution": "local-application-index",
+   "repo": "live",
+   "budget": 24000,
+   "task": "Drop the index folder and read each project's own records instead; is that as good?"
+  },
+  "expect": {
+   "has": {
+    "knowledge_ids": [
+     "k-local-application-index-3"
+    ]
+   },
+   "at_most": {
+    "knowledge_count": 3
+   }
+  }
+ },
+ {
+  "id": "KR-002",
+  "kind": "knowledge",
+  "area": "knowledge from a recorded result",
+  "description": "a real result-sourced item of this repository's own records bears; the rest of the solution's knowledge does not",
+  "args": {
+   "solution": "intent-registry",
+   "repo": "live",
+   "budget": 24000,
+   "task": "Move every solution's records back into the one structure folder"
+  },
+  "expect": {
+   "has": {
+    "knowledge_ids": [
+     "k-intent-registry-4"
+    ]
+   },
+   "at_most": {
+    "knowledge_count": 3
+   }
+  }
+ },
+ {
+  "id": "KR-003",
+  "kind": "knowledge",
+  "area": "knowledge from a recorded result",
+  "description": "a real result-sourced item of this repository's own records bears; the rest of the solution's knowledge does not",
+  "args": {
+   "solution": "know-what-a-result-measures",
+   "repo": "live",
+   "budget": 24000,
+   "task": "Call a result stale whenever anything in the repository changed"
+  },
+  "expect": {
+   "has": {
+    "knowledge_ids": [
+     "k-know-what-a-result-measures-4"
+    ]
+   },
+   "at_most": {
+    "knowledge_count": 3
+   }
+  }
+ },
+ {
+  "id": "KR-004",
+  "kind": "knowledge",
+  "area": "knowledge from a recorded result",
+  "description": "a real result-sourced item of this repository's own records bears; the rest of the solution's knowledge does not",
+  "args": {
+   "solution": "structure-quality",
+   "repo": "live",
+   "budget": 24000,
+   "task": "Judge structure quality by file size alone"
+  },
+  "expect": {
+   "has": {
+    "knowledge_ids": [
+     "k-structure-quality-9"
+    ]
+   },
+   "at_most": {
+    "knowledge_count": 3
+   }
+  }
+ },
+ {
+  "id": "KR-005",
+  "kind": "knowledge",
+  "area": "knowledge from a recorded result",
+  "description": "a real result-sourced item of this repository's own records bears; the rest of the solution's knowledge does not",
+  "args": {
+   "solution": "solution-consideration",
+   "repo": "live",
+   "budget": 24000,
+   "task": "Give each pass only the solution's own record, without the network"
+  },
+  "expect": {
+   "has": {
+    "knowledge_ids": [
+     "k-solution-consideration-5"
+    ]
+   },
+   "at_most": {
+    "knowledge_count": 3
+   }
+  }
  }
 ]

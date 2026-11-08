@@ -1,0 +1,5 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-structure-check-1,"Architecture tests and linters (import-linter, ArchUnit).",best guess,"the solution's knowledge field of structure-check, migrated 2026-11-08",structure-check,active,,2026-11-08,
+k-structure-check-2,plugin systems.,best guess,"the solution's knowledge field of structure-check, migrated 2026-11-08",structure-check,active,,2026-11-08,
+k-structure-check-3,the repository's numbered rules (esoi rules).,best guess,"the solution's knowledge field of structure-check, migrated 2026-11-08",structure-check,active,,2026-11-08,
+k-structure-check-4,"the leaderboard (reused, not copied).",best guess,"the solution's knowledge field of structure-check, migrated 2026-11-08",structure-check,active,,2026-11-08,

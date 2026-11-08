@@ -81,6 +81,11 @@ declaration.
 
 `esoi run solution_consideration --impl network_tiered` checks that the deciding records reach the pass on a synthetic repository
 shaped like the incident above and on this repository's records; `definition_only` is the baseline of the solution's record alone.
-`esoi run solution_relevance --impl index_with_links` scores the classification on cases mined from git history and written by
-hand. Another repository builds its own case set with `esoi.understanding.solution_relevance.relevance_cases.mine` and shares the
+`esoi run consideration_verdicts --impl network_prompt_model` is the paid stage: a cheap model gives a verdict on a matter whose
+deciding record is held only in the network, once with the network prompt and once with the record alone (`record_alone_model`).
+`esoi run solution_relevance --impl lexical_index` scores the classification on cases mined from git history and written by hand:
+each case is graded by its F2 score (recall weighs four times precision) and passes when no needed solution is missed;
+`model_classifier` and `lexical_then_model` are the cheap-model arms. Model arms need `ESOI_MODEL_COMMAND` and `ESOI_MODEL`
+(`esoi/metric-run-policy.md`); the library builds the prompt and reads the reply (`relevance.classification_prompt`,
+`relevance.parse_ids`, `relevance.model_arm(answer)`), and the caller supplies the model. Another repository builds its own case set with `esoi.understanding.solution_relevance.relevance_cases.mine` and shares the
 scorer (see [the commands](../reference/consider-commands.md)).

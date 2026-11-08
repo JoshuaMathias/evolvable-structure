@@ -85,3 +85,55 @@ def ranked(index: Dict[str, Any], text: str, limit: int = DEFAULT_LIMIT, arm: st
     return ARMS[arm or library_default()](index, text, limit)
 
 
+
+
+CLASSIFY_INSTRUCTIONS = (
+    "You decide which solutions of a project a matter concerns, so each one gets its own consideration. A solution needs consideration "
+    "when the matter would change it, use it, or be judged by its records. Missing a solution that needed consideration is worse than "
+    "naming one extra. Reply with JSON only: {\"solutions\": [ids, most relevant first]}, at most LIMIT ids, using only the ids listed.")
+
+
+def solution_lines(index: Dict[str, Any], only: Any = None) -> List[str]:
+    """One line per solution of the index (or of ``only``): its id, its name and the summary the index holds."""
+    wanted = set(only) if only is not None else None
+    return [f"{e['id']}: {e['title']}. {e['summary']}" for e in index["entries"]
+            if e["kind"] == "solution" and (wanted is None or e["id"] in wanted)]
+
+
+def classification_prompt(index: Dict[str, Any], text: str, limit: int = DEFAULT_LIMIT, only: Any = None) -> str:
+    """The prompt a model arm sends: the instructions, the solutions it may choose from and the matter. No model is called here."""
+    return (CLASSIFY_INSTRUCTIONS.replace("LIMIT", str(limit)) + "\n\nSolutions:\n" + "\n".join(solution_lines(index, only))
+            + f"\n\nThe matter:\n{text}\n")
+
+
+def parse_ids(reply: str, known: Any) -> List[str]:
+    """The known solution ids a model's reply names, in its order: from its JSON when it parses, else every known id it mentions."""
+    import json
+    import re
+    known = list(known)
+    found: List[str] = []
+    match = re.search(r"\{.*\}", reply or "", re.S)
+    try:
+        listed = json.loads(match.group(0)).get("solutions", []) if match else []
+    except (ValueError, AttributeError):
+        listed = []
+    for item in listed if isinstance(listed, list) else []:
+        if isinstance(item, str) and item in known and item not in found:
+            found.append(item)
+    if not found:
+        found = sorted((k for k in known if re.search(r"(?<![\w-])" + re.escape(k) + r"(?![\w-])", reply or "")),
+                       key=lambda k: (reply or "").find(k))
+    return found
+
+
+def model_arm(answer: Callable[[str], str], candidates: str = "") -> Callable[..., List[Dict[str, Any]]]:
+    """A classifier that asks a model, through ``answer(prompt) -> reply`` the caller supplies: over every solution, or, with
+    ``candidates`` naming a free arm, over that arm's wider candidate list (lexical recall first, then the model's judgement)."""
+    def classify(index: Dict[str, Any], text: str, limit: int = DEFAULT_LIMIT) -> List[Dict[str, Any]]:
+        only = [s["solution_id"] for s in ARMS[candidates](index, text, limit * 3)] if candidates else None
+        if only is not None and not only:
+            return []
+        known = only if only is not None else [e["id"] for e in index["entries"] if e["kind"] == "solution"]
+        picked = parse_ids(answer(classification_prompt(index, text, limit, only)), known)[:limit]
+        return [{"solution_id": sid, "score": float(limit - n), "via": ["model"]} for n, sid in enumerate(picked)]
+    return classify

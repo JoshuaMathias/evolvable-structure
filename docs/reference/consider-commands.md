@@ -36,7 +36,8 @@ The JSON is `{input, arm, index_digest, budget, prompts}`; each prompt is the di
 | `fan_out.classify(network, index, text, limit=5, arm="")` | solutions then parents, each `{solution_id, score, via, role}` |
 | `fan_out.consider(network, index, text, limit=5, budget=24000, arm="", only=())` | the JSON of `esoi consider` |
 | `relevance_cases.mine(config, registry)`, `build(config, registry, hand)` | relevance cases from git history and hand-labelled ones |
-| `relevance_cases.score_case(fn, case)`, `aggregate(rows)` | the shared scorer: recall, precision, misses |
+| `relevance_cases.score_case(fn, case)`, `aggregate(rows)` | the shared scorer: each case's F2 (its graded `score`), recall, precision, misses |
+| `relevance.model_arm(answer, candidates="")` | a model classifier over every solution, or over a free arm's candidates; `answer(prompt) -> reply` is yours |
 
 Modules: `esoi.understanding.solution_consideration` and `esoi.understanding.solution_relevance`.
 

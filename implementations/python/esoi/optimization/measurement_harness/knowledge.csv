@@ -1,0 +1,4 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-measurement-harness-1,"Evaluation practice for language models (held-out cases, staged sample sizes, judged rubrics).",best guess,"the solution's knowledge field of measurement-harness, migrated 2026-11-08",measurement-harness,active,,2026-11-08,
+k-measurement-harness-2,experiment tracking.,best guess,"the solution's knowledge field of measurement-harness, migrated 2026-11-08",measurement-harness,active,,2026-11-08,
+k-measurement-harness-3,"the eval ladder of three, ten and thirty cases.",best guess,"the solution's knowledge field of measurement-harness, migrated 2026-11-08",measurement-harness,active,,2026-11-08,

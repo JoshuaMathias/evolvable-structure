@@ -1,0 +1,4 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-esoi-for-ai-1,"The author's skill and its principles, especially principle 4 (humans need only review metrics, not implementations, though they can still add value to implementations) and principle 7 (perspectives are implementations).",best guess,"the solution's knowledge field of esoi-for-ai, migrated 2026-11-08",esoi-for-ai,active,,2026-11-08,
+k-esoi-for-ai-2,"evaluation practice for language models (cases with an expected behaviour and a failure mode, staged samples, a no-instructions baseline).",best guess,"the solution's knowledge field of esoi-for-ai, migrated 2026-11-08",esoi-for-ai,active,,2026-11-08,
+k-esoi-for-ai-3,practice for loading skills and standing instructions.,best guess,"the solution's knowledge field of esoi-for-ai, migrated 2026-11-08",esoi-for-ai,active,,2026-11-08,

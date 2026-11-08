@@ -1,0 +1,4 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-readable-records-1,Generated indexes of components.,best guess,"the solution's knowledge field of readable-records, migrated 2026-11-08",readable-records,active,,2026-11-08,
+k-readable-records-2,README conventions.,best guess,"the solution's knowledge field of readable-records, migrated 2026-11-08",readable-records,active,,2026-11-08,
+k-readable-records-3,the intent specification in the author's skill.,best guess,"the solution's knowledge field of readable-records, migrated 2026-11-08",readable-records,active,,2026-11-08,

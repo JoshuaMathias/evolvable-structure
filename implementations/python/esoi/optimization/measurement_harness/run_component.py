@@ -137,7 +137,9 @@ def score_summary(run: Run, summary: Dict[str, Any], parts: list, rows: list) ->
     if parts:
         summary.update(foundation_parts.blend(summary, cost, parts, builds, config.balance.get(component)))
         return Totals(summary["passed"], summary["cases"], run_cost(config, summary, summary["model"]))
-    summary.update(balance.balanced(summary["passed"], len(rows), cost, summary["seconds"], config.balance.get(component)))
+    credit = balance.graded_credit(rows)
+    summary.update(balance.balanced(summary["passed"] if credit is None else credit, len(rows), cost, summary["seconds"],
+                                    config.balance.get(component)))
     return Totals(summary["passed"], len(rows), cost)
 
 

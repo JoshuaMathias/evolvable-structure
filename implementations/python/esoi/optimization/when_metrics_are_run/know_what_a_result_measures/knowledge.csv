@@ -1,0 +1,5 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-know-what-a-result-measures-1,Static import analysis.,best guess,"the solution's knowledge field of know-what-a-result-measures, migrated 2026-11-08",know-what-a-result-measures,active,,2026-11-08,
+k-know-what-a-result-measures-2,the ownership map of this repository.,best guess,"the solution's knowledge field of know-what-a-result-measures, migrated 2026-11-08",know-what-a-result-measures,active,,2026-11-08,
+k-know-what-a-result-measures-3,the cost of a needless re-run against the cost of trusting a result whose code changed.,best guess,"the solution's knowledge field of know-what-a-result-measures, migrated 2026-11-08",know-what-a-result-measures,active,,2026-11-08,
+k-know-what-a-result-measures-4,Calling a result stale whenever anything in the repository changed was the least precise staleness rule.,evidence,result:staleness_precision/repo_wide@2026-11-06,know-what-a-result-measures,active,,2026-11-08,

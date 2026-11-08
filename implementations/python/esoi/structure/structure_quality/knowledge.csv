@@ -1,0 +1,10 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-structure-quality-1,Ousterhout on deep modules and pass-through methods.,best guess,"the solution's knowledge field of structure-quality, migrated 2026-11-08",structure-quality,active,,2026-11-08,
+k-structure-quality-2,Parnas on information hiding.,best guess,"the solution's knowledge field of structure-quality, migrated 2026-11-08",structure-quality,active,,2026-11-08,
+k-structure-quality-3,"Martin's instability metric and the stable dependencies, acyclic dependencies, common reuse and interface segregation principles (the shared kernel and the fat interface).",best guess,"the solution's knowledge field of structure-quality, migrated 2026-11-08",structure-quality,active,,2026-11-08,
+k-structure-quality-4,McCabe's cyclomatic complexity.,best guess,"the solution's knowledge field of structure-quality, migrated 2026-11-08",structure-quality,active,,2026-11-08,
+k-structure-quality-5,PEP 8 on a package's __init__ as its interface.,best guess,"the solution's knowledge field of structure-quality, migrated 2026-11-08",structure-quality,active,,2026-11-08,
+k-structure-quality-6,clone detection by token windows.,best guess,"the solution's knowledge field of structure-quality, migrated 2026-11-08",structure-quality,active,,2026-11-08,
+k-structure-quality-7,"logical coupling from co-change in version history (Gall, Zimmermann).",best guess,"the solution's knowledge field of structure-quality, migrated 2026-11-08",structure-quality,active,,2026-11-08,
+k-structure-quality-8,"esoi's own S48, S49 and coherence evidence.",best guess,"the solution's knowledge field of structure-quality, migrated 2026-11-08",structure-quality,active,,2026-11-08,
+k-structure-quality-9,Judging structure by file size alone missed most incident shapes the balanced scorer caught.,evidence,result:score_structure_quality/file_size_only@2026-11-07,structure-quality,active,,2026-11-08,

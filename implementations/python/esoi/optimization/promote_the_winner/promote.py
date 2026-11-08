@@ -72,15 +72,29 @@ class Subject:
         return self.stale(self.config, self.component, row, True)
 
 
+def record_name(implementations: List[Row], sid: str, winner: str) -> str:
+    """The name the records give the winning arm: a harness arm ``lexical_index`` is the record ``solution:lexical-index`` when the two
+    differ only in dashes, underscores or case; the arm's own name when no record matches."""
+    def key(text: str) -> str:
+        return text.strip().lower().replace("-", "_")
+    for row in implementations:
+        implementation_id = row.get("implementation_id") or ""
+        if implementation_id.startswith(f"{sid}:") and key(implementation_id.split(":", 1)[1]) == key(winner):
+            return implementation_id.split(":", 1)[1]
+    return winner
+
+
 def new_selected(subject: Subject, winner: str) -> str:
-    """The ``selected`` cell for the winner, in the style the old one is written in (a path, ``solution:name``, a name)."""
+    """The ``selected`` cell for the winner, in the style the old one is written in (a path, ``solution:name``, a name), named as the
+    records name it."""
     config, registry, component = subject.config, subject.registry, subject.component
     old = (subject.solution.get("selected") or "").strip()
     sid = subject.solution["solution_id"]
+    arm, winner = winner, record_name(registry.implementations, sid, winner)
     if "/" in old.split("::")[0]:
         record = next((r for r in registry.implementations if r.get("implementation_id") == f"{sid}:{winner}"), {})
         path = (record.get("filepath") or "").strip()
-        guess = f"{config.evaluation_dir}/{component}/impls/{winner}.py"
+        guess = f"{config.evaluation_dir}/{component}/impls/{arm}.py"
         return path or (guess if (config.root / guess).is_file() else "")
     return f"{sid}:{winner}" if old.startswith(f"{sid}:") else winner
 

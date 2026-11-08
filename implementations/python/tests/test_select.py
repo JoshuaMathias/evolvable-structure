@@ -48,3 +48,11 @@ def test_register_adds_and_can_become_the_default():
 def test_load_table_by_file_path_and_by_module(tmp_path):
     (tmp_path / "table.py").write_text('SELECTION = {"x": {"default": "a", "implementations": {"a": "collections:deque"}}}\n')
     assert Selector(load_table("table.py:SELECTION", tmp_path)).resolve("x").__name__ == "deque"
+
+
+def test_promote_names_the_winner_as_the_records_do():
+    from esoi.optimization.promote_the_winner.promote import record_name
+    rows = [{"implementation_id": "rel:index-with-links"}, {"implementation_id": "rel:lexical-index"}, {"implementation_id": "other:lexical_index"}]
+    assert record_name(rows, "rel", "lexical_index") == "lexical-index"
+    assert record_name(rows, "rel", "Index_With_Links") == "index-with-links"
+    assert record_name(rows, "rel", "new_arm") == "new_arm"

@@ -1,0 +1,4 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-leaderboard-1,Statistical noise in small judged samples.,best guess,"the solution's knowledge field of leaderboard, migrated 2026-11-08",leaderboard,active,,2026-11-08,
+k-leaderboard-2,cost and token accounting.,best guess,"the solution's knowledge field of leaderboard, migrated 2026-11-08",leaderboard,active,,2026-11-08,
+k-leaderboard-3,Pareto comparison of quality and cost.,best guess,"the solution's knowledge field of leaderboard, migrated 2026-11-08",leaderboard,active,,2026-11-08,

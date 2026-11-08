@@ -1,0 +1,4 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-local-application-index-1,How the folder for a tool's user settings works in other tools.,best guess,"the solution's knowledge field of local-application-index, migrated 2026-11-08",local-application-index,active,,2026-11-08,
+k-local-application-index-2,the principle of finding and reusing structure instead of rebuilding it.,best guess,"the solution's knowledge field of local-application-index, migrated 2026-11-08",local-application-index,active,,2026-11-08,
+k-local-application-index-3,Reading only each project's own records found far fewer projects than the index folder on the lookup cases.,evidence,result:index_projects/records_only@2026-11-06,local-application-index,active,,2026-11-08,

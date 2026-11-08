@@ -299,8 +299,8 @@
  "solution-consideration": {
   "default": "network_tiered",
   "evidence": {
-   "detail": "network_tiered is better than definition_only (two-sided exact sign test on per-case balanced scores, Holm-adjusted p=0.000488, 12 of 12 cases disagree)",
-   "p": 0.000488,
+   "detail": "network_tiered leads all_knowledge (all_knowledge 0.752 against network_tiered 0.999; best guess, not yet significant, two-sided exact sign test on per-case balanced scores, Holm-adjusted p=0.0625, 6 of 17 cases disagree); network_tiered is better than definition_only (two-sided exact sign test on per-case balanced scores, Holm-adjusted p=9.16e-05, 16 of 17 cases disagree); network_tiered leads no_knowledge (no_knowledge 0.793 against network_tiered 0.999; best guess, not yet significant, two-sided exact sign test on per-case balanced scores, Holm-adjusted p=0.0625, 6 of 17 cases disagree)",
+   "p": 9.2e-05,
    "verdict": "WIN"
   },
   "modules": {

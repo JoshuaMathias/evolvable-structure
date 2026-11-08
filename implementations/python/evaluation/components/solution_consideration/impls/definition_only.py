@@ -11,5 +11,5 @@ def build(meter):
         row = net.solutions[args["solution"]]
         text = "\n".join(f"{key}: {' '.join(value.split())}" for key, value in row.items() if (value or "").strip())
         text = text[:args.get("budget", 24000)]
-        return {"text": text, "chars": len(text)}
+        return {"text": text, "chars": len(text), "knowledge_ids": [], "knowledge_count": 0}
     return prompt

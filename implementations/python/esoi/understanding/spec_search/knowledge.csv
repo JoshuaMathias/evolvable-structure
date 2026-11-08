@@ -1,0 +1,6 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-spec-search-1,Reciprocal rank fusion.,best guess,"the solution's knowledge field of spec-search, migrated 2026-11-08",spec-search,active,,2026-11-08,
+k-spec-search-2,field-weighted TF-IDF as the Quest AI runner uses for context cards.,best guess,"the solution's knowledge field of spec-search, migrated 2026-11-08",spec-search,active,,2026-11-08,
+k-spec-search-3,progressive disclosure.,best guess,"the solution's knowledge field of spec-search, migrated 2026-11-08",spec-search,active,,2026-11-08,
+k-spec-search-4,confidence-gated model use.,best guess,"the solution's knowledge field of spec-search, migrated 2026-11-08",spec-search,active,,2026-11-08,
+k-spec-search-5,the intent records' own link columns.,best guess,"the solution's knowledge field of spec-search, migrated 2026-11-08",spec-search,active,,2026-11-08,

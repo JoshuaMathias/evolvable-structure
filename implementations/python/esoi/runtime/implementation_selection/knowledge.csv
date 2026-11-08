@@ -1,0 +1,5 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-implementation-selection-1,Ports and adapters.,best guess,"the solution's knowledge field of implementation-selection, migrated 2026-11-08",implementation-selection,active,,2026-11-08,
+k-implementation-selection-2,plugin registries.,best guess,"the solution's knowledge field of implementation-selection, migrated 2026-11-08",implementation-selection,active,,2026-11-08,
+k-implementation-selection-3,lazy loading of optional dependencies.,best guess,"the solution's knowledge field of implementation-selection, migrated 2026-11-08",implementation-selection,active,,2026-11-08,
+k-implementation-selection-4,how libraries let an embedding program declare and select alternatives.,best guess,"the solution's knowledge field of implementation-selection, migrated 2026-11-08",implementation-selection,active,,2026-11-08,

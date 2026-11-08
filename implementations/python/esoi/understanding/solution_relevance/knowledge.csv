@@ -1,0 +1,4 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-solution-relevance-1,A commit's subject and the files it changed are an objective label: the solutions whose implementation files it touched needed consideration.,best guess,"the solution's knowledge field of solution-relevance, migrated 2026-11-08",solution-relevance,active,,2026-11-08,
+k-solution-relevance-2,"Recall counts most, since a missed solution is a skipped consideration; a precision floor keeps the fan-out affordable.",best guess,"the solution's knowledge field of solution-relevance, migrated 2026-11-08",solution-relevance,active,,2026-11-08,
+k-solution-relevance-3,"Lexical matching misses requests that share no word with a record, which is where a semantic or model arm earns its cost.",best guess,"the solution's knowledge field of solution-relevance, migrated 2026-11-08",solution-relevance,active,,2026-11-08,

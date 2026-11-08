@@ -1,0 +1,111 @@
+[
+ {
+  "id": "CV-001",
+  "kind": "verdict",
+  "area": "the reputed candidate's arm already lost (the motivating incident)",
+  "description": "the reputed candidate's arm already lost (the motivating incident)",
+  "args": {
+   "repo": "fixture",
+   "solution": "card-builder",
+   "task": "A popular graph tool is rated the strongest candidate by reputation. Should it become the selected card builder?"
+  },
+  "expect": {
+   "verdict": "reject",
+   "cites": [
+    "3 of 63",
+    "0.32",
+    "graph_groups"
+   ]
+  }
+ },
+ {
+  "id": "CV-002",
+  "kind": "verdict",
+  "area": "reading only each project's records already lost on the lookup cases",
+  "description": "reading only each project's records already lost on the lookup cases",
+  "args": {
+   "repo": "live",
+   "solution": "local-application-index",
+   "task": "Drop the index folder and read each project's own records instead; it is simpler. Should we switch?"
+  },
+  "expect": {
+   "verdict": "reject",
+   "cites": [
+    "3 of 10",
+    "records_only"
+   ]
+  }
+ },
+ {
+  "id": "CV-003",
+  "kind": "verdict",
+  "area": "one structure folder already failed every navigation case",
+  "description": "one structure folder already failed every navigation case",
+  "args": {
+   "repo": "live",
+   "solution": "intent-registry",
+   "task": "Move every solution's records back into the one structure folder; records beside the code are messy. Should we switch?"
+  },
+  "expect": {
+   "verdict": "reject",
+   "cites": [
+    "0 of 50",
+    "esoi_folder"
+   ]
+  }
+ },
+ {
+  "id": "CV-004",
+  "kind": "verdict",
+  "area": "the repository-wide rule was the least precise",
+  "description": "the repository-wide rule was the least precise",
+  "args": {
+   "repo": "live",
+   "solution": "know-what-a-result-measures",
+   "task": "Call a result stale whenever anything in the repository changed; it is the safest rule. Should we switch to that?"
+  },
+  "expect": {
+   "verdict": "reject",
+   "cites": [
+    "12 of 55",
+    "repo_wide"
+   ]
+  }
+ },
+ {
+  "id": "CV-005",
+  "kind": "verdict",
+  "area": "the file-size scorer already lost",
+  "description": "the file-size scorer already lost",
+  "args": {
+   "repo": "live",
+   "solution": "structure-quality",
+   "task": "Judge structure quality by file size alone; it is the simplest scorer. Should we switch to it?"
+  },
+  "expect": {
+   "verdict": "reject",
+   "cites": [
+    "10 of 49",
+    "file_size_only"
+   ]
+  }
+ },
+ {
+  "id": "CV-006",
+  "kind": "verdict",
+  "area": "the record alone already missed almost every deciding record",
+  "description": "the record alone already missed almost every deciding record",
+  "args": {
+   "repo": "live",
+   "solution": "solution-consideration",
+   "task": "Give each pass only the solution's own record; the network prompt is too long. Should we switch?"
+  },
+  "expect": {
+   "verdict": "reject",
+   "cites": [
+    "1 of 17",
+    "definition_only"
+   ]
+  }
+ }
+]

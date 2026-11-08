@@ -1,0 +1,4 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-ownership-map-1,Layered and hexagonal architecture.,best guess,"the solution's knowledge field of ownership-map, migrated 2026-11-08",ownership-map,active,,2026-11-08,
+k-ownership-map-2,code owners practice.,best guess,"the solution's knowledge field of ownership-map, migrated 2026-11-08",ownership-map,active,,2026-11-08,
+k-ownership-map-3,the repository's split rule.,best guess,"the solution's knowledge field of ownership-map, migrated 2026-11-08",ownership-map,active,,2026-11-08,

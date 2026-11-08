@@ -1,0 +1,5 @@
+knowledge_id,claim,kind,source,solution_ids,status,status_by,recorded,expiration
+k-intent-registry-1,The intent template in the evolvable-structure skill.,best guess,"the solution's knowledge field of intent-registry, migrated 2026-11-08",intent-registry,active,,2026-11-08,
+k-intent-registry-2,Joshua's Project Documentation board (solution definitions apart from implementations).,best guess,"the solution's knowledge field of intent-registry, migrated 2026-11-08",intent-registry,active,,2026-11-08,
+k-intent-registry-3,requirements traceability practice.,best guess,"the solution's knowledge field of intent-registry, migrated 2026-11-08",intent-registry,active,,2026-11-08,
+k-intent-registry-4,Keeping every record in the one structure folder failed every navigation case that records beside the code passed in part.,evidence,result:navigable_records/esoi_folder@2026-11-06,intent-registry,active,,2026-11-08,
