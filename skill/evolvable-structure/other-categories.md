@@ -95,7 +95,7 @@ and player governance proposals (proposals, not records of how they worked).
 - **Standing rules as small retrievable cards.** Tag each rule with when it applies, retrieve rather than
   paste, and keep paid-for lessons as dated invariants. For example, quest-ai-runner does both.
 - **Documentation as problem, ideals, definitions and implementations.** Joshua's Project Documentation
-  board is the model `principles.md` follows ("How to think and document"). (`trello_project_documentation.md > Documentation`, `> Solution Definitions`)
+  board is the model `principles/documenting.md` follows. (`trello_project_documentation.md > Documentation`, `> Solution Definitions`)
 - **Apply it to the document, not only to the tool that plans it.** When building an instrument for a
   document (a checklist or question sheet for an outline), structure the document itself too: each
   section names the problem it solves, its interfaces (which sections depend on it), where its content

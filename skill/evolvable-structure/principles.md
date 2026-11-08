@@ -20,6 +20,8 @@ framework examples in a final section, so a principle never depends on one frame
 | `principles/patterns_change.md` | evidence for patterns 8, 9, 13, 14, 15 (experiment to production, measurement, interfaces, rates of change, components) |
 | `principles/difficulties.md` | someone proposes an abstraction, scope is unclear, or a built structure failed |
 | `principles/research.md` | you need outside support or counter-evidence, or how strong the evidence is |
+| `principles/patterns_consideration.md` | evidence for pattern 16 (each solution gets its own consideration; depth reaches completion quality) |
+| `principles/documenting.md` | writing or reviewing problems, ideals, vision statements, intents, a restructuring, or deciding whether to add a solution: the method and Joshua's dated lessons |
 
 The table below is usually enough; open a pattern's subfile only for its evidence or examples.
 
@@ -47,10 +49,13 @@ those ideals in the old order, mapped in `sources/INDEX.md`.)
 | 13 | A stable interface, with changes announced | 2, 3 | tests pin the contract and users hear about upgrades |
 | 14 | Parts are separated by how fast they change | 5 | changing the fastest part touches none of the slower ones |
 | 15 | Functional components: iterate inside, reuse across systems | 2, 4, 8, 9 | the measure picks between implementations with no caller changing, and a second system uses it unmodified with new parameters only |
+| 16 | Each solution gets its own consideration | 2, 5, 6 | every relevant solution is judged on its own, against its own records, and no level of the hierarchy is skipped |
+
+Pattern 16 in full, with the depth rule and the evidence: `principles/patterns_consideration.md`.
 
 From a principle to its patterns: 1 → `principles/purpose.md` (sizing the structure to the intent and its
 timeframe); 2 → 1, 2, 6, 7, 9, 13, 15; 3 → 4, 13; 4 → 2, 8, 9, 15; 5 → 8, 14 and `principles/purpose.md`;
-6 → "How to think and document" below; 7 → 3, 5, 9, 11, 12; 8 → 6, 11, 15; 9 → 1, 4, 6, 15, with
+6 → `principles/documenting.md`; 7 → 3, 5, 9, 11, 12; 8 → 6, 11, 15; 9 → 1, 4, 6, 15, with
 `principles/difficulties.md` (copies drift; generality the purpose does not call for) as its limit; 10 → 8, 9
 and `principles/difficulties.md` (a general claim needs a real case; an extension point counts once built
 and tested): verify in the real system and against the outcome metric, not only in unit tests; 11 → 4, 8 and
@@ -74,89 +79,13 @@ When generality is the wrong move, with evidence, in `principles/difficulties.md
 
 ## How to think and document
 
-Follow Joshua's Project Documentation board (`sources/trello_project_documentation.md >
-Documentation`, `> Solution Definitions`). State the **problem** (who, why it matters, why it is
-hard) and the **ideals**, each with a practical metric. Keep the **definition** (what it does, its
-interface, its measure of success) apart from its **implementations**, the alternatives. The best by
-the measure is the default, chosen by the structure where it can be, so people need only review metrics, not
-implementations (they can still add value to implementations); park the rest rather than delete them. Note the **difficulties** and what the
-structure leaves out, then **keep improving**, and save each round's lessons where the next will
-find them. Apply the same steps to principles and processes, not only artifacts, and look for
-problems nobody has defined yet. Before building, look for an existing structure, library, method or
-public source that already serves the definition. When AI writes code, start from the interface and
-one example call (`coding.md`).
-
-**A problem says what is true; an ideal says the state you want (Joshua, 2026-11-04).** On a hub problem that read
-"Parts that are best alone can fail when assembled, and nobody tests the whole", Joshua: "this isn't correct, it's that
-the parts need to be justified as part of the whole but just independently optimized, and it's not correct that the
-whole is never tested, what developer would say that ... ensure that problems don't say false things just to make easy
-statements; it should have nuanced yet clear and simple language." A problem describes today, so a domain expert must
-recognise it as accurate: replace a sweeping absolute or a strawman with the real gap (what is missing, for whom, how often,
-at what cost). Then: "absolutes are more expected in ideals than in problems, that's kind of what ideals are", and "ideals
-should avoid being solutions, that's the easiest trap; solutions are strategic approaches or roles in a system, ideals are
-the state we want." So an ideal states the limit state from the point of view of whoever is affected ("Every request
-reaches a model that is up and within its budget"), never the means ("Use one router for every model call"). Test: could
-two different solutions both reach it? The ESOI repository's explanation `a-problem-says-what-is-true.md` and how-to
-`write-problems-and-ideals-that-hold-up.md` hold the checklist; its advisory rules S51 (absolutes in problems) and S52
-(solution-shaped ideals) point at candidates.
-
-**A vision statement is one short sentence naming the overall concept in its optimal, ongoing state (Joshua, 2026-11-04).** AI drafts were "too long and detailed, like going into the metrics or subsolutions instead of an overall concept", and "every week" is "too specific for a vision statement, that's a metric or implementation". His rewrites show the pattern: start from who the concept serves and what they get ("AI builders have consistent interfaces for whatever the current best AI solutions are, to adapt only what is unique to their project"); name the central concept itself, not its steps or parts; state the optimal ongoing state with words like "optimally", "in the best way possible", "continuously" ("The AI system optimally learns and interacts with the world outside of it", "AI requests are handled in the best way possible, given all relevant information"); write "The AI system", not "An AI system"; qualify with what the result depends on, not with an outcome clause; leave out frequencies, counts, flow steps and sub-solutions. An ideal takes the comprehensive absolute form ("The implementations selected for solutions always reflect the best alternative available across all known resources and methods"). AI may write vision wording but shows it to him first.
-
-**A problem is not a restated solution; every type is written as itself.** Lesson from an AI-runner project, 2026-10-17.
-Joshua: "Not a single problem is written as a problem", and "keep in mind my feedback is about all five
-types of things". The registry had generated one "problem" per solution, worded as the job ("Decide per
-message whether to answer..."), and similar restatements stood in for ideals and metrics. Each of Problem,
-Solution, Implementation, Ideal and Metric is a first-class record that specifies every field of its
-`Specify:` list in `SKILL.md`'s "The five specification templates within an intent", is not what that template's "What it's not" says,
-and links as its "Connects to" says (so one problem can motivate several solutions and be opposed by several
-ideals). Never derive one type from another's row, and do not write a standard of your own: read the template
-from `SKILL.md` each time, since Joshua refines it, and fill any field it newly lists.
-
-**Keep Joshua's qualifiers when restating SKILL.md.** Lesson from the evolvable-structure repo, 2026-10-17.
-Principle 4 says "Humans need only review metrics, not implementations (but they can still add value to
-implementations)". AI docs shortened it to "Humans review metrics, not implementations" and "never by reading
-implementations". Joshua: "you lost the nuance here ... a very important nuance as people will be critical to
-explicitly deny the possibility of humans reviewing implementations." A paraphrase that drops "need only", "if and
-only if", "relatively", "pragmatically" or a parenthetical turns a sufficiency into a prohibition or a rule into an
-absolute. Quote SKILL.md, or keep every qualifier, and check a restatement against the original sentence.
-
-**Define the top intent first; per-repo tooling comes from the shared utilities.** Lesson from a research-engine
-project, 2026-10-17. Asked to apply ESOI to it, AI started copying a sibling project's registry and checker into the
-repository. Joshua: "Apply esoi to the overall structure which the practical structures in repo will implement, but keep
-in mind the new evolvable-structure repository will provide guidance or utilities for doing that in general, but you
-should define the overall solution of conceptai and have me review right away." So the first deliverable is the
-top-level network (the product's own problems, ideals, solutions, implementations, metrics), validated with the ESOI
-tools and sent for review before any per-module registry. A review pass then found the same draft had drifted into
-framework plumbing (runtime, providers, stores promoted to top-level ideals) and missed evaluation and evidence
-ingestion: at the top level, ideals come from the owner's stated requirements, the core capabilities are the ones users
-and the evaluation depend on, and how the code is built is one level down. Comparison arms (baselines) go in a metric's
-record, not in implementations; status, gaps and numbers go in the project's tracker or dated result files, not in the
-records. The project's own notes are in the local ESOI index.
-
-**Hierarchy is intents, not solutions (Joshua, 2026-10-18).** Joshua: "In ESOI have hierarchy be defined in terms of intents and sub-intents instead of solutions and sub-solutions." An intent is a clear, encapsulating container (in a repository, a folder with its own record). A sub-intent arises as an implementation of a solution in the parent intent, and is specified "if and only if that intent brings insights on opportunities that don't emerge directly from the parent intent or solution that the sub-intent is implementing". Risks and uncertainties alone do not justify one. SKILL.md: "Risks are addressed by considering disadvantages of Implementations and Metrics, uncertainties are addressed by Metrics, and opportunities are addressed by Solutions." Implementations are ideas that can start as sub-intents or evolve into them. The two-level "overall network plus detailed records" layout is legacy (it maps to the top intent plus sub-intents and `uses_solution_ids`). The 2026-10-17 answers below that say "sub-solution" are from before this change.
-
-**A restructuring is an alternative structure, measured before and after (Joshua, 2026-11-05).** Each merge, split, adoption, interface change or moved module is compared like any other alternative: run `esoi structure-quality` before, `esoi structure-quality --compare <before> <after>` after, and keep the change only if the balanced number holds or rises, stating the reason in the commit when it does not. Joshua had to ask for this; the library's order of building, standard and CLAUDE.md now say it so nobody has to be told.
-
-**A project's top intent is why that project exists, never "the structure" (Joshua, 2026-10-18).** Joshua: "The top intent is very importantly custom to the project, why the project exists." The folder that holds the specifications is not the intent. The evolvable structure a project applies is a solution inside the project's own top intent; its implementation may use the generic ESOI solutions (a "uses" link across projects), and anything project-specific about the structure lives inside that project's top intent. Only in the ESOI repository itself is the top intent ESOI, because that is why that project exists; do not generalize from it.
-
-**Cutting cost is not the same as finding the balance (Joshua, 2026-10-19).** A review found user specs were written but never read, and recommended "Stop AI-written specs for quests" outright. Joshua: "Some of this sounds a little too extreme ... Of course a one single time AI call to specify a quest more as a spec would he worth it once quest is fully specified and being discussed with the user with AI, but yes certain fields like vision statement/outcome are directly translatable ... Find the right balances and nuances not just easy fixes. And yes don't have token spend for things that aren't needed or used and things can happen in the moment first needed by AI." So when a structure costs more than it returns, sort each part instead of deleting it. A part that maps directly from data that already exists is built by code. A part that adds judgment is generated once, lazily, at the moment it is first needed, and refreshed on real events. A part nobody reads is removed. Retrieval follows the context-card approach: each intent is a card, and records are found by relevance rather than pinned. Also tie the spec to the features that already compare alternatives (in Quest, experiments), and remember that some intents endure, such as a repository or an artifact built over time, while the quests under them end.
-
-**Joshua's answers on the structure network, 2026-10-17.** On whether types link both ways: "Your question is
-misleading, as what you list in parenthesis I *did* specify in "Connects to." I included the directions I felt important
-to specify to ensure the intent is documented. In practice, this depends on what structure holds the ESOI structure, e.g.
-if it's a graph data model then it only has to be specified once for both directions, as edges." So before asking
-whether SKILL.md specifies something, check it, and quote it in the question. On keeping two close solutions separate
-(a measurement harness and a leaderboard): important enough to separate, and it "helps for humans skimming and reading
-only names, to get a clear picture." On a structure budget with no implementation: "Keep; it's essentially always needed
-conceptually to avoid infinite hierarchy, but not every project merits a code solution for this." On ESOI applied to AI
-behaviour: "The general application of ESOI to AI is a sub-solution of ESOI", so it belongs in the evolvable-structure
-repository, though not in its structure network file.
+Follow Joshua's Project Documentation board: state the problem and the ideals, each with a practical metric; keep the definition apart from its implementations; the best by the measure is the default; note the difficulties; keep improving and save each round's lessons where the next will find them. The method and every dated lesson (problems say what is true, ideals are states, vision statements, hierarchy is intents, restructurings are measured, extend before adding a solution, and more) are in `principles/documenting.md`.
 
 ## Upkeep of this skill
 
 - **Project routing belongs in the local ESOI index, not in this skill's `INDEX.md`** (Joshua, 2026-10-18). `INDEX.md` routes by kind of task to instructions and examples, with no assumption about which projects the reader works on. Which projects ESOI is applied to, how they relate and where to look in each live in `$ESOI_HOME` or `~/.esoi/` (`projects.csv` and `INDEX.md`; see the ESOI repository's "The local ESOI index"). Example files from the author's own work stay, named as examples of a technique.
 - Never edit `SKILL.md`. A new statement from Joshua goes, dated and in his words, into the matching
-  `principles/` subfile, then into the tables above and the matching `INDEX.md` row in the same edit.
+  `principles/` subfile (one subfile per group of patterns or topic; this file stays an index), then into the tables above and the matching `INDEX.md` row in the same edit.
 - Name a framework only in an example, a `coding/` file or a source pointer, unless the principle is
   for that framework.
 - `sources/` notes are research records: add to them, but do not renumber or rewrite old ones.

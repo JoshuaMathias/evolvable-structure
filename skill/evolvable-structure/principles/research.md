@@ -56,7 +56,7 @@ evidence strength there):
 ## Where the evidence is thin
 
 - Joshua's design boards record ideas and open questions, not decisions, and the Project Documentation
-  board is a template with little filled in (its value is the method, which `../principles.md` "How to think and document" follows). Treat them as design intent; his built code
+  board is a template with little filled in (its value is the method, which `documenting.md` follows). Treat them as design intent; his built code
   and notebooks are the built evidence, and the notebooks hold unfinished cells and bugs.
 - The manual and AI code comparison is a tendency to learn from, not a controlled study: its median
   file sizes (8 to 40 lines manual, 138 to 258 AI) come from a script over codebases of very different
