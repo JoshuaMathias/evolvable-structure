@@ -106,6 +106,8 @@ def field_items(solution: Mapping[str, str]) -> List[Dict[str, str]]:
     parts = [p for p in re.split(r"\n+", text) if p.strip()]
     if not any((m := ENTRY.match(p)) and m.group("kind").lower() in KINDS for p in parts):
         parts = [p for p in re.split(r"(?<=[.!?])\s+(?=[A-Z(])", text) if p.strip()]
+        if len(parts) == 1 and "; " in parts[0]:   # one sentence listing several sources of knowledge: one item per entry
+            parts = [p.strip().rstrip(".") + "." for p in parts[0].split("; ") if p.strip()]
     out = []
     for n, part in enumerate(parts, 1):
         found = ENTRY.match(part)
