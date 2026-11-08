@@ -126,3 +126,18 @@ enabled = true
 
 [rules.S59]
 enabled = true
+
+# The balanced score of Solution Relevance (classifying a request into the solutions it concerns). Accuracy is the share of cases where every
+# gold solution was returned and at least a quarter of the chosen ones were gold, so recall counts most and precision is a floor. One
+# classification runs before each fan-out, so it is worth at most a fifth of a cent and two seconds. Fixed before any arm was scored.
+[balance.solution_relevance]
+weights = { accuracy = 0.70, cost = 0.15, time = 0.15 }
+cost_per_case_usd = 0.002
+seconds_per_case = 2
+
+# The balanced score of Solution Consideration (the prompt of one solution). One prompt is assembled per pass, so it is worth at most a
+# cent and five seconds before the pass itself. Fixed before any arm was scored.
+[balance.solution_consideration]
+weights = { accuracy = 0.70, cost = 0.15, time = 0.15 }
+cost_per_case_usd = 0.01
+seconds_per_case = 5

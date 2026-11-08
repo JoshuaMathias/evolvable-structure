@@ -96,9 +96,56 @@ def spec_show_action(config, args: argparse.Namespace, index) -> int:
     return 0
 
 
+def spec_prompt_action(config, args: argparse.Namespace) -> int:
+    """``esoi spec prompt``: the prompt for one solution's own consideration, formed from its network of records."""
+    import json
+    from esoi.understanding.solution_consideration import solution_prompt
+    if not args.target:
+        print("esoi: spec prompt needs a solution id", file=sys.stderr)
+        return 2
+    network = solution_prompt.load(config, args.with_records or (), stale=not args.no_stale)
+    try:
+        made = solution_prompt.prompt(network, args.target, args.task, solution_prompt.budget_of(config, args.budget))
+    except KeyError:
+        print(f"esoi: no solution {args.target!r}", file=sys.stderr)
+        return 1
+    print(json.dumps(made, indent=1) if args.json else made["text"])
+    return 0
+
+
+def print_consider(found, as_list: bool) -> None:
+    """The prompts of ``esoi consider``: one line each with ``--list``, else the JSON."""
+    import json
+    if not as_list:
+        print(json.dumps(found, indent=1))
+        return
+    for item in found["prompts"]:
+        print(f"{item['role']} {item['solution_id']}: {item['name']} ({item['chars']} chars; reached by {', '.join(item['reached_by']) or 'name'})")
+
+
+def run_consider(config, args: argparse.Namespace) -> int:
+    """``esoi consider``: one generated prompt per solution a text concerns, and per parent level, as JSON."""
+    from esoi.understanding.solution_consideration import fan_out, solution_prompt
+    from esoi.understanding.spec_search import spec_index
+    if not args.text and not args.solution:
+        print("esoi: consider needs the text of a change, a candidate or a request, or --solution ID", file=sys.stderr)
+        return 2
+    network = solution_prompt.load(config, args.with_records or (), stale=not args.no_stale)
+    unknown = [s for s in args.solution or () if s not in network.solutions]
+    if unknown:
+        print(f"esoi: no solution {', '.join(unknown)}", file=sys.stderr)
+        return 1
+    index = spec_index.cached(config, Path(args.cache)) if args.cache else spec_index.build(config)
+    print_consider(fan_out.consider(network, index, args.text, args.max, solution_prompt.budget_of(config, args.budget), args.arm,
+                                    args.solution or ()), args.list)
+    return 0
+
+
 def run_spec(config, args: argparse.Namespace) -> int:
     """``esoi spec``: build, search and read the specification index (no model is called)."""
     from esoi.understanding.spec_search import spec_index
+    if args.action == "prompt":
+        return spec_prompt_action(config, args)
     index = spec_index.cached(config, Path(args.cache)) if args.cache else spec_index.build(config)
     if args.action == "intent":
         for entry in spec_index.of_intent(index, args.target):
@@ -215,13 +262,28 @@ projects | needs_config=False | the local ESOI index: the projects ESOI is appli
     --notes | default= |
     --replace | action=store_true | add: update a project that is already listed
 spec | | the specification index: a deterministic, non-AI map of the records
-    action | choices=index,find,show,related,intent |
-    target | nargs=? default= | find: the words of the use case or input; show: a record id
+    action | choices=index,find,show,related,intent,prompt |
+    target | nargs=? default= | find: the words of the use case or input; show, related, prompt: a record id
     -k | type=int default=8 | find: how many records to return
     --expand | type=int default=0 | find: linked records to add per hit
     --tier | type=int default=1 choices=0,1,2 | show: 0 one line, 1 plus summary and links, 2 the full record
     --out | default=None | index: write the JSON here instead of printing it
     --depth | type=int default=1 | related: how many link steps to follow
+    --cache | default=None | read the index from this file when the records have not changed, else rebuild it there
+    --task | default= | prompt: the change, candidate or request the pass considers
+    --budget | type=int default=None | prompt: the size budget in characters (default: [consider] budget, else 24000)
+    --with | dest=with_records action=append | prompt: a CSV of findings or candidates to join the prompt (repeatable; esoi.toml [[consider.records]] declares them for good)
+    --json | action=store_true | prompt: print the prompt with its sections and what was cut, as JSON
+    --no-stale | action=store_true | prompt: skip the check of which results describe older code (faster)
+consider | | one generated prompt per solution a change, candidate or request concerns, and per parent level, as JSON
+    text | nargs=? default= | the change, candidate or request
+    --solution | action=append | name the solution instead of classifying the text (repeatable)
+    --max | type=int default=5 | how many relevant solutions to return before their parents
+    --arm | default= choices=,index-with-links,lexical-index | the Solution Relevance arm that classifies the text (default: the selected one)
+    --budget | type=int default=None | the size budget of each prompt in characters
+    --with | dest=with_records action=append | a CSV of findings or candidates to join the prompts (repeatable)
+    --list | action=store_true | print one line per prompt instead of the JSON
+    --no-stale | action=store_true | skip the check of which results describe older code (faster)
     --cache | default=None | read the index from this file when the records have not changed, else rebuild it there
 docs | needs_config=False | the four-category docs standard, and the wiki generated from it
     action | choices=check,wiki |

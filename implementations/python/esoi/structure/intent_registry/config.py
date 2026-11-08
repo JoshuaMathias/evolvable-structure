@@ -1,7 +1,7 @@
 """One configuration per adopting repository: ``esoi.toml`` (top-level keys) or ``[tool.esoi]`` in ``pyproject.toml``.
 
 Every key has a default, so a repository states only what differs. Paths are relative to the folder that holds
-the config file (the repository root). Sub-tables (``[rules.S13]``, ``[hermetic]``, ``[consumer]``, ``[parent]``, ``[sheets]``, ``[skill]``, ``[records]``, ``[evidence]``)
+the config file (the repository root). Sub-tables (``[rules.S13]``, ``[hermetic]``, ``[consumer]``, ``[parent]``, ``[sheets]``, ``[skill]``, ``[records]``, ``[evidence]``, ``[consider]``)
 are kept as plain dicts for the module that reads them.
 
     package = "mylib"                 # the importable package the module rules look at ("" turns them off)
@@ -100,6 +100,7 @@ class Config:
     readme: Dict[str, Any] = field(default_factory=dict)   # [readme] layout = "glance" | "full" | "links": the README layout (esoi.understanding.readable_records.readme)
     harness: Dict[str, Any] = field(default_factory=dict)   # [harness] cassette = "dir": record and replay model calls (esoi.optimization.measurement_harness.cassette); off by default
     builds_on: Dict[str, Any] = field(default_factory=dict)   # [builds_on.<component>.<name>] repo, component, share, on_stale: metrics this one builds on (esoi.optimization.when_metrics_are_run.know_what_a_result_measures.builds_on)
+    consider: Dict[str, Any] = field(default_factory=dict)   # [consider] budget and [[consider.records]] files of findings and candidates that join a solution's prompt (esoi.understanding.solution_consideration.network_records)
     adopts: Dict[str, Any] = field(default_factory=dict)   # [adopts.<library>] repo, url: libraries whose solutions this repository adopts (esoi.structure.library_adoption.resolve)
     source: Optional[Path] = None
 

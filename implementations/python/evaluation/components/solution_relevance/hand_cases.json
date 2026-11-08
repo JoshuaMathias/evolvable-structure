@@ -1,0 +1,303 @@
+[
+ {
+  "id": "hand-01",
+  "kind": "request",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "A rival arm scored higher on the metric last week but the selected implementation was never switched"
+  },
+  "expect": {
+   "gold": [
+    "promote-the-winner",
+    "leaderboard"
+   ]
+  }
+ },
+ {
+  "id": "hand-02",
+  "kind": "candidate",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "An outside evaluation framework publishes retrieval benchmark numbers; how much should its published results count before we run our own?"
+  },
+  "expect": {
+   "gold": [
+    "public-evidence"
+   ]
+  }
+ },
+ {
+  "id": "hand-03",
+  "kind": "bug",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "esoi check takes three minutes on a large repository and reports each finding twice"
+  },
+  "expect": {
+   "gold": [
+    "structure-check"
+   ]
+  }
+ },
+ {
+  "id": "hand-04",
+  "kind": "bug",
+  "area": "hand",
+  "heldout": true,
+  "description": "hand-labelled",
+  "args": {
+   "text": "The page of an intent folder is out of date after I edited its solutions CSV"
+  },
+  "expect": {
+   "gold": [
+    "readable-records"
+   ]
+  }
+ },
+ {
+  "id": "hand-05",
+  "kind": "bug",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "An AI agent ignored the principles and built a new framework for a one-off script"
+  },
+  "expect": {
+   "gold": [
+    "esoi-for-ai"
+   ]
+  }
+ },
+ {
+  "id": "hand-06",
+  "kind": "bug",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "The installed public copy of the skill still holds a file from the private archive folder"
+  },
+  "expect": {
+   "gold": [
+    "skill-distribution"
+   ]
+  }
+ },
+ {
+  "id": "hand-07",
+  "kind": "request",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Which projects on this machine apply ESOI, and where do I start reading in each one?"
+  },
+  "expect": {
+   "gold": [
+    "local-application-index"
+   ]
+  }
+ },
+ {
+  "id": "hand-08",
+  "kind": "request",
+  "area": "hand",
+  "heldout": true,
+  "description": "hand-labelled",
+  "args": {
+   "text": "A result was recorded last month: did the code or cases it measured change since that commit?"
+  },
+  "expect": {
+   "gold": [
+    "know-what-a-result-measures"
+   ]
+  }
+ },
+ {
+  "id": "hand-09",
+  "kind": "request",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Pin the selected implementations in a lock file so a deploy does not pick up a newer one by surprise"
+  },
+  "expect": {
+   "gold": [
+    "implementation-selection"
+   ]
+  }
+ },
+ {
+  "id": "hand-10",
+  "kind": "bug",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "A new Python file in the package belongs to no component"
+  },
+  "expect": {
+   "gold": [
+    "ownership-map"
+   ]
+  }
+ },
+ {
+  "id": "hand-11",
+  "kind": "request",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Run each arm on three cases first, then ten, then thirty, and ask before spending money on a model"
+  },
+  "expect": {
+   "gold": [
+    "when-metrics-are-run"
+   ]
+  }
+ },
+ {
+  "id": "hand-12",
+  "kind": "request",
+  "area": "hand",
+  "heldout": true,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Find which records a new feature request concerns without reading every CSV"
+  },
+  "expect": {
+   "gold": [
+    "spec-search"
+   ]
+  }
+ },
+ {
+  "id": "hand-13",
+  "kind": "request",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Another repository wants to use a solution our records define instead of copying its records"
+  },
+  "expect": {
+   "gold": [
+    "library-adoption"
+   ]
+  }
+ },
+ {
+  "id": "hand-14",
+  "kind": "bug",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "The field names of the records drifted from the wording of the intent template in the skill"
+  },
+  "expect": {
+   "gold": [
+    "template-sync"
+   ]
+  }
+ },
+ {
+  "id": "hand-15",
+  "kind": "request",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "A teammate wants a fill-in template to write their first problem and solution by hand, with no tools"
+  },
+  "expect": {
+   "gold": [
+    "the-standard"
+   ]
+  }
+ },
+ {
+  "id": "hand-16",
+  "kind": "bug",
+  "area": "hand",
+  "heldout": true,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Code declares an implementation with @implementation but the records do not list it"
+  },
+  "expect": {
+   "gold": [
+    "specify-from-code"
+   ]
+  }
+ },
+ {
+  "id": "hand-17",
+  "kind": "candidate",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "A grader model that scores whether an agent's reply follows the principles, compared with people's grades"
+  },
+  "expect": {
+   "gold": [
+    "esoi-behaviour-judge"
+   ]
+  }
+ },
+ {
+  "id": "hand-18",
+  "kind": "request",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Show a reviewer every solution with its latest result in a spreadsheet and bring their edits back"
+  },
+  "expect": {
+   "gold": [
+    "review-tracker"
+   ]
+  }
+ },
+ {
+  "id": "hand-19",
+  "kind": "request",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Give each relevant solution its own prompt built from its records before an agent triages outside repositories"
+  },
+  "expect": {
+   "gold": [
+    "solution-consideration"
+   ]
+  }
+ },
+ {
+  "id": "hand-20",
+  "kind": "request",
+  "area": "hand",
+  "heldout": true,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Which solutions does this bug report concern, so none is skipped?"
+  },
+  "expect": {
+   "gold": [
+    "solution-relevance"
+   ]
+  }
+ }
+]

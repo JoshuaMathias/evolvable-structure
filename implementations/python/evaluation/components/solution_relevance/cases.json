@@ -1,0 +1,1316 @@
+[
+ {
+  "id": "hand-01",
+  "kind": "request",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "A rival arm scored higher on the metric last week but the selected implementation was never switched"
+  },
+  "expect": {
+   "gold": [
+    "promote-the-winner",
+    "leaderboard"
+   ]
+  }
+ },
+ {
+  "id": "hand-02",
+  "kind": "candidate",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "An outside evaluation framework publishes retrieval benchmark numbers; how much should its published results count before we run our own?"
+  },
+  "expect": {
+   "gold": [
+    "public-evidence"
+   ]
+  }
+ },
+ {
+  "id": "hand-03",
+  "kind": "bug",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "esoi check takes three minutes on a large repository and reports each finding twice"
+  },
+  "expect": {
+   "gold": [
+    "structure-check"
+   ]
+  }
+ },
+ {
+  "id": "hand-04",
+  "kind": "bug",
+  "area": "hand",
+  "heldout": true,
+  "description": "hand-labelled",
+  "args": {
+   "text": "The page of an intent folder is out of date after I edited its solutions CSV"
+  },
+  "expect": {
+   "gold": [
+    "readable-records"
+   ]
+  }
+ },
+ {
+  "id": "hand-05",
+  "kind": "bug",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "An AI agent ignored the principles and built a new framework for a one-off script"
+  },
+  "expect": {
+   "gold": [
+    "esoi-for-ai"
+   ]
+  }
+ },
+ {
+  "id": "hand-06",
+  "kind": "bug",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "The installed public copy of the skill still holds a file from the private archive folder"
+  },
+  "expect": {
+   "gold": [
+    "skill-distribution"
+   ]
+  }
+ },
+ {
+  "id": "hand-07",
+  "kind": "request",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Which projects on this machine apply ESOI, and where do I start reading in each one?"
+  },
+  "expect": {
+   "gold": [
+    "local-application-index"
+   ]
+  }
+ },
+ {
+  "id": "hand-08",
+  "kind": "request",
+  "area": "hand",
+  "heldout": true,
+  "description": "hand-labelled",
+  "args": {
+   "text": "A result was recorded last month: did the code or cases it measured change since that commit?"
+  },
+  "expect": {
+   "gold": [
+    "know-what-a-result-measures"
+   ]
+  }
+ },
+ {
+  "id": "hand-09",
+  "kind": "request",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Pin the selected implementations in a lock file so a deploy does not pick up a newer one by surprise"
+  },
+  "expect": {
+   "gold": [
+    "implementation-selection"
+   ]
+  }
+ },
+ {
+  "id": "hand-10",
+  "kind": "bug",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "A new Python file in the package belongs to no component"
+  },
+  "expect": {
+   "gold": [
+    "ownership-map"
+   ]
+  }
+ },
+ {
+  "id": "hand-11",
+  "kind": "request",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Run each arm on three cases first, then ten, then thirty, and ask before spending money on a model"
+  },
+  "expect": {
+   "gold": [
+    "when-metrics-are-run"
+   ]
+  }
+ },
+ {
+  "id": "hand-12",
+  "kind": "request",
+  "area": "hand",
+  "heldout": true,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Find which records a new feature request concerns without reading every CSV"
+  },
+  "expect": {
+   "gold": [
+    "spec-search"
+   ]
+  }
+ },
+ {
+  "id": "hand-13",
+  "kind": "request",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Another repository wants to use a solution our records define instead of copying its records"
+  },
+  "expect": {
+   "gold": [
+    "library-adoption"
+   ]
+  }
+ },
+ {
+  "id": "hand-14",
+  "kind": "bug",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "The field names of the records drifted from the wording of the intent template in the skill"
+  },
+  "expect": {
+   "gold": [
+    "template-sync"
+   ]
+  }
+ },
+ {
+  "id": "hand-15",
+  "kind": "request",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "A teammate wants a fill-in template to write their first problem and solution by hand, with no tools"
+  },
+  "expect": {
+   "gold": [
+    "the-standard"
+   ]
+  }
+ },
+ {
+  "id": "hand-16",
+  "kind": "bug",
+  "area": "hand",
+  "heldout": true,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Code declares an implementation with @implementation but the records do not list it"
+  },
+  "expect": {
+   "gold": [
+    "specify-from-code"
+   ]
+  }
+ },
+ {
+  "id": "hand-17",
+  "kind": "candidate",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "A grader model that scores whether an agent's reply follows the principles, compared with people's grades"
+  },
+  "expect": {
+   "gold": [
+    "esoi-behaviour-judge"
+   ]
+  }
+ },
+ {
+  "id": "hand-18",
+  "kind": "request",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Show a reviewer every solution with its latest result in a spreadsheet and bring their edits back"
+  },
+  "expect": {
+   "gold": [
+    "review-tracker"
+   ]
+  }
+ },
+ {
+  "id": "hand-19",
+  "kind": "request",
+  "area": "hand",
+  "heldout": false,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Give each relevant solution its own prompt built from its records before an agent triages outside repositories"
+  },
+  "expect": {
+   "gold": [
+    "solution-consideration"
+   ]
+  }
+ },
+ {
+  "id": "hand-20",
+  "kind": "request",
+  "area": "hand",
+  "heldout": true,
+  "description": "hand-labelled",
+  "args": {
+   "text": "Which solutions does this bug report concern, so none is skipped?"
+  },
+  "expect": {
+   "gold": [
+    "solution-relevance"
+   ]
+  }
+ },
+ {
+  "id": "git-6575701",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 6575701",
+  "args": {
+   "text": "S57 lists a copy only when it matters: 15% of a file, 3+ files, or 150 tokens"
+  },
+  "expect": {
+   "gold": [
+    "structure-check",
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-ccb87e3",
+  "kind": "git",
+  "area": "commit",
+  "heldout": true,
+  "description": "commit ccb87e3",
+  "args": {
+   "text": "S57 counts copied logic, not shared shape: a stretch of 40 tokens with 3 logic tokens"
+  },
+  "expect": {
+   "gold": [
+    "structure-check",
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-1800b96",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 1800b96",
+  "args": {
+   "text": "S56: count what the rule could not see (module attributes, the owner's own reads, per-submodule names)"
+  },
+  "expect": {
+   "gold": [
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-a7b557f",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit a7b557f",
+  "args": {
+   "text": "structure_quality: one from_parts helper builds a dimension from its named parts (four copies of the same closing line)"
+  },
+  "expect": {
+   "gold": [
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-409e962",
+  "kind": "git",
+  "area": "commit",
+  "heldout": true,
+  "description": "commit 409e962",
+  "args": {
+   "text": "Size: the review tracker's combined solutions.csv is a generated copy, not solutions an intent groups (S55 no longer reports 33 for the top intent)"
+  },
+  "expect": {
+   "gold": [
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-a38905c",
+  "kind": "git",
+  "area": "commit",
+  "heldout": true,
+  "description": "commit a38905c",
+  "args": {
+   "text": "PUBLIC and NAMESPACES are dict literals again; S57 ignores declaration-shaped statements; command tables read each value by its key"
+  },
+  "expect": {
+   "gold": [
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-90c3ff8",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 90c3ff8",
+  "args": {
+   "text": "Keep ceiling_reason, check_headers and intent_report within complexity 10 after the merges"
+  },
+  "expect": {
+   "gold": [
+    "intent-registry",
+    "structure-check",
+    "when-metrics-are-run"
+   ]
+  }
+ },
+ {
+  "id": "git-c55b997",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit c55b997",
+  "args": {
+   "text": "Placement, Legacy, RoleFacts, Chain and Edges replace 6 to 7 parameter lists in the structure checks and registry"
+  },
+  "expect": {
+   "gold": [
+    "intent-registry",
+    "structure-check"
+   ]
+  }
+ },
+ {
+  "id": "git-9b9b182",
+  "kind": "git",
+  "area": "commit",
+  "heldout": true,
+  "description": "commit 9b9b182",
+  "args": {
+   "text": "Run, Tools, Target and CascadeRun carry what the harness and the cascade report threaded through 7 to 10 parameters"
+  },
+  "expect": {
+   "gold": [
+    "leaderboard",
+    "measurement-harness"
+   ]
+  }
+ },
+ {
+  "id": "git-eafbb70",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit eafbb70",
+  "args": {
+   "text": "Replace parameter threading in run_guards, evidence_grading and stale_scope"
+  },
+  "expect": {
+   "gold": [
+    "know-what-a-result-measures",
+    "public-evidence",
+    "when-metrics-are-run"
+   ]
+  }
+ },
+ {
+  "id": "git-6d4a3ef",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 6d4a3ef",
+  "args": {
+   "text": "Pass one context through promote, the leaderboard reports and rerun_stale instead of 7 to 12 parameters"
+  },
+  "expect": {
+   "gold": [
+    "leaderboard",
+    "measurement-harness",
+    "promote-the-winner"
+   ]
+  }
+ },
+ {
+  "id": "git-ddb3909",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit ddb3909",
+  "args": {
+   "text": "Idea-stage scales define ratings 1 and 3 for navigable-records, structure-quality-agreement and readme-glanceability"
+  },
+  "expect": {
+   "gold": [
+    "intent-registry",
+    "readable-records",
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-4b5858e",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 4b5858e",
+  "args": {
+   "text": "import_base: stop a relative import deeper than its package at the top, with a test"
+  },
+  "expect": {
+   "gold": [
+    "intent-registry"
+   ]
+  }
+ },
+ {
+  "id": "git-60f2dad",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 60f2dad",
+  "args": {
+   "text": "Commit the remaining splits of long functions in checks, templates and evaluation fixtures (S55)"
+  },
+  "expect": {
+   "gold": [
+    "structure-check",
+    "template-sync"
+   ]
+  }
+ },
+ {
+  "id": "git-706fcc7",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 706fcc7",
+  "args": {
+   "text": "Split know_what_a_result_measures functions by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "know-what-a-result-measures"
+   ]
+  }
+ },
+ {
+  "id": "git-8a25538",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 8a25538",
+  "args": {
+   "text": "Split run guards and public evidence functions by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "public-evidence",
+    "when-metrics-are-run"
+   ]
+  }
+ },
+ {
+  "id": "git-434d679",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 434d679",
+  "args": {
+   "text": "Split metric record functions by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "keep-metric-record"
+   ]
+  }
+ },
+ {
+  "id": "git-abb8ac5",
+  "kind": "git",
+  "area": "commit",
+  "heldout": true,
+  "description": "commit abb8ac5",
+  "args": {
+   "text": "Split verdict labels and cascade report by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "leaderboard"
+   ]
+  }
+ },
+ {
+  "id": "git-b4a3fd2",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit b4a3fd2",
+  "args": {
+   "text": "Split cascade stages and rival decisions by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "leaderboard"
+   ]
+  }
+ },
+ {
+  "id": "git-c71b378",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit c71b378",
+  "args": {
+   "text": "Split the over-budget functions in intent_registry (S55)"
+  },
+  "expect": {
+   "gold": [
+    "intent-registry",
+    "template-sync"
+   ]
+  }
+ },
+ {
+  "id": "git-0688650",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 0688650",
+  "args": {
+   "text": "Split evidence table, arm selection and stage standings by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "leaderboard"
+   ]
+  }
+ },
+ {
+  "id": "git-810596a",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 810596a",
+  "args": {
+   "text": "Split held_out_parts and rival_pairing by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "leaderboard"
+   ]
+  }
+ },
+ {
+  "id": "git-bf4377e",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit bf4377e",
+  "args": {
+   "text": "Split board_report functions by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "leaderboard"
+   ]
+  }
+ },
+ {
+  "id": "git-f70c70e",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit f70c70e",
+  "args": {
+   "text": "Split implementation selection functions at their seams (S55)"
+  },
+  "expect": {
+   "gold": [
+    "implementation-selection"
+   ]
+  }
+ },
+ {
+  "id": "git-4650797",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 4650797",
+  "args": {
+   "text": "Split assemble_by_name functions at their seams (S55)"
+  },
+  "expect": {
+   "gold": [
+    "assemble-by-name"
+   ]
+  }
+ },
+ {
+  "id": "git-8a6fccf",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 8a6fccf",
+  "args": {
+   "text": "Split install execution by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "assemble-by-name"
+   ]
+  }
+ },
+ {
+  "id": "git-af05352",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit af05352",
+  "args": {
+   "text": "Split the over-budget functions in layout, modulefacts and hygiene (S55)"
+  },
+  "expect": {
+   "gold": [
+    "structure-check"
+   ]
+  }
+ },
+ {
+  "id": "git-5c28fd8",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 5c28fd8",
+  "args": {
+   "text": "Settle S49, S54 and the idea-stage notes: waive with read reasons, add idea stage to three metrics"
+  },
+  "expect": {
+   "gold": [
+    "intent-registry",
+    "readable-records",
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-f650474",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit f650474",
+  "args": {
+   "text": "Split environment report, closure and checking by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "assemble-by-name"
+   ]
+  }
+ },
+ {
+  "id": "git-f335348",
+  "kind": "git",
+  "area": "commit",
+  "heldout": true,
+  "description": "commit f335348",
+  "args": {
+   "text": "Split the over-budget functions in the measurement, intents and registry rules (S55)"
+  },
+  "expect": {
+   "gold": [
+    "structure-check"
+   ]
+  }
+ },
+ {
+  "id": "git-2ff41ea",
+  "kind": "git",
+  "area": "commit",
+  "heldout": true,
+  "description": "commit 2ff41ea",
+  "args": {
+   "text": "Split declarations and resolution ladder by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "assemble-by-name"
+   ]
+  }
+ },
+ {
+  "id": "git-93e4247",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 93e4247",
+  "args": {
+   "text": "Split the over-budget functions in entry_rules and the coherence modules (S55)"
+  },
+  "expect": {
+   "gold": [
+    "structure-check"
+   ]
+  }
+ },
+ {
+  "id": "git-279e813",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 279e813",
+  "args": {
+   "text": "Split entry outcome, plan report, seat blockers and arm ranking by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "assemble-by-name"
+   ]
+  }
+ },
+ {
+  "id": "git-4360ddb",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 4360ddb",
+  "args": {
+   "text": "Split entry, readme example, cascade layers and build parts by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "assemble-by-name"
+   ]
+  }
+ },
+ {
+  "id": "git-ed7a3f2",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit ed7a3f2",
+  "args": {
+   "text": "Split stale_scope functions by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "know-what-a-result-measures"
+   ]
+  }
+ },
+ {
+  "id": "git-6c4c03a",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 6c4c03a",
+  "args": {
+   "text": "Split consumer check functions by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "consumer-check"
+   ]
+  }
+ },
+ {
+  "id": "git-926216d",
+  "kind": "git",
+  "area": "commit",
+  "heldout": true,
+  "description": "commit 926216d",
+  "args": {
+   "text": "Split the over-budget functions in coherence_code_evidence (S55)"
+  },
+  "expect": {
+   "gold": [
+    "structure-check"
+   ]
+  }
+ },
+ {
+  "id": "git-74cecb3",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 74cecb3",
+  "args": {
+   "text": "Split project_row (S55)"
+  },
+  "expect": {
+   "gold": [
+    "local-application-index"
+   ]
+  }
+ },
+ {
+  "id": "git-fcb31de",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit fcb31de",
+  "args": {
+   "text": "Split the over-budget functions in the_standard and readable_records (S55)"
+  },
+  "expect": {
+   "gold": [
+    "readable-records",
+    "skill-distribution",
+    "the-standard"
+   ]
+  }
+ },
+ {
+  "id": "git-17a0f67",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 17a0f67",
+  "args": {
+   "text": "Split the over-budget functions in review_tracker (S55)"
+  },
+  "expect": {
+   "gold": [
+    "review-tracker"
+   ]
+  }
+ },
+ {
+  "id": "git-5e795f6",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 5e795f6",
+  "args": {
+   "text": "Split foundation functions by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "consumer-check"
+   ]
+  }
+ },
+ {
+  "id": "git-574d6f4",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 574d6f4",
+  "args": {
+   "text": "Split the over-budget functions in spec_search (S55)"
+  },
+  "expect": {
+   "gold": [
+    "spec-search"
+   ]
+  }
+ },
+ {
+  "id": "git-cf82a12",
+  "kind": "git",
+  "area": "commit",
+  "heldout": true,
+  "description": "commit cf82a12",
+  "args": {
+   "text": "Split lock functions by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "implementation-selection"
+   ]
+  }
+ },
+ {
+  "id": "git-f942f3b",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit f942f3b",
+  "args": {
+   "text": "Split generated_files functions by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "assemble-by-name"
+   ]
+  }
+ },
+ {
+  "id": "git-219a778",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 219a778",
+  "args": {
+   "text": "Split follow into per-solution steps (S55)"
+  },
+  "expect": {
+   "gold": [
+    "consumer-check"
+   ]
+  }
+ },
+ {
+  "id": "git-f2ae806",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit f2ae806",
+  "args": {
+   "text": "Size: run_component opens its run in one function"
+  },
+  "expect": {
+   "gold": [
+    "measurement-harness"
+   ]
+  }
+ },
+ {
+  "id": "git-74c9321",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 74c9321",
+  "args": {
+   "text": "Split the five largest structure and tracker functions by step (S55)"
+  },
+  "expect": {
+   "gold": [
+    "intent-registry",
+    "review-tracker",
+    "structure-check"
+   ]
+  }
+ },
+ {
+  "id": "git-2bb993e",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 2bb993e",
+  "args": {
+   "text": "Fix the five failing checks: regenerate two stale READMEs, run the offline arm with -P so the repo's esoi/ folder cannot shadow the package"
+  },
+  "expect": {
+   "gold": [
+    "keep-metric-record"
+   ]
+  }
+ },
+ {
+  "id": "git-c685891",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit c685891",
+  "args": {
+   "text": "cases_digest publishes a component's out-of-repo case sources first, so a run and a check hash the same cases"
+  },
+  "expect": {
+   "gold": [
+    "leaderboard"
+   ]
+  }
+ },
+ {
+  "id": "git-dc8a50d",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit dc8a50d",
+  "args": {
+   "text": "Count no cases when the project holds no case file for the component"
+  },
+  "expect": {
+   "gold": [
+    "measurement-harness"
+   ]
+  }
+ },
+ {
+  "id": "git-90b5557",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 90b5557",
+  "args": {
+   "text": "Attach snapshot evidence from the intent map, not the selection cascade"
+  },
+  "expect": {
+   "gold": [
+    "assemble-by-name",
+    "implementation-selection"
+   ]
+  }
+ },
+ {
+  "id": "git-8d04c00",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 8d04c00",
+  "args": {
+   "text": "Report loaded case counts and priced charges plainly in a whole-set run"
+  },
+  "expect": {
+   "gold": [
+    "measurement-harness"
+   ]
+  }
+ },
+ {
+  "id": "git-0eab5c7",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 0eab5c7",
+  "args": {
+   "text": "Structure Quality: a Protocol that extends another of its folder is one job with it, and a git reference is read with the libraries the project adopts from (links beside the temporary checkout)"
+  },
+  "expect": {
+   "gold": [
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-d6a9309",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit d6a9309",
+  "args": {
+   "text": "Structure Quality: a base class imported from a module of the project is read as that module's class, so two classes of one name are not mixed up"
+  },
+  "expect": {
+   "gold": [
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-f0465a3",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit f0465a3",
+  "args": {
+   "text": "Structure Quality: a library base class imported under another name is read as the class it names"
+  },
+  "expect": {
+   "gold": [
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-5bca461",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 5bca461",
+  "args": {
+   "text": "Structure Quality: an arm that re-declares a library class of its own name takes its members from the library class, and an arm is graded against the Protocol with the smallest share of members lacking"
+  },
+  "expect": {
+   "gold": [
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-4cb5acc",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 4cb5acc",
+  "args": {
+   "text": "Split the duplicate-id and orphan-component checks out of registry_rules.run"
+  },
+  "expect": {
+   "gold": [
+    "structure-check"
+   ]
+  }
+ },
+ {
+  "id": "git-01490fc",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 01490fc",
+  "args": {
+   "text": "Config: accept the [docs] table (wiki_extra) that esoi.toml now sets"
+  },
+  "expect": {
+   "gold": [
+    "intent-registry"
+   ]
+  }
+ },
+ {
+  "id": "git-8bd5ae4",
+  "kind": "git",
+  "area": "commit",
+  "heldout": true,
+  "description": "commit 8bd5ae4",
+  "args": {
+   "text": "esoi docs wiki: carry the pages esoi.toml names ([docs] wiki_extra), so the steps page README links is emitted"
+  },
+  "expect": {
+   "gold": [
+    "the-standard"
+   ]
+  }
+ },
+ {
+  "id": "git-b5118df",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit b5118df",
+  "args": {
+   "text": "Structure Quality compare and case fixtures leave no temporary checkout (a finally removes and prunes the worktree, the fixtures share one TemporaryDirectory); cases SQ-042 to SQ-049 for layered Protocols, unrelated jobs and the severity of arms off their interface; tests"
+  },
+  "expect": {
+   "gold": [
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-ef6fcb2",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit ef6fcb2",
+  "args": {
+   "text": "Structure Quality scope: arms graded by the share of Protocol members they lack on a cubic curve, Protocols that extend others count their inherited members, a demoted plain Protocol beside an arm is named, and layered Protocols in one folder count once"
+  },
+  "expect": {
+   "gold": [
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-f450dd4",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit f450dd4",
+  "args": {
+   "text": "Structure Quality coupling and surface split into small functions: the coupling measure was complexity 27 by its own new budget; offending imports, unit cycles, consumer mentions and the kernel note are one function each, and the surface's mention index and __all__ reading are written once"
+  },
+  "expect": {
+   "gold": [
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-42a4c0a",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 42a4c0a",
+  "args": {
+   "text": "Structure Quality coupling: front doors and declared entries are not offenses; a name taken from a front door counts only when it resolves to a declared entry; offenders name the unit's entry point; cases SQ-026 to SQ-028"
+  },
+  "expect": {
+   "gold": [
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-bc600bf",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit bc600bf",
+  "args": {
+   "text": "esoi structure-quality --compare: the number and each dimension before and after, offenders fixed and introduced, per-solution scope and per-unit coupling deltas; git references checked out into a temporary worktree; --fast leaves flow unmeasured; public names assess_structure_quality and compare_structure_quality; tests"
+  },
+  "expect": {
+   "gold": [
+    "structure-check",
+    "structure-quality"
+   ]
+  }
+ },
+ {
+  "id": "git-3367438",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit 3367438",
+  "args": {
+   "text": "Component cases state the current behavior: stale results are advice and count only an arm's own code, an unrecorded run stops at the first failure, no BASELINE mark, the page layout; the Sub-intent cell links to the sub-intent's real folder; the structure-quality scorer has a naive baseline"
+  },
+  "expect": {
+   "gold": [
+    "readable-records"
+   ]
+  }
+ },
+ {
+  "id": "git-bd5e255",
+  "kind": "git",
+  "area": "commit",
+  "heldout": false,
+  "description": "commit bd5e255",
+  "args": {
+   "text": "Structure Quality: an arm takes the methods of its base class into account; results re-recorded; the scorer's cases are a live component in the component tests"
+  },
+  "expect": {
+   "gold": [
+    "structure-quality"
+   ]
+  }
+ }
+]

@@ -39,4 +39,6 @@ class UnderstandingFlow:
             config, _ = load_project(project)
             views = spec_search.views_from_index(spec_index.build(config))
             report["spec-search"] = {"views": len(views)}
+            from esoi.understanding.solution_consideration.fan_out import consider_solution
+            report["solution-consideration"] = {"chars": consider_solution(project)["chars"]}
             return report

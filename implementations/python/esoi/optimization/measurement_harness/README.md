@@ -13,7 +13,7 @@ Part of [Implementations Chosen on Evidence](../README.md)
 - Entry call: `esoi.run("measurement-harness", '.')`
 - Selected implementation: Component harness (`component-harness`)
 - Metric: Provenance completeness
-- Implemented by: [`implementations/python/esoi/__main__.py`](../../__main__.py), [`implementations/python/esoi/command_table.py`](../../command_table.py), [`implementations/python/esoi/optimization/leaderboard/inherited_gate.py`](../leaderboard/inherited_gate.py), [`implementations/python/esoi/optimization/measurement_harness/access.py`](access.py), [`implementations/python/esoi/optimization/measurement_harness/arm_loading.py`](arm_loading.py), [`implementations/python/esoi/optimization/measurement_harness/balance.py`](balance.py), [`implementations/python/esoi/optimization/measurement_harness/call_meter.py`](call_meter.py), [`implementations/python/esoi/optimization/measurement_harness/case_count.py`](case_count.py) and 55 more
+- Implemented by: [`implementations/python/esoi/__main__.py`](../../__main__.py), [`implementations/python/esoi/command_table.py`](../../command_table.py), [`implementations/python/esoi/optimization/leaderboard/inherited_gate.py`](../leaderboard/inherited_gate.py), [`implementations/python/esoi/optimization/measurement_harness/access.py`](access.py), [`implementations/python/esoi/optimization/measurement_harness/arm_loading.py`](arm_loading.py), [`implementations/python/esoi/optimization/measurement_harness/balance.py`](balance.py), [`implementations/python/esoi/optimization/measurement_harness/call_meter.py`](call_meter.py), [`implementations/python/esoi/optimization/measurement_harness/case_count.py`](case_count.py) and 56 more
 
 ## One level below
 

@@ -1,0 +1,220 @@
+[
+ {
+  "id": "SC-001",
+  "kind": "prompt",
+  "area": "losing result held only in the log",
+  "description": "the arm of the reputed candidate already lost, and that is held only in the results log",
+  "args": {
+   "solution": "card-builder",
+   "repo": "fixture",
+   "budget": 24000,
+   "task": "Should the candidate be adopted?"
+  },
+  "expect": {
+   "contains": [
+    "graph_groups: passed 3 of 63",
+    "import_cards [selected]: passed 43 of 63"
+   ]
+  }
+ },
+ {
+  "id": "SC-002",
+  "kind": "prompt",
+  "area": "finding queued against it",
+  "description": "the finding that cites the loss reaches the pass",
+  "args": {
+   "solution": "card-builder",
+   "repo": "fixture",
+   "budget": 24000,
+   "task": "Should the candidate be adopted?"
+  },
+  "expect": {
+   "contains": [
+    "F-2",
+    "Lost on our cases"
+   ]
+  }
+ },
+ {
+  "id": "SC-003",
+  "kind": "prompt",
+  "area": "parent briefly",
+  "description": "the scope above, briefly",
+  "args": {
+   "solution": "card-builder",
+   "repo": "fixture",
+   "budget": 24000,
+   "task": "Should the candidate be adopted?"
+  },
+  "expect": {
+   "contains": [
+    "## Parent (the scope above)",
+    "Recall (recall)"
+   ]
+  }
+ },
+ {
+  "id": "SC-004",
+  "kind": "prompt",
+  "area": "dependency by interface",
+  "description": "a dependency by purpose, interface and selected arm",
+  "args": {
+   "solution": "card-builder",
+   "repo": "fixture",
+   "budget": 24000,
+   "task": "Should the candidate be adopted?"
+  },
+  "expect": {
+   "contains": [
+    "Card Store (card-store)",
+    "Selected: local_store"
+   ]
+  }
+ },
+ {
+  "id": "SC-005",
+  "kind": "prompt",
+  "area": "children combine",
+  "description": "a parent is judged on how its children combine",
+  "args": {
+   "solution": "recall",
+   "repo": "fixture",
+   "budget": 24000,
+   "task": "Should the candidate be adopted?"
+  },
+  "expect": {
+   "contains": [
+    "## How its children combine",
+    "hands them to Card Store",
+    "Card Builder -> Card Store"
+   ]
+  }
+ },
+ {
+  "id": "SC-006",
+  "kind": "prompt",
+  "area": "children by interface",
+  "description": "the children by purpose, interface and selected arm",
+  "args": {
+   "solution": "recall",
+   "repo": "fixture",
+   "budget": 24000,
+   "task": "Should the candidate be adopted?"
+  },
+  "expect": {
+   "contains": [
+    "## Children",
+    "Card Builder (card-builder)",
+    "Selected: import_cards"
+   ]
+  }
+ },
+ {
+  "id": "SC-007",
+  "kind": "prompt",
+  "area": "budget keeps results first",
+  "description": "under a tight budget the recorded results stay and connected records are cut",
+  "args": {
+   "solution": "card-builder",
+   "repo": "fixture",
+   "budget": 1500,
+   "task": "Should the candidate be adopted?"
+  },
+  "expect": {
+   "contains": [
+    "graph_groups: passed 3 of 63"
+   ],
+   "max_len": 1500
+  }
+ },
+ {
+  "id": "SC-008",
+  "kind": "prompt",
+  "area": "dependents",
+  "description": "what relies on this solution",
+  "args": {
+   "solution": "card-store",
+   "repo": "fixture",
+   "budget": 24000,
+   "task": "Should the candidate be adopted?"
+  },
+  "expect": {
+   "contains": [
+    "## Dependents",
+    "Card Builder (card-builder)"
+   ]
+  }
+ },
+ {
+  "id": "SC-009",
+  "kind": "prompt",
+  "area": "live results",
+  "description": "this repository's own recorded results for a solution",
+  "args": {
+   "solution": "spec-search",
+   "repo": "live",
+   "budget": 24000,
+   "task": "Should the candidate be adopted?"
+  },
+  "expect": {
+   "contains": [
+    "## Recorded results",
+    "lexical_only",
+    "gated"
+   ]
+  }
+ },
+ {
+  "id": "SC-010",
+  "kind": "prompt",
+  "area": "live parent",
+  "description": "the container above a solution",
+  "args": {
+   "solution": "spec-search",
+   "repo": "live",
+   "budget": 24000,
+   "task": "Should the candidate be adopted?"
+  },
+  "expect": {
+   "contains": [
+    "Understanding (esoi-understanding)",
+    "## Parent (the scope above)"
+   ]
+  }
+ },
+ {
+  "id": "SC-011",
+  "kind": "prompt",
+  "area": "live children combine",
+  "description": "a container judged on its children",
+  "args": {
+   "solution": "esoi-understanding",
+   "repo": "live",
+   "budget": 24000,
+   "task": "Should the candidate be adopted?"
+  },
+  "expect": {
+   "contains": [
+    "## How its children combine",
+    "Solution coherence"
+   ]
+  }
+ },
+ {
+  "id": "SC-012",
+  "kind": "prompt",
+  "area": "live knowledge",
+  "description": "the Knowledge field reaches the pass",
+  "args": {
+   "solution": "spec-search",
+   "repo": "live",
+   "budget": 24000,
+   "task": "Should the candidate be adopted?"
+  },
+  "expect": {
+   "contains": [
+    "Knowledge: Reciprocal rank fusion"
+   ]
+  }
+ }
+]

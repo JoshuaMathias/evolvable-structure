@@ -5,9 +5,21 @@
     "arm": "",
     "root": "apply-esoi"
    },
-   "esoi-runtime": {
-    "arm": "",
-    "root": "assemble-by-name"
+   "optimization": {
+    "arm": "composition",
+    "root": "esoi-optimization"
+   },
+   "runtime": {
+    "arm": "composition",
+    "root": "esoi-runtime"
+   },
+   "structure": {
+    "arm": "composition",
+    "root": "esoi-structure"
+   },
+   "understanding": {
+    "arm": "composition",
+    "root": "esoi-understanding"
    }
   },
   "scopes": {
@@ -15,14 +27,18 @@
    "assemble-by-name": "esoi",
    "consumer-check": "esoi",
    "discriminating-cases": "esoi",
-   "docs-and-templates": "esoi",
    "esoi-behaviour-judge": "esoi",
    "esoi-for-ai": "esoi",
+   "esoi-optimization": "esoi",
+   "esoi-runtime": "esoi",
+   "esoi-structure": "esoi",
+   "esoi-understanding": "esoi",
    "implementation-selection": "esoi",
    "intent-registry": "esoi",
    "keep-metric-record": "esoi",
    "know-what-a-result-measures": "esoi",
    "leaderboard": "esoi",
+   "library-adoption": "esoi",
    "local-application-index": "esoi",
    "measurement-harness": "esoi",
    "ownership-map": "esoi",
@@ -30,14 +46,14 @@
    "public-evidence": "esoi",
    "readable-records": "esoi",
    "review-tracker": "esoi",
-   "runtime-selection": "esoi",
    "skill-distribution": "esoi",
-   "spec-index": "esoi",
+   "solution-consideration": "esoi",
+   "solution-relevance": "esoi",
    "spec-search": "esoi",
    "specify-from-code": "esoi",
    "structure-budget": "esoi",
    "structure-check": "esoi",
-   "structure-rules": "esoi",
+   "structure-quality": "esoi",
    "template-sync": "esoi",
    "the-standard": "esoi",
    "the-steps": "esoi",
@@ -45,9 +61,10 @@
   }
  },
  "apply-esoi": {
-  "default": "documents-templates-and-tools",
+  "default": "through-the-four-containers",
   "modules": {
-   "documents-templates-and-tools": "esoi.interfaces"
+   "documents-only": "esoi.apply_esoi",
+   "through-the-four-containers": "esoi.apply_esoi"
   }
  },
  "assemble-by-name": {
@@ -58,7 +75,7 @@
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "assembler": "esoi.interfaces"
+   "assembler": "esoi.runtime.assemble_by_name.interface"
   }
  },
  "consumer-check": {
@@ -69,19 +86,13 @@
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "consumer-command": "esoi.interfaces"
+   "consumer-command": "esoi.runtime.consumer_check.interface"
   }
  },
  "discriminating-cases": {
   "default": "broken-baselines",
   "modules": {
-   "broken-baselines": "esoi.interfaces"
-  }
- },
- "docs-and-templates": {
-  "default": "documentation-folder",
-  "modules": {
-   "documentation-folder": "esoi.interfaces"
+   "broken-baselines": "esoi.optimization.measurement_harness.discriminating_cases.interface"
   }
  },
  "esoi-behaviour-judge": {
@@ -92,7 +103,7 @@
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "model-judge-on-the-rubric": "esoi.interfaces"
+   "model-judge-on-the-rubric": "esoi.understanding.esoi_for_ai.esoi_behaviour_judge.interface"
   }
  },
  "esoi-for-ai": {
@@ -103,25 +114,55 @@
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "skill-as-standing-instructions": "esoi.interfaces"
+   "skill-as-standing-instructions": "esoi.understanding.esoi_for_ai.interface"
+  }
+ },
+ "esoi-optimization": {
+  "default": "composition",
+  "modules": {
+   "composition": "esoi.optimization.flow"
+  }
+ },
+ "esoi-runtime": {
+  "default": "composition",
+  "modules": {
+   "composition": "esoi.runtime.flow"
+  }
+ },
+ "esoi-structure": {
+  "default": "composition",
+  "modules": {
+   "composition": "esoi.structure.flow"
+  }
+ },
+ "esoi-understanding": {
+  "default": "composition",
+  "modules": {
+   "composition": "esoi.understanding.flow"
   }
  },
  "implementation-selection": {
   "default": "declarations",
+  "evidence": {
+   "detail": "no rival implementation was measured on the same cases",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
   "modules": {
-   "declarations": "esoi.interfaces"
+   "declarations": "esoi.runtime.implementation_selection.interface",
+   "select": "esoi.runtime.implementation_selection.select"
   }
  },
  "intent-registry": {
   "default": "beside_code",
   "evidence": {
-   "detail": "beside_code is better than esoi_folder (two-sided exact McNemar test, Holm-adjusted p=3.73e-09, 29 of 53 cases disagree)",
+   "detail": "beside_code is better than esoi_folder (two-sided exact McNemar test, Holm-adjusted p=2.38e-07, 23 of 50 cases disagree)",
    "p": 0.0,
    "verdict": "WIN"
   },
   "modules": {
-   "beside_code": "esoi.interfaces",
-   "esoi_folder": "esoi.interfaces"
+   "beside_code": "esoi.structure.intent_registry.interface",
+   "esoi_folder": "esoi.structure.intent_registry.interface"
   }
  },
  "keep-metric-record": {
@@ -132,13 +173,13 @@
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "library-modules": "esoi.interfaces"
+   "library-modules": "esoi.optimization.keep_metric_record.interface"
   }
  },
  "know-what-a-result-measures": {
   "default": "import_closure",
   "evidence": {
-   "detail": "import_closure is better than component_paths (two-sided exact McNemar test, Holm-adjusted p=0.000244, 13 of 55 cases disagree); import_closure is better than repo_wide (two-sided exact McNemar test, Holm-adjusted p=1.86e-09, 31 of 55 cases disagree)",
+   "detail": "import_closure is better than component_paths (two-sided exact McNemar test, Holm-adjusted p=0.000488, 12 of 55 cases disagree); import_closure is better than repo_wide (two-sided exact McNemar test, Holm-adjusted p=2.33e-10, 34 of 55 cases disagree)",
    "p": 0.0,
    "verdict": "WIN"
   },
@@ -156,7 +197,13 @@
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "margin-leaderboard": "esoi.interfaces"
+   "margin-leaderboard": "esoi.optimization.leaderboard.interface"
+  }
+ },
+ "library-adoption": {
+  "default": "reference-column",
+  "modules": {
+   "reference-column": "esoi.structure.library_adoption.interface"
   }
  },
  "local-application-index": {
@@ -167,7 +214,7 @@
    "verdict": "WIN"
   },
   "modules": {
-   "live_index": "esoi.interfaces"
+   "live_index": "esoi.understanding.local_application_index.interface"
   }
  },
  "measurement-harness": {
@@ -178,7 +225,7 @@
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "component-harness": "esoi.interfaces"
+   "component-harness": "esoi.optimization.measurement_harness.interface"
   }
  },
  "ownership-map": {
@@ -189,7 +236,7 @@
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "component-rows": "esoi.interfaces"
+   "component-rows": "esoi.structure.ownership_map.interface"
   }
  },
  "promote-the-winner": {
@@ -200,7 +247,7 @@
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "margin-promotion": "esoi.interfaces"
+   "margin-promotion": "esoi.optimization.promote_the_winner.interface"
   }
  },
  "public-evidence": {
@@ -217,14 +264,14 @@
  "readable-records": {
   "default": "at_a_glance",
   "evidence": {
-   "detail": "at_a_glance leads full_page (full_page 0 against at_a_glance 0.25; best guess, not yet significant, two-sided exact McNemar test, Holm-adjusted p=1, 1 of 4 cases disagree); at_a_glance leads links_page (links_page 0 against at_a_glance 0.25; best guess, not yet significant, two-sided exact McNemar test, Holm-adjusted p=1, 1 of 4 cases disagree)",
+   "detail": "at_a_glance leads full_page (full_page 0 against at_a_glance 0.5; best guess, not yet significant, two-sided exact McNemar test, Holm-adjusted p=1, 2 of 4 cases disagree); at_a_glance leads links_page (links_page 0 against at_a_glance 0.5; best guess, not yet significant, two-sided exact McNemar test, Holm-adjusted p=1, 2 of 4 cases disagree)",
    "p": 1.0,
    "verdict": "WIN"
   },
   "modules": {
-   "at_a_glance": "esoi.interfaces",
-   "full_page": "esoi.interfaces",
-   "links_page": "esoi.interfaces"
+   "at_a_glance": "esoi.understanding.readable_records.interface",
+   "full_page": "esoi.understanding.readable_records.interface",
+   "links_page": "esoi.understanding.readable_records.interface"
   }
  },
  "review-tracker": {
@@ -235,19 +282,7 @@
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "tracker-and-sheet": "esoi.interfaces"
-  }
- },
- "runtime-selection": {
-  "default": "declarations-and-cascade",
-  "evidence": {
-   "detail": "no rival implementation was measured on the same cases",
-   "p": null,
-   "verdict": "UNMEASURED"
-  },
-  "modules": {
-   "declarations-and-cascade": "esoi.interfaces",
-   "select": "esoi.runtime.implementation_selection.select"
+   "tracker-and-sheet": "esoi.understanding.review_tracker.interface"
   }
  },
  "skill-distribution": {
@@ -258,19 +293,30 @@
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "generated-public-copy": "esoi.interfaces"
+   "generated-public-copy": "esoi.understanding.the_standard.skill_distribution.interface"
   }
  },
- "spec-index": {
-  "default": "weighted-tfidf",
+ "solution-consideration": {
+  "default": "network-tiered",
   "evidence": {
-   "detail": "weighted_tfidf leads term_overlap (term_overlap 0.743 against weighted_tfidf 0.886; best guess, not yet significant, two-sided exact McNemar test, Holm-adjusted p=0.0625, 5 of 35 cases disagree)",
-   "p": 0.0625,
-   "verdict": "WIN"
+   "detail": "the selected implementation has no recorded row",
+   "p": null,
+   "verdict": "UNMEASURED"
   },
   "modules": {
-   "term-overlap": "esoi.understanding.spec_search.spec_index",
-   "weighted-tfidf": "esoi.understanding.spec_search.spec_index"
+   "network-tiered": "esoi.understanding.solution_consideration.fan_out"
+  }
+ },
+ "solution-relevance": {
+  "default": "index-with-links",
+  "evidence": {
+   "detail": "the selected implementation has no recorded row",
+   "p": null,
+   "verdict": "UNMEASURED"
+  },
+  "modules": {
+   "index-with-links": "esoi.understanding.solution_relevance.relevance",
+   "lexical-index": "esoi.understanding.solution_relevance.relevance"
   }
  },
  "spec-search": {
@@ -282,7 +328,9 @@
   },
   "modules": {
    "lexical-only": "esoi.understanding.spec_search.spec_search",
-   "lexical-vector-gated": "esoi.understanding.spec_search.spec_search"
+   "lexical-vector-gated": "esoi.understanding.spec_search.spec_search",
+   "term-overlap": "esoi.understanding.spec_search.spec_index",
+   "weighted-tfidf": "esoi.understanding.spec_search.spec_index"
   }
  },
  "specify-from-code": {
@@ -293,13 +341,13 @@
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "declarations-and-sync": "esoi.interfaces"
+   "declarations-and-sync": "esoi.structure.intent_registry.specify_from_code.interface"
   }
  },
  "structure-budget": {
   "default": "written-weighing-rule",
   "modules": {
-   "written-weighing-rule": "esoi.interfaces"
+   "written-weighing-rule": "esoi.structure.structure_budget.interface"
   }
  },
  "structure-check": {
@@ -310,18 +358,20 @@
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "rule-script": "esoi.interfaces"
+   "rule-script": "esoi.structure.structure_check.interface"
   }
  },
- "structure-rules": {
-  "default": "rule-modules",
+ "structure-quality": {
+  "default": "balanced_static",
   "evidence": {
-   "detail": "no rival implementation was measured on the same cases",
-   "p": null,
-   "verdict": "UNMEASURED"
+   "detail": "balanced_static is better than file_size_only (two-sided exact sign test on per-case balanced scores, Holm-adjusted p=3.11e-08, 43 of 49 cases disagree)",
+   "p": 0.0,
+   "verdict": "WIN"
   },
   "modules": {
-   "rule-modules": "esoi.interfaces"
+   "balanced_static": "esoi.structure.structure_quality.interface",
+   "expert_review": "esoi.structure.structure_quality.interface",
+   "file_size_only": "esoi.structure.structure_quality.interface"
   }
  },
  "template-sync": {
@@ -332,19 +382,20 @@
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "template-parser": "esoi.interfaces"
+   "template-parser": "esoi.structure.intent_registry.template_sync.interface"
   }
  },
  "the-standard": {
   "default": "standard-document",
   "modules": {
-   "standard-document": "esoi.interfaces"
+   "documentation-folder": "esoi.understanding.the_standard.interface",
+   "standard-document": "esoi.understanding.the_standard.interface"
   }
  },
  "the-steps": {
   "default": "esoi-steps",
   "modules": {
-   "esoi-steps": "esoi.interfaces"
+   "esoi-steps": "esoi.understanding.the_standard.the_steps.interface"
   }
  },
  "when-metrics-are-run": {
@@ -355,7 +406,7 @@
    "verdict": "UNMEASURED"
   },
   "modules": {
-   "on-a-decision": "esoi.interfaces"
+   "on-a-decision": "esoi.optimization.when_metrics_are_run.interface"
   }
  }
 }

@@ -1,0 +1,105 @@
+"""A small synthetic repository for Solution Consideration and Solution Relevance (no real data, public-repo safe).
+
+Its shape is the case that motivated generated prompts: an outside tool with a strong reputation was admitted as an arm of a card
+builder and measured, and it lost (3 of 63 against 43 of 63). The loss is held only in the results log and a finding, never in the
+solution's own row, so a pass that reads the solution alone cannot see it.
+
+``write_repo(dest)`` writes the repository and returns its root: a top intent with one solution (Recall), a sub-intent that implements
+it with two children (Card Builder, which delegates to Card Store), a results log, and a findings file declared in
+``[[consider.records]]``.
+"""
+from __future__ import annotations
+
+import csv
+import io
+from pathlib import Path
+from typing import Dict, List
+
+TOML = '''package = "toy"
+structure_dir = "esoi"
+results = "esoi/results.csv"
+
+[consider]
+budget = 6000
+
+[[consider.records]]
+file = "registry/findings.csv"
+kind = "finding"
+'''
+
+INTENT = ["intent_id", "name", "vision_statement", "implements", "opportunities", "solution_coherence", "solution_diagram"]
+SOLUTION = ["solution_id", "name", "description", "purpose", "approach", "out_of_scope", "milestones", "knowledge", "inputs", "outputs",
+            "problem_ids", "ideal_ids", "metric_ids", "implementations", "selected", "delegates_to"]
+IMPLEMENTATION = ["implementation_id", "solution_id", "filepath", "name", "description", "advantages", "disadvantages", "uses_solution_ids"]
+METRIC = ["metric_id", "name", "purpose", "record", "cascading_conditionals", "solution_ids", "command"]
+PROBLEM = ["problem_id", "name", "problem", "why_it_matters", "solution_ids", "ideal_ids"]
+IDEAL = ["ideal_id", "name", "principle", "hints_of_measurement", "problem_ids"]
+RESULT = ["date", "component", "impl", "cases", "passed", "dev", "heldout", "model_calls", "tokens_in", "tokens_out", "cost_usd",
+          "seconds", "git_sha", "cases_sha", "model", "details", "sample", "balanced"]
+FINDING = ["finding_id", "solution_id", "candidate", "rating", "summary"]
+
+
+def table(columns: List[str], rows: List[Dict[str, str]]) -> str:
+    out = io.StringIO()
+    writer = csv.DictWriter(out, fieldnames=columns, lineterminator="\n")
+    writer.writeheader()
+    writer.writerows(rows)
+    return out.getvalue()
+
+
+FILES = {
+    "esoi/intent.csv": table(INTENT, [{"intent_id": "toy", "name": "Toy Notes", "vision_statement": "Notes are found when needed.",
+                                       "solution_coherence": "Recall finds the notes a request needs."}]),
+    "esoi/solutions.csv": table(SOLUTION, [{
+        "solution_id": "recall", "name": "Recall", "purpose": "Give a request the notes it needs.", "approach": "Build cards, keep them, pick some.",
+        "implementations": "composition", "selected": "composition", "metric_ids": ""}]),
+    "esoi/implementations.csv": table(IMPLEMENTATION, [{"implementation_id": "recall:composition", "solution_id": "recall",
+                                                        "name": "Composition", "description": "The recall parts in order."}]),
+    "esoi/recall_parts/intent.csv": table(INTENT, [{
+        "intent_id": "recall_parts", "name": "Recall Parts", "vision_statement": "Every note has a card.", "implements": "recall:composition",
+        "solution_coherence": "Card Builder groups files into cards and hands them to Card Store, which keeps them for recall.",
+        "solution_diagram": "Card Builder -> Card Store (cards)"}]),
+    "esoi/recall_parts/solutions.csv": table(SOLUTION, [
+        {"solution_id": "card-builder", "name": "Card Builder", "purpose": "Propose the cards a folder of files needs.",
+         "approach": "Group files that belong together and describe each group.", "knowledge": "Code graphs group files by imports.",
+         "inputs": "A folder.", "outputs": "Cards.", "problem_ids": "prob-no-cards", "ideal_ids": "ideal-cards", "metric_ids": "metric-card-builder",
+         "implementations": "import_cards;graph_groups", "selected": "import_cards", "delegates_to": "card-store"},
+        {"solution_id": "card-store", "name": "Card Store", "purpose": "Keep cards and find them again.", "approach": "Store cards by id.",
+         "inputs": "A card.", "outputs": "The card's id.", "implementations": "local_store", "selected": "local_store"}]),
+    "esoi/recall_parts/implementations.csv": table(IMPLEMENTATION, [
+        {"implementation_id": "card-builder:import_cards", "solution_id": "card-builder", "name": "Import cards",
+         "description": "Files that import each other are one card."},
+        {"implementation_id": "card-builder:graph_groups", "solution_id": "card-builder", "name": "Graph groups",
+         "description": "An outside graph tool's communities of files, one card each."},
+        {"implementation_id": "card-store:local_store", "solution_id": "card-store", "name": "Local store", "description": "A file per card."}]),
+    "esoi/recall_parts/metrics.csv": table(METRIC, [{
+        "metric_id": "metric-card-builder", "name": "Cards that hold the needed file", "purpose": "Whether the cards serve a task.",
+        "record": "Cases passed of 63.", "solution_ids": "card-builder",
+        "command": "esoi run card_builder --impl import_cards; esoi run card_builder --impl graph_groups"}]),
+    "esoi/recall_parts/problems.csv": table(PROBLEM, [{"problem_id": "prob-no-cards", "name": "No cards", "problem": "Files have no cards.",
+                                                       "why_it_matters": "Recall returns nothing.", "solution_ids": "card-builder", "ideal_ids": "ideal-cards"}]),
+    "esoi/recall_parts/ideals.csv": table(IDEAL, [{"ideal_id": "ideal-cards", "name": "Current cards", "principle": "Cards cover the files.",
+                                                   "hints_of_measurement": "The needed file is in the first cards.", "problem_ids": "prob-no-cards"}]),
+    "esoi/results.csv": table(RESULT, [
+        {"date": "2026-01-02", "component": "card_builder", "impl": "graph_groups", "cases": "63", "passed": "3", "model_calls": "0",
+         "cost_usd": "0.0", "seconds": "50", "git_sha": "aaaaaaa", "cases_sha": "c1", "model": "none", "details": "top1=0/63", "balanced": "0.32"},
+        {"date": "2026-01-02", "component": "card_builder", "impl": "import_cards", "cases": "63", "passed": "43", "model_calls": "0",
+         "cost_usd": "0.0", "seconds": "40", "git_sha": "aaaaaaa", "cases_sha": "c1", "model": "none", "details": "top1=20/63", "balanced": "0.78"}]),
+    "registry/findings.csv": table(FINDING, [
+        {"finding_id": "F-1", "solution_id": "card-builder", "candidate": "Graph groups", "rating": "0.85",
+         "summary": "A popular graph tool; strongest candidate by reputation."},
+        {"finding_id": "F-2", "solution_id": "card-builder", "candidate": "Graph groups", "rating": "0.2",
+         "summary": "Lost on our cases: 3 of 63 against 43 of 63 (esoi/results.csv)."}]),
+}
+
+
+def write_repo(dest: Path) -> Path:
+    """Write the repository under ``dest`` and return its root."""
+    root = Path(dest)
+    (root / "esoi.toml").parent.mkdir(parents=True, exist_ok=True)
+    (root / "esoi.toml").write_text(TOML, encoding="utf-8")
+    for name, text in FILES.items():
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    return root

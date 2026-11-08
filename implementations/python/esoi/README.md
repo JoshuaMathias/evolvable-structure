@@ -12,7 +12,7 @@ Turn a project's intent into specifications that are checked, measured and selec
 - Entry call: `esoi.run("apply-esoi", '.')`
 - Selected implementation: Through the four containers (`through-the-four-containers`)
 - Metric: Adoption effort, Intents whose solutions one paragraph and one diagram explain as the code builds them
-- Implemented by: [`implementations/python/esoi/apply_esoi.py`](apply_esoi.py), [`implementations/python/esoi/esoi_selection.json`](esoi_selection.json), [`implementations/python/esoi/optimization/__init__.py`](optimization/__init__.py), [`implementations/python/esoi/optimization/keep_metric_record/__init__.py`](optimization/keep_metric_record/__init__.py), [`implementations/python/esoi/optimization/leaderboard/__init__.py`](optimization/leaderboard/__init__.py), [`implementations/python/esoi/optimization/measurement_harness/__init__.py`](optimization/measurement_harness/__init__.py), [`implementations/python/esoi/optimization/measurement_harness/discriminating_cases/__init__.py`](optimization/measurement_harness/discriminating_cases/__init__.py), [`implementations/python/esoi/optimization/promote_the_winner/__init__.py`](optimization/promote_the_winner/__init__.py) and 75 more
+- Implemented by: [`implementations/python/esoi/apply_esoi.py`](apply_esoi.py), [`implementations/python/esoi/esoi_selection.json`](esoi_selection.json), [`implementations/python/esoi/optimization/__init__.py`](optimization/__init__.py), [`implementations/python/esoi/optimization/keep_metric_record/__init__.py`](optimization/keep_metric_record/__init__.py), [`implementations/python/esoi/optimization/leaderboard/__init__.py`](optimization/leaderboard/__init__.py), [`implementations/python/esoi/optimization/measurement_harness/__init__.py`](optimization/measurement_harness/__init__.py), [`implementations/python/esoi/optimization/measurement_harness/discriminating_cases/__init__.py`](optimization/measurement_harness/discriminating_cases/__init__.py), [`implementations/python/esoi/optimization/promote_the_winner/__init__.py`](optimization/promote_the_winner/__init__.py) and 77 more
 
 ## Understanding (`esoi-understanding`)
 
@@ -82,6 +82,8 @@ Carry ESOI into other people's running programs, so a better measurement changes
 - [Local ESOI Index](understanding/local_application_index/README.md) (solution with implementations): Find which projects ESOI is applied to, how they relate and where to look first in each.
 - [Readable Records](understanding/readable_records/README.md) (solution with implementations): Give every intent folder a page, made from its records, that says at a glance what the intent is and how its parts fit.
 - [Review Tracker](understanding/review_tracker/README.md) (solution with implementations): Put the whole intent network and its current results in front of a reviewer, and carry their edits back to the records.
+- [Solution Consideration](understanding/solution_consideration/README.md) (solution with implementations): Give each relevant solution its own consideration, with a prompt formed from the records it connects to, for any pass of AI that judges work against it.
+- [Solution Relevance](understanding/solution_relevance/README.md) (solution with implementations): Name, for any change, candidate or request, the solutions that need their own consideration, so none is skipped.
 - [Spec Search](understanding/spec_search/README.md) (solution with implementations): Find the records, standards and product items that a request concerns, cheapest first, each with the records it links to.
 - [The Standard](understanding/the_standard/README.md) (solution with implementations and parts below it): Teach anyone, person or AI, how a solution is shaped and how a project adopts it, with explanation and fill-in templates that need no code.
 
@@ -156,6 +158,8 @@ flowchart LR
 - Down: [implementations/python/esoi/understanding/local_application_index](understanding/local_application_index/README.md)
 - Down: [implementations/python/esoi/understanding/readable_records](understanding/readable_records/README.md)
 - Down: [implementations/python/esoi/understanding/review_tracker](understanding/review_tracker/README.md)
+- Down: [implementations/python/esoi/understanding/solution_consideration](understanding/solution_consideration/README.md)
+- Down: [implementations/python/esoi/understanding/solution_relevance](understanding/solution_relevance/README.md)
 - Down: [implementations/python/esoi/understanding/spec_search](understanding/spec_search/README.md)
 - Down: [implementations/python/esoi/understanding/the_standard](understanding/the_standard/README.md)
 - Repository: [top README](../../../README.md)

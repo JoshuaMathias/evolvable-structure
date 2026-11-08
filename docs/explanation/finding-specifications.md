@@ -67,3 +67,6 @@ term overlap (the baseline).
 Its cases are plain-words requests written against this repository's own records, so it shows that weighting and fields help
 over bare overlap and that the scan is cheap; it does not show recall on a stranger's vocabulary. The pipeline above is why
 that is acceptable: a miss at stage 1 is what stage 2 is for. A consumer should measure the whole pipeline on its own requests.
+
+Finding the records is half of it. When a matter concerns several solutions, each one is given its own pass with a prompt its
+network of records forms: [give each solution its own consideration](../how-to/give-each-solution-its-own-consideration.md).

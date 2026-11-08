@@ -24,6 +24,8 @@
     esoi fields migrate [--apply]          split scoped_purpose into the new solution and metric fields in every records folder (dry run without --apply)
     esoi intent migrate [--apply]          move a legacy overall layout to the intent layout (dry run without --apply)
     esoi spec index [--out FILE]|find TEXT [-k N] [--expand N]|show ID [--tier 0|1|2]|related ID [--depth N]|intent [ID] [--cache FILE]   the specification index: find the few records a new use case needs
+    esoi spec prompt SOLUTION [--task T] [--budget N] [--with CSV] [--json]   the prompt for one solution's own consideration, formed from its network of records
+    esoi consider TEXT [--solution ID] [--max N] [--list]   one generated prompt per solution a change or candidate concerns, and per parent level (JSON)
     esoi projects init|add|list|check|index|where   the local ESOI index (a folder named by ESOI_HOME, else ~/.esoi)
     esoi version [--record]                the package version, the skill it follows, the template version; --record writes the template version into esoi.toml
     esoi hygiene [--staged] [--history]    scan for secrets, machine paths and real addresses
