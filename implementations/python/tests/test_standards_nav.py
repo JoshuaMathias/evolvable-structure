@@ -76,6 +76,8 @@ def test_the_hook_is_written_where_git_looks_and_never_overwrites_another(tmp_pa
     path = standards_check.install_hook(root)
     assert path.name == "pre-commit" and "check-staged" in path.read_text()
     assert standards_check.install_hook(root) == path
+    assert standards_check.install_hook(root, "/opt/py env/bin/python3") == path
+    assert "'/opt/py env/bin/python3'" in path.read_text().split("for py in", 1)[1].split(";", 1)[0]
     path.write_text("#!/bin/sh\necho other\n")
     try:
         standards_check.install_hook(root)

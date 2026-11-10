@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import ast
 import re
+import shlex
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List
@@ -147,12 +149,14 @@ def report(findings: List[Finding]) -> str:
     return "\n".join([head, *[f"  {f}" for f in findings], tail])
 
 
+HOOK_MARK = "# Installed by `python -m esoi.understanding.spec_search.standards_nav install-hook`."
 HOOK = """#!/bin/sh
-# Installed by `python -m esoi.understanding.spec_search.standards_nav install-hook`. Checks the staged change against the repository's standards
+""" + HOOK_MARK + """ Checks the staged change against the repository's standards
 # (docs/standards or esoi/standards): a finding blocks the commit, rules with no automatic check are listed.
+# Tries the interpreter that installed the hook first, then the repository's own environments.
 # Fails open when esoi is not importable, so a checkout without it (a server) still commits.
 root=$(git rev-parse --show-toplevel)
-for py in "$root/venv/bin/python3" "$root/.venv/bin/python3" python3; do
+for py in {python} "$root/venv/bin/python3" "$root/.venv/bin/python3" python3; do
   "$py" -c "import esoi.understanding.spec_search.standards_nav" 2>/dev/null && exec "$py" -m esoi.understanding.spec_search.standards_nav check-staged "$root"
 done
 echo "standards check skipped: esoi is not installed here" >&2
@@ -160,13 +164,20 @@ exit 0
 """
 
 
-def install_hook(root: Path) -> Path:
-    """Write the pre-commit hook where git looks for hooks (``core.hooksPath`` is honoured); never overwrites another hook."""
+def hook_text(python: str) -> str:
+    """The hook, trying ``python`` (the interpreter that installs it) before the repository's environments."""
+    return HOOK.replace("{python}", shlex.quote(python))
+
+
+def install_hook(root: Path, python: str = sys.executable) -> Path:
+    """Write the pre-commit hook where git looks for hooks (``core.hooksPath`` is honoured). Rewrites an earlier copy of this
+    hook, so reinstalling with a working interpreter repairs it; never overwrites another hook."""
     folder = Path(git(root, "rev-parse", "--path-format=absolute", "--git-path", "hooks").strip())
     target = folder / "pre-commit"
-    if target.exists() and target.read_text() != HOOK:
+    if target.exists() and HOOK_MARK not in target.read_text():
         raise FileExistsError(f"{target} exists and is not this hook; add `python -m esoi.understanding.spec_search.standards_nav check-staged` to it")
     folder.mkdir(parents=True, exist_ok=True)
-    target.write_text(HOOK)
-    target.chmod(0o755)
+    target.write_text(hook_text(python))
+    if target.stat().st_mode & 0o111 != 0o111:   # a shared checkout's hook may belong to another user; chmod only when needed
+        target.chmod(0o755)
     return target
