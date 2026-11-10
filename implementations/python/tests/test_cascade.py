@@ -254,3 +254,15 @@ def test_s33_disagreement_that_exists_only_on_results_from_other_cases_is_advice
     problems, advice = check.check_all(cfg)
     assert not any(line.startswith("S33") for line in problems)
     assert any(line.startswith("S33") and "other cases" in line for line in advice)
+
+
+
+def test_a_metric_beneath_the_solutions_own_metric_is_not_compared_with_selected():
+    from esoi.structure.structure_check.rules.cascade_rules import refines_own_metric
+    main = {"metric_id": "m-main", "solution_ids": "s1", "parent_metric_ids": "m-area"}
+    hard = {"metric_id": "m-hard", "solution_ids": "s1", "parent_metric_ids": "m-main"}
+    other = {"metric_id": "m-other", "solution_ids": "s2", "parent_metric_ids": "m-main"}
+    metrics = [main, hard, other]
+    assert refines_own_metric(hard, "s1", metrics)             # a kind of s1's work, ranked under s1's own metric
+    assert not refines_own_metric(main, "s1", metrics)         # the authoritative metric still decides `selected`
+    assert not refines_own_metric(other, "s2", metrics)        # a parent that belongs to another solution changes nothing

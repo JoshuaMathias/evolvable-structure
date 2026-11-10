@@ -3,6 +3,7 @@
 ## Unreleased
 
 - **S26 names a row with more cells than its header.** `tables.read_csv` drops the cells past the header, so an unquoted comma shifted every later cell one column left and surfaced as unrelated findings about paths and intents. `tables.overflow_rows` lists such rows and `records.check_headers` reports each by file, line and id.
+- **S33 knows a per-kind metric.** A metric whose parent is another metric of the same solution ranks one kind of that solution's work (hard work with its own budget, say), which a consumer asks for by kind; its winner is no longer reported as a disagreement with `selected`, which stays the choice of the solution's own metric.
 
 ## 0.6.0 (2026-11-08)
 

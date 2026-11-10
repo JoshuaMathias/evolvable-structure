@@ -20,7 +20,8 @@ SUMMARIES = {
            "and a metric `expiration` (and the project's `[expiration] default`) that is `never` or a number of days.",
     "S33": "Where a metric's cascade has counting results, the solution's selected implementation is the one the cascade "
            "chooses (the highest result at the latest stage run, unless another scored higher at an earlier shared stage "
-           "and has not been run there yet), or a waiver names the pending decision (waive as `<solution>`).",
+           "and has not been run there yet), or a waiver names the pending decision (waive as `<solution>`). A metric whose "
+           "parent is another metric of the same solution ranks one kind of its work and is not compared with `selected`.",
 }
 
 
@@ -44,6 +45,8 @@ def disagreement_lines(ctx: Context, metric: Dict[str, str], component: str, sel
     advice: List[str] = []
     mid = metric.get("metric_id", "")
     for sid in ids(metric.get("solution_ids", "")):
+        if refines_own_metric(metric, sid, ctx.registry.metrics):
+            continue
         selected = recorded_selection(ctx, sid, component, selected)
         if not (differs(selected, current) or differs(selected, recorded)) or ctx.waived("S33", sid):
             continue
@@ -53,6 +56,15 @@ def disagreement_lines(ctx: Context, metric: Dict[str, str], component: str, sel
         else:   # the choice differs only because some results were recorded on other cases, so it informs
             advice.append(line + advice_tail(component, selected))
     return bad, advice
+
+
+def refines_own_metric(metric: Dict[str, str], sid: str, metrics: list) -> bool:
+    """Whether ``metric`` measures one kind of the solution's work under another metric of the same solution (its
+    ``parent_metric_ids`` names a metric that also lists ``sid``). A solution has one authoritative metric and `selected`
+    is that metric's choice; a metric beneath it ranks the arms for its own kind of work (hard work, say, with its own
+    budget), which a consumer asks for by kind, so its winner is not a disagreement with `selected`."""
+    parents = set(ids(metric.get("parent_metric_ids", "")))
+    return any(m.get("metric_id") in parents and sid in ids(m.get("solution_ids", "")) for m in metrics)
 
 
 def recorded_selection(ctx: Context, sid: str, component: str, selected: str) -> str:
