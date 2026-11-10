@@ -26,6 +26,19 @@ def read_csv(path: Path) -> List[Dict[str, str]]:
         return [{k: (v or "") for k, v in row.items() if k} for row in csv.DictReader(handle)]
 
 
+def overflow_rows(path: Path) -> List[str]:
+    """The rows of a CSV that hold more cells than its header, each as ``line N (first cell)``. ``read_csv`` drops the
+    cells past the header, so an unquoted comma shifts every later cell one column left without any error; a check
+    reports these rows by name instead."""
+    path = Path(path)
+    if not path.exists():
+        return []
+    with path.open(newline="", encoding="utf-8-sig") as handle:
+        reader = csv.reader(handle)
+        width = len(next(reader, []))
+        return [f"line {reader.line_num} ({row[0]})" for row in reader if len(row) > width]
+
+
 def read_lines(path: Path) -> List[str]:
     """The lines of a text file, or none when the file is not there."""
     return path.read_text(encoding="utf-8").splitlines() if path.is_file() else []

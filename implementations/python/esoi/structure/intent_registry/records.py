@@ -42,7 +42,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 from esoi.structure.intent_registry.fields import upgrade_rows
-from esoi.structure.intent_registry.tables import DEFAULT_METRIC_COMMAND, ids, is_command, read_csv, read_header
+from esoi.structure.intent_registry.tables import DEFAULT_METRIC_COMMAND, ids, is_command, overflow_rows, read_csv, read_header
 
 FILES = {"problem": ("problems.csv", "problem_id"), "ideal": ("ideals.csv", "ideal_id"),
          "solution": ("solutions.csv", "solution_id"), "implementation": ("implementations.csv", "implementation_id"),
@@ -231,6 +231,8 @@ def check_headers(folder: Path, template: Template, interface_required: bool = T
         if not path.is_file():
             continue
         header = read_header(path)
+        bad += [f"R1 {label or folder}/{name}: {row} has more cells than the header, so its later cells are read under the "
+                "wrong columns; quote any cell that contains a comma" for row in overflow_rows(path)]
         need = needed_columns(check, entity, key, read_csv(path))
         missing = [k for k in need if k not in header]
         if missing:

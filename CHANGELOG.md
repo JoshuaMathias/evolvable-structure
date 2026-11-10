@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **S26 names a row with more cells than its header.** `tables.read_csv` drops the cells past the header, so an unquoted comma shifted every later cell one column left and surfaced as unrelated findings about paths and intents. `tables.overflow_rows` lists such rows and `records.check_headers` reports each by file, line and id.
+
 ## 0.6.0 (2026-11-08)
 
 - **Solution Consideration and Solution Relevance (new `esoi.understanding.solution_consideration` and `esoi.understanding.solution_relevance`).** One prompt per solution, formed from the solution's network of records (`fan_out`, `solution_prompt`, `knowledge`), and a relevance judgment of which solutions a request concerns (`relevance`), with arms `lexical_index`, `index_with_links`, `lexical_then_model` and `model_classifier`. The consideration network and the specification index are built from rows any source supplies, so a consumer need not keep a folder of records. Relevance is graded by F2; the relevance metric selects `index_with_links`.

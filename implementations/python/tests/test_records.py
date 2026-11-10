@@ -244,3 +244,12 @@ def test_a_repository_with_the_old_column_names_gets_a_finding_not_a_crash(cfg):
     assert any("`path`, renamed `filepath`" in line for line in found)
     assert any("`port`" in line for line in records.check_headers(cfg.structure, template.load_for(cfg)))
     assert any("`path`" in line for line in records.check_headers(cfg.structure, template.load_for(cfg)))
+
+
+def test_a_row_with_more_cells_than_the_header_is_reported(tmp_path):
+    from esoi.structure.intent_registry.tables import overflow_rows, read_csv
+    path = tmp_path / "implementations.csv"
+    path.write_text("implementation_id,disadvantages,filepath\nfine,\"one, quoted\",a.py\nshifted,one, unquoted,b.py\n", encoding="utf-8")
+    assert read_csv(path)[1]["filepath"] == " unquoted"          # the silent shift the check exists to name
+    assert overflow_rows(path) == ["line 3 (shifted)"]
+    assert overflow_rows(tmp_path / "absent.csv") == []
