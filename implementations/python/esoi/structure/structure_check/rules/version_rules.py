@@ -1,7 +1,8 @@
 """Rule S34: the template version a repository records is the one this library carries.
 
 A repository records the template version its records follow under ``[records]`` in ``esoi.toml`` (``esoi version --record``).
-A repository that records none is not failed: ``esoi check`` prints one informational line (``versioning.note``).
+The library's version moves once per push to the main branch, and only when a field is added, removed or renamed
+(``versioning.template_stamp``), so a recorded version is never behind by a mere rewording. A repository that records none is not failed: ``esoi check`` prints one informational line (``versioning.note``).
 """
 from __future__ import annotations
 

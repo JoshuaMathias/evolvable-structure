@@ -7,10 +7,13 @@ configuration), so the library can say which skill it follows and an adopting re
     skill      the skill the public copy was made from: the git commit that last touched its files in the source, whether
                the source still matches that commit (``committed``), the date, a content hash of the source SKILL.md
                (so it works without git) and a hash of the shipped copy
-    template   the current template version: a whole number that grows by one each time the template content changes,
-               the first 12 hex digits of the hash of that content, the skill commit it came from, and ``changes``: the
-               fields added, removed, made optional or required, or reworded since the version before
-    history    the earlier template versions, oldest first, in the same shape
+    template   the current template version: a whole number, one more than the released template's when a field was added,
+               removed or renamed since the release, else the released number (rewording a question or making a field
+               optional or required never bumps it); the first 12 hex digits of the hash of the content, the skill commit
+               it came from, and ``changes``: the fields added, removed, made optional or required, or reworded since the
+               released template. The released template is the stamp and template CSV on the upstream default branch
+               (``git show origin/<default>:<path>``); without git or that ref, the previous stamp on disk
+    history    the earlier released template versions, oldest first, in the same shape (no unreleased intermediates)
 
 The stamp holds no path and no name: commits and hashes only. It is reproducible: syncing again from the same source
 changes nothing (the date is the commit date, and an uncommitted source keeps the date it was first stamped).
@@ -151,22 +154,63 @@ def field_changes(old_csv: str, new_csv: str) -> List[str]:
     return out
 
 
+def released_state(folder: Path, stamp_file: Path, template_file: Path) -> Optional[Tuple[Stamp, str]]:
+    """The stamp and the template CSV as the upstream default branch holds them (``git show <remote>/<default>:<path>``), or None
+    when git, the remote ref, or either file there is unavailable. The default branch is the one ``refs/remotes/origin/HEAD``
+    names, else ``origin/main``."""
+    top = git_output(folder, ["rev-parse", "--show-toplevel"])
+    if not top:
+        return None
+    head = git_output(folder, ["symbolic-ref", "refs/remotes/origin/HEAD"])
+    ref = head.strip().removeprefix("refs/remotes/") if head and head.strip() else "origin/main"
+    texts = []
+    for path in (stamp_file, template_file):
+        try:
+            rel = path.resolve().relative_to(Path(top.strip()).resolve()).as_posix()
+        except ValueError:
+            return None
+        found = git_output(folder, ["show", f"{ref}:{rel}"])
+        if found is None:
+            return None
+        texts.append(found)
+    try:
+        stamp = json.loads(texts[0])
+    except ValueError:
+        return None
+    return (stamp, texts[1]) if isinstance(stamp, dict) and stamp.get("template") else None
+
+
 def template_stamp(stamp: Stamp, old_csv: str, new_csv: str, identity: Dict[str, Any], skill_text: str,
-                   today: Optional[datetime.date] = None) -> Stamp:
-    """The whole stamp after a template sync: the same stamp when the template content is unchanged (its source identity
-    refreshed), else the next template version with the changes since the last one."""
+                   today: Optional[datetime.date] = None, released: Optional[Tuple[Stamp, str]] = None) -> Stamp:
+    """The whole stamp after a template sync. The version is compared with the released template (``released``: its stamp and
+    CSV; without it, the previous stamp and ``old_csv``): it is the released version plus one when a field was added, removed or
+    renamed (the set of entity and field key differs), however many syncs came before, and the released version otherwise, so
+    rewording a question or making a field optional never bumps. ``changes`` list the content now against the released template.
+    The history holds released versions only."""
     today = today or datetime.date.today()
     sha, md = digest(new_csv)[:12], digest(skill_text)
     current = stamp.get("template") or {}
-    history = list(stamp.get("history", []))
-    same = current.get("sha256") == sha
-    if current and not same:
-        history.append(current)
-    previous = current if same else {}
-    entry = {"version": current.get("version", 0) if same else current.get("version", 0) + 1, "sha256": sha,
-             "changes": current.get("changes", []) if same else (field_changes(old_csv, new_csv) if current else [BASELINE]),
+    if released is None:
+        if current and current.get("sha256") == sha:   # nothing changed since the last sync: refresh the identity only
+            entry = {**current, "skill_commit": identity["commit"], "skill_committed": identity["committed"], "skill_md_sha256": md,
+                     "date": stamped_date(identity, current, current.get("skill_md_sha256") == md, today)}
+            return {**stamp, "template": entry}
+        released = ({**stamp, "history": list(stamp.get("history", []))}, old_csv)
+    base_stamp, base_csv = released
+    base = base_stamp.get("template") or {}
+    history = list(base_stamp.get("history", []))
+    if not base:
+        version, changes = 1, [BASELINE]
+    else:
+        grew = set(template_rows(base_csv)) != set(template_rows(new_csv))
+        version = base.get("version", 0) + 1 if grew else base.get("version", 0)
+        if grew:
+            history.append(base)
+        changes = field_changes(base_csv, new_csv)
+    previous = current if current.get("sha256") == sha else {}
+    entry = {"version": version, "sha256": sha, "changes": changes,
              "skill_commit": identity["commit"], "skill_committed": identity["committed"], "skill_md_sha256": md,
-             "date": stamped_date(identity, previous, same and current.get("skill_md_sha256") == md, today)}
+             "date": stamped_date(identity, previous, bool(previous) and previous.get("skill_md_sha256") == md, today)}
     return {**stamp, "template": entry, "history": history}
 
 

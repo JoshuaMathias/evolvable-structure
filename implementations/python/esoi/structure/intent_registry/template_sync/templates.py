@@ -443,7 +443,8 @@ def wanted_files(config: Config, path: Path, skill_text: str, rows: List[Dict[st
         before = template_csv_path(config)
         wanted[stamp] = versioning.render_stamp(versioning.template_stamp(
             versioning.read_stamp(stamp), before.read_text(encoding="utf-8") if before.exists() else "",
-            wanted[before], versioning.source_identity(path.parent, [path.name]), skill_text))
+            wanted[before], versioning.source_identity(path.parent, [path.name]), skill_text,
+            released=versioning.released_state(config.root, stamp, records.TEMPLATE_DATA if records.TEMPLATE_DATA.resolve().is_relative_to(config.root.resolve()) else before)))
     standard = standard_doc_path(config)
     if standard.exists():
         current = standard.read_text(encoding="utf-8")

@@ -6,7 +6,7 @@ Three things have a version here, and they move for different reasons.
 |---|---|---|
 | The `esoi` package | `version` in `implementations/python/pyproject.toml` (and `__version__` in `esoi/__init__.py`, the package's front door, which a test keeps equal) | a release, by the rule below |
 | The skill the library follows | the `skill` part of the stamp | `esoi skill sync` copies a changed skill |
-| The intent template | the `template` part of the stamp: a whole number, the template version | `esoi template sync` finds changed template content |
+| The intent template | the `template` part of the stamp: a whole number, the template version | a field is added, removed or renamed in the template, once per push to the main branch (see below) |
 
 ## The package: semantic versioning
 
@@ -51,12 +51,18 @@ path or name, and syncing again from the same source changes nothing.
   and `copy_sha256` (a hash of the shipped copy).
 - `template`: the current `version`, the first 12 digits of the `sha256` of the parsed template, the `skill_commit`
   and `skill_md_sha256` it came from, the `date`, and `changes`: the fields added, removed, made optional or required,
-  moved between the specify and interface groups, or reworded since the version before. A field's key comes from its question,
+  moved between the specify and interface groups, or reworded since the released template. A field's key comes from its question,
   so rewording a question shows as one field removed and one added.
-- `history`: the earlier template versions, oldest first, in the same shape.
+- `history`: the earlier released template versions, oldest first, in the same shape.
 
-The template version goes up by one when the content changes and by nothing otherwise, so it orders the changes the way a
-hash cannot. Version 1 is the first recorded one; its change list says so.
+The template version is compared with the **released** template: the stamp and the bundled template CSV as the upstream default
+branch holds them (`git show origin/<default>:<path>`, the default being what `refs/remotes/origin/HEAD` names, else
+`origin/main`). It goes up, to the released version plus one, only when a field is added, removed or renamed (the set of
+entity and field key differs from the released template), however many syncs happen before the push. Rewording a question or
+making a field optional or required never bumps it: the entry keeps the released number, while its `sha256` and `changes`
+describe the content now, listed against the released template. The `history` holds released versions only, no
+unreleased intermediates. Without git or the remote ref, the released state is the previous stamp on disk. Version 1 is the
+first recorded one; its change list says so.
 
 `esoi version` prints the package version, the skill commit and date, and the template version.
 

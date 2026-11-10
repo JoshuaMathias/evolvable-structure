@@ -64,6 +64,62 @@ def test_a_changed_template_is_the_next_version_with_its_changes_and_the_old_one
     assert versioning.describe(second["template"]).startswith("template 2 (2026-10-31, skill abc1234): solution.purpose")
 
 
+def released_of(csv, version=4):
+    stamp = versioning.template_stamp({}, "", csv, UNCOMMITTED, "a", TODAY)
+    stamp["template"]["version"] = version
+    stamp["history"] = [{"version": n} for n in range(1, version)]
+    return stamp, csv
+
+
+def test_rewording_or_making_optional_keeps_the_released_version_and_lists_the_changes():
+    released = released_of(OLD)
+    reworded = OLD.replace("Why?", "Why exactly?").replace("Which?,specify,yes", "Which?,specify,no")
+    done = versioning.template_stamp({}, OLD, reworded, UNCOMMITTED, "a", TODAY, released)
+    assert done["template"]["version"] == 4 and done["history"] == released[0]["history"]
+    assert done["template"]["changes"] == ["solution.purpose: question reworded", "solution.tags: made optional"]
+
+
+def test_adding_fields_in_two_syncs_before_release_bumps_once():
+    released = released_of(OLD)
+    one = OLD + "solution,first,One?,specify,no\n"
+    two = one + "solution,second,Two?,specify,no\n"
+    first = versioning.template_stamp(released[0], OLD, one, UNCOMMITTED, "a", TODAY, released)
+    again = versioning.template_stamp(first, one, two, UNCOMMITTED, "a", TODAY, released)
+    assert first["template"]["version"] == 5 and again["template"]["version"] == 5
+    assert [e["version"] for e in again["history"]] == [1, 2, 3, 4]
+    assert again["template"]["changes"] == ["solution.first: added (optional)", "solution.second: added (optional)"]
+    assert versioning.template_stamp(again, two, two, UNCOMMITTED, "a", TODAY, released) == again   # reproducible
+
+
+@pytest.mark.parametrize("after", [OLD.replace("solution,gone,Old?,specify,yes\n", ""), OLD.replace("solution,gone,", "solution,renamed,")])
+def test_removing_or_renaming_a_field_bumps_once(after):
+    released = released_of(OLD)
+    done = versioning.template_stamp(released[0], OLD, after, UNCOMMITTED, "a", TODAY, released)
+    assert done["template"]["version"] == 5 and [e["version"] for e in done["history"]] == [1, 2, 3, 4]
+
+
+def test_without_a_remote_the_previous_stamp_is_the_released_state(tmp_path):
+    cfg = make(tmp_path)
+    cfg.version_stamp = "stamp.json"
+    assert versioning.released_state(tmp_path, tmp_path / "stamp.json", tmp_path / "t.csv") is None
+    assert templates.sync(cfg, say=lambda text: None) == 0
+    assert json.loads((tmp_path / "stamp.json").read_text())["template"]["version"] == 1
+
+
+def test_the_released_state_is_read_from_the_upstream_default_branch(tmp_path):
+    import subprocess
+    def git(*args):
+        subprocess.run(["git", "-C", str(tmp_path), "-c", "user.name=t", "-c", "user.email=t@t", *args], check=True, capture_output=True)
+    git("init", "-q", "-b", "main")
+    (tmp_path / "stamp.json").write_text(versioning.render_stamp({"template": {"version": 4}}))
+    (tmp_path / "t.csv").write_text(OLD)
+    git("add", "."); git("commit", "-qm", "x")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (tmp_path / "t.csv").write_text(NEW)
+    stamp, csv = versioning.released_state(tmp_path, tmp_path / "stamp.json", tmp_path / "t.csv")
+    assert stamp["template"]["version"] == 4 and csv == OLD
+
+
 def test_committing_the_source_after_a_stamp_refreshes_the_identity_without_a_new_version():
     first = versioning.template_stamp({}, "", OLD, UNCOMMITTED, "a", TODAY)
     committed = {"commit": "abc1234def", "commit_date": "2026-11-01", "committed": True}
