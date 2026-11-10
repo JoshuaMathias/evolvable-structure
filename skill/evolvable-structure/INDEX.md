@@ -35,6 +35,7 @@ list projects: it routes by kind of task, and which projects exist is the user's
 
 | Your task | Read | Only if needed |
 |---|---|---|
+| Writing Application Questions, applying a spec to a person, ordering or generating solutions | `principles/application_questions.md` | |
 | A data model, fields, where data lives | patterns 1, 4; `coding/pipelines_and_experiments.md` (examples 4, 5) | |
 | Pipelines, stages, one function for notebook, CLI, pipeline and test | pattern 8; `coding/pipelines_and_experiments.md` (examples 3, 7); `coding/writealyze.md` (examples 13, 15) | |
 | Experiments, tuning, evals, choosing the best implementation by a metric | pattern 9; `principles/documenting.md`; `coding/pipelines_and_experiments.md` (example 6) | `principles/patterns_change.md` |
