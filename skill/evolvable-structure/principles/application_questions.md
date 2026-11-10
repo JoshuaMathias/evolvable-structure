@@ -7,8 +7,8 @@ examples last.
 ## The question and its answer
 
 - **The question belongs to the solution; the answer belongs to the person applying it.** The answer names the
-  implementation they choose, or describes it, in words they understand: "What is your unifying technique?" is answered
-  "Focusing on the felt sense of energy, with focus counts." The answer is the human-readable form of which
+  implementation they choose, or describes it, in words they understand: "What is your unifying technique?" is answered with
+  the technique the person chose The answer is the human-readable form of which
   implementation is selected.
 - **The answer keeps evolving.** Keep its history: the history is how the person's clarity grew.
 - **An answer records uncertainty too.** How sure the person is decides what to test: decided (test that one),
@@ -16,13 +16,21 @@ examples last.
 - **AI drafts, the person decides.** AI drafts each answer from the implementation it currently proposes; the person
   edits or replaces it. A restructuring or experiment result proposes changes to answers first, and the changes to
   implementations, habits and experiments that follow from an answer are shown with it.
-- **Questions are simple.** They do not restate the ideals or metrics; they ask for the choice.
+- **Questions are simple.** They do not restate the ideals or metrics; they ask for the choice. They simplify by
+  consolidating: one question may cover several ideals of its solution (a question about developing discernment can
+  cover several related ideals at once), and whether each ideal needs
+  its own attention depends on the person, so do not split a question just because its solution has several ideals.
 
 ## Completeness
 
 Once a person has answered every Application Question of an intent with confidence, no additional choice should be
 needed to carry out the intent: details are determined from the answers and the rest of the specification. A choice the
-answers leave open means a question, or a solution, is missing. Check a specification for this before it is applied:
+answers leave open means a question, or a solution, is missing.
+
+**Drafting order follows dependencies.** Questions are shown in priority order, but an answer that depends on others
+is drafted after them: dependencies are determined from solution dependencies (implementations' `uses_solution_ids`),
+across an intent and its sub-intents. A schedule is the typical case: it places the practices chosen everywhere
+else, so it is drafted last and revisited when they change. Check a specification for this before it is applied:
 list the choices a person would still have to make after answering every question.
 
 ## Sub-intents: questions that build up to a solution's question
@@ -33,6 +41,11 @@ corrupts the structure. When a solution's implementation is a sub-intent, the su
 together answer the parent solution's question, and the completeness check applies inside the sub-intent too. A
 person applying the specification sees the sub-questions under the parent question; the parent answer summarizes the
 sub-answers, and it is only as certain as the least certain of them.
+
+**The structure is complex; the experience is simple.** However deep the structure (intents, sub-intents, their
+solutions), a person applying a specification sees only questions, with sub-questions nested under the question they
+build up to. They never see, name or create an intent or sub-intent; when a choice splits into smaller choices, AI
+creates the sub-intent structure behind the questions.
 
 ## Order: solutions by priority for the intent
 
@@ -69,14 +82,10 @@ through; mark a field optional when leaving it empty is a fine permanent state f
 
 ## Examples
 
-**A developmental map for psychic abilities.** Questions per solution, in the map's priority order: Becoming the
-ability ("How will you align your whole self with your ability?"), Consistency ("How will you ensure you're consistently
-moving in the same direction in your developmental journey?"), Awareness, Source of influence, Physical body, Making
-space, Measurement. Consistency's choices are a unifying technique ("What is your unifying technique you can apply to all
-other priorities?") and a schedule ("What do you do on a regular basis and at what time or order?"); whether they are
-solutions of a sub-intent under Consistency or siblings of it is the author's call. The completeness check is what
-surfaced the schedule: with the original seven solutions, how the day's limited time is split across practices was a
-choice no answer covered.
+**A practice with a schedule.** A specification for developing a skill had a solution for consistency but no question
+about time. The completeness check surfaced it: how the day's limited time is split across practices was a choice no
+answer covered. It became a sub-solution of consistency, drafted last because it places the practices chosen
+everywhere else.
 
 **A quest-creation flow.** Each strategy screen opens with its question, the AI's draft answer, a three-way "how sure"
 choice that picks the experiment kind, and "What matters to you here" (the linked ideals, editable). A holistic
