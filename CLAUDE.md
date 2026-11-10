@@ -37,6 +37,10 @@ The main feature is explanation and templates that need no code; Python is one e
 
 - **`SKILL.md` is Joshua's and the authority.** Never edit it. The intent template and the definitions and principles are
   quoted from it by `esoi template sync`; do not restate them in other words.
+  Joshua's further guidance on ESOI goes in the skill's other files (e.g. `principles/*.md`), never in `SKILL.md`.
+- **The template version goes up at most once per push to main, and only when a field is added, removed or renamed.**
+  Rewording a field, or making it optional or required, never raises it; several syncs before a push share one version.
+  Before raising `template_version` in any repository, compare with the version on origin/main (Joshua, 2026-11-10).
 - **Extend before adding a solution.** A new behaviour is first a case, a metric stage, an arm or a flow step of an existing solution; a new solution needs a distinct purpose, competing alternatives and lasting existence (`docs/explanation/extend-before-adding-a-solution.md`).
 - **Adopters are examples only.** Name them in `examples/` and nowhere else, except that the generated `skill/` frames the author's own frameworks as its examples (a test enforces it). No adopter's
   configuration, plugin or migration code lives here.
