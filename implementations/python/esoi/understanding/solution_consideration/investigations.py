@@ -10,14 +10,18 @@ Everything else is optional unless the kind asks for it, and a qualitative inves
 Files named before the rename (``research.csv``, ``research_items.csv``, the column ``research_id``) are still read when the new
 file or column is absent (``renamed``); everything is written under the new names.
 
-Its home is an intent (``intent_id``), not a solution: a question may bear on several solutions, problems, ideals, metrics or
-alternatives (``links``, many to many and optional), or on none yet when it is about how to think about the intent itself.
+Its home is an intent (``intent_id``), and it links to at least one solution (``solution:<id>`` in ``links``, several allowed, at whatever
+level of the hierarchy fits): knowledge already belongs to solutions and work is acted on through solutions, so before investigating one
+reads the earlier investigations on that solution and its ancestors (``on_solution``); a fresh one that answers the question is reused,
+a stale or partial one is extended. When nothing narrower fits, an investigation goes up to the solution its intent implements in the
+parent intent, and at the top intent to the solution that best stands for the whole. Other link kinds (problem, ideal, metric,
+implementation, knowledge, intent) stay optional extras. A row naming no solution is advised, never failed.
 
 Everything here is advice: a malformed or incomplete record is listed, never failed. Standard library only; no model call.
 
 ``investigations.csv`` columns: ``investigation_id``, ``kind`` (review, trial, observation, interview, other), ``intent_id``,
 ``experiment_id`` (the row of ``experiments.csv`` the activity belongs to; optional), ``links``
-(``kind:id`` entries separated by ``;``, kind one of ``LINK_KINDS``; empty when the question is about the intent itself), ``question``,
+(``kind:id`` entries separated by ``;``, kind one of ``LINK_KINDS``; at least one ``solution:<id>``), ``question``,
 ``decision`` (what the answer informs), ``size`` (quick, standard, full), ``protocol_date`` (the method is fixed on this date, before
 the work), ``method`` (how it is done, by whom), ``criteria``, ``sources``, ``queries`` (``source | query | date | hits``) and ``found``,
 ``screened_out`` (``count reason``), ``kept`` (a review's screening), ``observe`` (a trial or observation: what will be observed and how),
@@ -66,6 +70,7 @@ KIND_NEEDS = {"review": ("decision", "criteria", "sources", "queries", "found", 
               "trial": ("observe", "change_my_mind"), "observation": ("observe",)}
 SYNTHESIS = ("synthesis_known", "synthesis_contested", "synthesis_unknown")
 SEP = ";"
+PILE_UP = 5   # this many investigations on one top-level solution, none with a narrower solution link, suggest a solution may be missing
 
 
 def as_date(text: str) -> Optional[datetime.date]:
@@ -110,6 +115,59 @@ def linked(row: Mapping[str, str], kind: str = "") -> List[str]:
         if rid.strip() and (not kind or link_kind.strip() == kind):
             out.append(rid.strip())
     return out
+
+
+def parent_solution(intent_row: Mapping[str, str]) -> str:
+    """The solution an intent implements in its parent intent (its ``implements`` cell, ``solution:implementation``), or empty."""
+    text = (intent_row.get("implements") or "").strip()
+    return text.split(":", 1)[0].strip() if ":" in text and not text.startswith("@") else ""
+
+
+def solution_parents(config) -> Dict[str, str]:
+    """``solution id -> the solution its intent implements in the parent intent`` ("" for a solution of the top intent), read from the
+    solutions' folders and each intent's ``implements`` cell."""
+    implements = {i.intent_id: parent_solution(i.row) for i in intents.discover(config)}
+    return {(r.get("solution_id") or "").strip(): implements.get(r.get("intent_id", ""), "")
+            for r in intents.read_rows(config, "solutions.csv") if (r.get("solution_id") or "").strip()}
+
+
+def ancestors(config, solution_id: str) -> List[str]:
+    """The solutions above ``solution_id``, nearest first: the solution its intent implements, then that one's, up to the top."""
+    parents, out = solution_parents(config), []
+    current = parents.get(solution_id, "")
+    while current and current not in out and current != solution_id:
+        out.append(current)
+        current = parents.get(current, "")
+    return out
+
+
+def on_solution(config, solution_id: str, with_ancestors: bool = False,
+                on: Optional[datetime.date] = None) -> List[Dict[str, str]]:
+    """The investigations linked to a solution (and to its ancestor solutions when asked), newest first by ``done_on``, each row a copy with
+    ``fresh`` added (``yes`` when ``refresh_on`` is not past, ``no`` when it is or the investigation is superseded) and ``via`` (the
+    solution it is linked to)."""
+    on = on or datetime.date.today()
+    wanted = [solution_id] + (ancestors(config, solution_id) if with_ancestors else [])
+    out = []
+    for row in rows(config):
+        via = next((s for s in wanted if s in linked(row, "solution")), "")
+        if via:
+            refresh = as_date(row.get("refresh_on", ""))
+            stale = (row.get("status") or "open").strip() != "open" or (bool(refresh) and refresh < on)
+            out.append({**row, "fresh": "no" if stale else "yes", "via": via})
+    return sorted(out, key=lambda r: as_date(r.get("done_on", "")) or datetime.date.min, reverse=True)
+
+
+def pile_ups(config) -> List[Tuple[str, int]]:
+    """``(top-level solution id, count)`` where ``PILE_UP`` or more investigations link to a top-level solution and to no narrower one."""
+    parents = solution_parents(config)
+    counts: Dict[str, int] = {}
+    for row in rows(config):
+        mine = linked(row, "solution")
+        if mine and all(parents.get(s, None) == "" for s in mine):
+            for s in mine:
+                counts[s] = counts.get(s, 0) + 1
+    return sorted((s, n) for s, n in counts.items() if n >= PILE_UP)
 
 
 def counted(entries: List[str]) -> Optional[int]:
@@ -252,6 +310,11 @@ def advice(config, on: Optional[datetime.date] = None) -> List[Tuple[str, str]]:
         key = (row.get("investigation_id") or "").strip() or "(no id)"
         mine = by_research.get(key, [])
         out += [(key, p) for p in row_problems(row, mine) + applied_problems(row, mine, on)]
+    out += [((r.get("investigation_id") or "").strip() or "(no id)", "names no solution; link it to the solution it informs, or going up, "
+             "to the solution its intent implements (docs/reference/knowledge-search-standard.md)")
+            for r in rows(config) if not linked(r, "solution")]
+    out += [(f"on {s}", f"{n} investigations link to the top-level solution {s} and to no narrower one; a solution may be missing")
+            for s, n in pile_ups(config)]
     out += experiment_problems(config)
     out += [((r.get("investigation_id") or "").strip(), f"revisit was due {r.get('refresh_on')}; redo it or set its status to superseded")
             for r in due(config, on)]

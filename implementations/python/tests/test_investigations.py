@@ -174,7 +174,7 @@ def test_the_intent_page_shows_its_experiments_and_a_missing_file_is_valid(toy):
 
 
 def test_a_qualitative_trial_needs_no_number_and_names_its_experiment(toy):
-    trial = record(investigation_id="t-1", kind="observation", experiment_id="x-1", size="quick", links="", found="", screened_out="", kept="",
+    trial = record(investigation_id="t-1", kind="observation", experiment_id="x-1", size="quick", links="solution:recall", found="", screened_out="", kept="",
                    criteria="", sources="", queries="", decisions="", decision="", observe="what the person does when cards are grouped",
                    change_my_mind="if grouping is never used")
     write_experiments(toy, [experiment()])
@@ -185,14 +185,48 @@ def test_a_qualitative_trial_needs_no_number_and_names_its_experiment(toy):
     assert any("names experiment x-1, which has no row in experiments.csv" in line for line in advice(toy))
 
 
-def test_a_question_about_the_intent_itself_links_to_nothing_and_a_comparison_links_to_many(toy):
+def test_every_investigation_names_a_solution_and_a_comparison_links_to_many(toy):
     write(toy, [record(links="")], [item("i1"), item("i2")])
-    assert advice(toy) == []
+    assert advice(toy) == ["r-1: names no solution; link it to the solution it informs, or going up, to the solution its intent implements "
+                           "(docs/reference/knowledge-search-standard.md)"]
+    write(toy, [record(links="ideal:recall-fast")], [item("i1"), item("i2")])
+    assert any("names no solution" in line for line in advice(toy))
     write(toy, [record(links="solution:card-builder;solution:card-store;ideal:recall-fast")], [item("i1"), item("i2")])
     assert advice(toy) == []
     assert investigations.linked({"links": "solution:a;ideal:b;solution:c"}, "solution") == ["a", "c"]
     write(toy, [record(links="thing:x")], [item("i1"), item("i2")])
     assert any("link 'thing:x'" in line for line in advice(toy))
+
+
+def test_the_lookup_reads_a_solution_and_its_ancestors_newest_first(toy):
+    assert investigations.ancestors(toy, "card-builder") == ["recall"] and investigations.ancestors(toy, "recall") == []
+    write(toy, [record(investigation_id="old", links="solution:recall", done_on="2026-10-01"),
+                record(investigation_id="mid", links="solution:card-builder", done_on="2026-11-01"),
+                record(investigation_id="new", links="solution:card-builder;solution:card-store", done_on="2026-11-09"),
+                record(investigation_id="other", links="solution:card-store", done_on="2026-11-05")], [])
+    own = investigations.on_solution(toy, "card-builder", on=DAY)
+    assert [r["investigation_id"] for r in own] == ["new", "mid"]
+    both = investigations.on_solution(toy, "card-builder", with_ancestors=True, on=DAY)
+    assert [(r["investigation_id"], r["via"]) for r in both] == [("new", "card-builder"), ("mid", "card-builder"), ("old", "recall")]
+    assert [r["investigation_id"] for r in investigations.on_solution(toy, "recall", with_ancestors=True, on=DAY)] == ["old"]
+
+
+def test_the_lookup_marks_each_investigation_fresh_or_past_its_refresh_date(toy):
+    write(toy, [record(investigation_id="fresh", refresh_on="2027-02-10"), record(investigation_id="stale", refresh_on="2026-11-15"),
+                record(investigation_id="gone", refresh_on="2027-02-10", status="superseded")], [])
+    marks = {r["investigation_id"]: r["fresh"] for r in investigations.on_solution(toy, "card-builder", on=DAY)}
+    assert marks == {"fresh": "yes", "stale": "no", "gone": "no"}
+
+
+def test_many_investigations_on_a_top_level_solution_suggest_a_missing_solution(toy):
+    top = [record(investigation_id=f"t-{n}", links="solution:recall") for n in range(investigations.PILE_UP)]
+    write(toy, top, [])
+    assert investigations.pile_ups(toy) == [("recall", investigations.PILE_UP)]
+    assert any("top-level solution recall" in line and "a solution may be missing" in line for line in advice(toy))
+    write(toy, top[:-1], [])
+    assert investigations.pile_ups(toy) == []
+    write(toy, top[:-1] + [record(investigation_id="t-n", links="solution:recall;solution:card-builder")], [])
+    assert investigations.pile_ups(toy) == []
 
 
 def test_running_experiments_are_ordered_and_shown_first_on_the_intent_page(toy):

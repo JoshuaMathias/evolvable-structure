@@ -2,7 +2,9 @@
 
 The method behind each step is in the [knowledge search standard](../reference/knowledge-search-standard.md); no model is called and nothing costs money.
 
-1. **Look first.** Find a current review of the same question in `investigations.csv` (not past its `refresh_on`). If one exists, use it.
+1. **Look first.** Read the earlier investigations on the solution you are working on and on its ancestor solutions (`investigations.on_solution`
+   with ancestors). A current review of the same question (not past its `refresh_on`) is the answer; a stale or partial one is extended. Link
+   your own investigation to at least one solution (`solution:<id>` in `links`), going up to the solution its intent implements when nothing narrower fits.
 2. **Choose the size** from the decision's weight: quick (reversible within a day, one implementation), standard (a selected arm, a metric, a
    registry area), full (hard to reverse, a shared dependency, licence, privacy, a public claim). When two fit, take the larger.
 3. **Write the method before the first query.** The question in four slots (need, candidates including the strongest existing one,

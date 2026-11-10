@@ -15,7 +15,8 @@ question, scope, owners and period. An investigation ([`investigations.csv`](kno
 gathering carried out to answer a question (a review of sources, a trial, an observation, an interview), inside an experiment or on its
 own. The `question` of an investigation is a sub-question of the experiment's `research_question`, or the same question. "Research"
 stays the general word for the activity; the record of one piece of it is always an investigation (the owner's choice, 2026-11-10, over
-inquiry, study and evidence search; it was `research.csv` before).
+inquiry, study and evidence search; it was `research.csv` before). Unlike an experiment, which may bear on many solutions or none, an
+investigation links to at least one solution (going up the hierarchy when nothing narrower fits; see the standard).
 
 Two ideas make an experiment distinct:
 

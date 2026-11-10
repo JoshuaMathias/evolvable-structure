@@ -12,6 +12,8 @@ Joshua, 2026-11-10: "add guidance to ESOI repo and skill that all knowledge sear
 (research question, method, etc. Like a systematic review), and ESOI should establish conceptual or formatting standards for how
 that's done." The standard, its sizes and its record format (`investigations.csv`, `investigation_items.csv`) are defined once, in the ESOI
 repository's `docs/reference/knowledge-search-standard.md` (how: `docs/how-to/search-like-a-small-review.md`); read it, do not restate it here.
+Joshua, 2026-11-10: "About investigations ... I think they can always be associated with a solution? At whatever level of the hierarchy including the [top] overall solution. Since ... inputs are supposed to be acted on through solutions ... And this could improve AI knowing about previous investigations."
+So every investigation links to at least one solution, and before investigating, read the earlier investigations on that solution and its ancestors: reuse a fresh one that answers the question, extend a stale or partial one.
 
 An experiment is a record of an intent's current focused exploration: the research direction, with its research question, scope, owners and period. An investigation is one piece of information gathering carried out to answer a question (a review, a trial, an observation, an interview), inside an experiment or on its own; "research" stays the general word for the activity. Joshua, 2026-11-10: "I see an
 experiment as scoping the current effort of focused exploration for the intent/quest"; "There should be records of experiments";

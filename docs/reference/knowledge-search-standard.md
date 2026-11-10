@@ -86,8 +86,11 @@ outward. When two sizes fit, take the larger. Research may move up when it finds
 | Standard | The decision selects or changes a solution's implementation, a metric, a public-stage prior or a registry area, or other solutions depend on it | up to an hour of AI work | Two source kinds (or two observations), at least five queries for a review, every part above, synthesis in three parts |
 | Full | The decision is hard to reverse, adds a dependency others rely on, carries licence, privacy or safety risk, makes a public claim, or creates a solution | hours | Standard, plus the method reviewed by a second reader before the work, three source kinds, a second screening pass over a sample of the excluded, and a note on what would change the decision |
 
-Nothing here is a reason to do more. Before searching, look in `investigations.csv` for a current review of the same question and reuse it; a
-review not past its revisit date is the answer.
+Nothing here is a reason to do more.
+
+**Before you search.** Read the earlier investigations on the solution you are working on and on its ancestor solutions
+(`investigations.on_solution` with ancestors). A review of the same question not past its revisit date is the answer: reuse it. A stale
+or partial one is extended, not started again.
 
 ### The minimum record, smallest size
 
@@ -101,8 +104,8 @@ its reason. Each kept item holds its claim, source, source date, and what it cha
 Two CSV files in the records folder beside `knowledge.csv`, one record type kept as two tables (as a problem and its links are):
 
 `investigations.csv`, one row per investigation: `investigation_id`, `kind`, `intent_id`, `experiment_id`, `links` (`kind:id` entries,
-`;` separated, kind one of solution, problem, ideal, metric, implementation, intent, knowledge; empty when the question is about
-the intent itself), `question`, `decision`, `size`, `protocol_date`, `method`, `criteria`, `sources`, `queries` (`source | query | date | hits`),
+`;` separated, kind one of solution, problem, ideal, metric, implementation, intent, knowledge; at least one `solution:<id>`, see
+below), `question`, `decision`, `size`, `protocol_date`, `method`, `criteria`, `sources`, `queries` (`source | query | date | hits`),
 `found`, `screened_out` (`count reason`), `kept`, `observe`, `change_my_mind`, `stop`, `done_on`, `synthesis_known`, `synthesis_contested`,
 `synthesis_unknown`, `limitations`, `decisions` (`candidate: verb: reason`), `refresh_on`, `status` (`open` or `superseded`). Lists are `;` separated.
 
@@ -115,10 +118,30 @@ and a solution's `knowledge` cell is untouched. Whether investigation records st
 kind of the template, or live inside the Knowledge field of an intent or solution, remains the owner's to choose; experiments, which
 are research directions, are records of their own ([experiments in ESOI](experiments-in-esoi.md)). Python: `esoi.understanding.solution_consideration.investigations`.
 
+### Every investigation links to a solution
+
+Every investigation links to at least one solution (`solution:<id>` in `links`), several allowed, at whatever level of the hierarchy
+fits. When nothing narrower fits it goes up: to the solution its intent implements in the parent intent (a sub-intent arises as an
+implementation of a parent solution), and at the top intent to the solution that best stands for the whole. The other link kinds
+(problem, ideal, metric, implementation, knowledge, intent) stay optional extras. Experiments are unchanged: they stay at the intent and
+may bear on many solutions or none.
+
+Why: knowledge already belongs to solutions, and work is acted on through solutions, so before investigating one reads the earlier
+investigations on that solution and its ancestors. A fresh one that answers the question is reused; a stale or partial one is extended.
+The owner, 2026-11-10: "I think they can always be associated with a solution? At whatever level of the hierarchy including the [top]
+overall solution."
+
+Python: `investigations.on_solution(config, solution_id, with_ancestors=True)` returns the investigations linked to the solution, newest
+first (`done_on`), each marked `fresh` (`yes`, or `no` when past its `refresh_on` or superseded) and `via` (the solution it is linked to).
+The ancestors of a solution are read from the records: the solution lives in an intent's folder, that intent's `implements` cell names
+the solution (and implementation) it implements in its parent intent, and so on up to the top intent (`investigations.ancestors`).
+
 ### What `esoi check` says about it
 
 Advice only; nothing here fails a check. It lists a record missing a part its kind and size require, counts that do not add up, a method
 dated after the work, a link of an unknown kind, an item without a grade where a review needs one, a decision without a verb or a reason,
+an investigation that names no solution ("investigation <id> names no solution"; old rows stay readable), one note per top-level solution
+that five or more investigations link to with no narrower solution link (a solution may be missing; `investigations.PILE_UP`),
 an investigation past its revisit date, an item neither applied nor marked `not-applied` after its size's grace period (quick 7 days, standard 14,
 full 30), an activity naming an experiment that has no row in `experiments.csv`, and a knowledge row recorded on or after the standard's date that cites
 an address but names no investigation. A generated page lists, under an intent's records, each investigation linked to a solution
