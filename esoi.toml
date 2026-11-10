@@ -58,7 +58,7 @@ allow_mailboxes = ["joshuamonkey"]
 # intent.csv whose solutions sit in the folders of their code, up to three levels below the package (container, solution, part of a solution).
 beside_code = ["implementations/python/esoi", "implementations/python/esoi/*", "implementations/python/esoi/*/*", "implementations/python/esoi/*/*/*"]
 # The version of the intent template this repository's own records follow (`esoi version --record`).
-template_version = 4
+template_version = 5
 
 # Opt-in rules, advisory: `esoi check --findings` lists what they find; none of it fails a check.
 [rules.S36]
