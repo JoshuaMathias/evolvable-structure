@@ -49,11 +49,11 @@
   }
  ],
  "skill": {
-  "commit": "7b9de754ee0d2c797873d2fdce641e1d3dda2e36",
+  "commit": "b4f72ffea3a98052a61183b3658b3d2a57b4afc5",
   "committed": true,
-  "copy_sha256": "d2d459eea0e113ffdaa68aee3cdd844a7a0588e0351f0bc6eca0498237f75b07",
-  "date": "2026-11-08",
-  "skill_md_sha256": "29c82ef3bb2d8c7cbff2779b2c1c30ccfed306cac1fd40efe3bf015efb11bf7d"
+  "copy_sha256": "9517394ee65c136619234191392ce585667af156b8cdfd47257b2539ca91a0e0",
+  "date": "2026-11-10",
+  "skill_md_sha256": "cf62719b83730bbe5e93e70d92a5df00eb7f7e66724bed4171f2fc66dcc74550"
  },
  "template": {
   "changes": [

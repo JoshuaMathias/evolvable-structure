@@ -29,3 +29,9 @@ recombined and checked against the parent metric, repeating within the request's
 that structure, not a replacement for it. (Joshua, 2026-11-08, on a milestone script that came back as a four-line stub: "the type of
 thing solution depth is supposed to handle, esoi ensures task completion quality, and subprompts/agents are used as needed to build
 out depth".)
+Work quality rests on three parts, each with its own metric: (1) classifying the work to its solution, creating the solution where
+none fits; (2) an agent applying ESOI on that solution (its records, metric, milestones and depth); (3) the harness that carries out
+the work, chosen by its own metric. When work comes back poor, find which of the three failed and fix that part generically, rather
+than patching the output of one flow. (Joshua, 2026-11-08: "for ensuring work is high quality, it comes down to 3 things IMO:
+solution classification and creation where needed, 2. agent carrying out ESOI skill on the solution, 3. the AI harness used for
+carrying out work. if those three things are handled well it should be fine".)

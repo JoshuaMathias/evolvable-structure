@@ -14,6 +14,21 @@ alongside the patterns.
   or a reviewer briefed on the purpose, and treat their rejection as the known-bad case the next version
   of the metric must fail. Joshua, 2026-10-24, on letters that had scored higher than ever: "this is
   embarrasing to send... please improve whatever the metric is and then improve" them.
+- **A metric only chooses among the alternatives it is given, so the set must hold the best that exists.**
+  Records, a metric and a selected arm can all be in place while principle 8 ("leverage existing
+  structure ... open-source code") is skipped: on 2026-11-10 the hub's terminal had a solution, 23
+  requirements, a scripted metric and two arms, both written from nothing, while nine open-source
+  terminals sat in the registry as findings and the consumer's mature screen was not a candidate. The
+  metric then crowned a home-made arm against a weak baseline. Before writing an implementation, name
+  the strongest existing ones (open source, the consumer's own, a sibling repo) and either build an
+  arm on each or record why it cannot be adopted (licence, fit); a reviewed-but-not-adopted finding
+  with no reason is an open gap, not research done. (Joshua: "I'm concerned that this could happen,
+  are we not applying esoi or is esoi skill not clear enough". The skill was clear; it was not applied.)
+- **Cases written by the hand that wrote the arm show it does what it says, not that it works.**
+  The same day `ahohs chat` failed on a first plain question on the owner's install while every
+  scripted metric passed: nothing measured the front door as a person uses it. Each solution a person
+  touches needs a stage run through the real entry point on a plain install, and a perfect score on
+  self-written cases is reported as such.
 - **Citing the principles is not applying ESOI.** A pass that only says which principles shaped the
   work (one core, parameters at the edge, one source of truth) is a description, not an application.
   Applying it means writing the records from `SKILL.md`'s templates (the intent, its problems, ideals,

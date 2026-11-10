@@ -29,7 +29,7 @@ Joshua's exceptional expertise is framed here as evolvable structure. He's had a
 - **Intent:** A conceptualization within consciousness which motivates a future state. Useful context can be lost when translating consciousness into the physical world. Consequently, ESOI specifies intent as Problems, Solutions, Implementations, Ideals, and Metrics. An intent brings insights on risks, uncertainties, and opportunities. Risks are addressed by considering disadvantages of Implementations and Metrics, uncertainties are addressed by Metrics, and opportunities are addressed by Solutions.
     - Note: Downstream automation may create intents without consciousness, but any automated system originated as a conscious intent at some point. Intents of consciousness should be prioritized over non-conscious intents.
 
-Intent specification:
+Intent specification (no field blocks anything; a field not marked optional that is left empty is reported as the next thing to think through):
 - **Intent**: In ESOI, intents are meaningful containers of a set of specifications. For human understanding, they serve as a personal category of interest or relate to a tangible container such as an organization.
     - Specify:
         - Name: What is a specific phrase which distinguishes the topic of the intent from other intents?
@@ -54,7 +54,8 @@ The five specification templates within an intent (each intent can have multiple
         - Name: What's a name that describes the type of solution it is?
         - Description: What is the solution's unique value proposition, which justifies its existence? (Consider how it differs from other solutions, without explicitly stating anything about other solutions)
         - Purpose: An inspiring sentence which clarifies the niche of utility that the solution serves without enumerating use cases. Start with a verb and name who or what it serves where relevant.
-        - Approach: An inspiring sentence which clarifies how the solution solves problems, which applies to every implementation. This is also the solution's human-readable strategy statement. Start with a verb and name no actor (worded like a responsibility).
+        - Approach: An inspiring sentence which clarifies how the solution solves problems, which applies to every implementation. This is also the solution's human-readable strategy statement. Start with a verb and name no actor (worded in command form like a responsibility).
+        - Application Question (optional): What question would prompt the user to choose an implementation of the solution's Approach? (e.g. "What is your unifying technique?") The question should be direct, simple and unique to the particular solution, not a research question. This is how humans interacting with ESOI specify their choices and their uncertainties open to experimentation.
         - Out of Scope (optional): What type of use cases is the solution intentionally avoiding, which exclusions aren't otherwise apparent or typical? (Don't explicitly name other solutions that aren't in scope)
         - Milestones: What are the solution's priorities in order? Every solution specifies at least one.
             - Each milestone is a value of one or more metrics, which doesn't have to be the authoritative metric directly but it should relate to it.
@@ -62,7 +63,7 @@ The five specification templates within an intent (each intent can have multiple
             - Met: Whether the milestone has been reached, and when.
             - Target completion time (optional): Planned completion date and time (which other dependent milestones may rely on). May be a date or a specific minute of a date where precision is needed.
         - Knowledge (optional): What knowledge informs the solution's definition or implementations? This can be a list of many items, including chosen assumptions, best guesses, evidence, theories, or perspectives which inform the solution or its implementations.
-        - Measures of Success: What would indicate the solution is successful?
+        - Measures of Success: What would indicate the solution is successful? Consider relevant ideals of the intent.
             - Note: These are metric solutions, with specific fields defined there. However, humans using ESOI may specify this in natural language, which AI can then translate into fully specified metrics.
         - Tags (optional): What classifications may be necessary to avoid risk?
             - Risk Addressed: Every tag should name what risk it mitigates, which are linked problems, whether from the same intent as the solution or from other intents (such as R1-R4 below which are problems defined for ESOI). Tags are not problems themselves; they help mitigate structural problems such as through tagging topics or types of technology used.
@@ -88,10 +89,10 @@ The five specification templates within an intent (each intent can have multiple
         - Dependencies (optional): Solutions that the implementation uses.
             - Note: Ideally the ESOI framework used enables automatic dependency awareness.
     - What it's not: What end users of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solutions will define interfaces.
-- **Ideal**: A definition of the future state implied by the intent, in a particular dimension or aspect.
+- **Ideal**: A definition of the future state implied by the intent, in a particular dimension or aspect. Ideals describe preferences which solutions are expected to apply.
     - Specify:
         - Name: What's a combined noun with adjective that represents the ideal's direction of interest?
-        - Principle: What does this ideal ask for?
+        - Principle: What does this ideal ask for? Can be worded as a command, standard, or policy.
         - State Description: Describe what it would be like to experience this ideal.
         - Hints of Measurement: How would you know this ideal is reached?
     - What it's not: A practical metric or solution, or technology.
@@ -121,7 +122,7 @@ The below principles are ordered such that conflict can be effectively resolved 
         - Consider groupings: Notice opportunities to break down an intent that has too many specifications for optimized access patterns (analogous to working memory, but not specifically 4 items), where some clusters of problems and solutions are independent as indicated by the intent's network of connections. The parent of the intent could be restructured or created to improve organization based on what such clustering reveals.
     - Allow benefits outside hierarchy: While there can be hierarchy, solutions may be useful as dependencies outside its containing intent. **Implementations are expected to build through connecting solution interfaces**, where such solutions are available. This is the magic of ESOI: a web of interweaving dependencies refines itself over time (while mitigating risk of dependency failure through solution abstractions, alternative implementations, and metrics).
 3. **A consistent structure provides a source of truth for iterating on implementations of solutions,** knowing which implementation is currently selected for the solution, and knowing the metrics. Ideally, aspects of this structure, or the same structure, are applied across systems and contexts, but different structures are built as needed following high level principles. **The structure is (1) an implementation of the network and ontology** between problems, solutions, implementations, ideals, and metrics and **(2) what enables interdependent solution interfaces to interact with each other despite changing implementations**.
-4. Structure enables the **automatic use of the best implementation** for a solution, according to the authoritative metric chosen by the solution definition. Humans need only review metrics, not implementations (but they can still add value to implementations).
+4. Structure enables the **automatic use of the best implementation** for a solution, according to the authoritative metric chosen by the solution definition. The intent owner need only review metrics, not implementations (but they can still add value to implementations).
 5. **Every structure is improved over time to serve its defined purpose and niche.** The evolvable structure itself also improves, and this is a key way in which such structure enables progress over time, because the relatively stable structure addresses the most challenging risks, even if indirectly through providing a clear place to define and iterate on solutions of a particular type. Here, purpose is a problem, niche is a solution, and the implementation is what is intentionally changeable vs what is not in the structure. The ESOI specifications ensure that it's clear how to improve and what the next highest priority improvement is without further instruction, so iteration can be automated and efficient (for both humans and AI).
 6. The philosophy and structure of solutions is applied not only to tangible artifacts directly but to **high level principles**, which encourages **proactively** defining problems, ideals, solutions as needed to cover all gaps. This also **addresses risk** of implementations not being reviewed, through ensuring problems, solutions, and metrics are thought through from all necessary angles and perspectives.
 7. **Be humble.** We don't know what is best; we let metrics determine, and even then it's a limited approximation of an intent which words have a limited ability to express, and the intent itself may or may not be worthwhile. We value collaboration and alternative perspectives, as we don't know which perspective is best for a particular purpose; perspectives are implementations. Humility provides space for improvement. Metrics are defined to quantify intellectual humility and uncertainty, with sensible weights for different factors to take into account.
