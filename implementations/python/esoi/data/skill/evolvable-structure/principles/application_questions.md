@@ -82,10 +82,16 @@ through; mark a field optional when leaving it empty is a fine permanent state f
 
 ## Examples
 
-**A practice with a schedule.** A specification for developing a skill had a solution for consistency but no question
-about time. The completeness check surfaced it: how the day's limited time is split across practices was a choice no
-answer covered. It became a sub-solution of consistency, drafted last because it places the practices chosen
-everywhere else.
+**Sub-questions in a language-learning specification.** One solution keeps practice consistent. Its implementation is a
+sub-intent with two solutions, so the person sees:
+
+- How will you keep your learning moving in one direction, week after week?
+  - What is your core technique that every other practice builds on? (for example, shadowing native audio)
+  - What do you do on a regular basis, at what time or order, and for how long?
+
+Answering both sub-questions answers the parent. The schedule question was surfaced by the completeness check (how
+the week's limited time is split across practices was a choice no answer covered), and it is drafted last because its
+implementation uses the solutions whose practices it places.
 
 **A quest-creation flow.** Each strategy screen opens with its question, the AI's draft answer, a three-way "how sure"
 choice that picks the experiment kind, and "What matters to you here" (the linked ideals, editable). A holistic
