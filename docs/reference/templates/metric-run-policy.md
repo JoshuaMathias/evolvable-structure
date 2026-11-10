@@ -38,7 +38,13 @@ For this policy: Which Metric records it governs, and which runs it deliberately
 
 ### Approach
 
-_An inspiring sentence which clarifies how the solution solves problems, which applies to every implementation. This is also the solution's human-readable strategy statement. Start with a verb and name no actor (worded like a responsibility)._
+_An inspiring sentence which clarifies how the solution solves problems, which applies to every implementation. This is also the solution's human-readable strategy statement. Start with a verb and name no actor (worded in command form like a responsibility)._
+
+<!-- your answer -->
+
+### Application question
+
+_What question would prompt the user to choose an implementation of the solution's Approach? (e.g. "What is your unifying technique?") The question should be direct, simple and unique to the particular solution, not a research question. This is how humans interacting with ESOI specify their choices and their uncertainties open to experimentation._
 
 <!-- your answer -->
 
@@ -66,7 +72,7 @@ For this policy: What informed it: how noisy the metrics are, what a run costs, 
 
 ### Measures of success
 
-_What would indicate the solution is successful? Note: These are metric solutions, with specific fields defined there. However, humans using ESOI may specify this in natural language, which AI can then translate into fully specified metrics._
+_What would indicate the solution is successful? Consider relevant ideals of the intent. Note: These are metric solutions, with specific fields defined there. However, humans using ESOI may specify this in natural language, which AI can then translate into fully specified metrics._
 
 For this policy: How you would know the policy works: decisions backed by current results, spend inside the budget, no stale result found late.
 
@@ -143,7 +149,7 @@ One row per Metric record the policy governs, in the repository's own records (t
 - **stages:** the sample sizes run in order, each only after the last looked right (for example 3, then 10, then 30).
 - **call_budget:** the most calls a run may make; the run stops there.
 - **cost_estimate:** worked out before the run, so approval is for a known amount.
-- **stale_when:** the result no longer describes what it measured: the cases changed, code that the arm measures changed since its commit (name how you tell which files it measures: the whole repository, the files its component owns, or the files its module imports), it was run on uncommitted code, or the model or price behind it changed. State that these only inform: `esoi check` lists a changed case file or changed code as advice with the next action and never fails or blocks a move or commit; only a malformed row (no `git_sha`, no `cases_sha`) is a problem. Say also when a stale row is worth re-running: a decision depends on it, its cascade condition says so, or a declared expiration has passed.
+- **stale_when:** the result no longer describes what it measured: the cases changed, code that the arm measures changed since its commit (name how you tell which files it measures: the whole repository, the files its component owns, or the files its module imports), it was run on uncommitted code, or the model or price behind it changed. Say also when a stale row is worth re-running: a decision depends on it, its cascade condition says so, or a declared expiration has passed.
 
 ## 5. Link it up
 

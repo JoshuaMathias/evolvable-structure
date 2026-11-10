@@ -20,6 +20,86 @@ Everything below is quoted verbatim from the evolvable-structure skill's `SKILL.
 > - **Adaptable:** Changeable to handle different situations or contexts in the moment.
 > - **Intent:** A conceptualization within consciousness which motivates a future state. Useful context can be lost when translating consciousness into the physical world. Consequently, ESOI specifies intent as Problems, Solutions, Implementations, Ideals, and Metrics. An intent brings insights on risks, uncertainties, and opportunities. Risks are addressed by considering disadvantages of Implementations and Metrics, uncertainties are addressed by Metrics, and opportunities are addressed by Solutions.
 >     - Note: Downstream automation may create intents without consciousness, but any automated system originated as a conscious intent at some point. Intents of consciousness should be prioritized over non-conscious intents.
+>
+> Intent specification (no field blocks anything; a field not marked optional that is left empty is reported as the next thing to think through):
+> - **Intent**: In ESOI, intents are meaningful containers of a set of specifications. For human understanding, they serve as a personal category of interest or relate to a tangible container such as an organization.
+>     - Specify:
+>         - Name: What is a specific phrase which distinguishes the topic of the intent from other intents?
+>         - Vision Statement: What is this intent manifesting in present tense? e.g. "I am ..." or "The world is ..." Any subject and verb can be used.
+>         - Opportunities: What are potentials inspired by this intent?
+>         - Solution Coherence: What is a paragraph which describes how all the intent's solutions fit together to accomplish the intent's vision statement?
+>         - Solution Diagram (optional): How are solutions connected in the intent's implementation, what is transferred in each edge, and in what direction?
+>     - What it's not: A general category like "parenting" or "career." An intent is also not an organization itself, rather the container of specification that clarifies why the organization exists (as a solution and implementation within an intent). In this example, different versions of the same organization can be documented as separate alternative implementations.
+>
+> The five specification templates within an intent (each intent can have multiple of the below items, which relate to each other in a network):
+> - **Problem**: A description of what motivated the intent. A challenge, difficulty, or description of how an ideal is not reached.
+>     - Specify:
+>         - What is the problem?
+>         - Who or what type of person has the problem?
+>         - Why does this problem matter?
+>         - Why is the problem hard to resolve?
+>         - What solutions or workarounds already attempt to address the problem?
+>     - What it's not: A decision, task, recommendation, or component, but all of these can *have* problems.
+>     - Connects to: **Ideals** that oppose at least one aspect of the problem, **Solutions** that would solve at least one aspect of the problem
+> - **Solution**: A strategic definition of how one or more problems can be addressed to fulfill the intent.
+>     - Specify:
+>         - Name: What's a name that describes the type of solution it is?
+>         - Description: What is the solution's unique value proposition, which justifies its existence? (Consider how it differs from other solutions, without explicitly stating anything about other solutions)
+>         - Purpose: An inspiring sentence which clarifies the niche of utility that the solution serves without enumerating use cases. Start with a verb and name who or what it serves where relevant.
+>         - Approach: An inspiring sentence which clarifies how the solution solves problems, which applies to every implementation. This is also the solution's human-readable strategy statement. Start with a verb and name no actor (worded in command form like a responsibility).
+>         - Application Question (optional): What question would prompt the user to choose an implementation of the solution's Approach? (e.g. "What is your unifying technique?") The question should be direct, simple and unique to the particular solution, not a research question. This is how humans interacting with ESOI specify their choices and their uncertainties open to experimentation.
+>         - Out of Scope (optional): What type of use cases is the solution intentionally avoiding, which exclusions aren't otherwise apparent or typical? (Don't explicitly name other solutions that aren't in scope)
+>         - Milestones: What are the solution's priorities in order? Every solution specifies at least one.
+>             - Each milestone is a value of one or more metrics, which doesn't have to be the authoritative metric directly but it should relate to it.
+>             - End condition (optional): Condition for the milestone to no longer be a priority (date or other circumstance), at which point it's archived.
+>             - Met: Whether the milestone has been reached, and when.
+>             - Target completion time (optional): Planned completion date and time (which other dependent milestones may rely on). May be a date or a specific minute of a date where precision is needed.
+>         - Knowledge (optional): What knowledge informs the solution's definition or implementations? This can be a list of many items, including chosen assumptions, best guesses, evidence, theories, or perspectives which inform the solution or its implementations.
+>         - Measures of Success: What would indicate the solution is successful? Consider relevant ideals of the intent.
+>             - Note: These are metric solutions, with specific fields defined there. However, humans using ESOI may specify this in natural language, which AI can then translate into fully specified metrics.
+>         - Tags (optional): What classifications may be necessary to avoid risk?
+>             - Risk Addressed: Every tag should name what risk it mitigates, which are linked problems, whether from the same intent as the solution or from other intents (such as R1-R4 below which are problems defined for ESOI). Tags are not problems themselves; they help mitigate structural problems such as through tagging topics or types of technology used.
+>             - Note: Possible risks (structural problems):
+>                 - R1 (duplication): Adding a new solution that duplicates an existing one.
+>                 - R2 (opportunity): Not leveraging the benefits of an existing solution, such as partial overlap of purpose.
+>                 - R3 (dependency): Not being aware of solutions that need to change definition or implementation due to something else changing.
+>                 - R4 (mistake): Using a solution when it should not be for the particular use case.
+>     - If technology, specify interface details where applicable:
+>         - Parameters
+>         - Inputs
+>         - Outputs
+>         - Effects (other than outputs)
+>         - Other information on when and how to use the solution
+>     - What it's not: Fully functional code or solution, but it can be an abstract class, template, or routing which a separate structure solution network defines.
+>     - Connects to: **Implementations** that build what the solution defines, **Metrics** that define and implement the solution's measures of success, **Problems** the solution addresses.
+> - **Implementation**: The built structure which carries out its associated solution; also known as an alternative.
+>     - Specify:
+>         - Name: What's a name that distinguishes this implementation from other alternatives?
+>         - Description: What is the implementation's unique value proposition, to achieve the purpose of its solution? (Consider how it differs from other existing or potential alternatives, without explicitly stating anything about other implementations)
+>         - Advantages
+>         - Disadvantages
+>         - Dependencies (optional): Solutions that the implementation uses.
+>             - Note: Ideally the ESOI framework used enables automatic dependency awareness.
+>     - What it's not: What end users of the relevant solution directly interact with. The solution provides an interface on top of the implementation. A structure solution defines how solutions will define interfaces.
+> - **Ideal**: A definition of the future state implied by the intent, in a particular dimension or aspect. Ideals describe preferences which solutions are expected to apply.
+>     - Specify:
+>         - Name: What's a combined noun with adjective that represents the ideal's direction of interest?
+>         - Principle: What does this ideal ask for? Can be worded as a command, standard, or policy.
+>         - State Description: Describe what it would be like to experience this ideal.
+>         - Hints of Measurement: How would you know this ideal is reached?
+>     - What it's not: A practical metric or solution, or technology.
+>     - Connects to: Problems the ideal opposes.
+> - **Metric**: A practical way to measure the distance between the implementations of a solution and an ideal which the solution was defined to achieve. Alternative implementations are compared via metrics. Consequently, every solution has only one authoritative metric, which can be a combination of multiple metrics or factors with weights that reflect the solution's ideals and purpose.
+>     - Note: Metrics can also be solutions, as metrics themselves may be refined over time with alternative implementations (including dataset versions). For metrics that cost resources to run, it's recommended to define cascading conditionals.
+>     - Specify:
+>         - Name: What's a name that clarifies what is being measured?
+>         - Purpose: A statement of what the metric ensures, specifically and comprehensively yet simply stated. This statement does not need to enumerate its current implementation, rather it encapsulates an intention to measure.
+>         - Record: What is recorded as the metric to compare implementations?
+>         - Disadvantages (optional): What can the metric not see, or what could it reward wrongly?
+>         - Cascading Conditionals (optional; for any case where the metric is costly): If specified, this ordered list is used when running the authoritative metric and cheaper or prioritized metrics are earlier in the list to determine whether it's worth running subsequent metrics. Each item (conditional) in the list defines (1) the parameters of one of the solution's metrics (e.g. scale, or simulation vs real) and (2) the required value of the metric in order to move onto the next conditional, and optionally (3) other conditions required before it's worth running the metric for that stage of the list. If the metrics are reused with the same parameters across conditionals (each conditional may combine multiple metrics), then this metric is not rerun when executing the subsequent conditional.
+>         - Expiration (optional): When do metrics need to be rerun? Never by default, and ESOI projects can have a default which individual metrics can override.
+>
+> Remember: ESOI is applied both to structure and to applications of structure. The structure itself is an implementation of a solution which defines the purpose of the structure.
 
 ## Principles (ideals)
 
@@ -35,7 +115,7 @@ Everything below is quoted verbatim from the evolvable-structure skill's `SKILL.
 >         - Consider groupings: Notice opportunities to break down an intent that has too many specifications for optimized access patterns (analogous to working memory, but not specifically 4 items), where some clusters of problems and solutions are independent as indicated by the intent's network of connections. The parent of the intent could be restructured or created to improve organization based on what such clustering reveals.
 >     - Allow benefits outside hierarchy: While there can be hierarchy, solutions may be useful as dependencies outside its containing intent. **Implementations are expected to build through connecting solution interfaces**, where such solutions are available. This is the magic of ESOI: a web of interweaving dependencies refines itself over time (while mitigating risk of dependency failure through solution abstractions, alternative implementations, and metrics).
 > 3. **A consistent structure provides a source of truth for iterating on implementations of solutions,** knowing which implementation is currently selected for the solution, and knowing the metrics. Ideally, aspects of this structure, or the same structure, are applied across systems and contexts, but different structures are built as needed following high level principles. **The structure is (1) an implementation of the network and ontology** between problems, solutions, implementations, ideals, and metrics and **(2) what enables interdependent solution interfaces to interact with each other despite changing implementations**.
-> 4. Structure enables the **automatic use of the best implementation** for a solution, according to the authoritative metric chosen by the solution definition. Humans need only review metrics, not implementations (but they can still add value to implementations).
+> 4. Structure enables the **automatic use of the best implementation** for a solution, according to the authoritative metric chosen by the solution definition. The intent owner need only review metrics, not implementations (but they can still add value to implementations).
 > 5. **Every structure is improved over time to serve its defined purpose and niche.** The evolvable structure itself also improves, and this is a key way in which such structure enables progress over time, because the relatively stable structure addresses the most challenging risks, even if indirectly through providing a clear place to define and iterate on solutions of a particular type. Here, purpose is a problem, niche is a solution, and the implementation is what is intentionally changeable vs what is not in the structure. The ESOI specifications ensure that it's clear how to improve and what the next highest priority improvement is without further instruction, so iteration can be automated and efficient (for both humans and AI).
 > 6. The philosophy and structure of solutions is applied not only to tangible artifacts directly but to **high level principles**, which encourages **proactively** defining problems, ideals, solutions as needed to cover all gaps. This also **addresses risk** of implementations not being reviewed, through ensuring problems, solutions, and metrics are thought through from all necessary angles and perspectives.
 > 7. **Be humble.** We don't know what is best; we let metrics determine, and even then it's a limited approximation of an intent which words have a limited ability to express, and the intent itself may or may not be worthwhile. We value collaboration and alternative perspectives, as we don't know which perspective is best for a particular purpose; perspectives are implementations. Humility provides space for improvement. Metrics are defined to quantify intellectual humility and uncertainty, with sensible weights for different factors to take into account.

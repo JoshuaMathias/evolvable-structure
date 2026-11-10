@@ -2,7 +2,7 @@
 
 # Ideal (template)
 
-> A definition of the future state implied by the intent, in a particular dimension or aspect.
+> A definition of the future state implied by the intent, in a particular dimension or aspect. Ideals describe preferences which solutions are expected to apply.
 
 Copy this file once per record. Answer every question; leave none empty. Give the record a short stable id (a few lowercase words joined by hyphens) so other records can link to it.
 
@@ -18,7 +18,7 @@ _What's a combined noun with adjective that represents the ideal's direction of 
 
 ## Principle
 
-_What does this ideal ask for?_
+_What does this ideal ask for? Can be worded as a command, standard, or policy._
 
 <!-- your answer -->
 

@@ -32,6 +32,7 @@ One spreadsheet tab per intent type, so a person can review problems, ideals, so
 | `description` | generated |
 | `purpose` | generated |
 | `approach` | generated |
+| `application_question` | generated |
 | `out_of_scope` | generated |
 | `milestones` | generated |
 | `knowledge` | generated |

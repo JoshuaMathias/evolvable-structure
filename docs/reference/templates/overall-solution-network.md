@@ -22,7 +22,7 @@ Write each item as a heading with the id and a short title, then one bullet per 
 
 ### I1 Short title
 - **What's a combined noun with adjective that represents the ideal's direction of interest?** <!-- Name -->
-- **What does this ideal ask for?** <!-- Principle -->
+- **What does this ideal ask for? Can be worded as a command, standard, or policy.** <!-- Principle -->
 - **Describe what it would be like to experience this ideal.** <!-- State description -->
 - **How would you know this ideal is reached?** <!-- Hints of measurement -->
 - **Opposes:** <!-- problem ids -->
@@ -33,11 +33,12 @@ Write each item as a heading with the id and a short title, then one bullet per 
 - **What's a name that describes the type of solution it is?** <!-- Name -->
 - **What is the solution's unique value proposition, which justifies its existence? (Consider how it differs from other solutions, without explicitly stating anything about other solutions)** <!-- Description -->
 - **An inspiring sentence which clarifies the niche of utility that the solution serves without enumerating use cases. Start with a verb and name who or what it serves where relevant.** <!-- Purpose -->
-- **An inspiring sentence which clarifies how the solution solves problems, which applies to every implementation. This is also the solution's human-readable strategy statement. Start with a verb and name no actor (worded like a responsibility).** <!-- Approach -->
+- **An inspiring sentence which clarifies how the solution solves problems, which applies to every implementation. This is also the solution's human-readable strategy statement. Start with a verb and name no actor (worded in command form like a responsibility).** <!-- Approach -->
+- **What question would prompt the user to choose an implementation of the solution's Approach? (e.g. "What is your unifying technique?") The question should be direct, simple and unique to the particular solution, not a research question. This is how humans interacting with ESOI specify their choices and their uncertainties open to experimentation.** <!-- Application question -->
 - **What type of use cases is the solution intentionally avoiding, which exclusions aren't otherwise apparent or typical? (Don't explicitly name other solutions that aren't in scope)** <!-- Out of scope -->
 - **What are the solution's priorities in order? Every solution specifies at least one. Each milestone is a value of one or more metrics, which doesn't have to be the authoritative metric directly but it should relate to it. End condition (optional): Condition for the milestone to no longer be a priority (date or other circumstance), at which point it's archived. Met: Whether the milestone has been reached, and when. Target completion time (optional): Planned completion date and time (which other dependent milestones may rely on). May be a date or a specific minute of a date where precision is needed.** <!-- Milestones -->
 - **What knowledge informs the solution's definition or implementations? This can be a list of many items, including chosen assumptions, best guesses, evidence, theories, or perspectives which inform the solution or its implementations.** <!-- Knowledge -->
-- **What would indicate the solution is successful? Note: These are metric solutions, with specific fields defined there. However, humans using ESOI may specify this in natural language, which AI can then translate into fully specified metrics.** <!-- Measures of success -->
+- **What would indicate the solution is successful? Consider relevant ideals of the intent. Note: These are metric solutions, with specific fields defined there. However, humans using ESOI may specify this in natural language, which AI can then translate into fully specified metrics.** <!-- Measures of success -->
 - **What classifications may be necessary to avoid risk? Risk Addressed: Every tag should name what risk it mitigates, which are linked problems, whether from the same intent as the solution or from other intents (such as R1-R4 below which are problems defined for ESOI). Tags are not problems themselves; they help mitigate structural problems such as through tagging topics or types of technology used. Note: Possible risks (structural problems): R1 (duplication): Adding a new solution that duplicates an existing one. R2 (opportunity): Not leveraging the benefits of an existing solution, such as partial overlap of purpose. R3 (dependency): Not being aware of solutions that need to change definition or implementation due to something else changing. R4 (mistake): Using a solution when it should not be for the particular use case.** <!-- Tags -->
 - **Parameters** <!-- Parameters -->
 - **Inputs** <!-- Inputs -->

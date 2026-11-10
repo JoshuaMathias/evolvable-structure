@@ -34,6 +34,18 @@
    "skill_committed": false,
    "skill_md_sha256": "8aa1e0173dfbf8ff9b713fd8e9a80491a6df787a5d62b7ffb104498349960b90",
    "version": 3
+  },
+  {
+   "changes": [
+    "intent.solution_coherence: added (required)",
+    "intent.solution_diagram: added (optional)"
+   ],
+   "date": "2026-11-03",
+   "sha256": "2d767cd538d4",
+   "skill_commit": "e7a52d152769d551b38eea8d6b9033c826bb5b5a",
+   "skill_committed": true,
+   "skill_md_sha256": "29c82ef3bb2d8c7cbff2779b2c1c30ccfed306cac1fd40efe3bf015efb11bf7d",
+   "version": 4
   }
  ],
  "skill": {
@@ -45,14 +57,17 @@
  },
  "template": {
   "changes": [
-   "intent.solution_coherence: added (required)",
-   "intent.solution_diagram: added (optional)"
+   "solution.approach: question reworded",
+   "solution.application_question: added (optional)",
+   "solution.measures_of_success: question reworded",
+   "ideal.definition: question reworded",
+   "ideal.principle: question reworded"
   ],
-  "date": "2026-11-03",
-  "sha256": "2d767cd538d4",
-  "skill_commit": "e7a52d152769d551b38eea8d6b9033c826bb5b5a",
+  "date": "2026-11-10",
+  "sha256": "cd938b8f4731",
+  "skill_commit": "d6ae220e1d7664e90070e3dc4f0fe9604aee85f6",
   "skill_committed": true,
-  "skill_md_sha256": "29c82ef3bb2d8c7cbff2779b2c1c30ccfed306cac1fd40efe3bf015efb11bf7d",
-  "version": 4
+  "skill_md_sha256": "cf62719b83730bbe5e93e70d92a5df00eb7f7e66724bed4171f2fc66dcc74550",
+  "version": 5
  }
 }

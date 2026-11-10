@@ -30,7 +30,13 @@ _An inspiring sentence which clarifies the niche of utility that the solution se
 
 ## Approach
 
-_An inspiring sentence which clarifies how the solution solves problems, which applies to every implementation. This is also the solution's human-readable strategy statement. Start with a verb and name no actor (worded like a responsibility)._
+_An inspiring sentence which clarifies how the solution solves problems, which applies to every implementation. This is also the solution's human-readable strategy statement. Start with a verb and name no actor (worded in command form like a responsibility)._
+
+<!-- your answer -->
+
+## Application question
+
+_What question would prompt the user to choose an implementation of the solution's Approach? (e.g. "What is your unifying technique?") The question should be direct, simple and unique to the particular solution, not a research question. This is how humans interacting with ESOI specify their choices and their uncertainties open to experimentation._
 
 <!-- your answer -->
 
@@ -54,7 +60,7 @@ _What knowledge informs the solution's definition or implementations? This can b
 
 ## Measures of success
 
-_What would indicate the solution is successful? Note: These are metric solutions, with specific fields defined there. However, humans using ESOI may specify this in natural language, which AI can then translate into fully specified metrics._
+_What would indicate the solution is successful? Consider relevant ideals of the intent. Note: These are metric solutions, with specific fields defined there. However, humans using ESOI may specify this in natural language, which AI can then translate into fully specified metrics._
 
 <!-- your answer -->
 
