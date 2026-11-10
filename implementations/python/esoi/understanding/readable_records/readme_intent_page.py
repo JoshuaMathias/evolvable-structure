@@ -149,6 +149,14 @@ def implementation_table(view: Optional[View], intent: Intent, implementations: 
     return lines + [""]
 
 
+def running_experiments(view: View, intent: Intent) -> List[str]:
+    """The intent's running experiments in priority order, before the solutions (nothing when it has none)."""
+    if view is None or view.config is None:
+        return []
+    from esoi.understanding.solution_consideration import experiments
+    return experiments.running_lines(view.config, intent.intent_id)
+
+
 def record_tables(registry: Registry, intent: Intent, level: str = "##", view: Optional[View] = None) -> List[str]:
     """The full record: every problem, ideal, solution, implementation and metric of the intent, by id."""
     iid = intent.intent_id
@@ -166,6 +174,11 @@ def record_tables(registry: Registry, intent: Intent, level: str = "##", view: O
     implementations = mine(registry.implementations, iid)
     if implementations:
         lines += implementation_table(view, intent, implementations, level)
+    if view is not None and view.config is not None:
+        from esoi.understanding.solution_consideration import research
+        lines += research.readme_lines(view.config, [r.get("solution_id", "") for r in solutions], level)
+        from esoi.understanding.solution_consideration import experiments
+        lines += experiments.readme_lines(view.config, iid, level)
     metrics = mine(registry.metrics, iid)
     if metrics:
         lines += [f"{level} Metrics", ""] + [f"- {named(r, 'metric_id')}: "
@@ -190,7 +203,7 @@ def render_full(registry: Registry, intent: Intent, view: View) -> str:
                   f"intent `{intent.parent}`. Opportunities: {one_line(intent.row.get('opportunities', ''))}", ""]
     if intent.row.get("solution_coherence", "").strip():
         lines += ["## How the solutions fit together", "", one_line(intent.row["solution_coherence"]), ""]
-    lines += readme_adopted.lines(view, registry, intent)
+    lines += running_experiments(view, intent) + readme_adopted.lines(view, registry, intent)
     return "\n".join(lines + record_tables(registry, intent, "##", view) + [NOTE]).rstrip() + "\n"
 
 
@@ -208,6 +221,7 @@ def render_glance(registry: Registry, intent: Intent, view: View) -> str:
     if picture:
         lines += ["## Diagram", "", "An arrow runs from the solution that provides to the solution that builds on it; its label is what "
                   "the provider outputs.", ""] + picture + [""]
+    lines += running_experiments(view, intent)
     lines += one_level_below(view, registry, intent)
     table = solutions_table(view, registry, intent)
     if table:

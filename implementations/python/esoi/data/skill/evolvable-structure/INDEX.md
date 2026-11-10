@@ -61,6 +61,7 @@ list projects: it routes by kind of task, and which projects exist is the user's
 | Where ESOI is already applied on this machine, how projects relate, or recording a new project | the local ESOI index (First, above); `python_tools.md` for `esoi projects` | |
 | Automating ESOI's checks or measurements, a tool to check the records, or scanning a repository before a public push | `python_tools.md` (ask the user first) | |
 | Writing up a design, a doc template, a project board | `principles/documenting.md` | `other-categories.md` "Process, organization and documents" |
+| Searching for knowledge (public evidence, alternatives, a registry refresh, a licence or adoption check, prior art before writing), or scoping a focused exploration (an experiment) | `principles/research.md` "Research standard"; `metrics.md` step 2 | the ESOI repository's `docs/reference/knowledge-search-standard.md` and `docs/reference/experiments-in-esoi.md` |
 | Someone proposes an abstraction, or how much structure the task deserves is unclear | `principles/difficulties.md`; `principles/purpose.md` (sizing to the purpose) | `principles/research.md`; `sources/INDEX.md` "When NOT to generalize" |
 | Deciding what stays stable and what is changeable | pattern 14; `principles/purpose.md` | `sources/INDEX.md` "Parts that change at different rates" |
 | Carrying what one iteration learned into the next | `principles/purpose.md` | |

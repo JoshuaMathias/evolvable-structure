@@ -2,6 +2,24 @@
 
 Part of `../principles.md`. What public research supports, qualifies or challenges, and where the evidence is thin. Source pointers read `file > heading`, with files in `../sources/`. Quotes are verbatim, and Joshua's typed inputs keep their typos.
 
+## Research standard: knowledge searches and experiments
+
+Every knowledge search (public evidence for a metric, alternatives for a solution, a registry refresh, a licence or adoption check, a
+vendor documentation lookup that informs a decision, prior art before writing an implementation) is done with a research perspective:
+a research question, a method fixed before searching, counted screening, graded items, a decision per candidate, what it changed, and a
+date to revisit, sized to the decision (a quick check of minutes, a standard review, a full review), like a small systematic review.
+Joshua, 2026-11-10: "add guidance to ESOI repo and skill that all knowledge search should be done with a research perspective
+(research question, method, etc. Like a systematic review), and ESOI should establish conceptual or formatting standards for how
+that's done." The standard, its sizes and its record format (`research.csv`, `research_items.csv`) are defined once, in the ESOI
+repository's `docs/reference/knowledge-search-standard.md` (how: `docs/how-to/search-like-a-small-review.md`); read it, do not restate it here.
+
+An experiment is a record of an intent's current focused exploration, and research happens inside it. Joshua, 2026-11-10: "I see an
+experiment as scoping the current effort of focused exploration for the intent/quest"; "There should be records of experiments";
+"I'm using it to clarify where focused attention goes, whether for me or a team member, and what is in a sense set in stone for the
+period of the experiment, like a trial period before reevaluating. Though a person can have more than one experiment if they choose."
+When working on an intent, read its running experiments first (where attention goes, what is not re-decided), and at the reevaluation
+date prompt the reevaluation. Definition and fields: the ESOI repository's `docs/reference/experiments-in-esoi.md`.
+
 ## What public and scientific research adds
 
 Notes: `sources/public_research.md` (26 sources, each marked by how it was verified). It supports the

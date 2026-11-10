@@ -3,6 +3,8 @@
 Why this exists: [Judge public evidence like a scientist](../explanation/judge-public-evidence-like-a-scientist.md). No model is
 called and nothing here costs money.
 
+Finding the evidence is a search like any other: do it as a small review ([knowledge search standard](../reference/knowledge-search-standard.md)).
+
 ## 1. Record the evidence
 
 Keep one CSV row per reported number in `esoi/evidence.csv` (or name another file with `[evidence] file = "..."` in

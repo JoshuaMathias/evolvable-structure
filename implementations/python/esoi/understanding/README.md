@@ -31,6 +31,10 @@ flowchart LR
     s7 -->|"Linked records, a checked metric, measured implementations and a recorded selection; a short summary of how the steps were applied"| s4
 ```
 
+## Running experiments
+
+1. `x-research-standard` One research standard: How should every knowledge search and every experiment's research be done and recorded so that its findings are checked, applied and revisited? (reevaluate 2026-12-10)
+
 ## One level below
 
 This intent is implemented by the sub-intents and solutions below it; each shows whether it goes deeper.
@@ -204,6 +208,14 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 | Project Documentation board checklist | `the-steps:board-checklist` |  |  |
 | One-hour first pass | `the-steps:one-hour-pass` |  |  |
 | No stated order | `the-steps:no-stated-order` |  |  |
+
+### Research behind the knowledge
+
+- `r-research-standard` (review, standard, done 2026-11-10, revisit 2027-11-10): Which established review practices (reporting, protocol, question framing, evidence grading, rapid and software engineering adaptations) can ESOI adopt for every knowledge search, and where does it need its own part? Applied: i1: document:docs/reference/knowledge-search-standard.md; i2: document:docs/reference/knowledge-search-standard.md; i3: document:docs/reference/knowledge-search-standard.md; i4: document:docs/reference/knowledge-search-standard.md; i5: document:docs/reference/knowledge-search-standard.md; i6: document:docs/reference/knowledge-search-standard.md; i7: document:docs/reference/knowledge-search-standard.md; i8: document:docs/reference/knowledge-search-standard.md.
+
+### Experiments
+
+- `x-research-standard` (running, from 2026-11-10, reevaluate 2026-12-10): How should every knowledge search and every experiment's research be done and recorded so that its findings are checked, applied and revisited? Held fixed: record format = research.csv and research_items.csv beside knowledge.csv; grade = the A to D rule of esoi evidence; check = advice only.
 
 ### Metrics
 

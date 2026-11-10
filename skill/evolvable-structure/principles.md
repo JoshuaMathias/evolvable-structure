@@ -19,7 +19,7 @@ framework examples in a final section, so a principle never depends on one frame
 | `principles/patterns_people.md` | evidence for patterns 3, 5, 10, 11, 12 (defaults, personal content, what people see, ownership, one method) |
 | `principles/patterns_change.md` | evidence for patterns 8, 9, 13, 14, 15 (experiment to production, measurement, interfaces, rates of change, components) |
 | `principles/difficulties.md` | someone proposes an abstraction, scope is unclear, or a built structure failed |
-| `principles/research.md` | you need outside support or counter-evidence, or how strong the evidence is |
+| `principles/research.md` | you search for knowledge or scope an experiment (the research standard, which points to the ESOI repository), or you need outside support or counter-evidence, or how strong the evidence is |
 | `principles/patterns_consideration.md` | evidence for pattern 16 (each solution gets its own consideration; depth reaches completion quality) |
 | `principles/documenting.md` | writing or reviewing problems, ideals, vision statements, intents, a restructuring, or deciding whether to add a solution: the method and Joshua's dated lessons |
 | `principles/application_questions.md` | a person applies a specification, or you write Application Questions, order solutions, elaborate a solution into a sub-intent, or generate solutions: completeness, sub-intent questions, priority order, ideals as preferences (Joshua, 2026-11-10) |

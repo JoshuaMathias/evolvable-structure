@@ -17,6 +17,7 @@ One row per piece of knowledge a solution's definition or implementations rest o
 | `status_by` | what superseded or contradicted it |
 | `recorded` | the date it was recorded |
 | `expiration` | the date it must be re-confirmed by (optional) |
+| `research_id` | the research that found it, a row of `research.csv` (optional; [knowledge search standard](knowledge-search-standard.md)) |
 
 A repository that lists its record files in a component's `path` (rule S1) and excludes them from `code_paths` (so editing a record
 does not make a result stale) lists `**/knowledge.csv` the same way.

@@ -31,6 +31,8 @@ Steps for a task you already know you want to do.
 - [Install the skill](how-to/install-the-skill.md): give an AI agent the principles.
 - [Search records and items together](how-to/search-specs-and-items.md)
 - [Use public evidence](how-to/use-public-evidence.md)
+- [Search like a small review](how-to/search-like-a-small-review.md): the question and protocol first, counted screening, graded items, the decision per candidate, what it changed, and a refresh date; sized to the decision.
+- [Run an experiment](how-to/run-an-experiment-as-a-trial.md): scope the exploration, do research inside it, record what was learned and what it changed.
 - [Declare a solution's interface and call it with one function](how-to/declare-a-solutions-interface.md): kind, entry, example, `run(id, input)`, the outcomes, the opt-in checks.
 - [Assemble the parts of a program by name](how-to/assemble-by-name.md): resolve, build in dependency order, fail early.
 - [Adopt a solution from a library](how-to/adopt-a-solution-from-a-library.md): refer to a library's solution instead of copying its records (rule S53).
@@ -105,6 +107,8 @@ Facts to look up.
 - [Names and ids](reference/names-and-ids.md): the name leads every generated output, the id is the handle; rule S46.
 - [`esoi attest`](reference/attest.md): a recorded, reasoned attestation that an arm's changed code did not move its result.
 - [Component documents](reference/component-documents.md): the `documents` column of components.csv, whose document a file is, rule S1 for it.
+- [Knowledge search standard](reference/knowledge-search-standard.md): one research standard: every knowledge search as a small systematic review, and trials, observations and interviews, in three sizes; the record format (`research.csv`, `research_items.csv`) and the worked example.
+- [Experiments in ESOI](reference/experiments-in-esoi.md): an experiment as a record of an intent's current focused exploration: it directs attention, fixes choices for a trial period, ends in a reevaluation; the fields, how several coexist, how an AI uses it, what to check in a consumer application's own experiment feature.
 - [Records beside the code](reference/records-beside-code.md): the layout, the folder kinds, where each record lives, what is generated and what is measured.
 - [The README of an intent folder](reference/intent-readme.md): the layout every generated page follows, and how it is measured.
 - [Docs commands](reference/docs-commands.md): `esoi docs check` and `esoi docs wiki`.
