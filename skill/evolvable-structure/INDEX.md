@@ -1,6 +1,10 @@
 # evolvable-structure: index
 
-`SKILL.md` is Joshua's own words and the authority; read it first.
+`SKILL.md` is Joshua's own words and the authority; read it first. **AI never edits `SKILL.md`**, not even a typo:
+Joshua's further guidance goes in the other files here (e.g. `principles/application_questions.md`), and a change to
+`SKILL.md` is proposed to him as exact wording. The template version (`esoi template sync`) goes up at most once per push
+of the ESOI repository to main, and only when a field is added, removed or renamed; rewording never raises it, so a
+repository's `template_version` is compared with the released version before it is changed.
 
 **Never add a specification field without the owner's approval.** Every human-readable field of an intent, problem,
 ideal, solution, implementation or metric comes from the template in `SKILL.md`. An AI may add only technical columns
