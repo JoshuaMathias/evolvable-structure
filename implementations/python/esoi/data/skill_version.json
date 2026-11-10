@@ -61,24 +61,35 @@
    "skill_committed": true,
    "skill_md_sha256": "cf62719b83730bbe5e93e70d92a5df00eb7f7e66724bed4171f2fc66dcc74550",
    "version": 5
+  },
+  {
+   "changes": [
+    "solution.application_question: question reworded"
+   ],
+   "date": "2026-11-10",
+   "sha256": "4b276593caf1",
+   "skill_commit": "9a5b38635a5f5fb9a1c347d5d3ee3f0566506541",
+   "skill_committed": true,
+   "skill_md_sha256": "a1effd35f850892c32a6473f1b13cfb7f76594d6739e20a11335d1b793d4cc50",
+   "version": 6
   }
  ],
  "skill": {
-  "commit": "9a5b38635a5f5fb9a1c347d5d3ee3f0566506541",
+  "commit": "fbb6e41bc6e17ae0afd5811f8d54e1128acd0017",
   "committed": true,
-  "copy_sha256": "dd6398e58c9e2c8390d1a75e32738f0ac8535716963168b32e33e00691890f6d",
+  "copy_sha256": "45612c9a63b9298bf6698bae96f4a2f80fa0c1ba621f3fe5122a9d4a2cef893f",
   "date": "2026-11-10",
-  "skill_md_sha256": "a1effd35f850892c32a6473f1b13cfb7f76594d6739e20a11335d1b793d4cc50"
+  "skill_md_sha256": "88de458e7f8b9bac67c805dc02e461dcbfd90df3385ac4c73ecc07d7a28ffb1a"
  },
  "template": {
   "changes": [
    "solution.application_question: question reworded"
   ],
   "date": "2026-11-10",
-  "sha256": "4b276593caf1",
-  "skill_commit": "9a5b38635a5f5fb9a1c347d5d3ee3f0566506541",
+  "sha256": "cd938b8f4731",
+  "skill_commit": "fbb6e41bc6e17ae0afd5811f8d54e1128acd0017",
   "skill_committed": true,
-  "skill_md_sha256": "a1effd35f850892c32a6473f1b13cfb7f76594d6739e20a11335d1b793d4cc50",
-  "version": 6
+  "skill_md_sha256": "88de458e7f8b9bac67c805dc02e461dcbfd90df3385ac4c73ecc07d7a28ffb1a",
+  "version": 7
  }
 }
