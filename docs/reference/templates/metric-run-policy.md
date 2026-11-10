@@ -44,7 +44,7 @@ _An inspiring sentence which clarifies how the solution solves problems, which a
 
 ### Application question
 
-_What question would prompt the user to choose an implementation of the solution's Approach? (e.g. "What is your unifying technique?") The question should be direct, simple and unique to the particular solution, not a research question. This is how humans interacting with ESOI specify their choices and their uncertainties open to experimentation._
+_What question would prompt the user to choose an implementation of the solution's Approach? (e.g. "What is your unifying technique?") The question should be direct, simple and unique to the particular solution, not a research question. This is how humans interacting with ESOI specify their choices and their uncertainties open to experimentation. Together the questions are complete: once a person has answered every Application Question of an intent with confidence, nothing else needs choosing to carry out the intent (details follow from the answers and the rest of the specification). A choice the answers leave open means a question, or a solution, is missing._
 
 <!-- your answer -->
 
