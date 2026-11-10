@@ -8,7 +8,7 @@ source and recency, contradicted ones labelled. Nothing is capped by a count: wh
 
 Columns: ``knowledge_id``, ``claim`` (one sentence), ``kind`` (assumption, best guess, evidence, theory, perspective, lesson), ``source``,
 ``solution_ids`` (``;``-separated), ``status`` (active, superseded, contradicted, expired), ``status_by`` (what superseded or contradicted
-it), ``recorded`` and ``expiration`` (``YYYY-MM-DD``), and ``research_id`` (optional: the research record, ``research.py``, that found it). A source is written as one of:
+it), ``recorded`` and ``expiration`` (``YYYY-MM-DD``), and ``investigation_id`` (optional: the investigation record, ``investigations.py``, that found it). A source is written as one of:
 
     result:<component>/<arm>@<date>        a row of the results log
     url:<address> grade <A-D>              public evidence, graded
@@ -29,10 +29,11 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from esoi.structure.intent_registry import intents
 from esoi.structure.intent_registry.tables import SEP, ids, read_csv, write_csv
+from esoi.understanding.solution_consideration import investigations
 from esoi.understanding.spec_search.spec_index import tokens
 
 FILE = "knowledge.csv"
-COLUMNS = ["knowledge_id", "claim", "kind", "source", "solution_ids", "status", "status_by", "recorded", "expiration", "research_id"]
+COLUMNS = ["knowledge_id", "claim", "kind", "source", "solution_ids", "status", "status_by", "recorded", "expiration", "investigation_id"]
 KINDS = ("assumption", "best guess", "evidence", "theory", "perspective", "lesson")
 STATUSES = ("active", "superseded", "contradicted", "expired")
 SOURCE_WEIGHT = {"person": 4.0, "result": 3.5, "mistake": 3.0, "evidence": 2.0, "other": 1.0, "field": 0.5}
@@ -93,7 +94,7 @@ def rows(config) -> List[Dict[str, str]]:
     out = []
     for _, folder in intents.folders(config):
         for row in read_csv(folder / FILE):
-            out.append({**row, "folder": str(folder)})
+            out.append({**investigations.renamed(row), "folder": str(folder)})
     return out
 
 
@@ -187,7 +188,7 @@ def add(config, item: Mapping[str, Any]) -> Tuple[str, bool]:
     if kind not in KINDS:
         raise ValueError(f"kind must be one of {', '.join(KINDS)}, not {kind!r}")
     folder = folder_of(config, solutions[0])
-    held = read_csv(folder / FILE)
+    held = [investigations.renamed(r) for r in read_csv(folder / FILE)]
     claim = " ".join(str(item["claim"]).split())
     for row in held:
         if (item.get("knowledge_id") and row.get("knowledge_id") == item["knowledge_id"]) or (
@@ -201,7 +202,7 @@ def add(config, item: Mapping[str, Any]) -> Tuple[str, bool]:
     row = {"knowledge_id": new_id, "claim": claim, "kind": kind, "source": str(item["source"]).strip(), "solution_ids": SEP.join(solutions),
            "status": (item.get("status") or "active"), "status_by": item.get("status_by", ""),
            "recorded": item.get("recorded") or today().isoformat(), "expiration": item.get("expiration", ""),
-           "research_id": item.get("research_id", "")}
+           "investigation_id": item.get("investigation_id", "")}
     write_csv(folder / FILE, COLUMNS, held + [row])
     return new_id, True
 

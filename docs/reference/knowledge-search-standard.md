@@ -10,6 +10,15 @@ not replace [knowledge records](knowledge-records.md) (what a solution rests on)
 (the grading of benchmark numbers). How to do one: [search like a small review](../how-to/search-like-a-small-review.md). Where research
 sits in the effort of an intent: [experiments in ESOI](experiments-in-esoi.md). Standard dated 2026-11-10.
 
+**Research and investigation.** An experiment is a research direction (its research question, scope, owners and period); an
+investigation is one piece of information gathering carried out to answer a question (a review of sources, a trial, an observation, an
+interview), inside an experiment or on its own. "Research" stays the general word for the activity; the record is always an
+investigation. An investigation's `question` is a sub-question of its experiment's `research_question`, or the same question.
+
+**Naming, decided.** The owner chose *investigation* (2026-11-10) over *inquiry*, *study* and *evidence search*, so that the record
+is not confused with the experiment, which is the research direction. Before the rename the files were `research.csv` and
+`research_items.csv` with a `research_id` column; they are still read when the new ones are absent, and written under the new names.
+
 ## Why
 
 A search with no question, no stopping rule and no record finds what is easy to find, keeps what agrees with the searcher and cannot
@@ -77,12 +86,12 @@ outward. When two sizes fit, take the larger. Research may move up when it finds
 | Standard | The decision selects or changes a solution's implementation, a metric, a public-stage prior or a registry area, or other solutions depend on it | up to an hour of AI work | Two source kinds (or two observations), at least five queries for a review, every part above, synthesis in three parts |
 | Full | The decision is hard to reverse, adds a dependency others rely on, carries licence, privacy or safety risk, makes a public claim, or creates a solution | hours | Standard, plus the method reviewed by a second reader before the work, three source kinds, a second screening pass over a sample of the excluded, and a note on what would change the decision |
 
-Nothing here is a reason to do more. Before searching, look in `research.csv` for a current review of the same question and reuse it; a
+Nothing here is a reason to do more. Before searching, look in `investigations.csv` for a current review of the same question and reuse it; a
 review not past its revisit date is the answer.
 
 ### The minimum record, smallest size
 
-A quick check is one `research.csv` row and one `research_items.csv` row per kept item. The row holds: the kind, the intent, the question,
+A quick check is one `investigations.csv` row and one `investigation_items.csv` row per kept item. The row holds: the kind, the intent, the question,
 the size, the date the method was fixed, the method in one line, the date done, the limitations (one phrase) and the revisit date; a
 review adds its decision, criteria, sources, queries, counts (found, screened out with reasons, kept) and the decision per candidate with
 its reason. Each kept item holds its claim, source, source date, and what it changed. The synthesis fields may be empty.
@@ -91,34 +100,34 @@ its reason. Each kept item holds its claim, source, source date, and what it cha
 
 Two CSV files in the records folder beside `knowledge.csv`, one record type kept as two tables (as a problem and its links are):
 
-`research.csv`, one row per piece of research: `research_id`, `kind`, `intent_id`, `experiment_id`, `links` (`kind:id` entries,
+`investigations.csv`, one row per investigation: `investigation_id`, `kind`, `intent_id`, `experiment_id`, `links` (`kind:id` entries,
 `;` separated, kind one of solution, problem, ideal, metric, implementation, intent, knowledge; empty when the question is about
 the intent itself), `question`, `decision`, `size`, `protocol_date`, `method`, `criteria`, `sources`, `queries` (`source | query | date | hits`),
 `found`, `screened_out` (`count reason`), `kept`, `observe`, `change_my_mind`, `stop`, `done_on`, `synthesis_known`, `synthesis_contested`,
 `synthesis_unknown`, `limitations`, `decisions` (`candidate: verb: reason`), `refresh_on`, `status` (`open` or `superseded`). Lists are `;` separated.
 
-`research_items.csv`, one row per kept item: `research_id`, `item_id`, `claim`, `source`, `source_date`, `independent` (`yes`, `no`, `unknown`),
+`investigation_items.csv`, one row per kept item: `investigation_id`, `item_id`, `claim`, `source`, `source_date`, `independent` (`yes`, `no`, `unknown`),
 `verified` (`opened`, `cross-checked`, `snippet`, `not-opened`, `observed`), `licence` (`n/a` when not code), `grade` (A to D), `knowledge_id`, `applied`.
 
-Knowledge it produces is a `knowledge.csv` row whose new optional column `research_id` names it. Numeric benchmark results go in
+Knowledge it produces is a `knowledge.csv` row whose new optional column `investigation_id` names it. Numeric benchmark results go in
 `evidence.csv` as before. No template field changes: the files and the column hold ids, dates, counts, links and the record's own text,
-and a solution's `knowledge` cell is untouched. Whether research records stay beside knowledge as these files, or become a record
+and a solution's `knowledge` cell is untouched. Whether investigation records stay beside knowledge as these files, or become a record
 kind of the template, or live inside the Knowledge field of an intent or solution, remains the owner's to choose; experiments, which
-frame research, are records of their own ([experiments in ESOI](experiments-in-esoi.md)). Python: `esoi.understanding.solution_consideration.research`.
+are research directions, are records of their own ([experiments in ESOI](experiments-in-esoi.md)). Python: `esoi.understanding.solution_consideration.investigations`.
 
 ### What `esoi check` says about it
 
 Advice only; nothing here fails a check. It lists a record missing a part its kind and size require, counts that do not add up, a method
 dated after the work, a link of an unknown kind, an item without a grade where a review needs one, a decision without a verb or a reason,
-research past its revisit date, an item neither applied nor marked `not-applied` after its size's grace period (quick 7 days, standard 14,
+an investigation past its revisit date, an item neither applied nor marked `not-applied` after its size's grace period (quick 7 days, standard 14,
 full 30), an activity naming an experiment that has no row in `experiments.csv`, and a knowledge row recorded on or after the standard's date that cites
-an address but names no research. A generated page lists, under an intent's records, each piece of research linked to a solution
+an address but names no investigation. A generated page lists, under an intent's records, each investigation linked to a solution
 and what each item changed.
 
 ## Worked example: this standard's own search
 
-The review that produced this page is recorded in `research.csv` and `research_items.csv` beside `knowledge.csv` in the Solution
-Consideration records (id `r-research-standard`), inside the experiment `x-research-standard` in `experiments.csv` (focus: how every
+The review that produced this page is recorded in `investigations.csv` and `investigation_items.csv` beside `knowledge.csv` in the Solution
+Consideration records (id `i-research-standard`), inside the experiment `x-research-standard` in `experiments.csv` (research question: how every
 knowledge search and every experiment's research is done and recorded; period 2026-11-10 to 2026-12-10).
 
 - **Question.** Which established review practices (reporting, protocol, question framing, evidence grading, rapid and software
@@ -175,7 +184,7 @@ An answer whose stated method was not carried out is not an answer: the completi
 the steps the trace shows.
 
 **The link to experiments.** A session's questions that fall inside a running [experiment](experiments-in-esoi.md)'s scope attach to it (`experiment_id`), and
-their findings and applied parts count for its reevaluation. A question outside every running experiment is outside current focus: it is still answered, and it
+their findings and applied parts count for its reevaluation. A question outside every running experiment is outside every research question in progress: it is still answered, and it
 neither reopens what an experiment holds fixed nor counts as exploration.
 
 ### Worked example: where an assembling repository's flow already holds it

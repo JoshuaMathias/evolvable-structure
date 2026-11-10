@@ -107,14 +107,14 @@ LEGACY_NOTE = ("note: this repository uses the legacy two-level layout (`overall
 
 def notes(config: Config) -> List[str]:
     """Lines that are information, not violations: they never change the exit code."""
-    return ([LEGACY_NOTE] if config.overall and not config.intent_mode else []) + version_note(config) + cascade_notes(config) + coherence_notes(config) + research_notes(config)
+    return ([LEGACY_NOTE] if config.overall and not config.intent_mode else []) + version_note(config) + cascade_notes(config) + coherence_notes(config) + investigation_notes(config)
 
 
-def research_notes(config: Config) -> List[str]:
-    """Advice on research records (``esoi.understanding.solution_consideration.research``): gaps, revisits due, findings not yet applied."""
-    from esoi.understanding.solution_consideration import experiments, research
+def investigation_notes(config: Config) -> List[str]:
+    """Advice on investigation and experiment records (``esoi.understanding.solution_consideration.investigations``): gaps, revisits due, findings not yet applied."""
+    from esoi.understanding.solution_consideration import experiments, investigations
     try:
-        return research.notes(config) + experiments.notes(config)
+        return investigations.notes(config) + experiments.notes(config)
     except Exception:   # noqa: BLE001  a note must never be the reason the check fails
         return []
 

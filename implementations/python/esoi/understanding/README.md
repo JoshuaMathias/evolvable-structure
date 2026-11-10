@@ -209,9 +209,9 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 | One-hour first pass | `the-steps:one-hour-pass` |  |  |
 | No stated order | `the-steps:no-stated-order` |  |  |
 
-### Research behind the knowledge
+### Investigations behind the knowledge
 
-- `r-research-standard` (review, standard, done 2026-11-10, revisit 2027-11-10): Which established review practices (reporting, protocol, question framing, evidence grading, rapid and software engineering adaptations) can ESOI adopt for every knowledge search, and where does it need its own part? Applied: i1: document:docs/reference/knowledge-search-standard.md; i2: document:docs/reference/knowledge-search-standard.md; i3: document:docs/reference/knowledge-search-standard.md; i4: document:docs/reference/knowledge-search-standard.md; i5: document:docs/reference/knowledge-search-standard.md; i6: document:docs/reference/knowledge-search-standard.md; i7: document:docs/reference/knowledge-search-standard.md; i8: document:docs/reference/knowledge-search-standard.md.
+- `i-research-standard` (review, standard, done 2026-11-10, revisit 2027-11-10): Which established review practices (reporting, protocol, question framing, evidence grading, rapid and software engineering adaptations) can ESOI adopt for every knowledge search, and where does it need its own part? Applied: i1: document:docs/reference/knowledge-search-standard.md; i2: document:docs/reference/knowledge-search-standard.md; i3: document:docs/reference/knowledge-search-standard.md; i4: document:docs/reference/knowledge-search-standard.md; i5: document:docs/reference/knowledge-search-standard.md; i6: document:docs/reference/knowledge-search-standard.md; i7: document:docs/reference/knowledge-search-standard.md; i8: document:docs/reference/knowledge-search-standard.md.
 
 ### Experiments
 

@@ -175,8 +175,8 @@ def record_tables(registry: Registry, intent: Intent, level: str = "##", view: O
     if implementations:
         lines += implementation_table(view, intent, implementations, level)
     if view is not None and view.config is not None:
-        from esoi.understanding.solution_consideration import research
-        lines += research.readme_lines(view.config, [r.get("solution_id", "") for r in solutions], level)
+        from esoi.understanding.solution_consideration import investigations
+        lines += investigations.readme_lines(view.config, [r.get("solution_id", "") for r in solutions], level)
         from esoi.understanding.solution_consideration import experiments
         lines += experiments.readme_lines(view.config, iid, level)
     metrics = mine(registry.metrics, iid)

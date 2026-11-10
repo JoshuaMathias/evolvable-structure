@@ -10,15 +10,15 @@ a research question, a method fixed before searching, counted screening, graded 
 date to revisit, sized to the decision (a quick check of minutes, a standard review, a full review), like a small systematic review.
 Joshua, 2026-11-10: "add guidance to ESOI repo and skill that all knowledge search should be done with a research perspective
 (research question, method, etc. Like a systematic review), and ESOI should establish conceptual or formatting standards for how
-that's done." The standard, its sizes and its record format (`research.csv`, `research_items.csv`) are defined once, in the ESOI
+that's done." The standard, its sizes and its record format (`investigations.csv`, `investigation_items.csv`) are defined once, in the ESOI
 repository's `docs/reference/knowledge-search-standard.md` (how: `docs/how-to/search-like-a-small-review.md`); read it, do not restate it here.
 
-An experiment is a record of an intent's current focused exploration, and research happens inside it. Joshua, 2026-11-10: "I see an
+An experiment is a record of an intent's current focused exploration: the research direction, with its research question, scope, owners and period. An investigation is one piece of information gathering carried out to answer a question (a review, a trial, an observation, an interview), inside an experiment or on its own; "research" stays the general word for the activity. Joshua, 2026-11-10: "I see an
 experiment as scoping the current effort of focused exploration for the intent/quest"; "There should be records of experiments";
 "I'm using it to clarify where focused attention goes, whether for me or a team member, and what is in a sense set in stone for the
 period of the experiment, like a trial period before reevaluating. Though a person can have more than one experiment if they choose."
 When working on an intent, read its running experiments first (where attention goes, what is not re-decided), and at the reevaluation
-date prompt the reevaluation. Definition and fields: the ESOI repository's `docs/reference/experiments-in-esoi.md`.
+time prompt the reevaluation. Definition and fields: the ESOI repository's `docs/reference/experiments-in-esoi.md`.
 
 ## What public and scientific research adds
 

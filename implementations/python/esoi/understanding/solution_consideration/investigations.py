@@ -1,18 +1,21 @@
-"""Research records: a piece of inquiry kept as data, so it can be checked, applied and revisited
-(standard: ``docs/reference/knowledge-search-standard.md``).
+"""Investigation records: one piece of information gathering done to answer a question, kept as data so it can be checked,
+applied and revisited (standard: ``docs/reference/knowledge-search-standard.md``).
 
-Research finds new evidence (a trial, an observation, an interview: primary) or gathers existing evidence (a review of what is
+An investigation finds new evidence (a trial, an observation, an interview: primary) or gathers existing evidence (a review of what is
 already known: secondary). One record shape holds both, with a ``kind`` naming the activity, so there is one standard and no parallel one.
-An experiment is the frame the activities happen in: the scope of the intent's current focused exploration (``experiments.py``,
-``experiments.csv``); each activity row may name it in ``experiment_id``. The role is loose on purpose: a record is a question, a method fixed beforehand, what was observed, what it means, what it changed and when to revisit.
-Everything else is optional unless the kind asks for it, and a qualitative inquiry is never forced to carry a number.
+An experiment is a research direction (``experiments.py``, ``experiments.csv``); an investigation happens inside one or on its own,
+and each row may name its experiment in ``experiment_id``. The role is loose on purpose: a record is a question, a method fixed beforehand, what was observed, what it means, what it changed and when to revisit.
+Everything else is optional unless the kind asks for it, and a qualitative investigation is never forced to carry a number.
+
+Files named before the rename (``research.csv``, ``research_items.csv``, the column ``research_id``) are still read when the new
+file or column is absent (``renamed``); everything is written under the new names.
 
 Its home is an intent (``intent_id``), not a solution: a question may bear on several solutions, problems, ideals, metrics or
 alternatives (``links``, many to many and optional), or on none yet when it is about how to think about the intent itself.
 
 Everything here is advice: a malformed or incomplete record is listed, never failed. Standard library only; no model call.
 
-``research.csv`` columns: ``research_id``, ``kind`` (review, trial, observation, interview, other), ``intent_id``,
+``investigations.csv`` columns: ``investigation_id``, ``kind`` (review, trial, observation, interview, other), ``intent_id``,
 ``experiment_id`` (the row of ``experiments.csv`` the activity belongs to; optional), ``links``
 (``kind:id`` entries separated by ``;``, kind one of ``LINK_KINDS``; empty when the question is about the intent itself), ``question``,
 ``decision`` (what the answer informs), ``size`` (quick, standard, full), ``protocol_date`` (the method is fixed on this date, before
@@ -23,11 +26,11 @@ rejecting values), ``stop`` (end condition: date, sample or cost), ``done_on`` (
 ``synthesis_unknown`` (what it means), ``limitations``, ``decisions`` (a review's ``candidate: verb: reason`` entries, verb one of
 ``DECISIONS``), ``refresh_on`` (when to revisit), ``status`` (open, superseded). Lists are separated by ``;``.
 
-``research_items.csv`` columns: ``research_id``, ``item_id``, ``claim`` (a finding or observation), ``source`` (where it is recorded),
+``investigation_items.csv`` columns: ``investigation_id``, ``item_id``, ``claim`` (a finding or observation), ``source`` (where it is recorded),
 ``source_date``, ``independent`` (yes, no, unknown), ``verified`` (opened, cross-checked, snippet, not-opened, observed), ``licence``
 (for code; ``n/a`` otherwise), ``grade`` (A to D, the grading of ``esoi evidence``; optional outside a review), ``knowledge_id``,
 ``applied`` (what it changed, as ``kind:record id`` entries, kind one of ``APPLIED_KINDS``, or ``not-applied: reason``). Knowledge it
-produced carries ``research_id``, so a record created or changed because of research points back to it; the page of a solution
+produced carries ``investigation_id``, so a record created or changed because of an investigation points back to it; the page of a solution
 lists them (``readme_lines``).
 """
 from __future__ import annotations
@@ -39,12 +42,15 @@ from typing import Dict, List, Mapping, Optional, Tuple
 from esoi.structure.intent_registry import intents
 from esoi.structure.intent_registry.tables import read_csv
 
-FILE = "research.csv"
-ITEMS_FILE = "research_items.csv"
-COLUMNS = ["research_id", "kind", "intent_id", "experiment_id", "links", "question", "decision", "size", "protocol_date", "method", "criteria", "sources",
+FILE = "investigations.csv"
+ITEMS_FILE = "investigation_items.csv"
+LEGACY_FILE = "research.csv"
+LEGACY_ITEMS_FILE = "research_items.csv"
+LEGACY_ID = "research_id"
+COLUMNS = ["investigation_id", "kind", "intent_id", "experiment_id", "links", "question", "decision", "size", "protocol_date", "method", "criteria", "sources",
            "queries", "found", "screened_out", "kept", "observe", "change_my_mind", "stop", "done_on", "synthesis_known",
            "synthesis_contested", "synthesis_unknown", "limitations", "decisions", "refresh_on", "status"]
-ITEM_COLUMNS = ["research_id", "item_id", "claim", "source", "source_date", "independent", "verified", "licence", "grade", "knowledge_id",
+ITEM_COLUMNS = ["investigation_id", "item_id", "claim", "source", "source_date", "independent", "verified", "licence", "grade", "knowledge_id",
                 "applied"]
 KINDS = ("review", "trial", "observation", "interview", "other")
 SIZES = ("quick", "standard", "full")
@@ -73,14 +79,27 @@ def parts(cell: str) -> List[str]:
     return [p.strip() for p in (cell or "").split(SEP) if p.strip()]
 
 
+def renamed(row: Mapping[str, str]) -> Dict[str, str]:
+    """The row with a ``research_id`` cell read as ``investigation_id`` (the one mapping for records written before the rename)."""
+    out = dict(row)
+    if LEGACY_ID in out and "investigation_id" not in out:
+        out["investigation_id"] = out.pop(LEGACY_ID)
+    return out
+
+
+def read_records(folder, name: str, legacy: str) -> List[Dict[str, str]]:
+    """The rows of ``name`` in a records folder, or of ``legacy`` when only the file named before the rename exists."""
+    return [renamed(r) for r in read_csv(folder / (name if (folder / name).exists() else legacy))]
+
+
 def rows(config) -> List[Dict[str, str]]:
-    """Every row of every ``research.csv`` in the records folders."""
-    return [r for _, folder in intents.folders(config) for r in read_csv(folder / FILE)]
+    """Every row of every ``investigations.csv`` in the records folders."""
+    return [r for _, folder in intents.folders(config) for r in read_records(folder, FILE, LEGACY_FILE)]
 
 
 def item_rows(config) -> List[Dict[str, str]]:
-    """Every row of every ``research_items.csv`` in the records folders."""
-    return [r for _, folder in intents.folders(config) for r in read_csv(folder / ITEMS_FILE)]
+    """Every row of every ``investigation_items.csv`` in the records folders."""
+    return [r for _, folder in intents.folders(config) for r in read_records(folder, ITEMS_FILE, LEGACY_ITEMS_FILE)]
 
 
 def linked(row: Mapping[str, str], kind: str = "") -> List[str]:
@@ -112,7 +131,7 @@ def to_int(text: str) -> Optional[int]:
 
 
 def row_problems(row: Mapping[str, str], items: List[Mapping[str, str]]) -> List[str]:
-    """What one research record lacks against the standard for its kind and size."""
+    """What one investigation record lacks against the standard for its kind and size."""
     out: List[str] = []
     kind = (row.get("kind") or "").strip().lower()
     size = (row.get("size") or "").strip().lower()
@@ -122,7 +141,7 @@ def row_problems(row: Mapping[str, str], items: List[Mapping[str, str]]) -> List
         out.append(f"size {row.get('size')!r} is not one of {', '.join(SIZES)}")
     out += [f"has no {c}" for c in ALL_KINDS_NEED + KIND_NEEDS.get(kind, ()) if not (row.get(c) or "").strip()]
     if size in ("standard", "full"):
-        out += [f"has no {c} (a {size} piece of research says what is known, contested and unknown)" for c in SYNTHESIS
+        out += [f"has no {c} (a {size} investigation says what is known, contested and unknown)" for c in SYNTHESIS
                 if not (row.get(c) or "").strip()]
     for entry in parts(row.get("links", "")):
         if entry.partition(":")[0].strip() not in LINK_KINDS or not entry.partition(":")[2].strip():
@@ -142,7 +161,7 @@ def row_problems(row: Mapping[str, str], items: List[Mapping[str, str]]) -> List
             if len(pieces) < 3 or pieces[1] not in DECISIONS or not pieces[2]:
                 out.append(f"decision {entry!r} reads `candidate: {'|'.join(DECISIONS)}: reason`")
         if kept and len(items) != kept:
-            out.append(f"kept {kept} but research_items.csv holds {len(items)} item(s) for it")
+            out.append(f"kept {kept} but investigation_items.csv holds {len(items)} item(s) for it")
     for item in items:
         who = item.get("item_id") or "(no id)"
         grade = (item.get("grade") or "").strip()
@@ -161,7 +180,7 @@ def experiment_problems(config) -> List[Tuple[str, str]]:
     """Activities that name an experiment which has no row in ``experiments.csv``."""
     from esoi.understanding.solution_consideration import experiments
     frames = {(r.get("experiment_id") or "").strip() for r in experiments.rows(config)}
-    return [((r.get("research_id") or "").strip(), f"names experiment {r.get('experiment_id')}, which has no row in experiments.csv")
+    return [((r.get("investigation_id") or "").strip(), f"names experiment {r.get('experiment_id')}, which has no row in experiments.csv")
             for r in rows(config) if (r.get("experiment_id") or "").strip() and (r.get("experiment_id") or "").strip() not in frames]
 
 
@@ -189,64 +208,64 @@ def applied_problems(row: Mapping[str, str], items: List[Mapping[str, str]], on:
 
 
 def readme_lines(config, solution_ids, level: str = "##") -> List[str]:
-    """The lines a page shows under its knowledge: each piece of research linked to one of ``solution_ids`` and what each item changed."""
+    """The lines a page shows under its knowledge: each investigation linked to one of ``solution_ids`` and what each item changed."""
     wanted = set(solution_ids)
     items = item_rows(config)
     lines: List[str] = []
     for row in rows(config):
         if not wanted & set(linked(row, "solution")):
             continue
-        rid = (row.get("research_id") or "").strip()
+        rid = (row.get("investigation_id") or "").strip()
         applied = [f"{(i.get('item_id') or '').strip()}: {(i.get('applied') or '').strip() or 'not yet applied'}"
-                   for i in items if i.get("research_id") == rid]
+                   for i in items if i.get("investigation_id") == rid]
         lines.append(f"- `{rid}` ({row.get('kind', '')}, {row.get('size', '')}, done {row.get('done_on', '')}, revisit {row.get('refresh_on', '')}): "
                      f"{' '.join((row.get('question') or '').split())} Applied: " + ("; ".join(applied) if applied else "no item kept") + ".")
-    return [f"{level} Research behind the knowledge", ""] + lines + [""] if lines else []
+    return [f"{level} Investigations behind the knowledge", ""] + lines + [""] if lines else []
 
 
 def due(config, on: Optional[datetime.date] = None) -> List[Dict[str, str]]:
-    """Open research whose ``refresh_on`` is today or past."""
+    """Open investigations whose ``refresh_on`` is today or past."""
     on = on or datetime.date.today()
     return [r for r in rows(config) if (r.get("status") or "open").strip() == "open" and (d := as_date(r.get("refresh_on", ""))) and d <= on]
 
 
-def unresearched_knowledge(config) -> List[str]:
-    """Ids of knowledge rows recorded on or after the standard's date that cite an address but name no research record."""
+def uninvestigated_knowledge(config) -> List[str]:
+    """Ids of knowledge rows recorded on or after the standard's date that cite an address but name no investigation."""
     from esoi.understanding.solution_consideration import knowledge
     out = []
     for row in knowledge.rows(config):
         recorded = as_date(row.get("recorded", ""))
         kind, _ = knowledge.source_kind(row.get("source", ""))
-        if recorded and recorded >= STANDARD_DATE and kind == "evidence" and not (row.get("research_id") or "").strip():
+        if recorded and recorded >= STANDARD_DATE and kind == "evidence" and not (row.get("investigation_id") or "").strip():
             out.append((row.get("knowledge_id") or "(no id)").strip())
     return out
 
 
 def advice(config, on: Optional[datetime.date] = None) -> List[Tuple[str, str]]:
-    """``(key, advice)`` for every record gap, research past its revisit date, and knowledge citing sources with no research record."""
+    """``(key, advice)`` for every record gap, an investigation past its revisit date, and knowledge citing sources with no investigation."""
     on = on or datetime.date.today()
     by_research: Dict[str, List[Mapping[str, str]]] = {}
     for item in item_rows(config):
-        by_research.setdefault(item.get("research_id", ""), []).append(item)
+        by_research.setdefault(item.get("investigation_id", ""), []).append(item)
     out: List[Tuple[str, str]] = []
     for row in rows(config):
-        key = (row.get("research_id") or "").strip() or "(no id)"
+        key = (row.get("investigation_id") or "").strip() or "(no id)"
         mine = by_research.get(key, [])
         out += [(key, p) for p in row_problems(row, mine) + applied_problems(row, mine, on)]
     out += experiment_problems(config)
-    out += [((r.get("research_id") or "").strip(), f"revisit was due {r.get('refresh_on')}; redo it or set its status to superseded")
+    out += [((r.get("investigation_id") or "").strip(), f"revisit was due {r.get('refresh_on')}; redo it or set its status to superseded")
             for r in due(config, on)]
-    known = {(r.get("research_id") or "").strip() for r in rows(config)}
+    known = {(r.get("investigation_id") or "").strip() for r in rows(config)}
     from esoi.understanding.solution_consideration import knowledge
     for row in knowledge.rows(config):
-        rid = (row.get("research_id") or "").strip()
+        rid = (row.get("investigation_id") or "").strip()
         if rid and rid not in known:
-            out.append(((row.get("knowledge_id") or "").strip(), f"names research {rid}, which has no row in research.csv"))
-    out += [(k, "cites sources and names no research_id; record the research that found it (docs/reference/knowledge-search-standard.md)")
-            for k in unresearched_knowledge(config)]
+            out.append(((row.get("knowledge_id") or "").strip(), f"names investigation {rid}, which has no row in investigations.csv"))
+    out += [(k, "cites sources and names no investigation_id; record the investigation that found it (docs/reference/knowledge-search-standard.md)")
+            for k in uninvestigated_knowledge(config)]
     return out
 
 
 def notes(config, on: Optional[datetime.date] = None) -> List[str]:
     """The advice as lines for ``esoi check``'s notes; never a failure."""
-    return [f"note: research {key}: {text}" for key, text in advice(config, on)]
+    return [f"note: investigation {key}: {text}" for key, text in advice(config, on)]

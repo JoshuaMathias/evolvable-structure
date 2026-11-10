@@ -1,4 +1,4 @@
-"""Research records (docs/reference/knowledge-search-standard.md): the required parts per kind and size, counts that add up, grades,
+"""Investigation records (docs/reference/knowledge-search-standard.md): the required parts per kind and size, counts that add up, grades,
 decisions, applied entries and their grace period, refresh dates, knowledge with no search, and the solution page's list of reviews."""
 import datetime
 import sys
@@ -8,7 +8,7 @@ import pytest
 
 from esoi.structure.intent_registry import config as config_module
 from esoi.structure.intent_registry.tables import read_csv, write_csv
-from esoi.understanding.solution_consideration import experiments, knowledge, research
+from esoi.understanding.solution_consideration import experiments, investigations, knowledge
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "evaluation" / "components"))
 from shared_fixtures.consideration_fixture import write_repo  # noqa: E402
@@ -26,30 +26,30 @@ def folder_of(config):
 
 
 def record(**changes):
-    row = {"research_id": "r-1", "kind": "review", "intent_id": "recall", "links": "solution:card-builder", "question": "Which graph libraries can build cards?",
+    row = {"investigation_id": "r-1", "kind": "review", "intent_id": "recall", "links": "solution:card-builder", "question": "Which graph libraries can build cards?",
            "decision": "adopt or build", "method": "web search against fixed criteria", "size": "quick", "protocol_date": "2026-11-10", "criteria": "open licence; maintained since 2025",
            "sources": "web search", "queries": "web | graph card builder | 2026-11-10 | 40", "done_on": "2026-11-10", "found": "40",
            "screened_out": "37 not a library;1 unmaintained", "kept": "2", "limitations": "titles and readmes only",
            "decisions": "libx: adopt: fits and is open;liby: reject: unmaintained", "refresh_on": "2027-02-10", "status": "open"}
     row.update(changes)
-    return {c: row.get(c, "") for c in research.COLUMNS}
+    return {c: row.get(c, "") for c in investigations.COLUMNS}
 
 
 def item(item_id, **changes):
-    row = {"research_id": "r-1", "item_id": item_id, "claim": "libx builds cards", "source": "https://example.org/x", "source_date": "2026-10-01",
+    row = {"investigation_id": "r-1", "item_id": item_id, "claim": "libx builds cards", "source": "https://example.org/x", "source_date": "2026-10-01",
            "independent": "yes", "verified": "opened", "licence": "MIT", "grade": "B", "knowledge_id": "", "applied": "implementation:card-builder:libx"}
     row.update(changes)
-    return {c: row.get(c, "") for c in research.ITEM_COLUMNS}
+    return {c: row.get(c, "") for c in investigations.ITEM_COLUMNS}
 
 
 def write(config, rows, items):
     folder = folder_of(config)
-    write_csv(folder / research.FILE, research.COLUMNS, rows)
-    write_csv(folder / research.ITEMS_FILE, research.ITEM_COLUMNS, items)
+    write_csv(folder / investigations.FILE, investigations.COLUMNS, rows)
+    write_csv(folder / investigations.ITEMS_FILE, investigations.ITEM_COLUMNS, items)
 
 
 def advice(config, on=DAY):
-    return [f"{k}: {t}" for k, t in research.advice(config, on)]
+    return [f"{k}: {t}" for k, t in investigations.advice(config, on)]
 
 
 def advice_of(config, on=DAY):
@@ -98,9 +98,9 @@ def test_findings_not_applied_after_the_grace_period_are_listed(toy):
 
 
 def test_a_review_past_its_refresh_date_is_due(toy):
-    write(toy, [record(refresh_on="2026-11-18"), record(research_id="r-2", refresh_on="2026-12-01"),
-                record(research_id="r-3", refresh_on="2026-11-01", status="superseded")], [])
-    assert [r["research_id"] for r in research.due(toy, DAY)] == ["r-1"]
+    write(toy, [record(refresh_on="2026-11-18"), record(investigation_id="r-2", refresh_on="2026-12-01"),
+                record(investigation_id="r-3", refresh_on="2026-11-01", status="superseded")], [])
+    assert [r["investigation_id"] for r in investigations.due(toy, DAY)] == ["r-1"]
 
 
 def test_knowledge_citing_an_address_names_its_search(toy):
@@ -110,28 +110,28 @@ def test_knowledge_citing_an_address_names_its_search(toy):
     new.update(knowledge_id="k-new", claim="libx builds cards", kind="evidence", source="url:https://example.org/x grade B",
                solution_ids="card-builder", status="active", recorded="2026-11-12")
     old = dict(new, knowledge_id="k-old", recorded="2026-11-09")
-    linked = dict(new, knowledge_id="k-linked", research_id="r-1")
+    linked = dict(new, knowledge_id="k-linked", investigation_id="r-1")
     write_csv(folder / knowledge.FILE, knowledge.COLUMNS, rows + [new, old, linked])
     write(toy, [record()], [item("i1"), item("i2")])
-    assert research.unresearched_knowledge(toy) == ["k-new"]
+    assert investigations.uninvestigated_knowledge(toy) == ["k-new"]
     assert any(line.startswith("k-new:") for line in advice(toy))
-    dangling = dict(new, knowledge_id="k-dangling", research_id="r-404", recorded="2026-11-01")
+    dangling = dict(new, knowledge_id="k-dangling", investigation_id="r-404", recorded="2026-11-01")
     write_csv(folder / knowledge.FILE, knowledge.COLUMNS, rows + [dangling])
-    assert any("research r-404, which has no row" in line for line in advice(toy))
+    assert any("investigation r-404, which has no row" in line for line in advice(toy))
 
 
 def test_the_solution_page_lists_its_reviews_and_what_they_changed(toy):
     write(toy, [record()], [item("i1"), item("i2", applied="not-applied: licence unclear")])
-    lines = research.readme_lines(toy, ["card-builder"], "###")
-    assert lines[0] == "### Research behind the knowledge" and "i1: implementation:card-builder:libx" in lines[2]
+    lines = investigations.readme_lines(toy, ["card-builder"], "###")
+    assert lines[0] == "### Investigations behind the knowledge" and "i1: implementation:card-builder:libx" in lines[2]
     assert "i2: not-applied: licence unclear" in lines[2]
-    assert research.readme_lines(toy, ["card-store"]) == []
+    assert investigations.readme_lines(toy, ["card-store"]) == []
 
 
 def experiment(**changes):
-    row = {"experiment_id": "x-1", "intent_id": "recall", "name": "Coarse cards", "focus": "Is the card set too coarse for recall?",
-           "status": "running", "starts_on": "2026-11-10", "reevaluate_on": "2026-12-10", "held_fixed": "storage = local",
-           "inside": "card size and grouping", "left_out": "storage"}
+    row = {"experiment_id": "x-1", "intent_id": "recall", "name": "Coarse cards", "research_question": "Is the card set too coarse for recall?",
+           "status": "running", "starts_on": "2026-11-10", "reevaluate_time": "2026-12-10", "held_fixed": "storage = local",
+           "in_scope": "card size and grouping", "outside_scope": "storage"}
     row.update(changes)
     return {c: row.get(c, "") for c in experiments.COLUMNS}
 
@@ -140,12 +140,12 @@ def write_experiments(config, rows):
     write_csv(folder_of(config) / experiments.FILE, experiments.COLUMNS, rows)
 
 
-def test_a_running_experiment_names_its_focus_period_and_what_is_held_fixed(toy):
+def test_a_running_experiment_names_its_research_question_period_and_what_is_held_fixed(toy):
     write_experiments(toy, [experiment()])
     assert advice_of(toy) == []
-    write_experiments(toy, [experiment(focus="", reevaluate_on="", held_fixed="")])
+    write_experiments(toy, [experiment(research_question="", reevaluate_time="", held_fixed="")])
     found = " | ".join(advice_of(toy))
-    assert "has no focus" in found and "names no reevaluate_on or reevaluate_when" in found and "holds nothing fixed" in found
+    assert "has no research_question" in found and "names no reevaluate_time or reevaluate_condition" in found and "holds nothing fixed" in found
 
 
 def test_a_reevaluation_comes_due_and_an_ended_experiment_says_what_was_learned(toy):
@@ -157,12 +157,12 @@ def test_a_reevaluation_comes_due_and_an_ended_experiment_says_what_was_learned(
 
 
 def test_several_experiments_coexist_unless_one_person_fixes_contradictory_things(toy):
-    mine = experiment(directs="a person", held_fixed="storage = local")
-    write_experiments(toy, [mine, experiment(experiment_id="x-2", directs="a person", held_fixed="storage = remote"),
-                            experiment(experiment_id="x-3", directs="someone else", held_fixed="storage = remote")])
+    mine = experiment(owners="a person", held_fixed="storage = local")
+    write_experiments(toy, [mine, experiment(experiment_id="x-2", owners="a person", held_fixed="storage = remote"),
+                            experiment(experiment_id="x-3", owners="someone else", held_fixed="storage = remote")])
     found = advice_of(toy)
     assert len([line for line in found if "fixes storage" in line]) == 1 and "x-1" in found[0]
-    assert [r["experiment_id"] for r in experiments.running(toy, directs="a person")] == ["x-1", "x-2"]
+    assert [r["experiment_id"] for r in experiments.running(toy, owners="a person")] == ["x-1", "x-2"]
     assert len(experiments.running(toy, intent_id="recall")) == 3
 
 
@@ -174,11 +174,11 @@ def test_the_intent_page_shows_its_experiments_and_a_missing_file_is_valid(toy):
 
 
 def test_a_qualitative_trial_needs_no_number_and_names_its_experiment(toy):
-    trial = record(research_id="t-1", kind="observation", experiment_id="x-1", size="quick", links="", found="", screened_out="", kept="",
+    trial = record(investigation_id="t-1", kind="observation", experiment_id="x-1", size="quick", links="", found="", screened_out="", kept="",
                    criteria="", sources="", queries="", decisions="", decision="", observe="what the person does when cards are grouped",
                    change_my_mind="if grouping is never used")
     write_experiments(toy, [experiment()])
-    write(toy, [trial], [item("i1", research_id="t-1", grade="", independent="", verified="observed", licence="",
+    write(toy, [trial], [item("i1", investigation_id="t-1", grade="", independent="", verified="observed", licence="",
                                           applied="knowledge:k-1")])
     assert advice(toy) == []
     write_experiments(toy, [])
@@ -190,7 +190,7 @@ def test_a_question_about_the_intent_itself_links_to_nothing_and_a_comparison_li
     assert advice(toy) == []
     write(toy, [record(links="solution:card-builder;solution:card-store;ideal:recall-fast")], [item("i1"), item("i2")])
     assert advice(toy) == []
-    assert research.linked({"links": "solution:a;ideal:b;solution:c"}, "solution") == ["a", "c"]
+    assert investigations.linked({"links": "solution:a;ideal:b;solution:c"}, "solution") == ["a", "c"]
     write(toy, [record(links="thing:x")], [item("i1"), item("i2")])
     assert any("link 'thing:x'" in line for line in advice(toy))
 
@@ -209,3 +209,12 @@ def test_two_running_experiments_of_an_intent_sharing_a_priority_are_advised(toy
     assert any("shares priority 1 with running experiment(s) x-b" in line for line in advice_of(toy))
     write_experiments(toy, [experiment(experiment_id="x-a", priority="0")])
     assert any("priority is a whole number from 1" in line for line in advice_of(toy))
+
+
+def test_files_and_columns_named_before_the_rename_are_still_read(toy):
+    old_columns = ["research_id"] + investigations.COLUMNS[1:]
+    write_csv(folder_of(toy) / investigations.LEGACY_FILE, old_columns, [dict(record(), research_id="r-old")])
+    write_csv(folder_of(toy) / investigations.LEGACY_ITEMS_FILE, ["research_id"] + investigations.ITEM_COLUMNS[1:],
+              [dict(item("i1"), research_id="r-old")])
+    assert [r["investigation_id"] for r in investigations.rows(toy)] == ["r-old"]
+    assert [r["investigation_id"] for r in investigations.item_rows(toy)] == ["r-old"]

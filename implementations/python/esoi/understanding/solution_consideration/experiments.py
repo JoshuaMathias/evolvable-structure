@@ -1,18 +1,20 @@
 """Experiment records: the scope of an intent's current focused exploration (docs/reference/experiments-in-esoi.md).
 
-An experiment directs focused attention for a period and fixes certain things for that period, like a trial period before
-reevaluating: what is held fixed is not reopened until the reevaluation date, and is reopened then. It lives at the intent, in
-``experiments.csv`` beside the intent's other records (an intent with no such file is valid), and may bear on many solutions,
-problems, ideals, metrics or milestones, or on none. The research done inside it (``research.csv``, reviews, observations, trials
-under the research standard) names it in ``experiment_id``; the list of those rows is ``research_ids``.
+An experiment is the research direction: its research question, scope, owners and period. It fixes certain things for that period,
+like a trial period before reevaluating: what is held fixed is not reopened until the reevaluation time, and is reopened then. It
+lives at the intent, in ``experiments.csv`` beside the intent's other records (an intent with no such file is valid), and may bear
+on many solutions, problems, ideals, metrics or milestones, or on none. An investigation record (``investigations.csv``) is one piece
+of information gathering carried out to answer a question (a review of sources, a trial, an observation, an interview), inside an
+experiment or on its own; it names its experiment in ``experiment_id``, and the list of those rows is ``investigation_ids``.
 
 Everything here is advice: an incomplete or odd record is listed, never failed. Standard library only; no model call.
 
-Columns: ``experiment_id``, ``intent_id``, ``name``, ``focus`` (the question or way of thinking explored), ``directs`` (whose attention it
-directs, a person or role; empty when it is one's own), ``status`` (planned, running, reevaluating, ended), ``starts_on``,
-``reevaluate_on`` (date), ``reevaluate_when`` (a condition, instead of or beside the date), ``held_fixed`` (the choices not re-decided
-for the period, ``;`` separated, each ``subject = choice`` or free text), ``inside``, ``left_out`` (for now), ``links`` (``kind:id``
-entries, kind one of ``LINK_KINDS``), ``research_ids``, ``learned``, ``changed`` (``kind:record id`` entries: knowledge, structure,
+Columns: ``experiment_id``, ``intent_id``, ``name``, ``research_question`` (the question or way of thinking explored; an investigation's
+own ``question`` is a sub-question of it or the same question), ``owners`` (whose attention it is for, people or roles; empty
+when it is one's own), ``status`` (planned, running, reevaluating, ended), ``starts_on``,
+``reevaluate_time`` (a date, or a date and minute), ``reevaluate_condition`` (a condition, instead of or beside the time), ``held_fixed`` (the choices not re-decided
+for the period, ``;`` separated, each ``subject = choice`` or free text), ``in_scope``, ``outside_scope`` (for now), ``links`` (``kind:id``
+entries, kind one of ``LINK_KINDS``), ``investigation_ids``, ``learned``, ``changed`` (``kind:record id`` entries: knowledge, structure,
 priorities, milestones), ``decision`` (continue, change, end), ``next_experiment_id``.
 """
 from __future__ import annotations
@@ -24,14 +26,14 @@ from esoi.structure.intent_registry import intents
 from esoi.structure.intent_registry.tables import read_csv
 
 FILE = "experiments.csv"
-COLUMNS = ["experiment_id", "intent_id", "name", "focus", "directs", "priority", "status", "starts_on", "reevaluate_on", "reevaluate_when", "held_fixed",
-           "inside", "left_out", "links", "research_ids", "learned", "changed", "decision", "next_experiment_id"]
+COLUMNS = ["experiment_id", "intent_id", "name", "research_question", "owners", "priority", "status", "starts_on", "reevaluate_time", "reevaluate_condition", "held_fixed",
+           "in_scope", "outside_scope", "links", "investigation_ids", "learned", "changed", "decision", "next_experiment_id"]
 STATUSES = ("planned", "running", "reevaluating", "ended")
 DECISIONS = ("continue", "change", "end")
 LINK_KINDS = ("solution", "problem", "ideal", "metric", "milestone", "implementation", "knowledge")
 CHANGED_KINDS = ("knowledge", "problem", "ideal", "solution", "implementation", "metric", "milestone", "priority", "stage", "selection",
                  "waiver", "decision", "document")
-NEEDS = ("intent_id", "name", "focus", "status", "starts_on", "inside")
+NEEDS = ("intent_id", "name", "research_question", "status", "starts_on", "in_scope")
 SEP = ";"
 
 
@@ -51,17 +53,17 @@ def rows(config) -> List[Dict[str, str]]:
     return [r for _, folder in intents.folders(config) for r in read_csv(folder / FILE)]
 
 
-def running(config, intent_id: str = "", directs: str = "") -> List[Dict[str, str]]:
+def running(config, intent_id: str = "", owners: str = "") -> List[Dict[str, str]]:
     """The experiments that are running (or being reevaluated), optionally of one intent or one person: where attention goes now."""
     found = [r for r in rows(config) if (r.get("status") or "").strip() in ("running", "reevaluating")
-             and (not intent_id or r.get("intent_id") == intent_id) and (not directs or (r.get("directs") or "").strip() == directs)]
+             and (not intent_id or r.get("intent_id") == intent_id) and (not owners or (r.get("owners") or "").strip() == owners)]
     return sorted(found, key=lambda r: (to_int(r.get("priority", "")) or 10 ** 6, r.get("experiment_id", "")))
 
 
 def due(config, on: Optional[datetime.date] = None) -> List[Dict[str, str]]:
-    """Running experiments whose reevaluation date is today or past: what an AI prompts a reevaluation of."""
+    """Running experiments whose reevaluation time is today or past: what an AI prompts a reevaluation of."""
     on = on or datetime.date.today()
-    return [r for r in rows(config) if (r.get("status") or "").strip() == "running" and (d := as_date(r.get("reevaluate_on", ""))) and d <= on]
+    return [r for r in rows(config) if (r.get("status") or "").strip() == "running" and (d := as_date(r.get("reevaluate_time", ""))) and d <= on]
 
 
 def commitments(row: Mapping[str, str]) -> Dict[str, str]:
@@ -86,8 +88,8 @@ def row_problems(row: Mapping[str, str]) -> List[str]:
     status = (row.get("status") or "").strip()
     if status and status not in STATUSES:
         out.append(f"status {status!r} is not one of {', '.join(STATUSES)}")
-    if status in ("running", "planned") and not ((row.get("reevaluate_on") or "").strip() or (row.get("reevaluate_when") or "").strip()):
-        out.append("names no reevaluate_on or reevaluate_when: a trial period ends in a reevaluation")
+    if status in ("running", "planned") and not ((row.get("reevaluate_time") or "").strip() or (row.get("reevaluate_condition") or "").strip()):
+        out.append("names no reevaluate_time or reevaluate_condition: a trial period ends in a reevaluation")
     if status == "running" and not (row.get("held_fixed") or "").strip():
         out.append("holds nothing fixed (held_fixed); say what is not re-decided for the period, or that nothing is")
     if status in ("reevaluating", "ended"):
@@ -102,26 +104,26 @@ def row_problems(row: Mapping[str, str]) -> List[str]:
             out.append(f"changed entry {entry!r} reads `kind:record id`, kind one of {', '.join(CHANGED_KINDS)}")
     if (row.get("priority") or "").strip() and (to_int(row.get("priority", "")) or 0) < 1:
         out.append("priority is a whole number from 1 (first)")
-    start, end = as_date(row.get("starts_on", "")), as_date(row.get("reevaluate_on", ""))
+    start, end = as_date(row.get("starts_on", "")), as_date(row.get("reevaluate_time", ""))
     if start and end and end < start:
-        out.append("reevaluate_on is before starts_on")
+        out.append("reevaluate_time is before starts_on")
     return out
 
 
 def advice(config, on: Optional[datetime.date] = None) -> List[Tuple[str, str]]:
-    """``(key, advice)`` for record gaps, a reevaluation due, research that does not exist, and running experiments of one person that
+    """``(key, advice)`` for record gaps, a reevaluation due, investigations that do not exist, and running experiments of one person that
     fix different choices for the same subject."""
-    from esoi.understanding.solution_consideration import research
+    from esoi.understanding.solution_consideration import investigations
     on = on or datetime.date.today()
     every = rows(config)
-    known_research = {(r.get("research_id") or "").strip() for r in research.rows(config)}
+    known_investigations = {(r.get("investigation_id") or "").strip() for r in investigations.rows(config)}
     out: List[Tuple[str, str]] = []
     for row in every:
         key = (row.get("experiment_id") or "").strip() or "(no id)"
         out += [(key, p) for p in row_problems(row)]
-        out += [(key, f"names research {rid}, which has no row in research.csv") for rid in parts(row.get("research_ids", ""))
-                if rid not in known_research]
-    out += [((r.get("experiment_id") or "").strip(), f"reevaluation was due {r.get('reevaluate_on')}; prompt the reevaluation (what was learned, "
+        out += [(key, f"names investigation {rid}, which has no row in investigations.csv") for rid in parts(row.get("investigation_ids", ""))
+                if rid not in known_investigations]
+    out += [((r.get("experiment_id") or "").strip(), f"reevaluation was due {r.get('reevaluate_time')}; prompt the reevaluation (what was learned, "
             "what it changed, continue, change or end)") for r in due(config, on)]
     for intent_id in sorted({(r.get("intent_id") or "").strip() for r in every}):
         ranks = [(to_int(r.get("priority", "")), (r.get("experiment_id") or "").strip()) for r in running(config, intent_id)]
@@ -129,10 +131,10 @@ def advice(config, on: Optional[datetime.date] = None) -> List[Tuple[str, str]]:
             same = [i for n, i in ranks if n == rank]
             if len(same) > 1:
                 out.append((same[0], f"shares priority {rank} with running experiment(s) {', '.join(same[1:])}: the order is what directs attention first"))
-    live = [r for r in every if (r.get("status") or "").strip() in ("running", "reevaluating") and (r.get("directs") or "").strip()]
+    live = [r for r in every if (r.get("status") or "").strip() in ("running", "reevaluating") and (r.get("owners") or "").strip()]
     for n, first in enumerate(live):
         for second in live[n + 1:]:
-            if (first.get("directs") or "").strip() != (second.get("directs") or "").strip():
+            if (first.get("owners") or "").strip() != (second.get("owners") or "").strip():
                 continue
             a, b = commitments(first), commitments(second)
             for subject in sorted(set(a) & set(b)):
@@ -152,8 +154,8 @@ def running_lines(config, intent_id: str, level: str = "##") -> List[str]:
     Nothing when it has none."""
     lines = []
     for n, row in enumerate(running(config, intent_id), 1):
-        date = (row.get("reevaluate_on") or "").strip() or (row.get("reevaluate_when") or "").strip() or "no reevaluation set"
-        lines.append(f"{n}. `{row.get('experiment_id', '')}` {row.get('name', '')}: {' '.join((row.get('focus') or '').split())} (reevaluate {date})")
+        date = (row.get("reevaluate_time") or "").strip() or (row.get("reevaluate_condition") or "").strip() or "no reevaluation set"
+        lines.append(f"{n}. `{row.get('experiment_id', '')}` {row.get('name', '')}: {' '.join((row.get('research_question') or '').split())} (reevaluate {date})")
     return [f"{level} Running experiments", ""] + lines + [""] if lines else []
 
 
@@ -163,7 +165,7 @@ def readme_lines(config, intent_id: str, level: str = "##") -> List[str]:
     for row in rows(config):
         if (row.get("intent_id") or "").strip() != intent_id:
             continue
-        period = f"from {row.get('starts_on', '')}" + (f", reevaluate {row.get('reevaluate_on')}" if (row.get("reevaluate_on") or "").strip() else "")
+        period = f"from {row.get('starts_on', '')}" + (f", reevaluate {row.get('reevaluate_time')}" if (row.get("reevaluate_time") or "").strip() else "")
         fixed = f" Held fixed: {'; '.join(parts(row.get('held_fixed', '')))}." if (row.get("held_fixed") or "").strip() else ""
-        lines.append(f"- `{row.get('experiment_id', '')}` ({row.get('status', '')}, {period}): {' '.join((row.get('focus') or '').split())}{fixed}")
+        lines.append(f"- `{row.get('experiment_id', '')}` ({row.get('status', '')}, {period}): {' '.join((row.get('research_question') or '').split())}{fixed}")
     return [f"{level} Experiments", ""] + lines + [""] if lines else []
