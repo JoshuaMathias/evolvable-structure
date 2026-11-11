@@ -252,3 +252,17 @@ def test_files_and_columns_named_before_the_rename_are_still_read(toy):
               [dict(item("i1"), research_id="r-old")])
     assert [r["investigation_id"] for r in investigations.rows(toy)] == ["r-old"]
     assert [r["investigation_id"] for r in investigations.item_rows(toy)] == ["r-old"]
+
+
+def test_the_top_page_lists_every_intents_running_experiments_in_priority_order(toy, monkeypatch):
+    """The repository's top page is where its research directions are in order: the top intent's, then each sub-intent's, each in its own priority order."""
+    from types import SimpleNamespace
+    write_experiments(toy, [experiment(experiment_id="x-b", name="Second", priority="2"), experiment(experiment_id="x-a", name="First", priority="1")])
+    sub = [experiment(experiment_id="y-1", intent_id="sub", name="Below", priority="1")]
+    real = experiments.running
+    monkeypatch.setattr(experiments, "running", lambda config, intent_id="", owners="": sub if intent_id == "sub" else real(config, intent_id, owners))
+    monkeypatch.setattr(experiments.intents, "discover", lambda config: [SimpleNamespace(intent_id="recall"), SimpleNamespace(intent_id="sub")])
+    lines = experiments.running_lines(toy, "recall", whole_tree=True)
+    assert [line.split(" ")[:2] for line in lines[2:5]] == [["1.", "`x-a`"], ["2.", "`x-b`"], ["3.", "`y-1`"]]
+    assert "(intent `sub`)" in lines[4] and "(intent `sub`)" not in lines[2]
+    assert experiments.running_lines(toy, "recall") == experiments.running_lines(toy, "recall", whole_tree=False) and len(experiments.running_lines(toy, "recall")) == 5

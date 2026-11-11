@@ -88,13 +88,20 @@ def has_balanced(own: Row, rival: Row) -> bool:
     return bool(str(own.get("balanced") or rival.get("balanced") or "").strip())
 
 
+def pass_counts(row: Row) -> Tuple[int, int]:
+    """``(passed, cases)`` of a row; a pool of repeated runs (``stage_standings.pooled_row``) counts every run's cases."""
+    if int(float(row.get("runs") or 0)) > 1:
+        return int(float(row["passed_total"])), int(float(row["cases_total"]))
+    return int(float(row["passed"])), int(float(row["cases"]))
+
+
 def aggregate_counts(own: Row, rival: Row) -> Optional[Tuple[int, int, int, int]]:
     """``(rival passed, rival cases, selected passed, selected cases)`` when both rows are verified runs of the same cases and sample
     with pass counts and the metric is the pass rate: enough for an unpaired exact test when no per-case rows exist."""
     if unverified(own) or unverified(rival) or uses_balanced(own, rival) or has_balanced(own, rival):
         return None
     try:
-        counts = (int(float(rival["passed"])), int(float(rival["cases"])), int(float(own["passed"])), int(float(own["cases"])))
+        counts = (*pass_counts(rival), *pass_counts(own))
     except (KeyError, ValueError):
         return None
     return counts if counts[1] > 0 and counts[3] > 0 and 0 <= counts[0] <= counts[1] and 0 <= counts[2] <= counts[3] else None
@@ -142,7 +149,8 @@ def held_out_pair(per_case: Optional[List[Row]], own: Row, rival: Row, holdout: 
 
 def exact_test_of(per_case: Optional[List[Row]], own: Row, rival: Row, selected: str, policy: Policy) -> tuple:
     """The exact test of one pair: paired when per-case rows exist, else Fisher on the pass counts, else no test (p values None)."""
-    found = disagreements(per_case, own, rival) if not policy.holdout or part_of(own) else None
+    pooled = int(float(own.get("runs") or 0)) > 1 or int(float(rival.get("runs") or 0)) > 1   # a pool has no one run's per-case rows to pair
+    found = disagreements(per_case, own, rival) if not pooled and (not policy.holdout or part_of(own)) else None
     if found is not None:
         ahead, behind, shared, test = found
         two = stats.mcnemar_exact(ahead, behind)   # two-sided: a direction picked from the data is not tested one-sided

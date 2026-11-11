@@ -62,6 +62,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 
 - Measurements untrusted (`prob-measurements-untrusted`): A number recorded on uncommitted code, on a different case set, typed by hand, or copied into prose that goes stale looks like evidence but cannot be reproduced.
 - Simulated arm shows a false loss (`prob-simulated-arm-false-loss`): An arm that meters a deterministic stand-in for a model counts the calls a real model would make at no cost.
+- One run decides a ranking (`prob-one-run-decides-a-ranking`): An arm that is run again and again has several results on the same cases and the same code, and the ranking reads only the newest, so a lucky or unlucky last run decides which arm leads and a record of the repeats changes nothing.
 - Evaluation detached from shipped code (`prob-evaluation-detached-from-shipped-code`): Evaluations built beside production code test copies, stubs or scripts of their own, so their results describe something that does not run.
 - Winner not adopted (`prob-winner-not-adopted`): A rival that clearly beats the selected implementation on the solution's own metric stays unadopted until someone notices and edits the selection, the metric's command and the record of why, by hand.
 - Metrics run at the wrong time (`prob-metrics-run-at-the-wrong-time`): Results are stale when a choice depends on them, or paid runs happen with no decision behind them, so people either decide on numbers that no longer describe the code or stop running the metrics at all.
@@ -100,6 +101,7 @@ This intent is implemented by the sub-intents and solutions below it; each shows
 
 - Measurements untrusted (`prob-measurements-untrusted`): A number recorded on uncommitted code, on a different case set, typed by hand, or copied into prose that goes stale looks like evidence but cannot be reproduced.
 - Simulated arm shows a false loss (`prob-simulated-arm-false-loss`): An arm that meters a deterministic stand-in for a model counts the calls a real model would make at no cost.
+- One run decides a ranking (`prob-one-run-decides-a-ranking`): An arm that is run again and again has several results on the same cases and the same code, and the ranking reads only the newest, so a lucky or unlucky last run decides which arm leads and a record of the repeats changes nothing.
 - Evaluation detached from shipped code (`prob-evaluation-detached-from-shipped-code`): Evaluations built beside production code test copies, stubs or scripts of their own, so their results describe something that does not run.
 - Winner not adopted (`prob-winner-not-adopted`): A rival that clearly beats the selected implementation on the solution's own metric stays unadopted until someone notices and edits the selection, the metric's command and the record of why, by hand.
 - Metrics run at the wrong time (`prob-metrics-run-at-the-wrong-time`): Results are stale when a choice depends on them, or paid runs happen with no decision behind them, so people either decide on numbers that no longer describe the code or stop running the metrics at all.

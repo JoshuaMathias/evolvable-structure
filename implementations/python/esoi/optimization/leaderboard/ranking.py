@@ -21,6 +21,8 @@ def pass_rate(row: Row) -> float:
             return int(float(row.get(name) or 0))
         except ValueError:
             return 0
+    if count("runs") > 1:   # a pool of repeated runs (``stage_standings.pooled_row``): every run's cases count
+        return count("passed_total") / max(count("cases_total"), 1)
     return count("passed") / max(count("cases"), 1)
 
 

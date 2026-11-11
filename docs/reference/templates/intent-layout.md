@@ -24,6 +24,8 @@ An intent is a folder. Its record is `intent.csv` (one row) and its specificatio
 | `solution_coherence` | you | What is a paragraph which describes how all the intent's solutions fit together to accomplish the intent's vision statement? |
 | `solution_diagram` | you | How are solutions connected in the intent's implementation, what is transferred in each edge, and in what direction? |
 | `implements` | you | Sub-intent only: the full id of the parent intent's implementation it arises from (`<solution_id>:<name>`). Empty for the top intent. |
+| `overall_solution_id` | you | Optional: the id of the solution that stands for the whole intent (the overall solution, where an investigation no narrower solution holds is filed). Empty means its only solution, when it has exactly one. |
+| `reviewed_by` | you | Optional, on every record file: who last reviewed the record and when, `<who> <date>` (`ai <date>` for a record the AI kept and no person reviewed). Empty means a person's. Not a question of the template: a mark beside it. |
 
 ## What it is not
 

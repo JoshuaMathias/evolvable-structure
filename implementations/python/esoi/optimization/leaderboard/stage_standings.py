@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
 
 from esoi.optimization.leaderboard import arm_kinds, case_identity, ranking
+from esoi.optimization.leaderboard import results_log
 from esoi.optimization.leaderboard.results_log import Row
 from esoi.optimization.leaderboard.cascade_stages import Stage, load_stages
 
@@ -48,7 +49,7 @@ def expiry(stage: Stage, row: Row, today: datetime.date, stale: Callable[[Row], 
 
 @dataclass
 class Standing:
-    """Where one implementation stands: the newest counting result per stage index, and the results that expired."""
+    """Where one implementation stands: its counting result per stage index (the pool of its repeated runs), and the results that expired."""
     impl: str
     rows: Dict[int, Row] = field(default_factory=dict)
     expired: Dict[int, Tuple[Row, str]] = field(default_factory=dict)
@@ -62,34 +63,89 @@ class Standing:
 def standings(stages: List[Stage], history: Dict[str, List[Row]], today: Optional[datetime.date],
               stale: Callable[[Row], str], eval_dir: Optional[Path] = None) -> Dict[str, Standing]:
     """A ``Standing`` per implementation from the results log history (``{impl: rows, oldest first}``). Ablation and
-    validity arms are not candidates."""
+    validity arms are not candidates. Repeated runs of one arm at one stage are pooled (``pooled_row``): the stage's result is
+    the arm's repeats on the same cases that still count, so noise between runs does not decide a ranking."""
     today = today or datetime.date.today()
     out: Dict[str, Standing] = {}
     for impl, rows in history.items():
         if not rows or arm_kinds.is_ablation(rows[-1], eval_dir):
             continue
         standing = Standing(impl)
-        for index, row in newest_per_stage(stages, rows).items():
-            if why := expiry(stages[index], row, today, stale):
-                standing.expired[index] = (row, why)
+        for index, group in rows_per_stage(stages, rows).items():
+            if why := expiry(stages[index], group[-1], today, stale):
+                standing.expired[index] = (group[-1], why)
             else:
-                standing.rows[index] = row
+                counting = [r for r in group if same_version(r, group[-1]) and not expiry(stages[index], r, today, stale)]
+                standing.rows[index] = pooled_row(counting)
         out[impl] = standing
     return out
 
 
-def newest_per_stage(stages: List[Stage], rows: List[Row]) -> Dict[int, Row]:
-    """The newest row of an arm at each stage it is a result of."""
-    newest: Dict[int, Row] = {}
+def rows_per_stage(stages: List[Stage], rows: List[Row]) -> Dict[int, List[Row]]:
+    """Every row of an arm at each stage it is a result of, oldest first."""
+    found: Dict[int, List[Row]] = {}
     for row in rows:
         if ranking.is_sampled(row) or ranking.is_simulated(row):   # a row that called a model, or a simulated one, is a result of the first stage that takes it
             if (index := stage_index(stages, row)) is not None:
-                newest[index] = row
+                found.setdefault(index, []).append(row)
         else:                             # an arm that calls none is a result of every stage that takes its cases, so it meets the
             for index, stage in enumerate(stages):   # model arms at their stage and the comparison is on the same case set
                 if matches(stage, row):
-                    newest[index] = row
-    return newest
+                    found.setdefault(index, []).append(row)
+    return found
+
+
+def same_version(row: Row, other: Row) -> bool:
+    """Whether two rows are repeats of one arm: scored on the same cases and sample, on the same commit, and not on uncommitted code
+    (a dirty tree names no one version of the code, so its rows are never pooled)."""
+    sha = (row.get("git_sha") or "").strip()
+    return row is other or (bool(sha) and not sha.endswith("-dirty") and sha == (other.get("git_sha") or "").strip()
+                            and case_identity.comparable(row, other))
+
+
+POOLED_MEANS = ("model_calls", "tokens_in", "tokens_out", "cost_usd", "seconds")
+
+
+def mean_of(rows: List[Row], key: str) -> str:
+    """The mean of a numeric column over the rows, blank when a row does not record it (a blank cost stays unknown, never free)."""
+    values = [float(r[key]) for r in rows if str(r.get(key) or "").strip()]
+    return "" if len(values) < len(rows) else f"{sum(values) / len(values):.6g}"
+
+
+def pooled_history(history: Dict[str, List[Row]], stale: Callable[[Row], str]) -> Dict[str, List[Row]]:
+    """A results history (``{impl: rows, oldest first}``) with each arm's repeated runs on the same cases and sample read as one result: the
+    rows that still count (``stale`` says why a row does not) and share a ``cases_key`` and a commit (``same_version``) become one ``pooled_row``
+    placed where the newest of them stood; a row that no longer counts stays as it is, so an old run of other code never joins a pool.
+    Named cases and slices are not pooled."""
+    out: Dict[str, List[Row]] = {}
+    for impl, rows in history.items():
+        groups: Dict[tuple, List[int]] = {}
+        for position, row in enumerate(rows):
+            sha = (row.get("git_sha") or "").strip()
+            if sha and not sha.endswith("-dirty") and not results_log.is_partial(row) and not stale(row):
+                groups.setdefault((case_identity.cases_key(row), sha), []).append(position)
+        merged = {members[-1]: pooled_row([rows[i] for i in members]) for members in groups.values() if len(members) > 1}
+        dropped = {i for members in groups.values() if len(members) > 1 for i in members[:-1]}
+        out[impl] = [merged.get(i, row) for i, row in enumerate(rows) if i not in dropped]
+    return out
+
+
+def pooled_row(rows: List[Row]) -> Row:
+    """One result for an arm from its repeated runs on the same cases: the newest row, with ``runs`` the number pooled, the pass counts
+    summed (``passed_total`` of ``cases_total``, which ranking reads when the rows carry no balanced score), the balanced score and
+    the per-run figures (model calls, tokens, cost, seconds) averaged, so a pooled arm is ranked in the same units as an arm run once
+    and ``cases`` still identifies the case set. One row is returned as it is: a single run is a pool of one."""
+    if len(rows) < 2:
+        return rows[-1]
+    pooled = dict(rows[-1])
+    pooled["runs"] = str(len(rows))
+    pooled["passed_total"] = str(sum(ranking.passes(r) for r in rows))
+    pooled["cases_total"] = str(sum(int(float(r.get("cases") or 0)) for r in rows))
+    for key in POOLED_MEANS:
+        pooled[key] = mean_of(rows, key)
+    balanced = [r.get("balanced") for r in rows]
+    pooled["balanced"] = f"{sum(float(b) for b in balanced) / len(rows):.6g}" if all(str(b or "").strip() for b in balanced) else ""
+    return pooled
 
 
 @dataclass

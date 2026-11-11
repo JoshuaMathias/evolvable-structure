@@ -19,7 +19,7 @@ Part of [Implementations Chosen on Evidence](../README.md)
 
 | Implementation | Handle | Purpose | Code | Selected |
 |---|---|---|---|---|
-| Margin leaderboard | `leaderboard:margin-leaderboard` | Compares the latest result of each implementation on the same case hash, calls a win only beyond a pass-rate margin or spend tolerance, and labels ties, losses, unmeasured and comparison-only arms. | [`implementations/python/esoi/optimization/leaderboard/interface.py`](interface.py) | selected |
+| Margin leaderboard | `leaderboard:margin-leaderboard` | Compares the result of each implementation on the same case hash (the pool of its repeated runs of the same code on those cases, else its latest run), calls a win only beyond a pass-rate margin or spend tolerance, and labels ties, losses, unmeasured and comparison-only arms. | [`implementations/python/esoi/optimization/leaderboard/interface.py`](interface.py) | selected |
 | Probability each arm is best | `leaderboard:posterior-ranking` | Ranks the arms by the probability, given their per-case results, that each is the best, instead of calling a winner past a margin. | no code yet |  |
 
 ## Metrics

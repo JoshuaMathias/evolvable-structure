@@ -16,6 +16,11 @@ def row(impl, passed, cases=10, sample="", calls=0, date="2026-10-20", sha="x", 
                 model=model or ("m" if calls else "none"))
 
 
+def at(result, git_sha):
+    """The row as recorded on one commit of the code."""
+    return {**result, "git_sha": git_sha}
+
+
 def offline(impl, passed):
     """A whole-set run of an arm with a simulated model: a free first stage of an arm that does call a model later."""
     return row(impl, passed, model="simulated")
@@ -266,3 +271,30 @@ def test_a_metric_beneath_the_solutions_own_metric_is_not_compared_with_selected
     assert refines_own_metric(hard, "s1", metrics)             # a kind of s1's work, ranked under s1's own metric
     assert not refines_own_metric(main, "s1", metrics)         # the authoritative metric still decides `selected`
     assert not refines_own_metric(other, "s2", metrics)        # a parent that belongs to another solution changes nothing
+
+
+def test_repeated_runs_of_one_arm_are_pooled_when_ranking():
+    """One arm's lucky latest run no longer beats an arm whose repeats pooled to the better rate."""
+    s = stages()
+    history = {"steady": [at(row("steady", p, calls=3, date=f"2026-10-2{d}"), "c1") for d, p in ((0, 9), (1, 8), (2, 9))],
+               "lucky": [at(row("lucky", p, calls=3, date=f"2026-10-2{d}"), "c1") for d, p in ((0, 6), (1, 6), (2, 10))]}
+    standing = stage_standings.standings(s, history, TODAY, fresh)
+    assert standing["steady"].rows[2]["runs"] == "3" and standing["steady"].rows[2]["passed_total"] == "26"
+    assert stage_standings.decide(s, standing).winner == "steady"                      # the single latest runs would have chosen "lucky"
+    assert "26/30 over 3 runs" in cascade_report.describe(standing["steady"].rows[2])
+
+
+def test_a_pool_takes_only_runs_of_the_same_commit_that_still_count():
+    s = stages()
+    history = {"a": [at(row("a", 10, calls=3, date="2026-10-20"), "c0"), at(row("a", 7, calls=3, date="2026-10-21"), "c1"),
+                     at(row("a", 9, calls=3, date="2026-10-22"), "c1"), at(row("a", 2, calls=3, date="2026-10-22"), "c2-dirty")],
+               "b": [at(row("b", 8, calls=3, date="2026-10-22"), "c1"), at(row("b", 5, calls=3, date="2026-10-23"), "c1-dirty"),
+                     at(row("b", 6, calls=3, date="2026-10-24"), "c1-dirty")]}
+    standing = stage_standings.standings(s, history, TODAY, fresh)
+    assert "runs" not in standing["a"].rows[2]                                          # the newest run is on a dirty tree: one run, not a pool
+    assert "runs" not in standing["b"].rows[2] and standing["b"].rows[2]["passed"] == "6"
+    history["a"].pop()
+    assert stage_standings.standings(s, history, TODAY, fresh)["a"].rows[2]["passed_total"] == "16"   # the run on another commit is left out
+    pooled = stage_standings.pooled_history(history, lambda r: "stale" if r["date"] == "2026-10-21" else "")
+    assert [r["date"] for r in pooled["a"]] == ["2026-10-20", "2026-10-21", "2026-10-22"] and "runs" not in pooled["a"][2]
+    assert stage_standings.pooled_history(history, fresh)["a"][-1]["runs"] == "2"

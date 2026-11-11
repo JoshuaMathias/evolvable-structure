@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 from esoi.optimization.leaderboard import arm_selection, case_identity, results_log, rival_decisions, switching_policy
+from esoi.optimization.leaderboard import stage_standings
 from esoi.optimization.leaderboard.interface import selection_view, incomparable_rivals, stale_rivals
 from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import defect_reason, stale_reason, stale_reasons
 from esoi.optimization.when_metrics_are_run.interface import declares_simulated
@@ -173,7 +174,8 @@ def rival_problems(ctx: Context, r: Dict[str, str], per_case, chosen) -> List[st
         if not ctx.waived("S10", f"{r['solution_id']}:unmeasured"):   # advice: a measurement is made when it is worth its cost
             ctx.advisory.append(f"S10 {r['solution_id']}: selected {sel} has no row in the results log (run with --record when a decision needs it)")
         return []
-    pick_history, pick_policy = selection_view(ctx.history.get(comp, {}), per_case, chosen.get(comp) or switching_policy.Policy())
+    pooled = stage_standings.pooled_history(ctx.history.get(comp, {}), lambda row: stale_reason(config, comp, row, False))   # repeats of one arm are one result; S10 reads every row, so only a defective row or other cases keep one out
+    pick_history, pick_policy = selection_view(pooled, per_case, chosen.get(comp) or switching_policy.Policy())
     if sel not in pick_history:
         return []
     better = [x["impl"] for x in rival_decisions.challengers({i: rs[-1] for i, rs in pick_history.items()}, sel, config.evaluation, pick_history, per_case, pick_policy)]

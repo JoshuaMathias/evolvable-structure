@@ -98,6 +98,13 @@ def renamed_column_problems(name: str, header: Iterable[str], label: str) -> Lis
 #: in the project's own `[records] approved_fields`. Everything here is technical: an id, a link to a record, a file
 #: path, a command a machine runs, or the name of the interface a solution defines. Any column ending `_id` or `_ids`
 #: is a link or an id, and any starting `tracking_` is the review tracker's own; neither needs listing.
+REVIEW_COLUMN = "reviewed_by"
+#: The review mark every record file may carry (approved by the owner, 2026-11-10): who last reviewed the record and when, written
+#: `<who> <date>` (`a person 2026-11-10`, or `ai 2026-11-10` for a record the AI kept and no person has reviewed). Empty means a person's.
+REVIEW_FILES = ("intent.csv", "problems.csv", "ideals.csv", "solutions.csv", "implementations.csv", "metrics.csv")
+#: The column of an intent's record that names the solution standing for the whole intent (the overall solution); read by
+#: `overall_solution`. It is a link (`*_id`), so it needs no approval.
+OVERALL_COLUMN = "overall_solution_id"
 TECHNICAL_COLUMNS = {
     "solutions.csv": {"interface_name", "implementations", "selected",
                       "adopts", "specializes",   # @library/solution: the library solution this row adopts (a reference only) or specializes
@@ -107,6 +114,38 @@ TECHNICAL_COLUMNS = {
     "intent.csv": {"implements"},
     "problems.csv": {"name"},   # the short human label every generated page leads with (the sentence is long); S46 informs when it is missing
 }
+for review_file in REVIEW_FILES:
+    TECHNICAL_COLUMNS[review_file] = TECHNICAL_COLUMNS.get(review_file, set()) | {REVIEW_COLUMN}   # a mark of who reviewed, not specification text
+
+
+def review_of(cell: Optional[str]) -> str:
+    """Who a ``reviewed_by`` cell says reviewed the record: ``"ai"`` when it begins with the word ai (the AI kept the record and no person reviewed it),
+    else ``"person"``. An empty cell is a person's too: the safe default, so nothing a person wrote is changed as if it were the AI's."""
+    words = (cell or "").split()
+    return "ai" if words and words[0].lower() == "ai" else "person"
+
+
+def review_marks(tables: Dict[str, Iterable[Dict[str, str]]]) -> Dict[str, str]:
+    """``{"table:id": "person" | "ai"}`` for every record of the tables given (``{"solutions": [rows], ...}``), read from each row's ``reviewed_by``.
+    A record's id is the first non-empty of ``<table without its s>_id``, ``id`` and ``solution_id``, else its ``name``, the key a watcher
+    uses for it; a row with none of them is left out. Standard library only."""
+    out: Dict[str, str] = {}
+    for table, rows in tables.items():
+        for row in rows:
+            ident = next((row[c] for c in (table.rstrip("s") + "_id", "id", "solution_id") if row.get(c)), (row.get("name") or "").strip()[:40])
+            if ident:
+                out[f"{table}:{ident}"] = review_of(row.get(REVIEW_COLUMN))
+    return out
+
+
+def overall_solution(intent_row: Dict[str, str], solutions: Iterable[Dict[str, str]] = ()) -> str:
+    """The id of the solution that stands for the whole intent: the intent's ``overall_solution_id`` when it names one, else (by rule) its only
+    solution when it has exactly one, else empty. ``solutions`` are the solution rows of that intent."""
+    named = (intent_row.get(OVERALL_COLUMN) or "").strip()
+    if named:
+        return named
+    mine = [r.get("solution_id", "") for r in solutions if r.get("intent_id", "") == intent_row.get("intent_id", "") and r.get("solution_id")]
+    return mine[0] if len(mine) == 1 else ""
 
 
 def is_link_or_tracking(column: str) -> bool:

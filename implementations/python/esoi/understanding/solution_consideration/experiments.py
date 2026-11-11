@@ -149,13 +149,20 @@ def notes(config, on: Optional[datetime.date] = None) -> List[str]:
     return [f"note: experiment {key}: {text}" for key, text in advice(config, on)]
 
 
-def running_lines(config, intent_id: str, level: str = "##") -> List[str]:
+def running_lines(config, intent_id: str, level: str = "##", whole_tree: bool = False) -> List[str]:
     """The lines at the top of an intent's page: its running experiments in priority order, one line each with the reevaluation date.
-    Nothing when it has none."""
+    Nothing when it has none. With ``whole_tree`` (the repository's top page) the running experiments of every intent follow, each
+    intent's in its own priority order, the top intent's first and then the sub-intents in tree order, each line naming its intent."""
+    found = [(intent_id, running(config, intent_id))]
+    if whole_tree:
+        found += [(i.intent_id, running(config, i.intent_id)) for i in intents.discover(config) if i.intent_id != intent_id]
     lines = []
-    for n, row in enumerate(running(config, intent_id), 1):
-        date = (row.get("reevaluate_time") or "").strip() or (row.get("reevaluate_condition") or "").strip() or "no reevaluation set"
-        lines.append(f"{n}. `{row.get('experiment_id', '')}` {row.get('name', '')}: {' '.join((row.get('research_question') or '').split())} (reevaluate {date})")
+    for owner, experiments in found:
+        for row in experiments:
+            date = (row.get("reevaluate_time") or "").strip() or (row.get("reevaluate_condition") or "").strip() or "no reevaluation set"
+            where = f" (intent `{owner}`)" if owner != intent_id else ""
+            lines.append(f"{len(lines) + 1}. `{row.get('experiment_id', '')}`{where} {row.get('name', '')}: "
+                         f"{' '.join((row.get('research_question') or '').split())} (reevaluate {date})")
     return [f"{level} Running experiments", ""] + lines + [""] if lines else []
 
 

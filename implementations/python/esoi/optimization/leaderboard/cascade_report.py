@@ -21,7 +21,11 @@ def run_command(component: str, impl: str, stage: Stage) -> str:
 
 
 def describe(row: Optional[Row]) -> str:
-    return "not run" if row is None else f"{row.get('passed', '?')}/{row.get('cases', '?')} on {row.get('date', '?')}"
+    if row is None:
+        return "not run"
+    if int(float(row.get("runs") or 0)) > 1:
+        return f"{row.get('passed_total', '?')}/{row.get('cases_total', '?')} over {row['runs']} runs, newest {row.get('date', '?')}"
+    return f"{row.get('passed', '?')}/{row.get('cases', '?')} on {row.get('date', '?')}"
 
 
 def public_lines(config, registry, solution_id: str, graded, stages: List[Stage], say: Callable[[str], None]) -> None:

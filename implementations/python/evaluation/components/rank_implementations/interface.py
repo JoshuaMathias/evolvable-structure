@@ -14,5 +14,8 @@ Kinds and the dict an implementation returns:
             -> {"verdict": "WIN" | "TIE" | "LOSS" | "UNMEASURED", "text": why, "arms": {impl: "" | ablation | baseline | ...}}
   board     args {rows: [full results rows], selected, strict}
             -> {"exit": int, "text": leaderboard output, "beats": [...], "incomparable": [...]}
+  pooled    args {rows: [{impl, passed, cases, cost_usd, cases_sha, git_sha, date, ...}]}
+            -> {"winner": impl the cascade chooses, "runs": {impl: runs pooled}, "passed": {impl: passed cases over the pooled runs}}
+            (repeated runs of one arm on the same cases and the same commit are one result; a run on uncommitted code or another commit is not pooled)
 An implementation module in ``impls/`` exposes ``build(meter) -> rank``. No implementation here calls a model.
 """

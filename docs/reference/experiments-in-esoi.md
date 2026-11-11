@@ -49,7 +49,7 @@ code](records-beside-code.md)). An intent with no such file is valid. The fields
 | `name` | What is a short name that distinguishes it from the intent's other experiments? |
 | `research_question` | What question or way of thinking is being explored? An investigation's own `question` is a sub-question of it, or the same |
 | `owners` | Whose focused attention is it for (people or roles)? Empty when it is one's own |
-| `priority` | Proposed, for the owner's review: its place among the intent's running experiments, 1 first |
+| `priority` | What is its place among the intent's running experiments, 1 first? A standing field: the owner asked for prioritized research directions (2026-11-10) |
 | `status` | `planned`, `running`, `reevaluating` or `ended` |
 | `starts_on` | When does the period start? |
 | `reevaluate_time`, `reevaluate_condition` | At which time (a date, or a date and minute), or under which condition, is it reevaluated? |
@@ -63,7 +63,7 @@ code](records-beside-code.md)). An intent with no such file is valid. The fields
 | `next_experiment_id` | Which experiment follows, if any? |
 
 Investigations name their experiment with `experiment_id` in `investigations.csv`; the two lists agree. A generated intent page shows the intent's running experiments first, in priority order, one line each with its reevaluation date, before the
-solutions table (the top intent's page above all), and nothing extra when it has none; it also lists every experiment with its status, research question, period and what is held fixed. `esoi.understanding.solution_consideration.experiments`
+solutions table, and nothing extra when it has none; the top intent's page, the repository's top page, also lists the running experiments of every sub-intent after its own, each in its own priority order and naming its intent; it also lists every experiment with its status, research question, period and what is held fixed. `esoi.understanding.solution_consideration.experiments`
 reads them: `running(config, intent_id, owners)` is where attention goes now; `due(config, on)` is what is past its reevaluation time.
 
 ### What `esoi check` says about it
@@ -110,7 +110,7 @@ solution says so). A hub arm that is `on_trial` is measured and never handed to 
 
 > "scoped experiments could be important for ESOI too. ESOI is primarily a structure of components that self optimize and each solution has priorities. But experiments provide important capability of prioritized research directions that could be cross-cutting across different types of spec records and structure. But just optimizing an intent is the simplest example of an experiment or research direction. We could have a priority of research directions/experiments recorded at top of every esoi repo, need to check how this relates to general idea of prioritization, and how/why/if this is useful and something esoi itself should do." (the owner, 2026-11-10)
 
-This section is a proposal for the owner's review; nothing in it fails a check.
+The priority of research directions is a standing part of ESOI (the owner asked for it, 2026-11-10); nothing in this section fails a check.
 
 Two kinds of priority nest:
 
@@ -136,8 +136,9 @@ experiments first, in `priority` order, as the attention of the owners (people o
 usual fields; then every other milestone and waiting item. An item inside an experiment's scope is not held back for being low in the default order;
 an item the experiment's `held_fixed` forbids reopening is held back until the reevaluation time.
 
-Whether ESOI itself should record a priority of research directions at the top of every repository is the owner's to decide. The proposal in this
-pass is only what the generated page does: the top intent's page lists its running experiments first. A repository with none sees nothing new.
+Should ESOI itself record a priority of research directions at the top of every repository? Yes: the generated top page of an ESOI repository
+lists its running experiments in priority order, the top intent's first and then each sub-intent's, each line with its reevaluation date. A
+repository with none sees nothing new.
 
 ### Worked example: a repository's directions
 

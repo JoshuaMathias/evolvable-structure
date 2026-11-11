@@ -42,6 +42,10 @@ The rules this module carries out, from the skill:
 * A stage that was run for an implementation version is not run again for a later stage: ``esoi run`` reuses the cases already run
   for the same implementation and cases (``esoi.optimization.when_metrics_are_run.run_log.reusable``), and runs them again only when the implementation changed.
   ``expectation_notes`` says when a list departs from the expected order (a free first stage, cases growing among the stages that call a model, the last stage no narrower than they are).
+* An implementation's result at a stage is the pool of its repeated runs: the runs on the same cases, the same sample and the same commit
+  (never uncommitted code) that still count, their pass counts summed and their balanced score and per-run figures averaged
+  (``stage_standings.pooled_row``), so one lucky or unlucky run does not decide a ranking. A single run is a pool of one. The check's rule S10 and the
+  promotion read each arm's results the same way (``stage_standings.pooled_history``).
 * Downstream users take the implementation with the highest result at the latest stage that has ever been run, unless
   another implementation scored higher at an earlier stage the two share and has not yet been run at the latest one: that
   implementation stays chosen until it is run there. The first implementation is compared with the others only on rows

@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 
 from shared_fixtures.interface import harness_fixture
-from esoi.optimization.leaderboard import arm_kinds, case_identity, ranking, rival_decisions, switching_policy
+from esoi.optimization.leaderboard import arm_kinds, cascade_stages, case_identity, ranking, rival_decisions, stage_standings, switching_policy
 from esoi.optimization.leaderboard.interface import board_report_board, verdict_labels_verdict
 
 
@@ -52,7 +52,19 @@ def board(args):
             "incomparable": [ln.split()[1] for ln in text.splitlines() if ln.strip().startswith("?")]}
 
 
-KINDS = {"rank": rank, "verdict": verdict, "board": board}
+def pooled(args):
+    """The cascade's choice over rows of repeated runs (``git_sha`` names the commit of each): the winner, the runs pooled per arm and each arm's pooled pass count."""
+    stages, _ = cascade_stages.parse("whole [sample=full | real=yes]")
+    history = {}
+    for r in sorted(args["rows"], key=lambda r: r["date"]):
+        history.setdefault(r["impl"], []).append({"component": "mini", **r})
+    standing = stage_standings.standings(stages, history, None, lambda row: "")
+    found = {impl: s.rows[0] for impl, s in standing.items()}
+    return {"winner": stage_standings.decide(stages, standing).winner, "runs": {i: int(r.get("runs") or 1) for i, r in found.items()},
+            "passed": {i: int(r.get("passed_total") or r["passed"]) for i, r in found.items()}}
+
+
+KINDS = {"rank": rank, "verdict": verdict, "board": board, "pooled": pooled}
 
 
 def build(meter):

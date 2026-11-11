@@ -37,7 +37,7 @@ flowchart LR
 
 | Implementation | Handle | Purpose | Code | Selected |
 |---|---|---|---|---|
-| Records in the esoi folder | `intent-registry:esoi_folder` | Every record of the top intent in one CSV per type under the project's `esoi/` folder, edited by hand and read by the check, the tracker and the selection; a sub-intent is a folder of its own inside it. | [`implementations/python/esoi/structure/intent_registry/interface.py`](interface.py) |  |
+| Records in the esoi folder | `intent-registry:esoi_folder` | Every record of the top intent in one CSV per type under the project's `esoi/` folder, edited by hand and read by the check, the tracker and the selection; a sub-intent is a folder of its own inside it. Any record file may carry a `reviewed_by` mark (who reviewed and when; empty is a person's, read by `records.review_marks`) and an intent may name its `overall_solution_id`. | [`implementations/python/esoi/structure/intent_registry/interface.py`](interface.py) |  |
 | Records beside the code | `intent-registry:beside_code` | Each solution's records live once, in the folder that holds its code (the lowest folder that holds all of its implementations), next to that code; the folders are named in `[records] beside_code` in esoi.toml, the library reads them as part of the same tree, and each folder gets a generated README. The top intent stays in `esoi/` with its intent.csv; a sub-intent is a folder with its own intent.csv beside its code. `esoi records place` moves the records there. | [`implementations/python/esoi/structure/intent_registry/interface.py`](interface.py) | selected |
 | Sheet as source | `intent-registry:sheet-as-source` | The Google Sheet holds the records and the repository pulls a copy. | no code yet |  |
 
@@ -49,6 +49,7 @@ flowchart LR
 ## Problems
 
 - Specification far from the code (`prob-spec-far-from-code`): A person reading the code of a solution cannot find its specification without leaving the code tree: the records sit in a separate folder, a code folder carries no page that says what it is for, and a change to the code and to its spec happen in two places.
+- Who reviewed a record is not recorded (`prob-review-not-recorded`): A record does not say whether a person reviewed it or the AI kept it, so a program that changes structure is told by its caller which records a person owns, and a record nobody told it about may be changed as if it were the AI's.
 
 ## Ideals
 

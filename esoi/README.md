@@ -25,6 +25,10 @@ flowchart LR
     s4 -->|"One read-only report from each part: the choice for the solution, the names it assembles and the ids a consumer knows"| s0
 ```
 
+## Running experiments
+
+1. `x-research-standard` (intent `understanding`) One research standard: How should every knowledge search and every experiment's research be done and recorded so that its findings are checked, applied and revisited? (reevaluate 2026-12-10)
+
 ## One level below
 
 This intent is implemented by the sub-intents and solutions below it; each shows whether it goes deeper.

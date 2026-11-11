@@ -339,7 +339,7 @@ def propose(config: Config, registry: Registry, today: Optional[str] = None,
         component, current = arm_selection.selected_arm(config, solution, "", registry)
         if not component:
             continue
-        arms = history.get(component, {})
+        arms = stage_standings.pooled_history(history.get(component, {}), lambda row: stale(config, component, row, True))
         subject = Subject(config, registry, solution, component, current, arms, per_case, stale, today, table)
         if not (solution.get("selected") or "").strip():   # nothing selected yet: the metric makes the first choice, or names a tie
             out.append(first_choice(subject))

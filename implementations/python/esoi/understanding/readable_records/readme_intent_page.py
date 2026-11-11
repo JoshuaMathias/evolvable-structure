@@ -150,11 +150,13 @@ def implementation_table(view: Optional[View], intent: Intent, implementations: 
 
 
 def running_experiments(view: View, intent: Intent) -> List[str]:
-    """The intent's running experiments in priority order, before the solutions (nothing when it has none)."""
+    """The intent's running experiments in priority order, before the solutions (nothing when it has none). The top intent's page, the
+    repository's top page, also lists the running experiments of every sub-intent after its own, so the repository's research
+    directions are in one place in priority order."""
     if view is None or view.config is None:
         return []
     from esoi.understanding.solution_consideration import experiments
-    return experiments.running_lines(view.config, intent.intent_id)
+    return experiments.running_lines(view.config, intent.intent_id, whole_tree=intent.is_top)
 
 
 def record_tables(registry: Registry, intent: Intent, level: str = "##", view: Optional[View] = None) -> List[str]:

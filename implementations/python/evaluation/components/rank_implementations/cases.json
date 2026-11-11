@@ -2242,5 +2242,215 @@
    ]
   },
   "note": "Added 2026-10-31."
+ },
+ {
+  "id": "RNK-055",
+  "kind": "pooled",
+  "area": "repeated runs of one arm are one result: a lucky latest run does not outrank repeats",
+  "args": {
+   "rows": [
+    {
+     "impl": "steady",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-01",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    },
+    {
+     "impl": "steady",
+     "passed": 8,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-02",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    },
+    {
+     "impl": "steady",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-03",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    },
+    {
+     "impl": "lucky",
+     "passed": 6,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-01",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    },
+    {
+     "impl": "lucky",
+     "passed": 6,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-02",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    },
+    {
+     "impl": "lucky",
+     "passed": 10,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-03",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "winner": "steady",
+    "runs": {
+     "steady": 3,
+     "lucky": 3
+    },
+    "passed": {
+     "steady": 26,
+     "lucky": 22
+    }
+   }
+  },
+  "note": "Added 2026-11-10."
+ },
+ {
+  "id": "RNK-056",
+  "kind": "pooled",
+  "area": "only runs of the same commit are repeats: a run of other code does not join the pool",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 3,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x",
+     "git_sha": "c0",
+     "date": "2026-11-01",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    },
+    {
+     "impl": "a",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-02",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    },
+    {
+     "impl": "a",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-03",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    },
+    {
+     "impl": "b",
+     "passed": 8,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-03",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "winner": "a",
+    "runs": {
+     "a": 2,
+     "b": 1
+    },
+    "passed": {
+     "a": 18,
+     "b": 8
+    }
+   }
+  },
+  "note": "Added 2026-11-10."
+ },
+ {
+  "id": "RNK-057",
+  "kind": "pooled",
+  "area": "a run on uncommitted code is one result of its own, never pooled",
+  "args": {
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x",
+     "git_sha": "c1-dirty",
+     "date": "2026-11-01",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    },
+    {
+     "impl": "a",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 0.1,
+     "cases_sha": "x",
+     "git_sha": "c1-dirty",
+     "date": "2026-11-02",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    }
+   ]
+  },
+  "expect": {
+   "eq": {
+    "runs": {
+     "a": 1
+    },
+    "passed": {
+     "a": 9
+    }
+   }
+  },
+  "note": "Added 2026-11-10."
  }
 ]

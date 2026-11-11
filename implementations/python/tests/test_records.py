@@ -253,3 +253,29 @@ def test_a_row_with_more_cells_than_the_header_is_reported(tmp_path):
     assert read_csv(path)[1]["filepath"] == " unquoted"          # the silent shift the check exists to name
     assert overflow_rows(path) == ["line 3 (shifted)"]
     assert overflow_rows(tmp_path / "absent.csv") == []
+
+
+def test_a_review_mark_says_who_reviewed_and_an_unmarked_record_is_a_persons():
+    from esoi.structure.intent_registry import records
+    assert [records.review_of(c) for c in ("", None, "a person 2026-11-10", "ai 2026-11-10", "AI", "aid 2026-11-10")] == \
+        ["person", "person", "person", "ai", "ai", "person"]
+    tables = {"solutions": [{"solution_id": "s1", "reviewed_by": "ai 2026-11-10"}, {"solution_id": "s2"}],
+              "metrics": [{"metric_id": "m1", "reviewed_by": "a person 2026-11-10"}], "experiments": [{"experiment_id": "x1", "reviewed_by": "ai 2026-11-09"}],
+              "odd": [{"name": "only a name", "reviewed_by": "ai"}, {}]}
+    assert records.review_marks(tables) == {"solutions:s1": "ai", "solutions:s2": "person", "metrics:m1": "person", "experiments:x1": "ai", "odd:only a name": "ai"}
+
+
+def test_the_review_mark_and_the_overall_solution_are_columns_every_record_file_may_carry():
+    from esoi.structure.intent_registry import records
+    for name in records.REVIEW_FILES:
+        assert records.REVIEW_COLUMN in records.TECHNICAL_COLUMNS[name]
+        assert not records.unapproved_column_problems(name, ["reviewed_by"], {}, name)
+    assert not records.unapproved_column_problems("intent.csv", ["overall_solution_id"], {}, "intent.csv")
+
+
+def test_the_overall_solution_is_the_one_the_intent_names_else_its_only_solution():
+    from esoi.structure.intent_registry.records import overall_solution
+    mine = [{"solution_id": "a", "intent_id": "top"}, {"solution_id": "b", "intent_id": "top"}, {"solution_id": "c", "intent_id": "other"}]
+    assert overall_solution({"intent_id": "top", "overall_solution_id": "b"}, mine) == "b"
+    assert overall_solution({"intent_id": "top"}, mine) == ""                       # two solutions and none named: no overall solution by rule
+    assert overall_solution({"intent_id": "other"}, mine) == "c"                    # exactly one solution: it stands for the whole
