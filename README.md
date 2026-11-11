@@ -18,7 +18,7 @@ Install the skill in Claude Code, so your AI agent applies the principles (other
 Install the latest `esoi` Python package:
 
 ```bash
-pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git#subdirectory=implementations/python"
+pip install esoi
 ```
 
 Declare a solution and one implementation beside its code:
@@ -81,7 +81,7 @@ download or with `esoi`.
 Install the package, scaffold a small passing example repository, and check it:
 
 ```bash
-pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git#subdirectory=implementations/python"
+pip install esoi
 esoi init            # scaffold a small example repository that already passes (its specifications are in esoi/)
 esoi check           # run every structural rule
 ```

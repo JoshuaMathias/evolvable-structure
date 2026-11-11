@@ -28,7 +28,7 @@ For one project, run the same line from its root with `./.claude/skills/evolvabl
 ## 3. The `esoi` command
 
 ```bash
-pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git#subdirectory=implementations/python"
+pip install esoi
 esoi skill install                      # into ~/.claude/skills/evolvable-structure
 esoi skill install --project PATH       # into PATH/.claude/skills/evolvable-structure
 esoi skill install --dest DIR           # into DIR/evolvable-structure, for an agent with another skills folder

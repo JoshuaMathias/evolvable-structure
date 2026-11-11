@@ -6,7 +6,7 @@ sheet. It is one implementation; the record formats are plain CSV, so another to
 ## Install
 
 ```bash
-pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git#subdirectory=implementations/python"
+pip install esoi
 ```
 
 Add `@<commit>` after `.git` to pin a version. Python 3.11 or later; no dependencies in the core. For Google Sheets sync add

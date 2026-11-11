@@ -7,8 +7,14 @@ scans a public repository for private data. Python 3.11 or later; the core has n
 ## Install
 
 ```bash
+pip install esoi
+pip install "esoi[sheets]"   # with Google Sheets sync
+```
+
+A commit that is not released yet:
+
+```bash
 pip install "esoi @ git+https://github.com/JoshuaMathias/evolvable-structure.git@<commit>#subdirectory=implementations/python"
-pip install "esoi[sheets] @ git+https://github.com/JoshuaMathias/evolvable-structure.git@<commit>#subdirectory=implementations/python"   # with Google Sheets sync
 ```
 
 From a checkout: `pip install -e implementations/python`.
