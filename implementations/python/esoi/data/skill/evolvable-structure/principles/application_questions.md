@@ -13,6 +13,9 @@ examples last.
 - **The answer keeps evolving.** Keep its history: the history is how the person's clarity grew.
 - **An answer records uncertainty too.** How sure the person is decides what to test: decided (test that one),
   choosing between a few (compare them on the solution's metric), not sure yet (explore to find the options).
+- **Every question is asked.** When a person applies a specification, they are prompted for every Application Question
+  of every solution and sub-solution they keep, each ending with an answer and how sure they are; a draft counts once
+  they have seen it and moved on. Leaving one out is their explicit choice, never an accident of the flow.
 - **AI drafts, the person decides.** AI drafts each answer from the implementation it currently proposes; the person
   edits or replaces it. A restructuring or experiment result proposes changes to answers first, and the changes to
   implementations, habits and experiments that follow from an answer are shown with it.
