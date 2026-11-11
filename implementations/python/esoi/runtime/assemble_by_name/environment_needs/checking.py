@@ -65,7 +65,11 @@ def find_binary(name: str) -> Tuple[Optional[str], str]:
         return path, ""
     for folder in os.environ.get("PATH", "").split(os.pathsep):
         candidate = Path(folder or ".") / name
-        if candidate.is_file():
+        try:
+            found = candidate.is_file()
+        except OSError:  # a PATH folder this user cannot read (another user's ~/.local/bin) proves nothing
+            continue
+        if found:
             return None, f"{candidate} exists but is not executable (chmod +x it)"
     return None, ""
 
