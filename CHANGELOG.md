@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.7.0 (2026-11-10)
+
+Template version 5. Tagged `v0.7.0` for the consumers that pin one tag per library (hub, Quest AI Runner, Quest backend): the hub's structure watch needs `esoi.understanding.solution_consideration.experiments`, added in this release. PyPI carries 0.6.1; this version is not uploaded there.
+
 - **`esoi` is on PyPI (2026-11-10).** 0.6.0 is published at https://pypi.org/project/esoi/, so the install line is `pip install esoi`; the README and how-to pages say so, and the git form stays for a commit that is not released. `LICENSE` and `NOTICE` are linked into `implementations/python/` so built distributions carry them.
 - **0.6.1 on PyPI (2026-11-10).** The 0.6.0 code with the package README rewritten to open with what the library does (it used to read "One example implementation") and with full links, so the PyPI page works. Built from the `v0.6.0` tag with only the README and the version number changed, so there is no new tag; the next release from `main` is numbered above 0.6.1. (A 0.6.0.post1 with the same content was uploaded first and replaced by this.)
 - **Repeated runs of one arm are one result when ranking (the owner's decision, 2026-11-10).** The cascade, rule S10 and the promotion no longer read only each arm's newest run: the runs of an arm on the same cases, sample and commit that still count (not stale, not on uncommitted code) are pooled, pass counts summed and the balanced score, cost, time and tokens averaged per run, so a pool compares with an arm run once and the case set still identifies it. `esoi cascade` shows `26/30 over 3 runs`. A consumer whose own metric pools repeats (the hub's counting hard runs) no longer needs a waiver for the disagreement (S10, S33). New case kind `pooled` in `rank_implementations`; problem `prob-one-run-decides-a-ranking`.
