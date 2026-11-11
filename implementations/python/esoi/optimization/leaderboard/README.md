@@ -24,7 +24,7 @@ Part of [Implementations Chosen on Evidence](../README.md)
 
 ## Metrics
 
-- Ranking correctness (`metric-ranking-correctness`): leader `live_leaderboard`, 54 of 54 cases
+- Ranking correctness (`metric-ranking-correctness`): leader `live_leaderboard`, 57 of 57 cases
 
 ## Where to go next
 
