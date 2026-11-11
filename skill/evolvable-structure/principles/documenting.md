@@ -83,3 +83,27 @@ behaviour: "The general application of ESOI to AI is a sub-solution of ESOI", so
 repository, though not in its structure network file.
 
 **Extend before adding a solution (Joshua, 2026-11-06).** "We don't add a solution for every task that comes up, but if it's genuinely missing and a long term thing then we do." A new behaviour is first a case, a metric stage, an arm or a flow step of an existing solution. A new solution needs a distinct purpose no sibling holds, several alternatives that could compete on one metric, and a reason to exist if the task that raised it were forgotten; its role record then justifies it against each sibling (`purpose`, `out_of_scope`, `delegates_to`), and a new top-level solution needs the owner's approval. The ESOI repository's explanation `extend-before-adding-a-solution.md` has the test and two examples.
+
+## Who decides what, and where a lesson is kept
+
+**The owner's design suggestion is an alternative, judged like any other (Joshua, 2026-10-22).** "I want tyou to use ESOI to decie whether to act on my product suggestions or not, not just repeat back what I say", and "I'm not a UX expert I want what's best". Check a suggested design against the intent's ideals and the solution's metric, say in a sentence what the records support, then act; where the records support something better, say so and let the owner answer ("unles you can persuad me otherwies", 2026-10-30). This is about design and product suggestions. A plain instruction to carry something out is carried out.
+
+**AI creates structure without waiting; placement is where the owner's input counts most (Joshua, 2026-11-10).** "Don't have blocking on my feedback as a standing rule, AI shouldn't be blocked for creating structure normally it does it all on its own, it's just the most important thing to get my input on when possible". So decide which intent and solution a thing belongs under, and whether it is its own solution, on the strongest model available, build on that decision, and show the owner the placement choices with their siblings so each can be answered in a word ("Not sure would need to see what other siblings are"). The rest of the split:
+
+| Part of the structure | Who decides |
+|---|---|
+| Ids and links between records | AI, no approval ("ids fields dont need my aporoval", 2026-10-26) |
+| The content of AI-written records | AI, improved in place; the owner reviews metrics and may add to anything |
+| Placement and hierarchy | AI decides and proceeds; the owner sees the choices when available |
+| Which implementation is selected | the authoritative metric ("Selection shouldn't be my call, it should be metrics call", 2026-11-10) |
+| Text the owner wrote, and any new, renamed or classifying field | the owner (`INDEX.md`, "Never add a specification field") |
+
+**When the output is poor, improve the specification, not only the output (Joshua, 2026-10-27).** "somethign must be wrong with the esoi specification for this please improve it so that the metric ... gets thr tright kind of qualit". A defect the metric let through is first a gap in an ideal, a solution's definition or the metric; fix that, then the output, so the next session cannot repeat it ("ESOI was suppoesd to ensure the quality woudl be maintained by future AI sessoins").
+
+**Standing rules live in the specifications of the thing they govern (Joshua, 2026-11-09).** "stwnding rules go in ESOI now especiallt for design", in the repository the rule is about. An assistant's private memory keeps only a pointer to them. The reason is his remedy whenever an instruction did not stick: put it where every session reads it, so that "any AI sohuld know to use the same stuff this should'nty be possible for another AI to do it wrong" (2026-10-27). Read a repository's records before working in it, and write a new standing rule there in the same pass as the work.
+
+**A value two records share exists in one place (Joshua, 2026-11-10).** "ESOI spec fields that are exactly the same value as quest fields I think should exist only one place in the data model. If I had designed it from scratch that's how I would have done it." The same holds for behavior: of two code paths meant to act alike, "it should notnjudt be the ssme it should be impossible for it to be different!" (2026-11-02). Two copies kept equal by care or by a check are pattern 4 not yet reached.
+
+**Everything is measurable, so AI always has progress to make (Joshua, 2026-11-08).** "proper esoinapplicstion mesns everything is measursble so Asi should never ysve ezcuse duento wsiting on human, ir can alwsys improce the qyslity of its rec9mmendations and research". A run that only records that a person is awaited has skipped the solution's metric: iterate on one solution and report its metric before and after.
+
+**A warning most people see means fix it or drop it (Joshua, 2026-11-10).** "any warning that happens to most or all users is an indicator that soimething needs fixing or isn't worth warning". The same test applies to an advisory check: it is worth its cost, or it changes.
