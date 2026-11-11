@@ -19,7 +19,7 @@ Reading, installing and using `esoi` is open to everyone.
 
 ## What is here
 
-The main feature is explanation and templates that need no code; Python is one example implementation. Read
+The main feature is explanation and templates that need no code; the `esoi` Python package (on PyPI) is the library people install to apply it in code. Read
 `README.md` first, then only the folder your task is in.
 
 | Path | What it is | Open it when |

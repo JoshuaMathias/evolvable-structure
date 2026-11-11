@@ -122,7 +122,7 @@ its core; Google Sheets sync is an optional extra (`esoi[sheets]`).
 |---|---|
 | [`docs/`](docs/README.md) | The main feature: explanation, guides and templates, all non-code. The wiki is generated from it |
 | [`skill/`](skill/) | The author's `evolvable-structure` skill as a self-contained folder and Claude Code plugin, generated from his own skill |
-| [`implementations/python/`](implementations/python/) | The `esoi` package and command: checks, measuring, a leaderboard, a review tracker. One example implementation |
+| [`implementations/python/`](implementations/python/) | The `esoi` package and command (`pip install esoi`): checks, measuring, a leaderboard, a review tracker |
 | [`examples/`](examples/) | Repositories that adopted ESOI, as short testimonials |
 | [`esoi/`](esoi/) | ESOI applied to this repository: its top intent and its records |
 | [Records beside the code](docs/reference/records-beside-code.md) | The standard for keeping each solution's records in the folder that holds its code, with a generated README in each |

@@ -1,8 +1,21 @@
-# esoi: the Python implementation
+# esoi
 
-One example implementation of the tools that apply [ESOI](../../README.md): it checks a repository's structure against
-its records, runs and records measurements, ranks alternatives, resolves a selection table, builds a review sheet, and
-scans a public repository for private data. Python 3.11 or later; the core has no dependencies.
+**Keep the best implementation of every part of your system in use, chosen by measurement.**
+
+`esoi` is the Python library and command for [ESOI](https://github.com/JoshuaMathias/evolvable-structure) (Evolvable
+Structure that Optimizes Intent). You declare what a part of your system is for, write alternative implementations of
+it side by side, and measure them on the same cases. The library then runs the measured winner wherever that part is
+called, so replacing an implementation changes no caller.
+
+- **Declare once, where the code is.** `@solution` names the interface and `@implementation` names each alternative.
+- **Measure and record.** `esoi run` scores an implementation on your cases and records the result with the commit and
+  the cases it was measured on.
+- **Select by the metric.** `esoi leaderboard` ranks the alternatives, `esoi select --promote` makes the leader the
+  default, and `esoi lock` pins it for production.
+- **Keep the structure sound.** `esoi check` verifies the repository against its own records, and `esoi hygiene`
+  scans for secrets and private data before a public push.
+
+Python 3.11 or later. The core has no dependencies. Apache-2.0.
 
 ## Install
 
@@ -44,7 +57,7 @@ esoi leaderboard
 esoi select --promote       # promote the winner of the solution's own metric
 ```
 
-The full walk through is [docs/how-to/apply-with-tools.md](../../docs/how-to/apply-with-tools.md).
+The full walk through is [docs/how-to/apply-with-tools.md](https://github.com/JoshuaMathias/evolvable-structure/blob/main/docs/how-to/apply-with-tools.md).
 
 ## Modules
 
@@ -57,9 +70,9 @@ The full walk through is [docs/how-to/apply-with-tools.md](../../docs/how-to/app
 | `esoi.runtime.implementation_selection.declare` | Declare solutions and alternatives in code (`@solution`, `@implementation`, `register`) and run the selected one: per call, context, environment, deployment, then the records' default |
 | `esoi.runtime.implementation_selection.selection_registry` | What the code declares: the registry of solutions and implementations by scope, `SelectionError`, add and forget |
 | `esoi.runtime.implementation_selection.selection_cascade` | The selection cascade: which implementation a call would run, fetched when chosen, and the selection snapshot |
-| `esoi.runtime.assemble_by_name.assemble` | Depend on other solutions by name: validated names, safe loading, needs from typed constructor parameters checked against `uses_solution_ids`, build in dependency order, fail at startup on a cycle or an unmet need ([guide](../../docs/how-to/assemble-by-name.md)) |
+| `esoi.runtime.assemble_by_name.assemble` | Depend on other solutions by name: validated names, safe loading, needs from typed constructor parameters checked against `uses_solution_ids`, build in dependency order, fail at startup on a cycle or an unmet need ([guide](https://github.com/JoshuaMathias/evolvable-structure/blob/main/docs/how-to/assemble-by-name.md)) |
 | `esoi.optimization.keep_metric_record.spec_slice`, `esoi.optimization.keep_metric_record.metric_meter`, `esoi.optimization.keep_metric_record.metric_results`, `esoi.optimization.keep_metric_record.iteration` | Keep a metric's value before and after a piece of work: the slice of the specification a request serves, bounded readings by a recorded row or an offline arm that cannot spend money, measured and recorded rows that never overwrite each other, and `MetricIteration` to wire them |
-| `esoi.structure.intent_registry.circumstances`, `esoi.runtime.implementation_selection.variants` | See a difference by circumstance: conditions on cases and on the run, `name@key=value` variants, derived slice rows and a per-case log; a slice verdict is a proposal, nothing is selected by it ([guide](../../docs/how-to/measure-per-circumstance.md)) |
+| `esoi.structure.intent_registry.circumstances`, `esoi.runtime.implementation_selection.variants` | See a difference by circumstance: conditions on cases and on the run, `name@key=value` variants, derived slice rows and a per-case log; a slice verdict is a proposal, nothing is selected by it ([guide](https://github.com/JoshuaMathias/evolvable-structure/blob/main/docs/how-to/measure-per-circumstance.md)) |
 | `esoi.structure.intent_registry.template_sync.versioning` | The stamp of the skill and template the library follows, the template version, and recording it in a repository (`esoi version`, rule S34) |
 | `esoi.runtime.implementation_selection.select` | The selection table and `Selector`, the lower layer; defaults may come from the records |
 | `esoi.structure.intent_registry.specify_from_code.declarations`, `esoi.structure.intent_registry.specify_from_code.newsolution` | Read the declarations from the source, sync the records, start a new solution |
@@ -76,8 +89,8 @@ The full walk through is [docs/how-to/apply-with-tools.md](../../docs/how-to/app
 | `esoi.understanding.the_standard.skill_distribution.skill` | Generate, check and install the public copy of the author's skill |
 | `esoi.understanding.the_standard.scaffold`, `esoi.__main__`, the `commands` module of each container | `esoi init` and the command |
 
-Reference: [configuration](docs/configuration.md), [evaluation components](docs/evaluation-components.md),
-[rules](docs/rules.md).
+Reference: [configuration](https://github.com/JoshuaMathias/evolvable-structure/blob/main/implementations/python/docs/configuration.md), [evaluation components](https://github.com/JoshuaMathias/evolvable-structure/blob/main/implementations/python/docs/evaluation-components.md),
+[rules](https://github.com/JoshuaMathias/evolvable-structure/blob/main/implementations/python/docs/rules.md).
 
 ## Using the table from your code (the advanced layer)
 
@@ -88,7 +101,7 @@ selector = Selector.from_config(config)      # the table `selection` names; an e
 implementation = selector.resolve("greet", overrides={"greet": "loud"})
 ```
 
-The decorators above and this table are one set of names; see [Declare, call, measure, promote](../../docs/explanation/graceful-selection.md).
+The decorators above and this table are one set of names; see [Declare, call, measure, promote](https://github.com/JoshuaMathias/evolvable-structure/blob/main/docs/explanation/graceful-selection.md).
 
 ## Tests
 
