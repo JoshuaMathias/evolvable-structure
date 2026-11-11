@@ -26,8 +26,10 @@ flow step.
 ## When you do create one
 
 Write the justification against each sibling in its record: its `purpose`, its `out_of_scope` (what it is not responsible for) and
-its `delegates_to` (who owns that instead). Rule S48 reads these. A new top-level solution of a hierarchy also needs the owner's
-approval: propose it as a decision rather than adding it.
+its `delegates_to` (who owns that instead). Rule S48 reads these. A project can require the owner's approval for a new
+top-level solution of its hierarchy by saying so in its own instructions; there, propose it as a decision rather than adding it.
+Everywhere else, add it with that justification. Never hang a record on an unrelated sibling to avoid creating the solution it
+needs: the sibling's alternatives then stop competing on one metric.
 
 ## Two examples
 

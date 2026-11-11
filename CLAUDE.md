@@ -41,7 +41,7 @@ The main feature is explanation and templates that need no code; the `esoi` Pyth
 - **The template version goes up at most once per push to main, and only when a field is added, removed or renamed.**
   Rewording a field, or making it optional or required, never raises it; several syncs before a push share one version.
   Before raising `template_version` in any repository, compare with the version on origin/main (Joshua, 2026-11-10).
-- **Extend before adding a solution.** A new behaviour is first a case, a metric stage, an arm or a flow step of an existing solution; a new solution needs a distinct purpose, competing alternatives and lasting existence (`docs/explanation/extend-before-adding-a-solution.md`).
+- **Extend before adding a solution.** A new behaviour is first a case, a metric stage, an arm or a flow step of an existing solution; a new solution needs a distinct purpose, competing alternatives and lasting existence (`docs/explanation/extend-before-adding-a-solution.md`). In this repository a new top-level solution needs Joshua's approval: propose it as a decision.
 - **Adopters are examples only.** Name them in `examples/` and nowhere else, except that the generated `skill/` frames the author's own frameworks as its examples (a test enforces it). No adopter's
   configuration, plugin or migration code lives here.
 - **This repository is public.** No keys, real user or team ids, real people's emails, internal names, or absolute machine
