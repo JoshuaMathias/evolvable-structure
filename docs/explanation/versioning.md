@@ -17,7 +17,13 @@ what a repository must do. A major bump removes or renames something an adopter 
 Each `CHANGELOG.md` release section opens with the skill commit its template came from and the template version, so a
 reader can tell which wording of ESOI a release carries. `## Unreleased` collects entries until a release; releasing means
 renaming it to the version, adding that opening line, bumping `pyproject.toml` and `__version__` in the same commit, and
-starting a new empty `## Unreleased`. Tagging and publishing are separate decisions of the library's owner.
+starting a new empty `## Unreleased`. Tagging is a separate decision of the library's owner, and the tag is what publishes:
+pushing the tag `v<version>` (`git tag v0.7.0 && git push origin v0.7.0`) runs `.github/workflows/publish.yml`, which
+refuses a tag that is not the package version, builds and checks the package, and uploads it to
+[PyPI](https://pypi.org/project/esoi/). It runs on version tags only. PyPI trusts that workflow directly (Trusted
+Publishing), so no token is kept in the repository or on a machine. A PyPI version can never be changed or uploaded again,
+so a correction is a new version; 0.6.1 (the 0.6.0 code with a corrected README) was uploaded by hand before the workflow
+existed, so the next release is numbered above it.
 
 ### What a feature that adds record files changes for an adopter
 

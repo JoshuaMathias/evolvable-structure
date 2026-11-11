@@ -46,6 +46,8 @@ The main feature is explanation and templates that need no code; the `esoi` Pyth
   configuration, plugin or migration code lives here.
 - **This repository is public.** No keys, real user or team ids, real people's emails, internal names, or absolute machine
   paths in code, docs, tests or history. `esoi hygiene --history` checks.
+- **A release reaches PyPI by its tag.** Pushing `v<version>` runs `.github/workflows/publish.yml` (tags only); the steps
+  are in `docs/explanation/versioning.md`. Never upload by hand, and tag or push only when Joshua asks.
 - **No em dashes** anywhere, and no underscore-prefixed names in Python (dunders are fine).
 - **ESOI applies here too.** Before committing: `esoi check` from the repository root (it reads `esoi.toml`; `pip install -e implementations/python` first), and
   the tests: `python -m pytest implementations/python/tests` (offline). A new part of the Python package belongs to a

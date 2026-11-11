@@ -1,0 +1,39 @@
+# Publishes the esoi package to PyPI when a version tag (v0.7.0) is pushed. It runs on tags only, never on an ordinary push.
+# PyPI trusts this workflow directly (Trusted Publishing), so no token is stored anywhere.
+name: Publish to PyPI
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: The tag is the package version
+        run: |
+          python - <<'PY'
+          import os, sys, tomllib
+          version = tomllib.load(open("implementations/python/pyproject.toml", "rb"))["project"]["version"]
+          tag = os.environ["GITHUB_REF_NAME"].removeprefix("v")
+          if tag != version:
+              sys.exit(f"tag {tag} is not the package version {version}: raise the version in pyproject.toml and esoi/__init__.py, then tag")
+          PY
+      - name: Build and check
+        run: |
+          python -m pip install build twine
+          python -m build implementations/python
+          python -m twine check implementations/python/dist/*
+          python -m pip install implementations/python/dist/*.whl
+          cd / && esoi --version
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: implementations/python/dist
