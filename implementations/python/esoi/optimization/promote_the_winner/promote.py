@@ -205,6 +205,7 @@ class Choice:
     via_cascade: bool
     claim_policy: switching_policy.Policy
     fraction: float
+    why: str = ""   # the lead requirement's phrase when the cascade's stage declares one
 
 
 def pick_rows(arms: Dict[str, List[Row]], per_case: Dict, fraction: float) -> Dict[str, List[Row]]:
@@ -218,15 +219,15 @@ def pick_rows(arms: Dict[str, List[Row]], per_case: Dict, fraction: float) -> Di
 def cascade_choice(subject: Subject, via: tuple, pick_policy: switching_policy.Policy,
                    claim_policy: switching_policy.Policy) -> Optional[Choice]:
     """The cascade's leader as a choice, when switching to it takes a shown (or allowed guessed) gain."""
-    winner, pair = via
+    winner, pair, decision = via
     if winner is None:
         return None
-    if pair is not None:   # a cascade names the leader at its latest stage; switching still takes a shown (or allowed guessed) gain
-        current = subject.current
+    if pair is not None and not decision.required:   # a cascade names the leader at its latest stage; switching still takes a shown (or allowed guessed) gain
+        current = subject.current                      # (a stage with a lead requirement has already asked for its own lead, and may pick a cheaper arm)
         shown = rival_decisions.decisions({current: pair[0], winner: pair[1]}, current, subject.config.evaluation, None, subject.per_case, pick_policy)
         if not any(d.outcome == "rival" and d.switch for d in shown):
             return None
-    return Choice(winner, pair, True, claim_policy, claim_policy.holdout)
+    return Choice(winner, pair, True, claim_policy, claim_policy.holdout, decision.why)
 
 
 def pick_winner(subject: Subject, claim_policy: switching_policy.Policy) -> Optional[Choice]:
@@ -309,6 +310,7 @@ def judge_choice(subject: Subject, choice: Choice) -> Proposal:
         return proposal
     proposal.selected = selected
     own, rival, reason = claim_evidence(subject, choice, own, rival, chosen_on)
+    reason = "; ".join(x for x in (reason, choice.why) if x)
     proposal.selected_by = (cascade_evidence if choice.via_cascade else evidence)(own, rival, current, winner, today, reason)
     return finish_switch(proposal, solution, selected)
 

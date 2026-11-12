@@ -21,6 +21,12 @@ the condition for moving on, joined by `` | ``::
 * A stage named ``public`` (with ``real=no``; ``when`` is free text) stands for public evidence others measured
   (``esoi.optimization.when_metrics_are_run.public_evidence.evidence_grading``). It claims no results row, is never the stage a choice rests on, needs no gate, and is satisfied for an
   implementation when evidence rows exist for it and grade at least C. It never replaces our own first-stage result.
+* ``requires``: ``<component>[:<floor>[:<runs>]]``, several joined by commas: at the stage the choice rests on an arm is selectable only with a
+  counting result of that component (another metric's cases, or this one's) with that many repeated runs and a pooled pass rate at or above the floor.
+  A requirement nobody has the runs for yet is skipped.
+* ``lead``, ``lead-on``, ``tie-break``: what lead a challenger needs over the selected arm at this stage (``any`` by default, ``margin:<x>``,
+  ``significant:<alpha>``), for the whole metric or for a named part, and how arms whose lead is not shown are told apart (``esoi.optimization.leaderboard.lead_requirement``).
+  The stage the choice rests on (the latest run) decides which requirement applies.
 * ``max-age-days``: a result older than this has expired. ``when``: any other condition, for a person or an AI to judge;
   it is reported, never evaluated. Its text cannot contain ` > `, ` | ` or ``]``.
 * ``kind=idea`` (with ``scale``): a stage that needs no implementation. Qualitative questions about an idea are answered and
@@ -62,12 +68,13 @@ import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
+from esoi.optimization.leaderboard.lead_requirement import Requirement, build_requirement
 from esoi.optimization.leaderboard.results_log import Row
 
 
 SEPARATOR, PAIR_SEPARATOR = " > ", " | "
 PUBLIC_STAGE = "public"
-KEYS = ("sample", "real", "gate", "min-pass-rate", "max-age-days", "when", "kind", "scale", "inherits")
+KEYS = ("sample", "real", "gate", "min-pass-rate", "max-age-days", "when", "kind", "scale", "inherits", "lead", "lead-on", "tie-break", "requires")
 IDEA_KIND = "idea"
 KINDS = (IDEA_KIND,)
 EXPIRATION = re.compile(r"^\s*(?:(never)|(\d+)\s*days?)\s*\.?\s*$", re.I)
@@ -90,6 +97,7 @@ class Stage:
     kind: str = ""
     scale: str = ""
     inherits: str = ""
+    requirement: Requirement = Requirement()
 
     @property
     def inherited(self) -> bool:
@@ -221,7 +229,9 @@ def build(name: str, values: Dict[str, str]) -> Tuple[Stage, List[str]]:
         gate = ""
     floor, age = pass_floor(values, problems), max_age(values, problems)
     kind = stage_kind(values, problems)
-    return Stage(name, sample, real, gate, floor, age, values.get("when", ""), kind, values.get("scale", ""), values.get("inherits", "")), problems
+    required, bad = build_requirement(values)
+    problems.extend(bad)
+    return Stage(name, sample, real, gate, floor, age, values.get("when", ""), kind, values.get("scale", ""), values.get("inherits", ""), required), problems
 
 
 def parse_expiration(text: str) -> Tuple[Optional[int], str]:

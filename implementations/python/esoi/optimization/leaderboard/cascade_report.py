@@ -9,7 +9,7 @@ from esoi.optimization.leaderboard import arm_selection, inherited_gate, results
 from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import stale_reason
 from esoi.optimization.leaderboard.results_log import Row
 from esoi.optimization.leaderboard.cascade_stages import Stage, expectation_notes, load_stages
-from esoi.optimization.leaderboard.stage_standings import decide, next_stage, standings
+from esoi.optimization.leaderboard.stage_standings import decision_for, next_stage
 
 
 def run_command(component: str, impl: str, stage: Stage) -> str:
@@ -48,19 +48,21 @@ def public_lines(config, registry, solution_id: str, graded, stages: List[Stage]
                 say(f"      to settle it: {estimate.settle}")
 
 
-def report_standings(config, stages, standing, component: str, chosen: str, say: Callable[[str], None]) -> int:
-    """Print each implementation's result per stage and the cascade's choice; returns 1 when the choice differs from the selected one."""
+def report_standings(config, stages, standing, decision, chosen: str, say: Callable[[str], None]) -> int:
+    """Print each implementation's result per stage and the cascade's choice (``decision``, with the phrase saying why it stands when the stage
+    declares a lead requirement); returns 1 when the choice differs from the selected one."""
     for impl, s in sorted(standing.items()):
         say(f"  {impl}: " + "; ".join(f"{stage.name} {describe(s.rows.get(i))}"
                                        + (f" (expired: {s.expired[i][1]})" if i in s.expired else "")
                                        for i, stage in enumerate(stages) if not stage.unrun))
-    decision = decide(stages, standing, config.evaluation)
     for note in decision.notes:
         say(f"  note: {note}")
     if not decision.winner:
         return 0
     say(f"  chosen by the cascade: {decision.winner} (latest stage run: {stages[decision.stage].name}; "
         f"selected in the records: {chosen or 'none'})")
+    if decision.why:
+        say(f"  why it stands: {decision.why}")
     return int(bool(chosen and chosen != decision.winner))
 
 
@@ -112,8 +114,8 @@ def report_metric(run: CascadeRun, metric: dict, stages, errors, owners: List[st
     if not stages or not component or component not in history:
         say("  no results yet: every stage is not run" if stages else "  fix the list to read it")
         return 0
-    standing = standings(stages, history[component], run.today, lambda row: stale_reason(config, component, row, True), config.evaluation)
-    behind = report_standings(config, stages, standing, component, chosen, say)
+    standing, decision = decision_for(config, component, stages, history[component], lambda row: stale_reason(config, component, row, True), run.today, chosen)
+    behind = report_standings(config, stages, standing, decision, chosen, say)
     report_next_stages(config, stages, standing, component, chosen, say)
     return behind
 

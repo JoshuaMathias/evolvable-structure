@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
 
-from esoi.optimization.leaderboard import arm_kinds, case_identity, ranking
+from esoi.optimization.leaderboard import arm_kinds, case_identity, lead_requirement, ranking
 from esoi.optimization.leaderboard import results_log
 from esoi.optimization.leaderboard.results_log import Row
 from esoi.optimization.leaderboard.cascade_stages import Stage, load_stages
@@ -155,6 +155,9 @@ class Decision:
     leader: str = ""                 # the best result at that stage
     pending: List[str] = field(default_factory=list)   # held in place until run at `stage`
     notes: List[str] = field(default_factory=list)
+    why: str = ""                    # the short phrase saying why the winner stands, when the deciding stage declares a lead requirement
+    required: bool = False           # the deciding stage declares a lead requirement, so a winner below the leader on the point estimate is meant
+    contenders: List[str] = field(default_factory=list)   # arms whose lead the leader did not show, best first
 
 
 def held_in_place(counting: Dict[str, "Standing"], latest: int, leader: str) -> Dict[str, Row]:
@@ -170,24 +173,77 @@ def held_in_place(counting: Dict[str, "Standing"], latest: int, leader: str) -> 
     return held
 
 
-def decide(stages: List[Stage], standing: Dict[str, Standing], eval_dir: Optional[Path] = None) -> Decision:
-    """The implementation downstream users take (see the module docstring)."""
+def part_rows(parts: Optional[Dict[str, Dict[str, "Standing"]]], names: List[str], stage: int) -> Dict[str, Dict[str, Row]]:
+    """``{part: {impl: its pooled row at the stage}}`` for the named parts of the cases, from each part's standings."""
+    return {name: {impl: s.rows[stage] for impl, s in (parts or {}).get(name, {}).items() if stage in s.rows} for name in names}
+
+
+def decision_for(config, component: str, stages: List[Stage], history: Dict[str, List[Row]], stale: Callable[[Row], str],
+                 today: Optional[datetime.date] = None, incumbent: str = "",
+                 others_stale: Optional[Callable[[str], Callable[[Row], str]]] = None) -> Tuple[Dict[str, "Standing"], Decision]:
+    """``(standings, decision)`` of a metric's cascade over a component's results history: the one entry the check (S10, S33), ``esoi cascade``,
+    the leaderboard and ``esoi select`` all use. When a stage names parts in ``lead-on``, each part's rows are the derived slice rows of the
+    circumstance of that name, read as whole runs and pooled the same way. A stage that ``requires`` other components reads their results from the
+    same log, their rows judged by ``others_stale(component)`` (default: the staleness test of that component). ``incumbent`` is the selected arm."""
+    standing = standings(stages, history, today, stale, config.evaluation)
+    others: Dict[str, Dict[str, Standing]] = {}
+    for name in sorted({n for s in stages for n in s.requirement.required_components}):
+        if name == component:
+            others[name] = standing
+            continue
+        if others_stale is None:
+            from esoi.optimization.when_metrics_are_run.know_what_a_result_measures.interface import stale_reason
+            judge = lambda row, c=name: stale_reason(config, c, row, True)
+        else:
+            judge = others_stale(name)
+        others[name] = standings(stages, results_log.all_results(config.results_path).get(name, {}), today, judge, config.evaluation)
+    names = sorted({n for s in stages for n in s.requirement.part_names})
+    parts: Dict[str, Dict[str, Standing]] = {}
+    if names:
+        found = results_log.slice_results(config.results_path).get(component, {})
+        for name in names:
+            parts[name] = standings(stages, {impl: [results_log.as_whole(r) for r in rows] for impl, rows in found.get(name, {}).items()},
+                                    today, stale, config.evaluation)
+    return standing, decide(stages, standing, config.evaluation, incumbent, parts, others)
+
+
+def decide(stages: List[Stage], standing: Dict[str, Standing], eval_dir: Optional[Path] = None, incumbent: str = "",
+           parts: Optional[Dict[str, Dict[str, "Standing"]]] = None, others: Optional[Dict[str, Dict[str, "Standing"]]] = None) -> Decision:
+    """The implementation downstream users take (see the module docstring). When the stage the choice rests on declares a lead requirement
+    (``lead_requirement``), the leader replaces the others only with the lead it asks for; arms it has no shown lead over are contenders, which the
+    stage's tie-break orders, and with no tie-break the ``incumbent`` (the selected arm) stays when it is one. ``parts`` holds the standings of each
+    named part of the cases and ``others`` those of the other components a stage ``requires`` (an arm lacking them is not selectable). A stage with no
+    requirement decides as before."""
     counting = {impl: s for impl, s in standing.items() if s.rows}
     if not counting:
         return Decision(notes=["no stage has a counting result, so nothing is chosen by the metric"])
     latest = max(s.reached for s in counting.values())
     at_latest = {impl: s.rows[latest] for impl, s in counting.items() if latest in s.rows}
+    requirement = stages[latest].requirement
+    notes: List[str] = []
+    if requirement.requires:   # an arm without the results another component asks for is not selectable (``lead_requirement.unmet``)
+        found = {c: {impl: s.rows[latest] for impl, s in (others or {}).get(c, {}).items() if latest in s.rows} for c in requirement.required_components}
+        blocked = {impl: why for impl in sorted(at_latest) if (why := lead_requirement.unmet(requirement, impl, found))}
+        notes += [f"{impl} is not selectable at {stages[latest].name}: {why}" for impl, why in blocked.items()]
+        counting = {impl: s for impl, s in counting.items() if impl not in blocked}
+        at_latest = {impl: row for impl, row in at_latest.items() if impl not in blocked}
+        if not at_latest:
+            return Decision(stage=latest, notes=notes + [f"no arm meets what the {stages[latest].name} stage requires"], required=True)
     reference = case_identity.largest_run(at_latest)
-    notes = [f"{impl} was scored at {stages[latest].name} on other cases or a different sample than {reference['impl']}, "
-             "so it is not compared" for impl, r in sorted(at_latest.items()) if not case_identity.comparable(r, reference)]
+    notes += [f"{impl} was scored at {stages[latest].name} on other cases or a different sample than {reference['impl']}, "
+              "so it is not compared" for impl, r in sorted(at_latest.items()) if not case_identity.comparable(r, reference)]
     ranked = ranking.rank(case_identity.comparable_with(at_latest, reference))
     leader = ranked[0]["impl"]
+    choice = lead_requirement.Choice(leader)
+    if requirement.declared:
+        choice = lead_requirement.choose(requirement, case_identity.comparable_with(at_latest, reference), leader, incumbent,
+                                         part_rows(parts, requirement.part_names, latest))
     held = held_in_place(counting, latest, leader)
-    winner = ranking.rank(held)[0]["impl"] if held else leader
+    winner = ranking.rank(held)[0]["impl"] if held else choice.winner
     if held:
         notes.append(f"{', '.join(sorted(held))} scored higher than {leader} at an earlier stage and has not been run at "
                      f"{stages[latest].name}; run it there to settle which is better")
-    return Decision(winner, latest, leader, sorted(held), notes)
+    return Decision(winner, latest, leader, sorted(held), notes, "" if held else choice.why, requirement.declared, choice.contenders)
 
 
 def gate_met(stage: Stage, row: Row, selected_row: Optional[Row], eval_dir: Optional[Path] = None) -> Tuple[bool, str]:
@@ -236,10 +292,10 @@ def shared_pair(stages: List[Stage], standing: Dict[str, Standing], first: str, 
 
 
 def solution_choice(config, registry, solution: Row, component: str, current: str, history: Dict[str, List[Row]],
-                    stale: Callable, today: Optional[datetime.date] = None) -> Optional[Tuple[Optional[str], Optional[Tuple[Row, Row]]]]:
+                    stale: Callable, today: Optional[datetime.date] = None) -> Optional[tuple]:
     """What the cascade says about a solution's selected arm ``current``, or ``None`` when no linked metric has a readable
-    cascade with counting results (the plain comparison then applies). ``(None, None)`` means the selected arm stays;
-    otherwise ``(winner, (current's row, winner's row) at their latest shared stage or None)``. ``stale`` is
+    cascade with counting results (the plain comparison then applies). ``(None, None, decision)`` means the selected arm stays;
+    otherwise ``(winner, (current's row, winner's row) at their latest shared stage or None, the Decision)``. ``stale`` is
     ``stale_reasons.stale_reason``."""
     from esoi.structure.intent_registry.tables import ids
     by_id = {m.get("metric_id", ""): m for m in registry.metrics}
@@ -251,10 +307,9 @@ def solution_choice(config, registry, solution: Row, component: str, current: st
             break
     if not stages:
         return None
-    standing = standings(stages, history, today, lambda row: stale(config, component, row, True), config.evaluation)
-    decision = decide(stages, standing, config.evaluation)
+    standing, decision = decision_for(config, component, stages, history, lambda row: stale(config, component, row, True), today, current)
     if not decision.winner:
         return None
     if decision.winner == current:
-        return None, None
-    return decision.winner, shared_pair(stages, standing, current, decision.winner)
+        return None, None, decision
+    return decision.winner, shared_pair(stages, standing, current, decision.winner), decision

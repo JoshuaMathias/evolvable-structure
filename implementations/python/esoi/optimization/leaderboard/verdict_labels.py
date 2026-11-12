@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Tuple
 
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.registry import Registry
+from esoi.optimization.leaderboard import declared_choice
 from esoi.optimization.leaderboard.arm_selection import selected_arm
 from esoi.optimization.leaderboard.results_log import Row, Rows, all_results, as_whole, latest_by_impl, per_case_rows
 from esoi.optimization.leaderboard.rival_decisions import best_guess, decisions
@@ -77,6 +78,10 @@ def solution_verdict(config: Config, row: Row, results: Dict[str, Rows], history
     comp, impl = selected_arm(config, row, "", registry)
     if not comp:
         return dict(verdict="UNMEASURED", detail="no harness metric", component="", selected_by=row.get("selected_by", ""))
+    declared = declared_choice.declared_decision(config, registry, comp, (history or {}).get(comp, {}), impl) if registry and impl in results.get(comp, {}) else None
+    if declared is not None:   # the metric's stage declares what lead a challenger needs: its decision is the verdict, as in S10 and `esoi select`
+        label = "LOSS" if declared.winner != impl else ("TIE" if declared.contenders else "WIN")
+        return dict(verdict=label, detail=(f"beaten by {declared.winner}: " if label == "LOSS" else "") + declared.why, component=comp, selected_by=row.get("selected_by", ""))
     label, detail = verdict(results.get(comp, {}), impl, config.evaluation, (history or {}).get(comp), per_case,
                             policy_for(config, row["solution_id"], comp, per_case))
     return dict(verdict=label, detail=detail, component=comp, selected_by=row.get("selected_by", ""))

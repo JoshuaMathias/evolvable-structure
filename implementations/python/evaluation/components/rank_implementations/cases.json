@@ -2452,5 +2452,203 @@
    }
   },
   "note": "Added 2026-11-10."
+ },
+ {
+  "id": "RNK-058",
+  "kind": "lead",
+  "area": "a lead that is not significant leaves the cheaper arm per case selected",
+  "args": {
+   "cell": "lead=significant:0.05 | tie-break=cost_usd:low",
+   "rows": [
+    {
+     "impl": "lead",
+     "passed": 25,
+     "cases": 27,
+     "cost_usd": 5.0,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-01",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    },
+    {
+     "impl": "cheap",
+     "passed": 24,
+     "cases": 27,
+     "cost_usd": 1.0,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-01",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    }
+   ],
+   "selected": "lead"
+  },
+  "expect": {
+   "eq": {
+    "winner": "cheap",
+    "why": "lead 25/27 vs 24/27 not significant at 0.05; cheap cheaper per case",
+    "contenders": [
+     "lead",
+     "cheap"
+    ]
+   }
+  },
+  "note": "Added 2026-11-12."
+ },
+ {
+  "id": "RNK-059",
+  "kind": "lead",
+  "area": "a significant lead wins whatever the cost",
+  "args": {
+   "cell": "lead=significant:0.05 | tie-break=cost_usd:low",
+   "rows": [
+    {
+     "impl": "lead",
+     "passed": 9,
+     "cases": 9,
+     "cost_usd": 5.0,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-01",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    },
+    {
+     "impl": "cheap",
+     "passed": 3,
+     "cases": 9,
+     "cost_usd": 0.1,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-01",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    }
+   ],
+   "selected": "cheap"
+  },
+  "expect": {
+   "eq": {
+    "winner": "lead",
+    "contenders": []
+   }
+  },
+  "note": "Added 2026-11-12."
+ },
+ {
+  "id": "RNK-060",
+  "kind": "lead",
+  "area": "with no tie-break the selected arm stays until the lead is shown",
+  "args": {
+   "cell": "lead=margin:0.2",
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 9,
+     "cases": 10,
+     "cost_usd": 1.0,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-01",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    },
+    {
+     "impl": "b",
+     "passed": 8,
+     "cases": 10,
+     "cost_usd": 1.0,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-01",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    }
+   ],
+   "selected": "b"
+  },
+  "expect": {
+   "eq": {
+    "winner": "b"
+   }
+  },
+  "note": "Added 2026-11-12."
+ },
+ {
+  "id": "RNK-061",
+  "kind": "lead",
+  "area": "a part carries its own requirement: a lead on the whole set is not enough when the part's lead is not shown",
+  "args": {
+   "cell": "lead=margin:0.1 | lead-on=code:significant:0.05",
+   "rows": [
+    {
+     "impl": "a",
+     "passed": 9,
+     "cases": 9,
+     "cost_usd": 1.0,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-01",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    },
+    {
+     "impl": "b",
+     "passed": 3,
+     "cases": 9,
+     "cost_usd": 1.0,
+     "cases_sha": "x",
+     "git_sha": "c1",
+     "date": "2026-11-01",
+     "model_calls": 3,
+     "model": "m",
+     "balanced": ""
+    }
+   ],
+   "selected": "b",
+   "parts": {
+    "code": {
+     "a": {
+      "impl": "a",
+      "passed": 5,
+      "cases": 6,
+      "cost_usd": 1.0,
+      "cases_sha": "x",
+      "git_sha": "c1",
+      "date": "2026-11-01",
+      "model_calls": 3,
+      "model": "m",
+      "balanced": ""
+     },
+     "b": {
+      "impl": "b",
+      "passed": 4,
+      "cases": 6,
+      "cost_usd": 1.0,
+      "cases_sha": "x",
+      "git_sha": "c1",
+      "date": "2026-11-01",
+      "model_calls": 3,
+      "model": "m",
+      "balanced": ""
+     }
+    }
+   }
+  },
+  "expect": {
+   "eq": {
+    "winner": "b"
+   }
+  },
+  "note": "Added 2026-11-12."
  }
 ]

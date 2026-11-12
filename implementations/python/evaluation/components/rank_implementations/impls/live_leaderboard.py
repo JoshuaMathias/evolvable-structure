@@ -64,7 +64,20 @@ def pooled(args):
             "passed": {i: int(r.get("passed_total") or r["passed"]) for i, r in found.items()}}
 
 
-KINDS = {"rank": rank, "verdict": verdict, "board": board, "pooled": pooled}
+def lead(args):
+    """The cascade's choice when its stage declares a lead requirement (``cell``: the stage's keys), over each arm's whole-run rows; ``selected`` is the incumbent."""
+    stages, _ = cascade_stages.parse(f"whole [sample=full | real=yes | {args['cell']}]")
+    history = {}
+    for r in sorted(args["rows"], key=lambda r: r["date"]):
+        history.setdefault(r["impl"], []).append({"component": "mini", "seconds": "", **r})
+    standing = stage_standings.standings(stages, history, None, lambda row: "")
+    parts = {name: stage_standings.standings(stages, {i: [{"component": "mini", "date": "2026-11-01", **r}] for i, r in found.items()}, None, lambda row: "")
+             for name, found in args.get("parts", {}).items()}
+    found = stage_standings.decide(stages, standing, None, args.get("selected", ""), parts)
+    return {"winner": found.winner, "why": found.why, "contenders": found.contenders}
+
+
+KINDS = {"rank": rank, "verdict": verdict, "board": board, "pooled": pooled, "lead": lead}
 
 
 def build(meter):

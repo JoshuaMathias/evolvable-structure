@@ -17,5 +17,8 @@ Kinds and the dict an implementation returns:
   pooled    args {rows: [{impl, passed, cases, cost_usd, cases_sha, git_sha, date, ...}]}
             -> {"winner": impl the cascade chooses, "runs": {impl: runs pooled}, "passed": {impl: passed cases over the pooled runs}}
             (repeated runs of one arm on the same cases and the same commit are one result; a run on uncommitted code or another commit is not pooled)
+  lead      args {cell: a stage's lead, lead-on and tie-break keys, rows: [whole-run rows], selected, parts?: {part: {impl: row}}}
+            -> {"winner": impl the stage lets stand, "why": the short phrase, "contenders": arms whose lead was not shown}
+            (the leader replaces the others only with the lead the stage declares; arms without it are told apart by the tie-break, else the selected arm stays)
 An implementation module in ``impls/`` exposes ``build(meter) -> rank``. No implementation here calls a model.
 """

@@ -157,6 +157,29 @@ A stage with `kind=idea` and a `scale` needs no implementation: qualitative ques
 a number by ratings or weights, and `scale` says where the meaning of every rating value is written. It evaluates ideas before
 anything is built; like `public` it claims no results row and needs no gate.
 
+### What lead a challenger needs
+
+By default the highest result at the stage the choice rests on wins, however small its lead. A stage may declare the lead a
+challenger needs instead, with three more keys in the same `[key=value | key=value]` brackets (no record field is added, and a
+stage without them behaves as before):
+
+```
+whole [sample=full | real=yes | lead=significant:0.05 | lead-on=code:margin:0.1 | tie-break=cost_usd:low,seconds:low]
+```
+
+| Key | Value | Meaning |
+|---|---|---|
+| `lead` | `any` (default), `margin:<x>`, `significant:<alpha>`, joined by `+` when all must hold | What the arm with the highest result needs over another arm to beat it. `margin:<x>` is an absolute difference in the stage's score (the balanced score, else the pass rate). `significant:<alpha>` needs a higher pass rate and a two-sided exact Fisher test on the pooled pass and fail counts below `alpha`; the counts are the sums over the arm's repeated runs of the same cases and commit, so repeats add evidence. Standard library only. |
+| `lead-on` | `<part>:<requirement>`, several joined by `,` | The same requirement scoped to a part of the cases, which must also hold. A part is a circumstance of the project (`circumstances.csv`: a filter on a case's kind, tag or any other field of a case), whose derived rows the harness already records for every run, so a part's counts are pooled the same way. An arm with no recorded rows for the part has not shown its lead there. Rule S32 reports a part that is not a circumstance of the component. |
+| `tie-break` | `<field>:<low\|high>`, several joined by `,` | Used when the leader's lead is not shown over some arms. The leader and those arms are contenders, and the one best on the first field per case wins, then the next. A field is `cost_usd`, `seconds`, `model_calls`, `tokens_in` or `tokens_out`, divided by the cases of a run; a figure the row does not record is never read as zero and sorts last. With no tie-break the selected arm stays when it is a contender (the conservative choice), else the leader is chosen. |
+| `requires` | `<component>[:<floor>[:<runs>]]`, several joined by `,` | Gates the stage on other components' recorded rows (another metric's cases, or this one's). An arm is selectable only with a counting result of each named component that has at least `runs` repeated runs and a pooled pass rate of at least `floor` (a blank floor asks for runs only). While no arm has the runs yet the requirement is skipped, so a measurement nobody has made yet blocks nobody. |
+
+The metric as a whole is judged by its deciding stage, the latest stage that has a counting result, so the requirement on that
+stage is the one that applies. One function (`stage_standings.decide`, reached through `decision_for`) makes the choice for rule
+S10, rule S33, `esoi cascade`, `esoi leaderboard` and `esoi select`, so they cannot disagree, and each says in a short phrase why the
+selected arm stands, for example `lead 25/27 vs 24/27 not significant at 0.05; b cheaper per case`. The choice is not transitive in
+general: contenders are the arms the leader has no shown lead over, not arms that tie with each other.
+
 ### Expiration
 
 A metric's optional `expiration` field answers "when do metrics need to be rerun?": `never` (the default when nothing is set) or

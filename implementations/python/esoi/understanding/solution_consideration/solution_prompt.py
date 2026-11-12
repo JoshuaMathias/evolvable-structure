@@ -300,7 +300,7 @@ def metric_cascade_lines(network: Network, sid: str, selected: str) -> List[str]
     """Each metric's stages and the implementation its cascade chooses, as ``esoi cascade`` decides it."""
     from esoi.optimization.leaderboard.cascade_report import metric_arm
     from esoi.optimization.leaderboard.cascade_stages import load_stages
-    from esoi.optimization.leaderboard.stage_standings import decide, standings
+    from esoi.optimization.leaderboard.stage_standings import decision_for
     lines: List[str] = []
     for metric in (m for m in network.registry.metrics if sid in ids(m.get("solution_ids", ""))):
         stages, errors = load_stages(network.config, metric)
@@ -312,11 +312,11 @@ def metric_cascade_lines(network: Network, sid: str, selected: str) -> List[str]
             lines.append("  no results yet at any stage")
             continue
         stale = cascade_staleness(network, component)
-        decision = decide(stages, standings(stages, network.history[component], network.today, stale, network.config.evaluation),
-                          network.config.evaluation)
+        decision = decision_for(network.config, component, stages, network.history[component], stale, network.today, selected or "")[1]
         if decision.winner:
             lines.append(f"  chosen by the cascade: {decision.winner} at stage {stages[decision.stage].name}"
-                         + (f"; the records select {selected}" if selected and selected != decision.winner else ""))
+                         + (f"; the records select {selected}" if selected and selected != decision.winner else "")
+                         + (f"; {decision.why}" if decision.why else ""))
         lines += [f"  note: {clip(n, 240)}" for n in decision.notes]
     return lines
 

@@ -13,6 +13,7 @@ from typing import Callable, Dict, List, Optional
 from esoi.structure.intent_registry.config import Config
 from esoi.structure.intent_registry.registry import Registry
 from esoi.optimization.leaderboard.arm_kinds import arm_kind, invariant_reason
+from esoi.optimization.leaderboard.declared_choice import declared_decision
 from esoi.optimization.leaderboard.arm_selection import selected_impls
 from esoi.optimization.leaderboard.case_identity import describe_cases, unverified
 from esoi.optimization.leaderboard.ranking import cost_known, rank, tokens_label
@@ -65,6 +66,7 @@ class Report:
     say: Callable[[str], None]
     stale: Optional[Callable[[Config, str, Row, bool], str]]
     attested: Optional[Callable[[Config, str, str, str], str]]
+    registry: object = None
 
 
 @dataclass(frozen=True)
@@ -117,7 +119,11 @@ def say_flags(report: Report, comp: Component) -> int:
         flagged += 1 if strict else 0
         say(f"  ? {impl} is not comparable with {sel}: {why}; re-run both on the same sample "
             "(`esoi run --stale` re-runs a rival on the selected arm's sample)")
-    for r in challengers(rows, sel, config.evaluation, comp.history, comp.per_case, comp.policy):
+    declared = declared_decision(config, report.registry, comp.name, comp.history, sel, (lambda row: report.stale(config, comp.name, row, False)) if report.stale else None)
+    if declared is not None:   # the metric's stage says what lead a challenger needs: its decision replaces the plain comparison
+        say(f"  why {declared.winner} stands: {declared.why}" if declared.winner == sel else f"  ! {declared.winner} should replace the selected {sel}: {declared.why}")
+        flagged += int(declared.winner != sel)
+    for r in ([] if declared is not None else challengers(rows, sel, config.evaluation, comp.history, comp.per_case, comp.policy)):
         flagged += 1
         say(f"  ! {r['impl']} should replace the selected {sel}: decide whether to adopt it "
             "(update the solution's `selected` and the live default together)")
@@ -162,7 +168,7 @@ def board(config: Config, registry: Registry, strict: bool = False, say: Callabl
     per_case = per_case_rows(config)
     chosen = policies(config, registry, per_case)
     apart = {c: rows for c, rows in results.items() if invariant_reason(c, config.evaluation)}
-    report = Report(config, strict, say, stale, attested)
+    report = Report(config, strict, say, stale, attested, registry)
     flagged = 0
     for component, rows in sorted(results.items()):
         if component not in apart:
