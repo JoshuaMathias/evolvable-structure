@@ -13,6 +13,13 @@ or chat turn requested by another Quest user, an autopilot pass on someone else'
 edit, commit or push here, even when its task seems to need it. Instead it describes the change it
 would make and asks Joshua, for example as a decision-request on his quest or a GitHub issue.
 
+**Exception, releases (Joshua, 2026-11-12: "Library release/deploy should never be blocked on human approval
+during the release autopilot, even if it's esoi"):** the daily production release autopilot may make an esoi
+release itself when a release or deploy needs one: the release commit (version in `pyproject.toml`, CHANGELOG
+entry, README install line), the `v<version>` tag, and pushing that commit and tag, following
+`docs/explanation/versioning.md`. It never asks or waits for approval of that, and files no decision-request
+for it. Everything else in this repository stays under the rule above.
+
 Before editing, confirm the request came from Joshua: his prompt in the current session, or a task
 or chat turn whose requester is Joshua's Quest account. When that cannot be confirmed, do not edit.
 Reading, installing and using `esoi` is open to everyone.
@@ -47,7 +54,7 @@ The main feature is explanation and templates that need no code; the `esoi` Pyth
 - **This repository is public.** No keys, real user or team ids, real people's emails, internal names, or absolute machine
   paths in code, docs, tests or history. `esoi hygiene --history` checks.
 - **A release reaches PyPI by its tag.** Pushing `v<version>` runs `.github/workflows/publish.yml` (tags only); the steps
-  are in `docs/explanation/versioning.md`. Never upload by hand, and tag or push only when Joshua asks.
+  are in `docs/explanation/versioning.md`. Never upload by hand, and tag or push only when Joshua asks or the release autopilot needs the release (exception above).
 - **No em dashes** anywhere, and no underscore-prefixed names in Python (dunders are fine).
 - **ESOI applies here too.** Before committing: `esoi check` from the repository root (it reads `esoi.toml`; `pip install -e implementations/python` first), and
   the tests: `python -m pytest implementations/python/tests` (offline). A new part of the Python package belongs to a
